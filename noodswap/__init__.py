@@ -1,0 +1,1 @@
+"""Noodswap bot package."""

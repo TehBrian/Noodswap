@@ -1,0 +1,15 @@
+"filename", "language", "Markdown", "Python", "comment", "blank", "total"
+"/Users/brian/stuff/dev/mine/discord-bots/Noodswap/README.md", "Markdown", 5, 0, 0, 0, 5
+"/Users/brian/stuff/dev/mine/discord-bots/Noodswap/docs/commands-and-ux.md", "Markdown", 21, 0, 0, 6, 27
+"/Users/brian/stuff/dev/mine/discord-bots/Noodswap/docs/data-model.md", "Markdown", 12, 0, 0, 4, 16
+"/Users/brian/stuff/dev/mine/discord-bots/Noodswap/noodswap/cards.py", "Python", 0, 72, 0, 17, 89
+"/Users/brian/stuff/dev/mine/discord-bots/Noodswap/noodswap/commands.py", "Python", 0, 138, 0, 36, 174
+"/Users/brian/stuff/dev/mine/discord-bots/Noodswap/noodswap/presentation.py", "Python", 0, 2, 1, -1, 2
+"/Users/brian/stuff/dev/mine/discord-bots/Noodswap/noodswap/storage.py", "Python", 0, 48, 30, 11, 89
+"/Users/brian/stuff/dev/mine/discord-bots/Noodswap/noodswap/views.py", "Python", 0, 81, 0, 14, 95
+"/Users/brian/stuff/dev/mine/discord-bots/Noodswap/scripts/migration_smoke.py", "Python", 0, 2, 0, 0, 2
+"/Users/brian/stuff/dev/mine/discord-bots/Noodswap/tests/test_cards.py", "Python", 0, 19, 0, 7, 26
+"/Users/brian/stuff/dev/mine/discord-bots/Noodswap/tests/test_commands.py", "Python", 0, 86, 0, 27, 113
+"/Users/brian/stuff/dev/mine/discord-bots/Noodswap/tests/test_storage.py", "Python", 0, 39, 0, 17, 56
+"/Users/brian/stuff/dev/mine/discord-bots/Noodswap/tests/test_views.py", "Python", 0, 21, 0, 6, 27
+"Total", "-", 38, 508, 31, 144, 721

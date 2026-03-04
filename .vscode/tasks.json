@@ -1,0 +1,32 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "check:migrations",
+			"type": "shell",
+			"command": "${workspaceFolder}/.venv/bin/python",
+			"args": [
+				"scripts/migration_smoke.py"
+			],
+			"group": "test"
+		},
+		{
+			"label": "check:quick",
+			"type": "shell",
+			"command": "${workspaceFolder}/.venv/bin/python -m py_compile bot.py noodswap/*.py scripts/*.py && ${workspaceFolder}/.venv/bin/python scripts/migration_smoke.py",
+			"group": "test"
+		},
+		{
+			"label": "check:tests",
+			"type": "shell",
+			"command": "${workspaceFolder}/.venv/bin/python -m unittest discover -s tests -p 'test_*.py'",
+			"group": "test"
+		},
+		{
+			"label": "check:all",
+			"type": "shell",
+			"command": "${workspaceFolder}/.venv/bin/python -m py_compile bot.py noodswap/*.py scripts/*.py tests/*.py && ${workspaceFolder}/.venv/bin/python scripts/migration_smoke.py && ${workspaceFolder}/.venv/bin/python -m unittest discover -s tests -p 'test_*.py'",
+			"group": "test"
+		}
+	]
+}

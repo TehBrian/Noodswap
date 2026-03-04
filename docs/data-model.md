@@ -1,0 +1,150 @@
+# Data Model
+
+This document describes persistent storage for Noodswap.
+
+## Database
+
+- Engine: SQLite
+- File location: repository root as `noodswap.db`
+- Access: through functions in `noodswap/storage.py`
+
+## Tables
+
+### players
+
+Primary key:
+- `(guild_id, user_id)`
+
+Columns:
+- `guild_id INTEGER NOT NULL`
+- `user_id INTEGER NOT NULL`
+- `dough INTEGER NOT NULL DEFAULT 0`
+- `last_pull_at REAL NOT NULL DEFAULT 0`
+- `married_card_id TEXT` (legacy compatibility)
+- `married_instance_id INTEGER` (current marriage reference)
+- `last_dropped_instance_id INTEGER` (default target for `burn` without args)
+
+Purpose:
+- Player economy and cooldown state in the global Noodswap scope
+- Marriage linkage to a specific owned card instance
+
+### card_instances
+
+Primary key:
+- `instance_id INTEGER PRIMARY KEY AUTOINCREMENT`
+
+Columns:
+- `instance_id`
+- `guild_id INTEGER NOT NULL`
+- `user_id INTEGER NOT NULL`
+- `card_id TEXT NOT NULL`
+- `generation INTEGER NOT NULL`
+- `dupe_code TEXT` (base36 dupe identifier, globally unique)
+
+Purpose:
+- Tracks each owned copy as a distinct instance
+- Stores generation per copy
+
+Indexes:
+- `idx_card_instances_owner(guild_id, user_id, card_id, generation)`
+- `idx_card_instances_dupe_code(dupe_code)` (unique where `dupe_code` is not null)
+
+### player_cards (legacy)
+
+This table may still exist and is used for migration compatibility.
+
+Columns:
+- `guild_id, user_id, card_id, quantity`
+
+Current logic uses `card_instances` for gameplay.
+
+### schema_migrations
+
+Columns:
+- `version INTEGER NOT NULL`
+
+Purpose:
+- Tracks the current applied DB schema version.
+- Maintained as a single-row table by `init_db()`.
+
+### wishlist_cards
+
+Primary key:
+- `(guild_id, user_id, card_id)`
+
+Columns:
+- `guild_id INTEGER NOT NULL`
+- `user_id INTEGER NOT NULL`
+- `card_id TEXT NOT NULL`
+
+Purpose:
+- Stores each player's wishlisted base card IDs in global scope
+- Supports `wish add/remove` command flows
+
+## Migration behavior
+
+`init_db()` performs versioned startup migration:
+
+1. Ensures `schema_migrations` exists and has one row.
+2. Reads current schema version.
+3. Applies ordered migrations up to `TARGET_SCHEMA_VERSION`.
+4. Updates stored `schema_migrations.version` after each migration step.
+
+Current migration set:
+- `v1`:
+	- Ensures core tables and indexes exist (`players`, `player_cards`, `card_instances`).
+	- Ensures `players.married_instance_id` and `players.last_dropped_instance_id` exist.
+	- If `card_instances` is empty, backfills from legacy `player_cards` by creating one generated instance per quantity.
+- `v2`:
+	- Adds `wishlist_cards` table and owner index.
+- `v3`:
+	- Adds `card_instances.dupe_code`.
+	- Backfills existing rows with sequential base36 ids per guild.
+	- Enforces unique per-guild dupe ids with `idx_card_instances_dupe_code`.
+- `v4`:
+	- Normalizes all persisted data into global scope (`guild_id = 0`).
+	- Merges per-user player rows across guilds into one global player row.
+	- Reassigns `dupe_code` globally across all instances using ascending base36.
+	- Enforces global `dupe_code` uniqueness.
+- `v5`:
+	- Renames legacy `card_instances.dupe_id` to `card_instances.dupe_code` for terminology consistency.
+	- Rebuilds duplicate-code uniqueness index as `idx_card_instances_dupe_code`.
+
+Notes:
+- Startup migration is in-code (`noodswap/storage.py`) and currently uses incremental version checks.
+- Existing DB files are upgraded in place when the bot starts.
+
+## Domain invariants
+
+1. Ownership is global (shared across all guilds).
+2. Ownership is instance-based (not quantity blob semantics).
+3. Lower generation means rarer copy.
+4. Marriage points to a specific instance (`married_instance_id`).
+5. Trade/burn/marry selection policies rely on generation ordering.
+
+## Identity terminology (critical)
+
+- BASE CARDS have IDS (catalog identity like `SPG`).
+- DUPE CARDS have CODES (owned-copy identity like `0`, `a`, `10`).
+- Never use base ID and dupe code interchangeably in UX, storage, or command args.
+
+## Selection policies
+
+- `marry <card_code>`: targets the exact referenced instance
+- `burn <card_code>`: targets the exact referenced instance
+- `trade <card_code>`: transfers the exact referenced instance
+- card code format is standalone base36 (`0-9a-z`) without card-id prefix
+- arg-less `marry` / `burn`: default to `last_dropped_instance_id`
+
+## Terminology (explicit)
+
+- DUPE CARDS have CODES (`dupe_code`, e.g. `0`, `a`, `10`).
+- BASE CARDS have IDS (`card_id`, e.g. `SPG`, `PEN`).
+- Treat these as different concepts in commands, storage, and documentation.
+
+## Operational caveats
+
+- SQLite writes are local and single-process oriented.
+- Critical multi-step writes use `BEGIN IMMEDIATE` to reduce race windows.
+- Connection lock wait is configured via `DB_LOCK_TIMEOUT_SECONDS` in `noodswap/settings.py`.
+- If adding high-frequency multi-step operations, use explicit transactions carefully.

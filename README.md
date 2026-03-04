@@ -1,0 +1,98 @@
+# Noodswap (Prototype)
+
+Early prototype Discord trading-card style bot using `discord.py`.
+
+## Quick start
+
+1. Create and activate a Python environment.
+2. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+3. Set your token:
+   - Copy `.env.example` to your own env setup, or export directly:
+   ```bash
+   export DISCORD_TOKEN=your-token
+   ```
+4. Run:
+   ```bash
+   python bot.py
+   ```
+
+### Discord developer portal requirements
+
+This bot uses privileged intents. Enable these for your application in Discord Developer Portal:
+
+- Message Content Intent
+- Server Members Intent
+
+## Commands (prefixes: `ns ` and short `n`)
+
+- `ns info [player]` / `ns i [player]` — show your stats or another player's stats (mention/username).
+- `ns collection [player]` / `ns c [player]` — show your collection or another player's collection (defaults to yourself).
+- `ns cards` / `ns ca` — show all available cards ranked by wishlist count (paginated).
+- `ns lookup <card_id>` / `ns l <card_id>` — show base card details for a card ID.
+- `ns help` / `ns h` — show command help.
+- `ns drop` / `ns d` — open a drop with 3 random cards and pull 1 via buttons.
+- `ns cooldown [player]` / `ns cd [player]` — show drop cooldown remaining for yourself or another player.
+- `ns burn [card_code]` / `ns b [card_code]` — burn a specific dupe for dough (randomized around base). If omitted, defaults to your most recently pulled card.
+- `ns trade <player> <card_code> <amount>` / `ns t ...` — offer a specific dupe-for-dough trade.
+- `ns wish` / `ns w` — wishlist command group.
+- `ns wish add <card_id>` / `ns wish a <card_id>` / `ns w add <card_id>` / `ns w a <card_id>` / `ns wa <card_id>` — add a card to your wishlist.
+- `ns wish remove <card_id>` / `ns wish r <card_id>` / `ns w remove <card_id>` / `ns w r <card_id>` / `ns wr <card_id>` — remove a card from your wishlist.
+- `ns wish list [player]` / `ns wish l [player]` / `ns w list [player]` / `ns w l [player]` / `ns wl [player]` — show a wishlist (defaults to yourself).
+- `ns marry [card_code]` / `ns m [card_code]` — marry a specific owned dupe by code.
+- `ns divorce` / `ns dv` — divorce your currently married card.
+
+### Owner-only admin commands
+
+- `ns dbexport` — upload the SQLite file (`noodswap.db`) to Discord.
+- `ns dbreset` — delete all persisted player/card data.
+
+### Optional: local card image cache (recommended)
+
+To avoid remote image rate limiting during drop preview composition, cache card images locally:
+
+```bash
+.venv/bin/python scripts/cache_card_images.py
+```
+
+This writes files into `assets/card_images/` and a manifest at `assets/card_images/manifest.json`.
+
+## Notes / prototype limitations
+
+- Data is persisted in local SQLite (`noodswap.db`) in the project directory.
+- No anti-abuse logging or sharding yet.
+- Alias conflict in the original spec (`d` for both `drop` and `divorce`) is resolved as:
+  - `d` for `drop`
+  - `dv` for `divorce`
+- Card catalog is a constant dict in code for now, including `series` values (`noodles`, `pasta`, `cheese`, `wine`, `bread`, `entree`, `dessert`).
+- Card ownership is instance-based: each acquired card gets a generated `G-####` value (1-2000), where lower generations are rarer.
+- Drop buttons use card names for readability.
+- Drop preview generation prefers locally cached images when available.
+- User-facing dupe actions (`burn`, `marry`, `trade`) accept standalone card `Code` (e.g. `0`, `a`, `10`) and target that exact copy.
+- Catalog `ID` (e.g. `SPG`) is internal/base-card identity used in storage/catalog logic.
+- **DUPE CARDS have CODES. BASE CARDS have IDS.**
+- Player state is global across all guilds: inventories, dough, marriages, and wishlist are shared across every server where the bot is installed.
+- `burn` includes an explicit confirm/cancel interaction before destruction.
+
+## Architecture
+
+- `bot.py` — thin launcher.
+- `noodswap/app.py` — bot creation, intents, startup wiring.
+- `noodswap/commands.py` — Discord command handlers (presentation layer).
+- `noodswap/views.py` — interactive button views for drops/trades.
+- `noodswap/presentation.py` — shared embed styling helpers.
+- `noodswap/storage.py` — SQLite persistence functions (domain/data layer).
+- `noodswap/cards.py` — card catalog and card-related logic.
+- `noodswap/rarities.py` — rarity weights.
+- `noodswap/settings.py` — global config constants.
+- `noodswap/utils.py` — shared utility helpers.
+
+## Future work (important)
+
+- Expand DB migration/versioning support (currently startup version table + step migrations only).
+- Add stronger locking/transaction strategy for high-concurrency workloads.
+- Migrate to slash commands/app commands while keeping prefix aliases if desired.
+- Add anti-abuse checks (alt farming, suspicious transfer patterns).
+- Add paginated collection views and richer card metadata/assets.

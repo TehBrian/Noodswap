@@ -1,0 +1,16 @@
+from pathlib import Path
+
+PULL_COOLDOWN_SECONDS = 6 * 60
+STARTING_DOUGH = 0
+COMMAND_PREFIX = "ns "
+SHORT_COMMAND_PREFIX = "n"
+DROP_CHOICES_COUNT = 3
+DROP_TIMEOUT_SECONDS = 45
+TRADE_TIMEOUT_SECONDS = 90
+BURN_CONFIRM_TIMEOUT_SECONDS = 30
+GENERATION_MIN = 1
+GENERATION_MAX = 2000
+DB_PATH = Path(__file__).resolve().parent.parent / "noodswap.db"
+DB_LOCK_TIMEOUT_SECONDS = 5.0
+CARD_IMAGE_CACHE_DIR = Path(__file__).resolve().parent.parent / "assets" / "card_images"
+CARD_IMAGE_CACHE_MANIFEST = CARD_IMAGE_CACHE_DIR / "manifest.json"

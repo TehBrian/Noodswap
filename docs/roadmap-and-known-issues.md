@@ -1,0 +1,81 @@
+# Roadmap and Known Issues
+
+## Current known issues / gaps
+
+1. Migration framework is minimal
+- `schema_migrations` + in-code step migrations now exist in `init_db()`.
+- Still missing richer migration ergonomics (standalone migration files and downgrade strategy).
+
+2. Concurrency/race handling is basic
+- Critical writes now use `BEGIN IMMEDIATE` to reduce race windows.
+- Further hardening is still recommended for very high-concurrency workloads and long-running transactions.
+
+3. Prefix command architecture only
+- Slash commands are not implemented yet.
+- A migration path should preserve existing UX where possible.
+
+4. Test coverage is still limited
+- `unittest` coverage now exists for `storage` migration/selection/failure semantics, `services` orchestration flows, and core `views` interaction guard + timeout behavior.
+- Test tasks now run on the workspace venv interpreter where `discord.py` is installed, so `views` tests execute in normal development flow.
+- Broader command UX paths and economy invariants still need coverage.
+
+5. Catalog balance is manual
+- Rarity/value balancing currently hand-tuned.
+- Could add tooling for expected value simulation.
+
+## Near-term roadmap
+
+1. Expand migration framework
+- Structured migration modules/files
+- Startup integrity checks + migration validation tooling
+- Optional downgrade/playback strategy for development
+
+2. Add domain-level tests
+- storage selection semantics
+- generation distribution sanity checks
+- payout bounds
+
+3. Add slash command support
+- Keep prefix aliases during transition
+
+4. Improve collection UX
+- pagination and filtering (series, rarity, generation range)
+
+5. Economy hardening
+- anti-abuse controls and audit logging
+
+## Refactor backlog (staged)
+
+Status: Stage 1 is complete. Stages below are intentionally deferred for later.
+
+### Stage 2 — Storage boundary split
+- Extract migration logic from `storage.py` into a dedicated migration module while preserving current startup behavior.
+- Introduce repository-oriented functions (players/card_instances/trades) behind a stable facade.
+- Add migration-version edge case tests and transaction boundary tests.
+
+### Stage 3 — View callback slimming
+- Move remaining callback orchestration from `views.py` into `services.py` use-cases.
+- Keep `views.py` focused on Discord interaction authorization, lifecycle, and response wiring.
+- Add focused tests around resolved-click and timeout transitions per view.
+
+### Stage 4 — Presentation expansion and consistency
+- Continue centralizing repeated embed description assembly into `presentation.py` helpers.
+- Add small presenter unit tests for deterministic formatting of high-use descriptions.
+- Keep command handlers thin and primarily responsible for routing and dependency wiring.
+
+## Decision log (recent)
+
+ - Reworked burn RNG to roll a per-burn payout band between 5% and 20% of computed value, display it as an absolute `±N` range at confirmation, and apply final RNG within that fixed range on confirm.
+- Fixed `remove_card_from_player()` to clear `last_dropped_instance_id` when the pointed instance is removed.
+- Added `tests/test_views.py` for interaction authorization/resolution and timeout behavior checks for `DropView` and `TradeView`.
+- Expanded `tests/test_storage.py` to cover trade failure behavior (missing seller card / insufficient buyer dough) and marriage uniqueness edge cases.
+- Added initial `unittest` suite in `tests/test_storage.py` covering migration behavior and generation-selection rules for marry/burn/trade.
+- Added `scripts/migration_smoke.py` for quick validation of fresh-init and legacy-backfill migration behavior.
+- Added explicit schema version tracking via `schema_migrations` and versioned startup migration flow in `init_db()`.
+- Moved from quantity-owned cards to instance-based ownership.
+- Added per-instance generations (`G-####`, range 1-2000).
+- Standardized user messaging to Italy-themed embeds (`italy_embed` + `italy_marry_embed`).
+- Modularized codebase into package-based subsystems.
+- Added burn confirmation flow and default burn target from last pulled card.
+- Added `image` metadata to cards with default placeholder URLs (`https://placehold.co/...`) and wired card images into drop/marry/divorce/burn/info embeds.
+- Normalized per-card drop weights by rarity counts so effective rarity odds stay balanced as catalog composition changes.

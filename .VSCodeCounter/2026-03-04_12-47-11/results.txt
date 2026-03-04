@@ -1,0 +1,68 @@
+Date : 2026-03-04 12:47:11
+Directory : /Users/brian/stuff/dev/mine/discord-bots/Noodswap
+Total : 33 files,  3995 codes, 319 comments, 973 blanks, all 5287 lines
+
+Languages
++------------------+------------+------------+------------+------------+------------+
+| language         | files      | code       | comment    | blank      | total      |
++------------------+------------+------------+------------+------------+------------+
+| Python           |         21 |      3,347 |        319 |        767 |      4,433 |
+| Markdown         |          9 |        603 |          0 |        205 |        808 |
+| JSON             |          2 |         43 |          0 |          0 |         43 |
+| pip requirements |          1 |          2 |          0 |          1 |          3 |
++------------------+------------+------------+------------+------------+------------+
+
+Directories
++------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| path                                                                               | files      | code       | comment    | blank      | total      |
++------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| .                                                                                  |         33 |      3,995 |        319 |        973 |      5,287 |
+| . (Files)                                                                          |          5 |        179 |          0 |         52 |        231 |
+| .agents                                                                            |          1 |         15 |          0 |          4 |         19 |
+| assets                                                                             |          1 |         34 |          0 |          0 |         34 |
+| assets/card_images                                                                 |          1 |         34 |          0 |          0 |         34 |
+| docs                                                                               |          6 |        423 |          0 |        153 |        576 |
+| noodswap                                                                           |         11 |      2,139 |        283 |        433 |      2,855 |
+| scripts                                                                            |          4 |        355 |         18 |         94 |        467 |
+| tests                                                                              |          5 |        850 |         18 |        237 |      1,105 |
++------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+
+Files
++------------------------------------------------------------------------------------+------------------+------------+------------+------------+------------+
+| filename                                                                           | language         | code       | comment    | blank      | total      |
++------------------------------------------------------------------------------------+------------------+------------+------------+------------+------------+
+| /Users/brian/stuff/dev/mine/discord-bots/Noodswap/.agents/quickstart.md            | Markdown         |         15 |          0 |          4 |         19 |
+| /Users/brian/stuff/dev/mine/discord-bots/Noodswap/AGENTS.md                        | Markdown         |         91 |          0 |         27 |        118 |
+| /Users/brian/stuff/dev/mine/discord-bots/Noodswap/README.md                        | Markdown         |         74 |          0 |         21 |         95 |
+| /Users/brian/stuff/dev/mine/discord-bots/Noodswap/assets/card_images/manifest.json | JSON             |         34 |          0 |          0 |         34 |
+| /Users/brian/stuff/dev/mine/discord-bots/Noodswap/bot.py                           | Python           |          3 |          0 |          3 |          6 |
+| /Users/brian/stuff/dev/mine/discord-bots/Noodswap/card_image_pull_report.json      | JSON             |          9 |          0 |          0 |          9 |
+| /Users/brian/stuff/dev/mine/discord-bots/Noodswap/docs/README.md                   | Markdown         |         19 |          0 |          8 |         27 |
+| /Users/brian/stuff/dev/mine/discord-bots/Noodswap/docs/architecture.md             | Markdown         |         67 |          0 |         25 |         92 |
+| /Users/brian/stuff/dev/mine/discord-bots/Noodswap/docs/commands-and-ux.md          | Markdown         |         97 |          0 |         35 |        132 |
+| /Users/brian/stuff/dev/mine/discord-bots/Noodswap/docs/data-model.md               | Markdown         |         94 |          0 |         36 |        130 |
+| /Users/brian/stuff/dev/mine/discord-bots/Noodswap/docs/development-runbook.md      | Markdown         |         80 |          0 |         29 |        109 |
+| /Users/brian/stuff/dev/mine/discord-bots/Noodswap/docs/roadmap-and-known-issues.md | Markdown         |         66 |          0 |         20 |         86 |
+| /Users/brian/stuff/dev/mine/discord-bots/Noodswap/noodswap/__init__.py             | Python           |          0 |          1 |          1 |          2 |
+| /Users/brian/stuff/dev/mine/discord-bots/Noodswap/noodswap/app.py                  | Python           |         68 |          0 |         19 |         87 |
+| /Users/brian/stuff/dev/mine/discord-bots/Noodswap/noodswap/cards.py                | Python           |        324 |          0 |         73 |        397 |
+| /Users/brian/stuff/dev/mine/discord-bots/Noodswap/noodswap/commands.py             | Python           |        512 |          0 |        101 |        613 |
+| /Users/brian/stuff/dev/mine/discord-bots/Noodswap/noodswap/presentation.py         | Python           |         73 |          0 |         19 |         92 |
+| /Users/brian/stuff/dev/mine/discord-bots/Noodswap/noodswap/rarities.py             | Python           |          7 |          0 |          1 |          8 |
+| /Users/brian/stuff/dev/mine/discord-bots/Noodswap/noodswap/services.py             | Python           |        207 |          0 |         44 |        251 |
+| /Users/brian/stuff/dev/mine/discord-bots/Noodswap/noodswap/settings.py             | Python           |         16 |          0 |          2 |         18 |
+| /Users/brian/stuff/dev/mine/discord-bots/Noodswap/noodswap/storage.py              | Python           |        529 |        282 |        130 |        941 |
+| /Users/brian/stuff/dev/mine/discord-bots/Noodswap/noodswap/utils.py                | Python           |         14 |          0 |          3 |         17 |
+| /Users/brian/stuff/dev/mine/discord-bots/Noodswap/noodswap/views.py                | Python           |        389 |          0 |         40 |        429 |
+| /Users/brian/stuff/dev/mine/discord-bots/Noodswap/requirements.txt                 | pip requirements |          2 |          0 |          1 |          3 |
+| /Users/brian/stuff/dev/mine/discord-bots/Noodswap/scripts/cache_card_images.py     | Python           |         60 |          0 |         20 |         80 |
+| /Users/brian/stuff/dev/mine/discord-bots/Noodswap/scripts/migration_smoke.py       | Python           |         78 |         18 |         24 |        120 |
+| /Users/brian/stuff/dev/mine/discord-bots/Noodswap/scripts/pull_card_images.py      | Python           |        192 |          0 |         39 |        231 |
+| /Users/brian/stuff/dev/mine/discord-bots/Noodswap/scripts/rarity_odds.py           | Python           |         25 |          0 |         11 |         36 |
+| /Users/brian/stuff/dev/mine/discord-bots/Noodswap/tests/test_cards.py              | Python           |         19 |          0 |          7 |         26 |
+| /Users/brian/stuff/dev/mine/discord-bots/Noodswap/tests/test_commands.py           | Python           |        209 |          0 |         56 |        265 |
+| /Users/brian/stuff/dev/mine/discord-bots/Noodswap/tests/test_services.py           | Python           |        182 |          0 |         50 |        232 |
+| /Users/brian/stuff/dev/mine/discord-bots/Noodswap/tests/test_storage.py            | Python           |        289 |         18 |         73 |        380 |
+| /Users/brian/stuff/dev/mine/discord-bots/Noodswap/tests/test_views.py              | Python           |        151 |          0 |         51 |        202 |
+| Total                                                                              |                  |      3,995 |        319 |        973 |      5,287 |
++------------------------------------------------------------------------------------+------------------+------------+------------+------------+------------+
