@@ -67,7 +67,7 @@ Overview:
 - `ns info [player]` (`ns i`, `ni`) — View a player's stats; defaults to yourself.
 - `ns collection [player]` (`ns c`, `nc`) — View a player's cards; defaults to yourself.
 - `ns cards` (`ns ca`, `nca`) — View all cards, ranked by wish count.
-- `ns lookup <card_id|query>` (`ns l`, `nl`) — Look up a base card.
+- `ns lookup <card_id|card_code|query>` (`ns l`, `nl`) — Look up a base card or exact dupe code.
 - `ns help` (`ns h`, `nh`) — Show this help menu.
 
 Economy:

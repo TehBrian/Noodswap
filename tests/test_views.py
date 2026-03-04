@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch
 
-from noodswap.views import BurnConfirmView, CardCatalogView, DropView, PaginatedLinesView, TradeView
+from noodswap.views import BurnConfirmView, CardCatalogView, DropView, PaginatedLinesView, SortableCardListView, TradeView
 
 
 class _FakeUser:
@@ -205,6 +205,130 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(interaction.response.sent_messages), 1)
         self.assertTrue(interaction.response.sent_messages[0].get("ephemeral"))
 
+    async def test_card_catalog_sort_select_changes_order_and_resets_page(self) -> None:
+        entries = [
+            ("SPG", 2),
+            ("BLA", 1),
+            ("BAR", 3),
+        ]
+        view = CardCatalogView(user_id=10, entries=entries, page_size=1)
+        view.page_index = 1
+
+        interaction = _FakeInteraction(user_id=10)
+        view.sort_select._values = ["alphabetical"]
+        await view.sort_select.callback(interaction)
+
+        self.assertEqual(view.page_index, 0)
+        self.assertEqual(view.sort_mode, "alphabetical")
+        self.assertEqual(len(interaction.response.edited_messages), 1)
+        edited_embed = interaction.response.edited_messages[0]["embed"]
+        self.assertIn("Barolo", edited_embed.description)
+        self.assertIn("Sort: Alphabetical", edited_embed.footer.text)
+
+    def test_card_catalog_defaults_to_alphabetical_sort(self) -> None:
+        entries = [
+            ("SPG", 2),
+            ("BLA", 1),
+            ("BAR", 3),
+        ]
+        view = CardCatalogView(user_id=10, entries=entries, page_size=1)
+
+        embed = view.build_embed()
+        self.assertIn("Barolo", embed.description)
+        self.assertIn("Sort: Alphabetical", embed.footer.text)
+
+    async def test_card_catalog_wishes_sort_prioritizes_highest_count(self) -> None:
+        entries = [
+            ("SPG", 2),
+            ("BLA", 1),
+            ("BAR", 3),
+        ]
+        view = CardCatalogView(user_id=10, entries=entries, page_size=1)
+
+        interaction = _FakeInteraction(user_id=10)
+        view.sort_select._values = ["wishes"]
+        await view.sort_select.callback(interaction)
+
+        self.assertEqual(view.sort_mode, "wishes")
+        edited_embed = interaction.response.edited_messages[0]["embed"]
+        self.assertIn("Barolo", edited_embed.description)
+        self.assertIn("Wishes: **3**", edited_embed.description)
+        self.assertIn("Sort: Wishes", edited_embed.footer.text)
+
+    async def test_card_catalog_gallery_toggle_enables_single_card_mode(self) -> None:
+        entries = [
+            ("SPG", 2),
+            ("BLA", 1),
+            ("BAR", 3),
+        ]
+        view = CardCatalogView(user_id=10, entries=entries, page_size=10)
+
+        interaction = _FakeInteraction(user_id=10)
+        await view.gallery_toggle_button.callback(interaction)
+
+        self.assertTrue(view.gallery_mode)
+        self.assertEqual(view.gallery_toggle_button.label, "Gallery: On")
+        self.assertEqual(view.total_pages, 3)
+        edited_embed = interaction.response.edited_messages[0]["embed"]
+        self.assertIn("1.", edited_embed.description)
+
+    async def test_card_catalog_gallery_toggle_preserves_currentish_page_floor(self) -> None:
+        entries = [("SPG", idx) for idx in range(25)]
+        view = CardCatalogView(user_id=10, entries=entries, page_size=10)
+        view.page_index = 1
+
+        to_gallery = _FakeInteraction(user_id=10)
+        await view.gallery_toggle_button.callback(to_gallery)
+        self.assertTrue(view.gallery_mode)
+        self.assertEqual(view.page_index, 10)
+
+        back_to_list = _FakeInteraction(user_id=10)
+        await view.gallery_toggle_button.callback(back_to_list)
+        self.assertFalse(view.gallery_mode)
+        self.assertEqual(view.page_index, 1)
+
+    async def test_card_catalog_gallery_to_list_biases_backward(self) -> None:
+        entries = [("SPG", idx) for idx in range(25)]
+        view = CardCatalogView(user_id=10, entries=entries, page_size=10)
+        view.gallery_mode = True
+        view.page_index = 16
+        view._set_gallery_button_label()
+
+        interaction = _FakeInteraction(user_id=10)
+        await view.gallery_toggle_button.callback(interaction)
+
+        self.assertFalse(view.gallery_mode)
+        self.assertEqual(view.page_index, 1)
+
+    async def test_card_catalog_gallery_last_page_stays_gallery_mode(self) -> None:
+        entries = [("SPG", idx) for idx in range(12)]
+        view = CardCatalogView(user_id=10, entries=entries, page_size=10)
+        view.gallery_mode = True
+        view._set_gallery_button_label()
+
+        interaction = _FakeInteraction(user_id=10)
+        await view.last_page_button.callback(interaction)
+
+        self.assertTrue(view.gallery_mode)
+        self.assertEqual(view.page_index, 11)
+        edited_embed = interaction.response.edited_messages[0]["embed"]
+        self.assertIn("12.", edited_embed.description)
+
+    async def test_card_catalog_gallery_mode_includes_attachment_when_image_available(self) -> None:
+        entries = [("SPG", 2)]
+        view = CardCatalogView(user_id=10, entries=entries, page_size=10)
+        view.gallery_mode = True
+        view._set_gallery_button_label()
+
+        interaction = _FakeInteraction(user_id=10)
+        fake_file = object()
+        with patch("noodswap.views.embed_image_payload", return_value=("attachment://SPG.png", fake_file)):
+            await view.next_page_button.callback(interaction)
+
+        edit_kwargs = interaction.response.edited_messages[0]
+        self.assertIn("attachments", edit_kwargs)
+        self.assertEqual(edit_kwargs["attachments"], [fake_file])
+
     async def test_paginated_lines_view_navigation_updates_page(self) -> None:
         lines = ["One", "Two", "Three"]
         view = PaginatedLinesView(user_id=10, title="Collection", lines=lines, guard_title="Collection", page_size=1)
@@ -228,6 +352,167 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(interaction.response.sent_messages), 1)
         self.assertTrue(interaction.response.sent_messages[0].get("ephemeral"))
         self.assertEqual(interaction.response.sent_messages[0]["embed"].title, "Wishlist")
+
+    async def test_sortable_card_list_sort_select_changes_order_and_resets_page(self) -> None:
+        card_ids = ["SPG", "BLA", "BAR"]
+        view = SortableCardListView(
+            user_id=10,
+            title="Lookup Matches",
+            card_ids=card_ids,
+            guard_title="Lookup",
+            page_size=1,
+        )
+        view.page_index = 1
+
+        interaction = _FakeInteraction(user_id=10)
+        view.sort_select._values = ["alphabetical"]
+        await view.sort_select.callback(interaction)
+
+        self.assertEqual(view.page_index, 0)
+        self.assertEqual(view.sort_mode, "alphabetical")
+        self.assertEqual(len(interaction.response.edited_messages), 1)
+        edited_embed = interaction.response.edited_messages[0]["embed"]
+        self.assertIn("Barolo", edited_embed.description)
+        self.assertIn("Sort: Alphabetical", edited_embed.footer.text)
+
+    async def test_sortable_card_list_rejects_unauthorized_sort_select(self) -> None:
+        card_ids = ["SPG", "PEN"]
+        view = SortableCardListView(
+            user_id=10,
+            title="Wishlist",
+            card_ids=card_ids,
+            guard_title="Wishlist",
+            page_size=1,
+        )
+
+        interaction = _FakeInteraction(user_id=99)
+        view.sort_select._values = ["alphabetical"]
+        await view.sort_select.callback(interaction)
+
+        self.assertEqual(view.sort_mode, "alphabetical")
+        self.assertEqual(len(interaction.response.sent_messages), 1)
+        self.assertTrue(interaction.response.sent_messages[0].get("ephemeral"))
+        self.assertEqual(interaction.response.sent_messages[0]["embed"].title, "Wishlist")
+
+    async def test_sortable_card_list_wishes_sort_uses_wish_counts(self) -> None:
+        card_ids = ["SPG", "BLA", "BAR"]
+        view = SortableCardListView(
+            user_id=10,
+            title="Lookup Matches",
+            card_ids=card_ids,
+            wish_counts={"SPG": 1, "BLA": 3, "BAR": 2},
+            guard_title="Lookup",
+            page_size=1,
+        )
+
+        interaction = _FakeInteraction(user_id=10)
+        view.sort_select._values = ["wishes"]
+        await view.sort_select.callback(interaction)
+
+        self.assertEqual(view.sort_mode, "wishes")
+        edited_embed = interaction.response.edited_messages[0]["embed"]
+        self.assertIn("Black Truffle Ravioli", edited_embed.description)
+        self.assertIn("Sort: Wishes", edited_embed.footer.text)
+
+    async def test_sortable_card_list_gallery_toggle_enables_single_card_mode(self) -> None:
+        card_ids = ["SPG", "BLA", "BAR"]
+        view = SortableCardListView(
+            user_id=10,
+            title="Lookup Matches",
+            card_ids=card_ids,
+            guard_title="Lookup",
+            page_size=10,
+        )
+
+        interaction = _FakeInteraction(user_id=10)
+        await view.gallery_toggle_button.callback(interaction)
+
+        self.assertTrue(view.gallery_mode)
+        self.assertEqual(view.gallery_toggle_button.label, "Gallery: On")
+        self.assertEqual(view.total_pages, 3)
+        edited_embed = interaction.response.edited_messages[0]["embed"]
+        self.assertIn("1.", edited_embed.description)
+
+    async def test_sortable_card_list_gallery_toggle_preserves_currentish_page_floor(self) -> None:
+        card_ids = ["SPG" for _ in range(25)]
+        view = SortableCardListView(
+            user_id=10,
+            title="Lookup Matches",
+            card_ids=card_ids,
+            guard_title="Lookup",
+            page_size=10,
+        )
+        view.page_index = 1
+
+        to_gallery = _FakeInteraction(user_id=10)
+        await view.gallery_toggle_button.callback(to_gallery)
+        self.assertTrue(view.gallery_mode)
+        self.assertEqual(view.page_index, 10)
+
+        back_to_list = _FakeInteraction(user_id=10)
+        await view.gallery_toggle_button.callback(back_to_list)
+        self.assertFalse(view.gallery_mode)
+        self.assertEqual(view.page_index, 1)
+
+    async def test_sortable_card_list_gallery_to_list_biases_backward(self) -> None:
+        card_ids = ["SPG" for _ in range(25)]
+        view = SortableCardListView(
+            user_id=10,
+            title="Lookup Matches",
+            card_ids=card_ids,
+            guard_title="Lookup",
+            page_size=10,
+        )
+        view.gallery_mode = True
+        view.page_index = 16
+        view._set_gallery_button_label()
+
+        interaction = _FakeInteraction(user_id=10)
+        await view.gallery_toggle_button.callback(interaction)
+
+        self.assertFalse(view.gallery_mode)
+        self.assertEqual(view.page_index, 1)
+
+    async def test_sortable_card_list_gallery_last_page_stays_gallery_mode(self) -> None:
+        card_ids = ["SPG" for _ in range(12)]
+        view = SortableCardListView(
+            user_id=10,
+            title="Lookup Matches",
+            card_ids=card_ids,
+            guard_title="Lookup",
+            page_size=10,
+        )
+        view.gallery_mode = True
+        view._set_gallery_button_label()
+
+        interaction = _FakeInteraction(user_id=10)
+        await view.last_page_button.callback(interaction)
+
+        self.assertTrue(view.gallery_mode)
+        self.assertEqual(view.page_index, 11)
+        edited_embed = interaction.response.edited_messages[0]["embed"]
+        self.assertIn("12.", edited_embed.description)
+
+    async def test_sortable_card_list_gallery_mode_includes_attachment_when_image_available(self) -> None:
+        card_ids = ["SPG"]
+        view = SortableCardListView(
+            user_id=10,
+            title="Lookup Matches",
+            card_ids=card_ids,
+            guard_title="Lookup",
+            page_size=10,
+        )
+        view.gallery_mode = True
+        view._set_gallery_button_label()
+
+        interaction = _FakeInteraction(user_id=10)
+        fake_file = object()
+        with patch("noodswap.views.embed_image_payload", return_value=("attachment://SPG.png", fake_file)):
+            await view.next_page_button.callback(interaction)
+
+        edit_kwargs = interaction.response.edited_messages[0]
+        self.assertIn("attachments", edit_kwargs)
+        self.assertEqual(edit_kwargs["attachments"], [fake_file])
 
 
 if __name__ == "__main__":

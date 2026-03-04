@@ -1,11 +1,7 @@
 import asyncio
 import io
 import inspect
-import json
 import time
-import urllib.request
-from pathlib import Path
-from threading import Lock
 
 asyncio.iscoroutinefunction = inspect.iscoroutinefunction  # type: ignore[assignment]
 
@@ -16,11 +12,11 @@ from .cards import (
     CARD_CATALOG,
     card_base_display,
     card_dupe_display,
-    card_image_url,
     normalize_card_id,
     search_card_ids,
     search_card_ids_by_name,
 )
+from .images import embed_image_payload, read_local_card_image_bytes
 from .presentation import (
     burn_confirmation_description,
     drop_choices_description,
@@ -30,9 +26,10 @@ from .presentation import (
     trade_offer_description,
 )
 from .services import execute_divorce, execute_marry, prepare_burn, prepare_drop, prepare_trade_offer
-from .settings import CARD_IMAGE_CACHE_MANIFEST, DB_PATH, DROP_TIMEOUT_SECONDS, PULL_COOLDOWN_SECONDS
+from .settings import DB_PATH, DROP_TIMEOUT_SECONDS, PULL_COOLDOWN_SECONDS
 from .storage import (
     get_instance_by_id,
+    get_instance_by_dupe_code,
     get_player_card_instances,
     get_player_stats,
     get_total_cards,
@@ -43,10 +40,7 @@ from .storage import (
     reset_db_data,
 )
 from .utils import format_cooldown, multiline_text
-from .views import BurnConfirmView, CardCatalogView, DropView, PaginatedLinesView, TradeView
-
-
-_CARD_IMAGE_CACHE_LOCK = Lock()
+from .views import BurnConfirmView, CardCatalogView, DropView, PaginatedLinesView, SortableCardListView, TradeView
 
 
 async def resolve_member_argument(ctx: commands.Context, raw_member: str) -> tuple[discord.Member | None, str | None]:
@@ -84,93 +78,8 @@ async def resolve_member_argument(ctx: commands.Context, raw_member: str) -> tup
     return None, "Could not find that player. Mention them like `@Friend` or use their exact username."
 
 
-def _fetch_image_bytes(url: str) -> bytes | None:
-    request = urllib.request.Request(url, headers={"User-Agent": "NoodswapBot/1.0"})
-    try:
-        with urllib.request.urlopen(request, timeout=12) as response:
-            return response.read()
-    except Exception:
-        return None
-
-
-def _cache_file_extension_for_url(url: str) -> str:
-    suffix = Path(url.split("?", 1)[0]).suffix.lower()
-    if suffix in {".jpg", ".jpeg", ".png", ".webp", ".gif"}:
-        return suffix
-    return ".img"
-
-
-def _read_image_manifest() -> dict[str, dict[str, str | int]]:
-    try:
-        parsed = json.loads(CARD_IMAGE_CACHE_MANIFEST.read_text(encoding="utf-8"))
-    except Exception:
-        return {}
-
-    if not isinstance(parsed, dict):
-        return {}
-
-    manifest: dict[str, dict[str, str | int]] = {}
-    for card_id, value in parsed.items():
-        if isinstance(card_id, str) and isinstance(value, dict):
-            manifest[card_id] = value
-    return manifest
-
-
-def _write_image_manifest(manifest: dict[str, dict[str, str | int]]) -> None:
-    CARD_IMAGE_CACHE_MANIFEST.parent.mkdir(parents=True, exist_ok=True)
-    CARD_IMAGE_CACHE_MANIFEST.write_text(
-        json.dumps(manifest, indent=2, sort_keys=True),
-        encoding="utf-8",
-    )
-
-
-def _read_cached_image_bytes(card_id: str) -> bytes | None:
-    manifest_data = _read_image_manifest()
-    entry = manifest_data.get(card_id)
-    if not isinstance(entry, dict):
-        return None
-
-    file_name = entry.get("file")
-    if not isinstance(file_name, str) or not file_name:
-        return None
-
-    image_path = CARD_IMAGE_CACHE_MANIFEST.parent / Path(file_name)
-    try:
-        return image_path.read_bytes()
-    except Exception:
-        return None
-
-
-def _fetch_and_cache_image_bytes(card_id: str) -> bytes | None:
-    source_url = card_image_url(card_id)
-    fetched = _fetch_image_bytes(source_url)
-    if fetched is None:
-        return None
-
-    extension = _cache_file_extension_for_url(source_url)
-    file_name = f"{card_id}{extension}"
-
-    with _CARD_IMAGE_CACHE_LOCK:
-        CARD_IMAGE_CACHE_MANIFEST.parent.mkdir(parents=True, exist_ok=True)
-        image_path = CARD_IMAGE_CACHE_MANIFEST.parent / file_name
-        image_path.write_bytes(fetched)
-
-        manifest_data = _read_image_manifest()
-        manifest_data[card_id] = {
-            "file": file_name,
-            "source": source_url,
-            "attempts": 1,
-        }
-        _write_image_manifest(manifest_data)
-
-    return fetched
-
-
 def _get_card_image_bytes(card_id: str) -> bytes | None:
-    cached = _read_cached_image_bytes(card_id)
-    if cached is not None:
-        return cached
-    return _fetch_and_cache_image_bytes(card_id)
+    return read_local_card_image_bytes(card_id)
 
 
 def _build_drop_preview_blocking(choices: list[tuple[str, int]]) -> bytes | None:
@@ -305,11 +214,11 @@ async def _wish_list(ctx: commands.Context, target_member: discord.Member | None
         await ctx.send(embed=italy_embed(title, description))
         return
 
-    lines = [card_base_display(card_id) for card_id in wishlisted_card_ids]
-    view = PaginatedLinesView(
+    view = SortableCardListView(
         user_id=ctx.author.id,
         title=title,
-        lines=lines,
+        card_ids=wishlisted_card_ids,
+        wish_counts=get_card_wish_counts(ctx.guild.id),
         guard_title="Wishlist",
     )
     message = await ctx.send(embed=view.build_embed(), view=view)
@@ -371,11 +280,7 @@ def register_commands(bot: commands.Bot) -> None:
             return
 
         wish_counts = get_card_wish_counts(ctx.guild.id)
-        sorted_card_ids = sorted(
-            CARD_CATALOG.keys(),
-            key=lambda card_id: (-wish_counts.get(card_id, 0), card_id),
-        )
-        entries = [(card_id, wish_counts.get(card_id, 0)) for card_id in sorted_card_ids]
+        entries = [(card_id, wish_counts.get(card_id, 0)) for card_id in CARD_CATALOG.keys()]
 
         view = CardCatalogView(user_id=ctx.author.id, entries=entries)
         message = await ctx.send(embed=view.build_embed(), view=view)
@@ -384,14 +289,36 @@ def register_commands(bot: commands.Bot) -> None:
     @bot.command(name="lookup", aliases=["l"])
     async def lookup(ctx: commands.Context, *, card_id: str | None = None):
         if card_id is None:
-            await ctx.send(embed=italy_embed("Lookup", "Usage: `ns lookup <card_id|query>`."))
+            await ctx.send(embed=italy_embed("Lookup", "Usage: `ns lookup <card_id|card_code|query>`."))
             return
+
+        if ctx.guild is not None:
+            matched_instance = get_instance_by_dupe_code(ctx.guild.id, card_id)
+            if matched_instance is not None:
+                _, matched_card_id, matched_generation, matched_dupe_code = matched_instance
+                lookup_embed = italy_embed(
+                    "Card Lookup",
+                    card_dupe_display(matched_card_id, matched_generation, dupe_code=matched_dupe_code),
+                )
+                image_url, image_file = embed_image_payload(matched_card_id)
+                if image_url is not None:
+                    lookup_embed.set_image(url=image_url)
+                send_kwargs: dict[str, object] = {"embed": lookup_embed}
+                if image_file is not None:
+                    send_kwargs["file"] = image_file
+                await ctx.send(**send_kwargs)
+                return
 
         normalized_card_id = normalize_card_id(card_id)
         if normalized_card_id in CARD_CATALOG:
             lookup_embed = italy_embed("Card Lookup", card_base_display(normalized_card_id))
-            lookup_embed.set_image(url=card_image_url(normalized_card_id))
-            await ctx.send(embed=lookup_embed)
+            image_url, image_file = embed_image_payload(normalized_card_id)
+            if image_url is not None:
+                lookup_embed.set_image(url=image_url)
+            send_kwargs: dict[str, object] = {"embed": lookup_embed}
+            if image_file is not None:
+                send_kwargs["file"] = image_file
+            await ctx.send(**send_kwargs)
             return
 
         name_matches = search_card_ids(card_id, include_series=True)
@@ -402,18 +329,21 @@ def register_commands(bot: commands.Bot) -> None:
         if len(name_matches) == 1:
             matched_card_id = name_matches[0]
             lookup_embed = italy_embed("Card Lookup", card_base_display(matched_card_id))
-            lookup_embed.set_image(url=card_image_url(matched_card_id))
-            await ctx.send(embed=lookup_embed)
+            image_url, image_file = embed_image_payload(matched_card_id)
+            if image_url is not None:
+                lookup_embed.set_image(url=image_url)
+            send_kwargs: dict[str, object] = {"embed": lookup_embed}
+            if image_file is not None:
+                send_kwargs["file"] = image_file
+            await ctx.send(**send_kwargs)
             return
 
-        match_lines = [
-            f"{index}. {card_base_display(matched_card_id)}"
-            for index, matched_card_id in enumerate(name_matches, start=1)
-        ]
-        view = PaginatedLinesView(
+        lookup_wish_counts = get_card_wish_counts(ctx.guild.id) if ctx.guild is not None else {}
+        view = SortableCardListView(
             user_id=ctx.author.id,
             title="Lookup Matches",
-            lines=match_lines,
+            card_ids=name_matches,
+            wish_counts=lookup_wish_counts,
             guard_title="Lookup",
         )
         message = await ctx.send(embed=view.build_embed(), view=view)
@@ -475,10 +405,13 @@ def register_commands(bot: commands.Bot) -> None:
             "Marry",
             f"You are now married to {card_dupe_display(result.card_id, result.generation, dupe_code=result.dupe_code)}.",
         )
-        marry_embed.set_image(url=card_image_url(result.card_id))
-        await ctx.send(
-            embed=marry_embed
-        )
+        image_url, image_file = embed_image_payload(result.card_id)
+        if image_url is not None:
+            marry_embed.set_image(url=image_url)
+        send_kwargs: dict[str, object] = {"embed": marry_embed}
+        if image_file is not None:
+            send_kwargs["file"] = image_file
+        await ctx.send(**send_kwargs)
 
     @bot.command(name="divorce", aliases=["dv"])
     async def divorce(ctx: commands.Context):
@@ -499,10 +432,13 @@ def register_commands(bot: commands.Bot) -> None:
             "Divorce",
             f"You divorced {card_dupe_display(result.card_id, result.generation, dupe_code=result.dupe_code)}.",
         )
-        divorce_embed.set_image(url=card_image_url(result.card_id))
-        await ctx.send(
-            embed=divorce_embed
-        )
+        image_url, image_file = embed_image_payload(result.card_id)
+        if image_url is not None:
+            divorce_embed.set_image(url=image_url)
+        send_kwargs: dict[str, object] = {"embed": divorce_embed}
+        if image_file is not None:
+            send_kwargs["file"] = image_file
+        await ctx.send(**send_kwargs)
 
     @bot.command(name="collection", aliases=["c"])
     async def collection(ctx: commands.Context, *, player: str | None = None):
@@ -589,7 +525,9 @@ def register_commands(bot: commands.Bot) -> None:
                 multiplier=multiplier,
             ),
         )
-        confirm_embed.set_image(url=card_image_url(burn_card_id))
+        image_url, image_file = embed_image_payload(burn_card_id)
+        if image_url is not None:
+            confirm_embed.set_image(url=image_url)
 
         view = BurnConfirmView(
             guild_id=ctx.guild.id,
@@ -599,7 +537,10 @@ def register_commands(bot: commands.Bot) -> None:
             generation=burn_generation,
             delta_range=delta_range,
         )
-        message = await ctx.send(embed=confirm_embed, view=view)
+        send_kwargs: dict[str, object] = {"embed": confirm_embed, "view": view}
+        if image_file is not None:
+            send_kwargs["file"] = image_file
+        message = await ctx.send(**send_kwargs)
         view.message = message
 
     @bot.command(name="cooldown", aliases=["cd"])
@@ -644,12 +585,13 @@ def register_commands(bot: commands.Bot) -> None:
         wishes_count = len(get_wishlist_cards(ctx.guild.id, target_member.id))
         married = "None"
         married_image_url: str | None = None
+        married_image_file: discord.File | None = None
         if married_instance_id is not None:
             married_instance = get_instance_by_id(ctx.guild.id, married_instance_id)
             if married_instance is not None:
                 _, married_card_id, married_generation, married_dupe_code = married_instance
                 married = card_dupe_display(married_card_id, married_generation, dupe_code=married_dupe_code)
-                married_image_url = card_image_url(married_card_id)
+            married_image_url, married_image_file = embed_image_payload(married_card_id)
 
         embed = italy_embed(f"{target_member.display_name}'s Stats")
         embed.add_field(name="Cards", value=str(get_total_cards(ctx.guild.id, target_member.id)), inline=True)
@@ -659,7 +601,10 @@ def register_commands(bot: commands.Bot) -> None:
         if married_image_url is not None:
             embed.set_image(url=married_image_url)
 
-        await ctx.send(embed=embed)
+        send_kwargs: dict[str, object] = {"embed": embed}
+        if married_image_file is not None:
+            send_kwargs["file"] = married_image_file
+        await ctx.send(**send_kwargs)
 
     @bot.command(name="trade", aliases=["t"])
     async def trade(

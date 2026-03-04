@@ -11,7 +11,7 @@ import discord
 from discord.ext import commands
 
 from noodswap.commands import _build_drop_preview_blocking, _get_card_image_bytes, register_commands
-from noodswap.views import PaginatedLinesView
+from noodswap.views import PaginatedLinesView, SortableCardListView
 
 
 class _FakeGuild:
@@ -186,7 +186,7 @@ class CommandsLookupTests(unittest.IsolatedAsyncioTestCase):
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
         self.assertEqual(sent_embed.title, "Lookup")
-        self.assertEqual(sent_embed.description, "Usage: `ns lookup <card_id|query>`.")
+        self.assertEqual(sent_embed.description, "Usage: `ns lookup <card_id|card_code|query>`.")
 
     async def test_lookup_shows_base_card_embed(self) -> None:
         lookup_command = _get_command(self.bot, "lookup")
@@ -202,6 +202,50 @@ class CommandsLookupTests(unittest.IsolatedAsyncioTestCase):
         sent_embed = ctx.send.await_args.kwargs["embed"]
         self.assertEqual(sent_embed.title, "Card Lookup")
         self.assertIn("(`SPG`)", sent_embed.description)
+
+    async def test_lookup_shows_dupe_card_embed_for_exact_code(self) -> None:
+        lookup_command = _get_command(self.bot, "lookup")
+
+        ctx = AsyncMock()
+        ctx.guild = _FakeGuild(1)
+        ctx.author = _FakeMember(100, "Caller")
+        ctx.send = AsyncMock()
+
+        with patch(
+            "noodswap.commands.get_instance_by_dupe_code",
+            return_value=(123, "SPG", 101, "abc"),
+        ) as lookup_dupe:
+            await lookup_command.callback(ctx, card_id="AbC")
+
+        lookup_dupe.assert_called_once_with(1, "AbC")
+        ctx.send.assert_awaited_once()
+        sent_embed = ctx.send.await_args.kwargs["embed"]
+        self.assertEqual(sent_embed.title, "Card Lookup")
+        self.assertIn("`#abc`", sent_embed.description)
+        self.assertIn("G-101", sent_embed.description)
+        self.assertIn("Value:", sent_embed.description)
+
+    async def test_lookup_prefers_exact_dupe_code_over_card_id(self) -> None:
+        lookup_command = _get_command(self.bot, "lookup")
+
+        ctx = AsyncMock()
+        ctx.guild = _FakeGuild(1)
+        ctx.author = _FakeMember(100, "Caller")
+        ctx.send = AsyncMock()
+
+        with patch(
+            "noodswap.commands.get_instance_by_dupe_code",
+            return_value=(777, "SPG", 88, "spg"),
+        ) as lookup_dupe:
+            await lookup_command.callback(ctx, card_id="spg")
+
+        lookup_dupe.assert_called_once_with(1, "spg")
+        ctx.send.assert_awaited_once()
+        sent_embed = ctx.send.await_args.kwargs["embed"]
+        self.assertEqual(sent_embed.title, "Card Lookup")
+        self.assertIn("`#spg`", sent_embed.description)
+        self.assertIn("Value:", sent_embed.description)
+        self.assertNotIn("Base:", sent_embed.description)
 
     async def test_lookup_falls_back_to_exact_card_name(self) -> None:
         lookup_command = _get_command(self.bot, "lookup")
@@ -232,9 +276,10 @@ class CommandsLookupTests(unittest.IsolatedAsyncioTestCase):
         sent_embed = ctx.send.await_args.kwargs["embed"]
         sent_view = ctx.send.await_args.kwargs["view"]
         self.assertEqual(sent_embed.title, "Lookup Matches")
-        self.assertIsInstance(sent_view, PaginatedLinesView)
-        self.assertIn("1. **Cheddar**", sent_embed.description)
-        self.assertIn("2. **Cheddar Jack**", sent_embed.description)
+        self.assertIsInstance(sent_view, SortableCardListView)
+        self.assertIn("Cheddar", sent_embed.description)
+        self.assertIn("Cheddar Jack", sent_embed.description)
+        self.assertIn("Sort: Alphabetical", sent_embed.footer.text)
 
     async def test_lookup_lists_matches_for_series_query(self) -> None:
         lookup_command = _get_command(self.bot, "lookup")
@@ -250,9 +295,10 @@ class CommandsLookupTests(unittest.IsolatedAsyncioTestCase):
         sent_embed = ctx.send.await_args.kwargs["embed"]
         sent_view = ctx.send.await_args.kwargs["view"]
         self.assertEqual(sent_embed.title, "Lookup Matches")
-        self.assertIsInstance(sent_view, PaginatedLinesView)
+        self.assertIsInstance(sent_view, SortableCardListView)
         self.assertIn("1.", sent_embed.description)
         self.assertTrue(sent_embed.footer.text.startswith("Page 1/"))
+        self.assertIn("Sort: Alphabetical", sent_embed.footer.text)
         self.assertGreater(sent_view.total_pages, 1)
 
     async def test_lookup_unknown_card_id_falls_back_to_search_query(self) -> None:
@@ -394,8 +440,8 @@ class CommandsCollectionTests(unittest.IsolatedAsyncioTestCase):
         ctx.send.assert_awaited_once()
         send_kwargs = ctx.send.await_args.kwargs
         self.assertIn("view", send_kwargs)
-        self.assertIsInstance(send_kwargs["view"], PaginatedLinesView)
-        self.assertEqual(send_kwargs["embed"].footer.text, "Page 1/2")
+        self.assertIsInstance(send_kwargs["view"], SortableCardListView)
+        self.assertEqual(send_kwargs["embed"].footer.text, "Page 1/2 • Sort: Alphabetical")
 
     async def test_wish_list_sends_error_when_player_resolution_fails(self) -> None:
         wish_list_command = _get_group_command(self.bot, "wish", "list")
@@ -569,7 +615,7 @@ class DropPreviewRegressionTests(unittest.TestCase):
         raw_1 = png_bytes((255, 0, 0))
         raw_2 = png_bytes((0, 255, 0))
 
-        with patch("noodswap.commands._fetch_image_bytes", side_effect=[raw_1, raw_2, None]):
+        with patch("noodswap.commands.read_local_card_image_bytes", side_effect=[raw_1, raw_2, None]):
             preview = _build_drop_preview_blocking([
                 ("SPG", 1),
                 ("PEN", 2),
@@ -593,47 +639,20 @@ class DropPreviewRegressionTests(unittest.TestCase):
         self.assertNotEqual(pixel_slot_2, pixel_slot_3)
 
 
-class LazyImageCacheTests(unittest.TestCase):
-    def test_get_card_image_bytes_uses_existing_cache(self) -> None:
-        with tempfile.TemporaryDirectory() as tmpdir:
-            cache_dir = Path(tmpdir)
-            manifest_path = cache_dir / "manifest.json"
-            image_path = cache_dir / "SPG.jpg"
-            image_path.write_bytes(b"cached-bytes")
-            manifest_path.write_text(
-                json.dumps({"SPG": {"file": "SPG.jpg", "source": "https://example.com/spg.jpg", "attempts": 1}}),
-                encoding="utf-8",
-            )
+class LocalImageBytesTests(unittest.TestCase):
+    def test_get_card_image_bytes_returns_local_bytes(self) -> None:
+        with patch("noodswap.commands.read_local_card_image_bytes", return_value=b"local-bytes") as read_local:
+            resolved = _get_card_image_bytes("SPG")
 
-            with (
-                patch("noodswap.commands.CARD_IMAGE_CACHE_MANIFEST", manifest_path),
-                patch("noodswap.commands._fetch_image_bytes", return_value=None) as fetch_mock,
-            ):
-                resolved = _get_card_image_bytes("SPG")
+        self.assertEqual(resolved, b"local-bytes")
+        read_local.assert_called_once_with("SPG")
 
-            self.assertEqual(resolved, b"cached-bytes")
-            fetch_mock.assert_not_called()
+    def test_get_card_image_bytes_returns_none_when_local_missing(self) -> None:
+        with patch("noodswap.commands.read_local_card_image_bytes", return_value=None) as read_local:
+            resolved = _get_card_image_bytes("SPG")
 
-    def test_get_card_image_bytes_fetches_and_persists_on_miss(self) -> None:
-        with tempfile.TemporaryDirectory() as tmpdir:
-            cache_dir = Path(tmpdir)
-            manifest_path = cache_dir / "manifest.json"
-
-            with (
-                patch("noodswap.commands.CARD_IMAGE_CACHE_MANIFEST", manifest_path),
-                patch("noodswap.commands.card_image_url", return_value="https://example.com/spg.jpg"),
-                patch("noodswap.commands._fetch_image_bytes", return_value=b"fresh-bytes") as fetch_mock,
-            ):
-                resolved = _get_card_image_bytes("SPG")
-
-            self.assertEqual(resolved, b"fresh-bytes")
-            fetch_mock.assert_called_once_with("https://example.com/spg.jpg")
-            self.assertEqual((cache_dir / "SPG.jpg").read_bytes(), b"fresh-bytes")
-
-            manifest_data = json.loads(manifest_path.read_text(encoding="utf-8"))
-            self.assertIn("SPG", manifest_data)
-            self.assertEqual(manifest_data["SPG"]["file"], "SPG.jpg")
-            self.assertEqual(manifest_data["SPG"]["source"], "https://example.com/spg.jpg")
+        self.assertIsNone(resolved)
+        read_local.assert_called_once_with("SPG")
 
 if __name__ == "__main__":
     unittest.main()

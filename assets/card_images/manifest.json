@@ -1,48 +1,138 @@
 {
-  "AGL": {
+  "AFF": {
     "attempts": 1,
+    "file": "AFF.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/17/Vinoteca%2C_Smithfield%2C_London_%284485849609%29.jpg/1280px-Vinoteca%2C_Smithfield%2C_London_%284485849609%29.jpg"
+  },
+  "AGL": {
+    "attempts": 2,
     "file": "AGL.jpg",
     "source": "https://upload.wikimedia.org/wikipedia/commons/7/77/Canadian_Cab-merlot_blend.JPG"
   },
   "AGN": {
-    "attempts": 1,
+    "attempts": 2,
     "file": "AGN.jpg",
     "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/95/Flickr_-_cyclonebill_-_Ravioli_med_skinke_og_asparges_i_mascarponecreme.jpg/960px-Flickr_-_cyclonebill_-_Ravioli_med_skinke_og_asparges_i_mascarponecreme.jpg"
+  },
+  "ALF": {
+    "attempts": 1,
+    "file": "ALF.png",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/d/dc/The_Only_Original_Alfredo_Sauce_with_Butter_and_Parmesano-Reggiano_Cheese.png"
+  },
+  "AMB": {
+    "attempts": 1,
+    "file": "AMB.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/5/56/Ambrosia_Italian_Restaurant_-_June_2022_-_Sarah_Stierch_13.jpg"
   },
   "AMS": {
     "attempts": 3,
     "file": "AMS.jpg",
     "source": "https://upload.wikimedia.org/wikipedia/commons/1/1c/Amarone_BMK.jpg"
   },
+  "ANG": {
+    "attempts": 1,
+    "file": "ANG.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/03/Capelli_angelo_front.jpg/960px-Capelli_angelo_front.jpg"
+  },
   "ANO": {
-    "attempts": 2,
+    "attempts": 3,
     "file": "ANO.jpg",
-    "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/95/Flickr_-_cyclonebill_-_Ravioli_med_skinke_og_asparges_i_mascarponecreme.jpg/960px-Flickr_-_cyclonebill_-_Ravioli_med_skinke_og_asparges_i_mascarponecreme.jpg"
+    "source": "https://upload.wikimedia.org/wikipedia/commons/7/7a/Anolini_in_brodo.jpg"
+  },
+  "APL": {
+    "attempts": 1,
+    "file": "APL.png",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e1/Lattice_apple_pie.png/1280px-Lattice_apple_pie.png"
+  },
+  "ARB": {
+    "attempts": 1,
+    "file": "ARB.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ee/Arancini_002.jpg/1280px-Arancini_002.jpg"
   },
   "ASI": {
     "attempts": 2,
     "file": "ASI.jpg",
     "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d0/Asiago_-_2615694751.jpg/960px-Asiago_-_2615694751.jpg"
   },
+  "BAG": {
+    "attempts": 1,
+    "file": "BAG.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/86/Baguettes%2C_Paris%2C_France_-_panoramio.jpg/960px-Baguettes%2C_Paris%2C_France_-_panoramio.jpg"
+  },
+  "BAK": {
+    "attempts": 1,
+    "file": "BAK.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c8/Bossche_bol_1.jpg/1280px-Bossche_bol_1.jpg"
+  },
   "BAR": {
     "attempts": 1,
     "file": "BAR.jpg",
     "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/01/Cascin_Adelaide_Barolo_%26_decanter.jpg/960px-Cascin_Adelaide_Barolo_%26_decanter.jpg"
+  },
+  "BAT": {
+    "attempts": 1,
+    "file": "BAT.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/a/a9/Compleat_Wheat_Sourdough_B%C3%A2tard.jpg"
+  },
+  "BCP": {
+    "attempts": 1,
+    "file": "BCP.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/64/Frank_Fat%27s_banana_cream_pie.jpg/1280px-Frank_Fat%27s_banana_cream_pie.jpg"
   },
   "BCT": {
     "attempts": 1,
     "file": "BCT.jpg",
     "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a2/Bucatini.jpg/960px-Bucatini.jpg"
   },
+  "BFL": {
+    "attempts": 1,
+    "file": "BFL.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/Supreme_pizza.jpg/960px-Supreme_pizza.jpg"
+  },
+  "BGL": {
+    "attempts": 1,
+    "file": "BGL.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/1/1d/Bagel-Plain-Alt.jpg"
+  },
+  "BIS": {
+    "attempts": 1,
+    "file": "BIS.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/75/Cantuccini-Toscani.jpg/1280px-Cantuccini-Toscani.jpg"
+  },
   "BLA": {
     "attempts": 3,
     "file": "BLA.jpg",
     "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/95/Flickr_-_cyclonebill_-_Ravioli_med_skinke_og_asparges_i_mascarponecreme.jpg/960px-Flickr_-_cyclonebill_-_Ravioli_med_skinke_og_asparges_i_mascarponecreme.jpg"
   },
+  "BLD": {
+    "attempts": 1,
+    "file": "BLD.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/5/55/Chocolate_fudge_cake.jpg"
+  },
+  "BLN": {
+    "attempts": 1,
+    "file": "BLN.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7c/Boat_noodles.jpg/1280px-Boat_noodles.jpg"
+  },
+  "BLP": {
+    "attempts": 1,
+    "file": "BLP.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/Pappardelle.jpg/960px-Pappardelle.jpg"
+  },
+  "BNS": {
+    "attempts": 1,
+    "file": "BNS.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/Bread_pudding_June_2020.jpg/1280px-Bread_pudding_June_2020.jpg"
+  },
   "BOL": {
     "attempts": 1,
     "file": "BOL.jpg",
     "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/86/Baguettes%2C_Paris%2C_France_-_panoramio.jpg/960px-Baguettes%2C_Paris%2C_France_-_panoramio.jpg"
+  },
+  "BPD": {
+    "attempts": 1,
+    "file": "BPD.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/46/Banana_pudding%2C_homemade.jpg/1280px-Banana_pudding%2C_homemade.jpg"
   },
   "BRC": {
     "attempts": 1,
@@ -54,15 +144,55 @@
     "file": "BRE.jpg",
     "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/59/Garlicbread.jpg/960px-Garlicbread.jpg"
   },
+  "BRI": {
+    "attempts": 1,
+    "file": "BRI.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/88/Brie_01.jpg/960px-Brie_01.jpg"
+  },
   "BRI2": {
     "attempts": 2,
     "file": "BRI2.jpg",
     "source": "https://upload.wikimedia.org/wikipedia/commons/4/4a/Brioche.jpg"
   },
+  "BRS": {
+    "attempts": 1,
+    "file": "BRS.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/4/46/Barbaresco_wine.jpg"
+  },
+  "BRU": {
+    "attempts": 1,
+    "file": "BRU.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/1/16/Angela-Brunello_TO_2006.jpg"
+  },
+  "BRW": {
+    "attempts": 1,
+    "file": "BRW.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/c/c7/2014-365-233_The_Basic_Brownie_Camera_%2814809795240%29.jpg"
+  },
+  "BSC": {
+    "attempts": 1,
+    "file": "BSC.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/34/Basque-cheesecake.jpg/1280px-Basque-cheesecake.jpg"
+  },
+  "BTA": {
+    "attempts": 1,
+    "file": "BTA.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f8/Baked_Alaska.jpg/1280px-Baked_Alaska.jpg"
+  },
   "BUN": {
     "attempts": 1,
     "file": "BUN.jpg",
     "source": "https://upload.wikimedia.org/wikipedia/commons/4/4a/Brioche.jpg"
+  },
+  "CAC": {
+    "attempts": 1,
+    "file": "CAC.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fb/Chesses_gouda_affinage.JPG/960px-Chesses_gouda_affinage.JPG"
+  },
+  "CAG": {
+    "attempts": 1,
+    "file": "CAG.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/b/bf/2019-05-11_20_41_32_%22Tour_of_Italy%22_%28Lasagna_Classico%2C_Fettuccine_Alfredo%2C_and_Eggplant_Parmigiana_%28substituted_for_the_usual_Chicken_Parmigiana%29%29_at_the_Olive_Garden_in_Fair_Lakes%2C_Fairfax_County%2C_Virginia.jpg"
   },
   "CAN": {
     "attempts": 1,
@@ -79,90 +209,390 @@
     "file": "CAS.jpg",
     "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/Pappardelle.jpg/960px-Pappardelle.jpg"
   },
+  "CAT": {
+    "attempts": 1,
+    "file": "CAT.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ee/Pecorino_romano_cheese.jpg/960px-Pecorino_romano_cheese.jpg"
+  },
+  "CBB": {
+    "attempts": 2,
+    "file": "CBB.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0f/Cobbler_%287303683612%29.jpg/1280px-Cobbler_%287303683612%29.jpg"
+  },
+  "CBR": {
+    "attempts": 1,
+    "file": "CBR.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/77/Creme_anglaise_p1050164.jpg/1280px-Creme_anglaise_p1050164.jpg"
+  },
+  "CHA": {
+    "attempts": 1,
+    "file": "CHA.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/40/Glass_of_champagne.jpg/960px-Glass_of_champagne.jpg"
+  },
+  "CHB": {
+    "attempts": 1,
+    "file": "CHB.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/6/6e/Chablis_bottle_and_wine.jpg"
+  },
   "CHD": {
     "attempts": 1,
     "file": "CHD.jpg",
     "source": "https://upload.wikimedia.org/wikipedia/commons/1/18/Somerset-Cheddar.jpg"
+  },
+  "CHI": {
+    "attempts": 1,
+    "file": "CHI.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b2/Ciabatta_cut.JPG/960px-Ciabatta_cut.JPG"
   },
   "CHJ": {
     "attempts": 2,
     "file": "CHJ.jpg",
     "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/89/CoJack.jpg/960px-CoJack.jpg"
   },
+  "CHK": {
+    "attempts": 1,
+    "file": "CHK.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/96/Semi-sweet_chocolate_chips.jpg/1280px-Semi-sweet_chocolate_chips.jpg"
+  },
   "CHL": {
     "attempts": 1,
     "file": "CHL.jpg",
     "source": "https://i.pinimg.com/736x/b2/d4/14/b2d4142c7011caf548fbade4e83d8c59.jpg"
+  },
+  "CHM": {
+    "attempts": 1,
+    "file": "CHM.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a6/Homemade_Chow_mein_with_shrimps_and_meat_with_a_choy_and_Choung.jpg/1280px-Homemade_Chow_mein_with_shrimps_and_meat_with_a_choy_and_Choung.jpg"
+  },
+  "CHR": {
+    "attempts": 1,
+    "file": "CHR.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c6/Chocolate_con_churros_%2827343655726%29.jpg/1280px-Chocolate_con_churros_%2827343655726%29.jpg"
+  },
+  "CHS": {
+    "attempts": 1,
+    "file": "CHS.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/d/d2/%249_cheesecake_at_Carnegie_Deli.jpg"
   },
   "CKP": {
     "attempts": 1,
     "file": "CKP.jpg",
     "source": "https://commons.wikimedia.org/wiki/Special:FilePath/Chicken_parmigiana.jpg"
   },
+  "CNO": {
+    "attempts": 1,
+    "file": "CNO.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/ad/Cannoli_siciliani_al_Caff%C3%A8_Impero%2C_ad_Alcamo.jpg/1280px-Cannoli_siciliani_al_Caff%C3%A8_Impero%2C_ad_Alcamo.jpg"
+  },
+  "CNT": {
+    "attempts": 1,
+    "file": "CNT.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/8/81/Rioja_alavesa_wine.jpg"
+  },
   "COL": {
     "attempts": 1,
     "file": "COL.jpg",
     "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/11/Colby_Cheese.jpg/960px-Colby_Cheese.jpg"
+  },
+  "CON": {
+    "attempts": 1,
+    "file": "CON.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/ac/Farfalle_Pasta.JPG/960px-Farfalle_Pasta.JPG"
+  },
+  "CPL": {
+    "attempts": 1,
+    "file": "CPL.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/95/02_Cappelletti_-_Cappellacci_-_Pasta_ripiena_-_Cucina_tipica_-_Ferrara.jpg/960px-02_Cappelletti_-_Cappellacci_-_Pasta_ripiena_-_Cucina_tipica_-_Ferrara.jpg"
+  },
+  "CPN": {
+    "attempts": 1,
+    "file": "CPN.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/2/27/Area_rispetto_caccia_regolamentata_Campanelle.jpg"
+  },
+  "CPR": {
+    "attempts": 1,
+    "file": "CPR.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/1/10/Umbria_Glen_Ellen_-_Oct_2018_-_Stierch_02.jpg"
+  },
+  "CRB": {
+    "attempts": 1,
+    "file": "CRB.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/6/6a/Hair_salon_-_Crusty_Roll%2C_Moira_-_geograph.org.uk_-_1684248.jpg"
+  },
+  "CRO": {
+    "attempts": 1,
+    "file": "CRO.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/c/c8/Castel_del_Piano-Crostini_toscani.jpg"
+  },
+  "CRP": {
+    "attempts": 1,
+    "file": "CRP.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7e/Cherry-Pie-Slice.jpg/1280px-Cherry-Pie-Slice.jpg"
+  },
+  "CSP": {
+    "attempts": 1,
+    "file": "CSP.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/42/Tortellini_Bolognesi.jpg/960px-Tortellini_Bolognesi.jpg"
+  },
+  "CUP": {
+    "attempts": 1,
+    "file": "CUP.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/2/26/Android_Cupcake_home_screen.jpg"
+  },
+  "DNT": {
+    "attempts": 1,
+    "file": "DNT.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/4/4a/A_delicious_donut.jpg"
   },
   "DTP": {
     "attempts": 1,
     "file": "DTP.jpg",
     "source": "https://upload.wikimedia.org/wikipedia/commons/6/6a/Ditalini-230.jpg"
   },
+  "DTV": {
+    "attempts": 1,
+    "file": "DTV.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/8/89/Beef_and_barley_soup_with_tomatoes_and_ditalini_pasta.jpg"
+  },
+  "ECL": {
+    "attempts": 1,
+    "file": "ECL.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/4/47/Jennyeclair.jpg"
+  },
+  "EGG": {
+    "attempts": 1,
+    "file": "EGG.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f7/Fusilli_tricolore_-_close_up.jpg/960px-Fusilli_tricolore_-_close_up.jpg"
+  },
+  "EMV": {
+    "attempts": 1,
+    "file": "EMV.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/a/a9/Heroic_Statue_with_a_non-relevant_Portrait_Head_of_Emperor_Macrinus.jpg"
+  },
+  "EPA": {
+    "attempts": 1,
+    "file": "EPA.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/f/fe/2019-05-11_20_41_12_%22Tour_of_Italy%22_%28Lasagna_Classico%2C_Fettuccine_Alfredo%2C_and_Eggplant_Parmigiana_%28substituted_for_the_usual_Chicken_Parmigiana%29%29_at_the_Olive_Garden_in_Fair_Lakes%2C_Fairfax_County%2C_Virginia.jpg"
+  },
   "ESC": {
     "attempts": 2,
     "file": "ESC.jpg",
     "source": "https://upload.wikimedia.org/wikipedia/commons/1/18/Somerset-Cheddar.jpg"
+  },
+  "FAR": {
+    "attempts": 1,
+    "file": "FAR.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/c/c6/Fruit_and_vegetable_juice_farfalle_noodles.jpg"
+  },
+  "FCC": {
+    "attempts": 1,
+    "file": "FCC.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/bf/Focaccia_with_Crumb.jpg/960px-Focaccia_with_Crumb.jpg"
+  },
+  "FDG": {
+    "attempts": 1,
+    "file": "FDG.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/91/Handmade_fruit_fudge_squares.jpg/1280px-Handmade_fruit_fudge_squares.jpg"
   },
   "FOC": {
     "attempts": 2,
     "file": "FOC.jpg",
     "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/bf/Focaccia_with_Crumb.jpg/960px-Focaccia_with_Crumb.jpg"
   },
-  "FUS": {
+  "FON": {
     "attempts": 1,
+    "file": "FON.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/c/c8/Fontina_cheese.jpg"
+  },
+  "FRC": {
+    "attempts": 1,
+    "file": "FRC.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/c/c8/01_Pedersoli_Tomasi_12%C2%B0_Franciacorta_Rally_Show.jpg"
+  },
+  "FRZ": {
+    "attempts": 1,
+    "file": "FRZ.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/4/44/Spritz_rosso_e_bianco.JPG"
+  },
+  "FUS": {
+    "attempts": 2,
     "file": "FUS.jpg",
     "source": "https://upload.wikimedia.org/wikipedia/commons/f/f7/Fusilli_tricolore_-_close_up.jpg"
+  },
+  "FYG": {
+    "attempts": 1,
+    "file": "FYG.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/45/French_fry_frozen_yoghurt.jpg/1280px-French_fry_frozen_yoghurt.jpg"
+  },
+  "GAR": {
+    "attempts": 1,
+    "file": "GAR.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/f/f5/%22Garlic_Bread%22_%2813348195234%29.jpg"
+  },
+  "GEL": {
+    "attempts": 1,
+    "file": "GEL.jpg",
+    "source": "https://commons.wikimedia.org/wiki/Special:FilePath/Gelato_in_Italy.jpg"
   },
   "GEM": {
     "attempts": 1,
     "file": "GEM.jpg",
     "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/ac/Farfalle_Pasta.JPG/960px-Farfalle_Pasta.JPG"
   },
+  "GFL": {
+    "attempts": 1,
+    "file": "GFL.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2e/Ice_cream_with_whipped_cream%2C_chocolate_syrup%2C_and_a_wafer_%28cropped%29.jpg/1280px-Ice_cream_with_whipped_cream%2C_chocolate_syrup%2C_and_a_wafer_%28cropped%29.jpg"
+  },
+  "GKN": {
+    "attempts": 1,
+    "file": "GKN.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e4/Garlic_knots.jpg/960px-Garlic_knots.jpg"
+  },
+  "GLC": {
+    "attempts": 1,
+    "file": "GLC.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/1/1e/Honeycomb_Golden_Nugget_Cheesecake_-_Dharma_Specialty_Coffee%2C_North_Road%2C_Brighton_2024-03-14.jpg"
+  },
+  "GLS": {
+    "attempts": 1,
+    "file": "GLS.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/4/4e/Donut_sundae.jpg"
+  },
   "GNO": {
     "attempts": 1,
     "file": "GNO.jpg",
     "source": "https://upload.wikimedia.org/wikipedia/commons/8/86/Gnocchi_di_ricotta_burro_e_salvia.jpg"
+  },
+  "GNP": {
+    "attempts": 1,
+    "file": "GNP.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/0/0c/Gnocchi_al_pesto.01.patate_crude_peso_650_g.jpg"
   },
   "GOL": {
     "attempts": 1,
     "file": "GOL.jpg",
     "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d1/Parmigiano_Reggiano%2C_Italien%2C_Europ%C3%A4ische_Union.jpg/960px-Parmigiano_Reggiano%2C_Italien%2C_Europ%C3%A4ische_Union.jpg"
   },
+  "GOR": {
+    "attempts": 1,
+    "file": "GOR.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/3/3c/Gorgonzola_cheese.jpg"
+  },
   "GOU": {
     "attempts": 2,
     "file": "GOU.jpg",
     "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fb/Chesses_gouda_affinage.JPG/960px-Chesses_gouda_affinage.JPG"
+  },
+  "GPR": {
+    "attempts": 1,
+    "file": "GPR.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/0/08/Grana_Padano_Riserva_cheese_%286881428878%29.jpg"
+  },
+  "GRA": {
+    "attempts": 1,
+    "file": "GRA.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c7/Korb_mit_Br%C3%B6tchen.JPG/960px-Korb_mit_Br%C3%B6tchen.JPG"
+  },
+  "GRI": {
+    "attempts": 1,
+    "file": "GRI.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/2/25/Alice_Duport-Percier_lors_du_concert_du_ZEVENT_2025.jpg"
   },
   "GRN": {
     "attempts": 2,
     "file": "GRN.jpg",
     "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d1/Parmigiano_Reggiano%2C_Italien%2C_Europ%C3%A4ische_Union.jpg/960px-Parmigiano_Reggiano%2C_Italien%2C_Europ%C3%A4ische_Union.jpg"
   },
+  "GTN": {
+    "attempts": 2,
+    "file": "GTN.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/90/Touched_by_His_Noodly_Appendage_HD.jpg/960px-Touched_by_His_Noodly_Appendage_HD.jpg"
+  },
+  "HAV": {
+    "attempts": 1,
+    "file": "HAV.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/f/f9/Cream_havarti_on_bread.jpg"
+  },
+  "ICE": {
+    "attempts": 1,
+    "file": "ICE.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/9/9b/Ice_wine_minibottle.jpg"
+  },
+  "ICS": {
+    "attempts": 1,
+    "file": "ICS.png",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/3/39/Android_Ice_Cream_Sandwich.PNG"
+  },
+  "IMB": {
+    "attempts": 1,
+    "file": "IMB.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/e/ee/Burrata_Cheese_Salad.jpg"
+  },
   "IMM": {
     "attempts": 1,
     "file": "IMM.jpg",
     "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/59/Garlicbread.jpg/960px-Garlicbread.jpg"
+  },
+  "LAM": {
+    "attempts": 1,
+    "file": "LAM.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/6/60/A_glass_of_Lambrusco.jpg"
   },
   "LAS": {
     "attempts": 2,
     "file": "LAS.jpg",
     "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/26/Lasagna_bolognese.jpg/960px-Lasagna_bolognese.jpg"
   },
+  "LAV": {
+    "attempts": 1,
+    "file": "LAV.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/da/Linguine.jpg/960px-Linguine.jpg"
+  },
+  "LBN": {
+    "attempts": 1,
+    "file": "LBN.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/89/Lobster_bisque.jpg/1280px-Lobster_bisque.jpg"
+  },
+  "LGP": {
+    "attempts": 1,
+    "file": "LGP.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/5/5c/Lobster_gnocchi.jpg"
+  },
+  "LIN": {
+    "attempts": 1,
+    "file": "LIN.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/c/c0/Baby_clams_with_spicy_sauce_on_linguine_-_Massachusetts.jpg"
+  },
+  "LMB": {
+    "attempts": 1,
+    "file": "LMB.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/Layered_bar.jpg/1280px-Layered_bar.jpg"
+  },
+  "LOM": {
+    "attempts": 1,
+    "file": "LOM.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a6/Homemade_Chow_mein_with_shrimps_and_meat_with_a_choy_and_Choung.jpg/1280px-Homemade_Chow_mein_with_shrimps_and_meat_with_a_choy_and_Choung.jpg"
+  },
+  "LUM": {
+    "attempts": 1,
+    "file": "LUM.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/c/c8/Lumache_pasta.jpg"
+  },
+  "LVC": {
+    "attempts": 1,
+    "file": "LVC.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/2/2b/2023_Wisconsin_State_Fair_73_%28W%C3%BCrstBar%27s_Beer_Cheese_Wisconsin_Lava_Cake%29.jpg"
+  },
   "MAC": {
     "attempts": 3,
     "file": "MAC.jpg",
     "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/01/Macaroni2.jpg/960px-Macaroni2.jpg"
+  },
+  "MAN": {
+    "attempts": 1,
+    "file": "MAN.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/44/EMS-109321-Manicotti-rule..JPG/960px-EMS-109321-Manicotti-rule..JPG"
   },
   "MAS": {
     "attempts": 2,
@@ -170,44 +600,134 @@
     "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/88/Brie_01.jpg/960px-Brie_01.jpg"
   },
   "MBS": {
-    "attempts": 3,
+    "attempts": 4,
     "file": "MBS.jpg",
     "source": "https://commons.wikimedia.org/wiki/Special:FilePath/Mmm..._Meatball_sub_with_marinara_sauce,_mozzarella,_and_roasted_peppers_(6432603233).jpg"
+  },
+  "MCB": {
+    "attempts": 1,
+    "file": "MCB.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/e/ee/Chandon_California_Brut_sparkling_wine.JPG"
+  },
+  "MCI": {
+    "attempts": 1,
+    "file": "MCI.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/05/Mochi_Ice_Cream.jpg/1280px-Mochi_Ice_Cream.jpg"
+  },
+  "MCR": {
+    "attempts": 1,
+    "file": "MCR.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/11/VanillaMacaron.jpg/1280px-VanillaMacaron.jpg"
+  },
+  "MER": {
+    "attempts": 1,
+    "file": "MER.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/d/d0/2008_Stag%27s_Leap_Wine_Cellars_Merlot.jpg"
+  },
+  "MFL": {
+    "attempts": 1,
+    "file": "MFL.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/57/Mozzarella_di_bufala3.jpg/960px-Mozzarella_di_bufala3.jpg"
   },
   "MKB": {
     "attempts": 1,
     "file": "MKB.jpg",
     "source": "https://upload.wikimedia.org/wikipedia/commons/4/4a/Brioche.jpg"
   },
+  "MLF": {
+    "attempts": 1,
+    "file": "MLF.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/d/d4/Mafaldine.JPG"
+  },
+  "MLS": {
+    "attempts": 1,
+    "file": "MLS.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/68/Strawberry_milk_shake_%28cropped%29.jpg/1280px-Strawberry_milk_shake_%28cropped%29.jpg"
+  },
   "MON": {
     "attempts": 2,
     "file": "MON.jpg",
     "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a4/Vella_Cheese_Young_Jack_%28cropped%29.jpg/960px-Vella_Cheese_Young_Jack_%28cropped%29.jpg"
+  },
+  "MOZ": {
+    "attempts": 1,
+    "file": "MOZ.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/6/60/2021-06-22_15_54_12_A_ball_of_Bel_Gioioso_Fresh_Mozzarella_cheese_in_the_Franklin_Farm_section_of_Oak_Hill%2C_Fairfax_County%2C_Virginia.jpg"
+  },
+  "MTC": {
+    "attempts": 1,
+    "file": "MTC.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/d/d9/Olea_Matcha_Cheesecake_with_olive_oil_-_Olea_2025-07-03.jpg"
   },
   "NEB": {
     "attempts": 2,
     "file": "NEB.jpg",
     "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/01/Cascin_Adelaide_Barolo_%26_decanter.jpg/960px-Cascin_Adelaide_Barolo_%26_decanter.jpg"
   },
+  "NIT": {
+    "attempts": 1,
+    "file": "NIT.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/9/94/Amorino_Gelato_Flowers_and_Macaroons.jpg"
+  },
+  "NOO": {
+    "attempts": 1,
+    "file": "NOO.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/7/77/Cuddly_Flying_Spaghetti_Monster.jpg"
+  },
+  "NYC": {
+    "attempts": 1,
+    "file": "NYC.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/0/07/A_baked_New_York_style_cheesecake.jpg"
+  },
+  "OMC": {
+    "attempts": 1,
+    "file": "OMC.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/e/e4/Girl_Scout_cookies_%28Girl_Scouts_of_the_USA%29.jpg"
+  },
   "ORC": {
     "attempts": 2,
     "file": "ORC.jpg",
     "source": "https://upload.wikimedia.org/wikipedia/commons/8/8d/Orecchiette_carbonara.jpg"
+  },
+  "OSB": {
+    "attempts": 1,
+    "file": "OSB.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/2/2a/Collana_in_vaghi_di_pasta_vitrea%2C_faience%2C_osso%2C_ambra_e_una_figurina_di_tipo_egiziano%2C_vii_secolo_ac.%2C_da_poggio_buco.jpg"
   },
   "OXT": {
     "attempts": 2,
     "file": "OXT.jpg",
     "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/Supreme_pizza.jpg/960px-Supreme_pizza.jpg"
   },
+  "PAN": {
+    "attempts": 1,
+    "file": "PAN.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e6/Panettone_-_Nicolettone_2017_-_IMG_7085_%2831752542285%29.jpg/960px-Panettone_-_Nicolettone_2017_-_IMG_7085_%2831752542285%29.jpg"
+  },
   "PAP": {
     "attempts": 2,
     "file": "PAP.jpg",
     "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/Pappardelle.jpg/960px-Pappardelle.jpg"
   },
+  "PAR": {
+    "attempts": 1,
+    "file": "PAR.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/2/21/Parmesan_Cheese_Parmigiano-Reggiano.jpg"
+  },
   "PCH": {
     "attempts": 2,
     "file": "PCH.png",
     "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0b/Pennelisce_closeup.png/960px-Pennelisce_closeup.png"
+  },
+  "PCT": {
+    "attempts": 1,
+    "file": "PCT.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/ad/Sportsman%2C_Seasalter%2C_Kent_%286477078261%29.jpg/1280px-Sportsman%2C_Seasalter%2C_Kent_%286477078261%29.jpg"
+  },
+  "PDM": {
+    "attempts": 1,
+    "file": "PDM.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a0/Provolone_watermelon_shape.jpg/960px-Provolone_watermelon_shape.jpg"
   },
   "PEC": {
     "attempts": 1,
@@ -216,38 +736,148 @@
   },
   "PEN": {
     "attempts": 1,
-    "file": "PEN.png",
-    "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0b/Pennelisce_closeup.png/960px-Pennelisce_closeup.png"
+    "file": "PEN.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/a/a9/Armoiries_de_la_Maison_De_Penne.jpg"
+  },
+  "PGR": {
+    "attempts": 1,
+    "file": "PGR.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/1/19/Pinot_Noir_being_poured_into_a_wine_glass.jpg"
+  },
+  "PIN": {
+    "attempts": 1,
+    "file": "PIN.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/d/d3/Wine_tasting_pinot_noir_at_WALT_Wines_-_Sarah_Stierch.jpg"
   },
   "PIT": {
     "attempts": 2,
     "file": "PIT.jpg",
     "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3b/Home_made_sour_dough_bread.jpg/960px-Home_made_sour_dough_bread.jpg"
   },
+  "PLF": {
+    "attempts": 1,
+    "file": "PLF.jpg",
+    "source": "https://commons.wikimedia.org/wiki/Special:FilePath/Lemon_Pea_Risotto.jpg"
+  },
+  "PNI": {
+    "attempts": 1,
+    "file": "PNI.jpeg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/7/77/Stamp_of_India_-_2004_-_Colnect_158527_-_Panini.jpeg"
+  },
+  "PRC": {
+    "attempts": 1,
+    "file": "PRC.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/2/23/Porcini_Mushroom_Ravioli_with_Bella_Marinara_and_Rice_Parmesan_%285085096845%29.jpg"
+  },
+  "PRE": {
+    "attempts": 1,
+    "file": "PRE.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/9/9f/Amazing_bread_that_looks_like_a_pretzel_%289529833911%29.jpg"
+  },
+  "PRL": {
+    "attempts": 1,
+    "file": "PRL.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/2/25/Chocolate_Profiterole_Cheesecake_-_Caff%C3%A8_Nero_2024-12-26.jpg"
+  },
+  "PRO": {
+    "attempts": 1,
+    "file": "PRO.jpeg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/7/7b/Pictograms_on_Prosecco_wine_bottle_in_Germany.jpeg"
+  },
   "PRV": {
     "attempts": 1,
     "file": "PRV.jpg",
     "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a0/Provolone_watermelon_shape.jpg/960px-Provolone_watermelon_shape.jpg"
   },
-  "PUM": {
+  "PSC": {
     "attempts": 1,
+    "file": "PSC.png",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2b/Popsicle_The_Original_Brand.svg/1280px-Popsicle_The_Original_Brand.svg.png"
+  },
+  "PTS": {
+    "attempts": 1,
+    "file": "PTS.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/a/a5/Pane_toscano.jpg"
+  },
+  "PUM": {
+    "attempts": 2,
     "file": "PUM.jpg",
     "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5d/Pumpernickel.jpg/960px-Pumpernickel.jpg"
+  },
+  "PZA": {
+    "attempts": 1,
+    "file": "PZA.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/5/5e/Chicken_Pizza_1.jpg"
+  },
+  "RAM": {
+    "attempts": 1,
+    "file": "RAM.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/e/e7/Japanese_Ramen_Noodle_Soup%2C_Bangkok%2C_Thailand.jpg"
   },
   "RAV": {
     "attempts": 1,
     "file": "RAV.jpg",
     "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/95/Flickr_-_cyclonebill_-_Ravioli_med_skinke_og_asparges_i_mascarponecreme.jpg/960px-Flickr_-_cyclonebill_-_Ravioli_med_skinke_og_asparges_i_mascarponecreme.jpg"
   },
+  "RBL": {
+    "attempts": 1,
+    "file": "RBL.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/f/fe/ROBIOLA_Maria_-_Born-_%28BLANK%29%2C_Naturalized-_1938_-_DPLA_-_2e3af9d68ad23d4be0bf3e77f0395260.jpg"
+  },
+  "RCA": {
+    "attempts": 1,
+    "file": "RCA.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/d/d6/Cavatelli.jpg"
+  },
+  "RCO": {
+    "attempts": 1,
+    "file": "RCO.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/2/27/Pasticciotto_filled_with_ricotta_cheese.jpg"
+  },
   "RCT": {
     "attempts": 2,
     "file": "RCT.jpg",
     "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/57/Mozzarella_di_bufala3.jpg/960px-Mozzarella_di_bufala3.jpg"
   },
+  "RDB": {
+    "attempts": 1,
+    "file": "RDB.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/5/5f/Homemade_Sourdough_Boule.jpg"
+  },
+  "RGN": {
+    "attempts": 1,
+    "file": "RGN.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/c/c3/Paccheri_ragu.jpg"
+  },
+  "RIC": {
+    "attempts": 1,
+    "file": "RIC.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/0/0a/2025-02-07_Yunnan_Rice_Noodles_in_Xingyayuan_Halal_Restaurant%2C_Jianshui.jpg"
+  },
   "RIG": {
-    "attempts": 2,
-    "file": "RIG.png",
-    "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0b/Pennelisce_closeup.png/960px-Pennelisce_closeup.png"
+    "attempts": 3,
+    "file": "RIG.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/84/Rigatoni.jpg/500px-Rigatoni.jpg"
+  },
+  "RIO": {
+    "attempts": 1,
+    "file": "RIO.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/f/fb/05._La_Rioja_%282%29.JPG"
+  },
+  "RIS": {
+    "attempts": 1,
+    "file": "RIS.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/f/f2/Broad_bean_and_pea_risotto_%285267182554%29.jpg"
+  },
+  "RKT": {
+    "attempts": 1,
+    "file": "RKT.png",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/59/Rice_Krispies_logo.svg/1280px-Rice_Krispies_logo.svg.png"
+  },
+  "RMF": {
+    "attempts": 1,
+    "file": "RMF.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/8/8c/Costoletta_di_maiale_alla_griglia.jpg"
   },
   "ROM": {
     "attempts": 1,
@@ -259,35 +889,130 @@
     "file": "ROT.jpg",
     "source": "https://upload.wikimedia.org/wikipedia/commons/a/a8/Rotini_pasta.jpg"
   },
+  "RSF": {
+    "attempts": 1,
+    "file": "RSF.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/1/18/Focaccia_Crust.jpg"
+  },
+  "RSR": {
+    "attempts": 1,
+    "file": "RSR.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/b/b3/Abete_rosso_-_picea_abies_sezione_basale.jpg"
+  },
+  "RVC": {
+    "attempts": 1,
+    "file": "RVC.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/7/7d/Cake_red_velvet.jpg"
+  },
   "RWB": {
     "attempts": 1,
     "file": "RWB.jpg",
     "source": "https://upload.wikimedia.org/wikipedia/commons/1/1c/Amarone_BMK.jpg"
+  },
+  "RYE": {
+    "attempts": 1,
+    "file": "RYE.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/79/Ear_of_rye.jpg/960px-Ear_of_rye.jpg"
+  },
+  "SCA": {
+    "attempts": 1,
+    "file": "SCA.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/9/98/Honthorst_-_A_young_man_holding_a_burning_candle_and_a_scamorza_cheese%2C_a_fiasco_bottle_beside_him%2C_6298682.jpg"
   },
   "SCI": {
     "attempts": 2,
     "file": "SCI.jpg",
     "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/bf/Focaccia_with_Crumb.jpg/960px-Focaccia_with_Crumb.jpg"
   },
+  "SCK": {
+    "attempts": 1,
+    "file": "SCK.png",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/b/b4/Choco_chip_cookie.png"
+  },
+  "SCP": {
+    "attempts": 1,
+    "file": "SCP.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/5/5f/Carthay_Shellfish_Cioppino_%2829428096016%29.jpg"
+  },
+  "SDM": {
+    "attempts": 1,
+    "file": "SDM.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/6/64/Bread_in_the_Hellenic_Republic.jpg"
+  },
+  "SFL": {
+    "attempts": 1,
+    "file": "SFL.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/b/b0/%282014-11-22%29_Nona_Grazia_Pasticceria_-_S%C3%A3o_Roque_-_Sfogliatella_%C3%ADtalo-brasileira_Romerito_Pontes_%2815247829264%29.jpg"
+  },
+  "SFN": {
+    "attempts": 1,
+    "file": "SFN.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b3/Chicken_Noodle_Soup.jpg/1280px-Chicken_Noodle_Soup.jpg"
+  },
+  "SFR": {
+    "attempts": 1,
+    "file": "SFR.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0c/Pasta_Venice.jpg/1280px-Pasta_Venice.jpg"
+  },
   "SHC": {
     "attempts": 2,
     "file": "SHC.jpg",
     "source": "https://upload.wikimedia.org/wikipedia/commons/1/18/Somerset-Cheddar.jpg"
+  },
+  "SLA": {
+    "attempts": 1,
+    "file": "SLA.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/e/ee/Linguine-alle-vongole.jpg"
+  },
+  "SND": {
+    "attempts": 1,
+    "file": "SND.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/a/ae/StrawberrySundae.jpg"
+  },
+  "SOB": {
+    "attempts": 1,
+    "file": "SOB.png",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/a/ab/Soba-Noodles-Deliveryman-Tokyo-1935.png"
   },
   "SOU": {
     "attempts": 2,
     "file": "SOU.jpg",
     "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3b/Home_made_sour_dough_bread.jpg/960px-Home_made_sour_dough_bread.jpg"
   },
+  "SOV": {
+    "attempts": 1,
+    "file": "SOV.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/b/ba/Sauvignon_blanc_wine.jpg"
+  },
   "SPG": {
     "attempts": 1,
     "file": "SPG.jpg",
     "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/92/Spaghettoni.jpg/960px-Spaghettoni.jpg"
   },
+  "SPN": {
+    "attempts": 1,
+    "file": "SPN.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/a/ad/Purple_sweet_potato%2C_spinach_and_buckwheat_flavored_instant_noodles.jpg"
+  },
   "STP": {
     "attempts": 1,
     "file": "STP.jpg",
     "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/Pappardelle.jpg/960px-Pappardelle.jpg"
+  },
+  "STR": {
+    "attempts": 1,
+    "file": "STR.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/6/6d/Aus_meinem_Gelateria-Labor_-_Stracciatella-Eis_immer_noch_nicht_blutenrein_dafur_ohne_Ei_%284092492038%29.jpg"
+  },
+  "SUT": {
+    "attempts": 1,
+    "file": "SUT.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/b/b4/Dogajolo_Super_Tuscan.jpg"
+  },
+  "SWS": {
+    "attempts": 1,
+    "file": "SWS.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/ab/Marche-aux-puces-Lausanne-004.jpg/960px-Marche-aux-puces-Lausanne-004.jpg"
   },
   "TAG": {
     "attempts": 2,
@@ -299,20 +1024,100 @@
     "file": "TAJ.jpg",
     "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/54/2016_1129_Turin_Tajarin_al_Castelmagno.jpg/1280px-2016_1129_Turin_Tajarin_al_Castelmagno.jpg"
   },
+  "TAL": {
+    "attempts": 1,
+    "file": "TAL.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/f/ff/Baked_Gnocchi_with_Taleggio_Cheese_and_Crispy_Sage_at_Il_Fornaio_in_Kilda.jpg"
+  },
+  "TBB": {
+    "attempts": 1,
+    "file": "TBB.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/67/Nests_of_tagliatelle_bolognesi.jpg/960px-Nests_of_tagliatelle_bolognesi.jpg"
+  },
+  "TIR": {
+    "attempts": 1,
+    "file": "TIR.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/f/fb/Dessert_Tiramisu.jpg"
+  },
+  "TOR": {
+    "attempts": 1,
+    "file": "TOR.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/42/Tortellini_Bolognesi.jpg/1280px-Tortellini_Bolognesi.jpg"
+  },
+  "TRF": {
+    "attempts": 1,
+    "file": "TRF.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/83/A_Pecorino_cheese_plate_at_Hong_Kong.jpg/1280px-A_Pecorino_cheese_plate_at_Hong_Kong.jpg"
+  },
   "TRG": {
     "attempts": 1,
     "file": "TRG.jpg",
     "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/59/Garlicbread.jpg/960px-Garlicbread.jpg"
+  },
+  "TRM": {
+    "attempts": 1,
+    "file": "TRM.png",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/22/Collage_Mexican_Cuisine_by_User-EME.png/1280px-Collage_Mexican_Cuisine_by_User-EME.png"
+  },
+  "TRN": {
+    "attempts": 1,
+    "file": "TRN.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/4/48/Forty_yolk_noodles_with_truffle.JPG"
   },
   "TRO": {
     "attempts": 1,
     "file": "TRO.jpg",
     "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/67/Nests_of_tagliatelle_bolognesi.jpg/960px-Nests_of_tagliatelle_bolognesi.jpg"
   },
+  "TRR": {
+    "attempts": 1,
+    "file": "TRR.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/2/23/00_Black_Truffle_Risotto.jpg"
+  },
+  "UDC": {
+    "attempts": 1,
+    "file": "UDC.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/8/86/Chicken_Noodle_Soup_US.jpg"
+  },
+  "UDO": {
+    "attempts": 1,
+    "file": "UDO.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/d/d4/Beef_Udon_dish_with_egg_and_flakesCNE_03.jpg"
+  },
+  "VDT": {
+    "attempts": 1,
+    "file": "VDT.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/8/8a/Anthos_Vino_da_Tavola_Brachetto.JPG"
+  },
+  "VER": {
+    "attempts": 1,
+    "file": "VER.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/a/a9/Rice_noodles_vermicelli_mie.jpg"
+  },
+  "VSC": {
+    "attempts": 1,
+    "file": "VSC.png",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/27/Wine_production%2C_OWID.svg/1280px-Wine_production%2C_OWID.svg.png"
+  },
+  "VSL": {
+    "attempts": 1,
+    "file": "VSL.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/0/0d/Saltimbocca_cooked_%281%29.jpg"
+  },
   "WHT": {
     "attempts": 1,
     "file": "WHT.jpg",
     "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/67/Nests_of_tagliatelle_bolognesi.jpg/960px-Nests_of_tagliatelle_bolognesi.jpg"
+  },
+  "YAK": {
+    "attempts": 1,
+    "file": "YAK.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/Otaru_Ankake_Yakisoba_11138725415.jpg/1280px-Otaru_Ankake_Yakisoba_11138725415.jpg"
+  },
+  "ZAB": {
+    "attempts": 1,
+    "file": "ZAB.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/5/59/Zabaglione_2021.jpg"
   },
   "ZIT": {
     "attempts": 3,

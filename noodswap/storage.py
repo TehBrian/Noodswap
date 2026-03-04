@@ -128,6 +128,17 @@ def get_instance_by_code(guild_id: int, user_id: int, card_code: str) -> Optiona
         return instances.get_by_code(guild_id, user_id, dupe_code)
 
 
+def get_instance_by_dupe_code(guild_id: int, card_code: str) -> Optional[tuple[int, str, int, str]]:
+    guild_id = _scope_guild_id(guild_id)
+    parsed = split_card_code(card_code)
+    if parsed is None:
+        return None
+
+    with get_db_connection() as conn:
+        instances = CardInstanceRepository(conn)
+        return instances.get_by_dupe_code(guild_id, parsed)
+
+
 def set_last_drop_at(guild_id: int, user_id: int, timestamp: float) -> None:
     guild_id = _scope_guild_id(guild_id)
     with get_db_connection() as conn:

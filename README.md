@@ -31,8 +31,8 @@ This bot uses privileged intents. Enable these for your application in Discord D
 
 - `ns info [player]` / `ns i [player]` — show your stats or another player's stats (mention/username).
 - `ns collection [player]` / `ns c [player]` — show your collection or another player's collection (defaults to yourself).
-- `ns cards` / `ns ca` — show all available cards ranked by wishlist count (paginated).
-- `ns lookup <card_id>` / `ns l <card_id>` — show base card details for a card ID.
+- `ns cards` / `ns ca` — show all available cards with interactive sorting (wishes, rarity, series, base value, alphabetical; default alphabetical), plus a gallery toggle for one-card image mode.
+- `ns lookup <card_id|card_code|query>` / `ns l <card_id|card_code|query>` — show base card details, or exact dupe details when a card code is provided.
 - `ns help` / `ns h` — show command help.
 - `ns drop` / `ns d` — open a drop with 3 random cards and pull 1 via buttons.
 - `ns cooldown [player]` / `ns cd [player]` — show drop cooldown remaining for yourself or another player.

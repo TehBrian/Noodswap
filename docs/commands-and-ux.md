@@ -11,7 +11,7 @@ This document defines behavior and presentation for commands and interaction flo
 - `info [player]` / `i [player]`
 - `collection [player]` / `c [player]`
 - `cards` / `ca`
-- `lookup <card_id>` / `l <card_id>`
+- `lookup <card_id|card_code|query>` / `l <card_id|card_code|query>`
 - `help` / `h`
 - `drop` / `d`
 - `cooldown [player]` / `cd [player]`
@@ -101,14 +101,33 @@ Card identity terms:
 - `wish add <card_id>` / `w add <card_id>` adds a base card id to the invoker's wishlist
 - `wish remove <card_id>` / `w remove <card_id>` removes a base card id from the invoker's wishlist
 - `wish list` / `w list` returns the invoker's wishlist as embed lines
+- `wish list` / `w list` includes a sort dropdown with modes: `Wishes`, `Rarity`, `Series`, `Base Value`, `Alphabetical`
+- default sort mode is `Alphabetical`
+- includes a `Gallery` toggle that switches to one-card-per-page image mode while keeping page navigation
 - `wa <card_id>`, `wr <card_id>`, and `wl` are shortcuts for add/remove/list
 - Unknown card ids return a validation error embed
+
+## Lookup UX
+
+- Multi-match lookup results are shown in a paginated embed with a sort dropdown
+- Sort modes are: `Wishes`, `Rarity`, `Series`, `Base Value`, `Alphabetical`
+- default sort mode is `Alphabetical`
+- includes a `Gallery` toggle that switches to one-card-per-page image mode while keeping page navigation
 
 ## Cards Catalog UX
 
 - `cards` / `ca` shows all available catalog cards
-- Cards are sorted by wishlist count descending (ties by card ID)
+- Catalog includes a sort dropdown with modes: `Wishes`, `Rarity`, `Series`, `Base Value`, `Alphabetical`
+- Default sort mode is `Alphabetical`
+- includes a `Gallery` toggle that switches to one-card-per-page image mode while keeping page navigation
 - View is paginated with four buttons: `First Page`, `Previous Page`, `Next Page`, `Last Page`
+
+## Lookup UX
+
+- `lookup` accepts a base `card_id`, an exact dupe `card_code`, or a name/series query
+- If input exactly matches an existing `card_code`, show dupe-card output (`Code`, `G-####`, and computed `Value`)
+- If no exact dupe code is found, fall back to base card lookup behavior (`card_id` match, then name/series search)
+- Entries include wishlist counts regardless of selected sort mode
 
 ## Info UX
 
