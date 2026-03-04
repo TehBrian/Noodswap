@@ -9,11 +9,12 @@ Early prototype Discord trading-card style bot using `discord.py`.
    ```bash
    pip install -r requirements.txt
    ```
-3. Set your token:
-   - Copy `.env.example` to your own env setup, or export directly:
+3. Set your token (never commit secrets):
+   - Local dev:
    ```bash
    export DISCORD_TOKEN=your-token
    ```
+   - Production (recommended): inject secret from your platform secret manager as either `DISCORD_TOKEN` or a mounted file path in `DISCORD_TOKEN_FILE`.
 4. Run:
    ```bash
    python bot.py
@@ -51,7 +52,12 @@ This bot uses privileged intents. Enable these for your application in Discord D
 
 ### Optional: local card image cache (recommended)
 
-To avoid remote image rate limiting during drop preview composition, cache card images locally:
+Drop preview image composition uses a lazy cache at runtime:
+
+- If an image exists in `assets/card_images/manifest.json`, it uses local bytes.
+- If missing, it fetches once from the source URL, saves it to `assets/card_images/`, updates the manifest, and reuses local cache on later drops.
+
+You can also pre-warm the full cache in advance to avoid first-hit fetches:
 
 ```bash
 .venv/bin/python scripts/cache_card_images.py
@@ -62,6 +68,7 @@ This writes files into `assets/card_images/` and a manifest at `assets/card_imag
 ## Notes / prototype limitations
 
 - Data is persisted in local SQLite (`noodswap.db`) in the project directory.
+- `.env` files are gitignored; keep real tokens only in untracked local env files or deployment secret managers.
 - No anti-abuse logging or sharding yet.
 - Alias conflict in the original spec (`d` for both `drop` and `divorce`) is resolved as:
   - `d` for `drop`

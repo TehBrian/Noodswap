@@ -7,8 +7,9 @@ This runbook is for contributors and coding agents.
 - Python: 3.14+
 - Install dependencies:
   - `pip install -r requirements.txt`
-- Set token:
+- Set token (never commit secrets):
   - `export DISCORD_TOKEN=...`
+  - or set `DISCORD_TOKEN_FILE=/path/to/secret-file` (for mounted secret files)
 
 ## Run
 
@@ -57,6 +58,9 @@ This runbook is for contributors and coding agents.
   - `.venv/bin/python -m unittest discover -s tests -p 'test_*.py'`
 - VS Code task shortcut:
   - `check:tests`
+- SQLite guardrail:
+  - `tests/test_sqlite_guardrails.py` blocks raw `with sqlite3.connect(...) as conn:` usage.
+  - Prefer explicit-close patterns (`contextlib.closing`) for direct sqlite handles.
 
 ## Recommended edit flow
 
@@ -81,6 +85,7 @@ This runbook is for contributors and coding agents.
 
 - Keep user-facing command failures embed-based through app-level `on_command_error` in `noodswap/app.py`.
 - Prefer changing operational knobs in `noodswap/settings.py` (drop count, interaction timeouts, generation bounds, cooldowns).
+- For direct sqlite usage outside `storage.get_db_connection()`, explicitly close connections.
 
 ## High-risk edits
 

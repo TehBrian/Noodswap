@@ -1,11 +1,17 @@
 import io
+import json
+import tempfile
 import unittest
+from types import SimpleNamespace
+from typing import Any
 from unittest.mock import AsyncMock, patch
+from pathlib import Path
 
 import discord
 from discord.ext import commands
 
-from noodswap.commands import _build_drop_preview_blocking, register_commands
+from noodswap.commands import _build_drop_preview_blocking, _get_card_image_bytes, register_commands
+from noodswap.views import PaginatedLinesView
 
 
 class _FakeGuild:
@@ -20,16 +26,26 @@ class _FakeMember:
         self.bot = False
 
 
+def _get_command(bot: commands.Bot, name: str) -> Any:
+    command = bot.get_command(name)
+    assert command is not None
+    return command
+
+
+def _get_group_command(bot: commands.Bot, group_name: str, command_name: str) -> Any:
+    group = _get_command(bot, group_name)
+    command = group.get_command(command_name)
+    assert command is not None
+    return command
+
+
 class CommandsWishlistTests(unittest.IsolatedAsyncioTestCase):
     def setUp(self) -> None:
         self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)
         register_commands(self.bot)
 
     async def test_wish_list_defaults_to_author_when_player_omitted(self) -> None:
-        wish_group = self.bot.get_command("wish")
-        self.assertIsNotNone(wish_group)
-        wish_list_command = wish_group.get_command("list")
-        self.assertIsNotNone(wish_list_command)
+        wish_list_command = _get_group_command(self.bot, "wish", "list")
 
         ctx = AsyncMock()
         ctx.guild = _FakeGuild(1)
@@ -42,10 +58,7 @@ class CommandsWishlistTests(unittest.IsolatedAsyncioTestCase):
         wish_list_impl.assert_awaited_once_with(ctx, ctx.author)
 
     async def test_wish_list_uses_resolved_player_when_argument_provided(self) -> None:
-        wish_group = self.bot.get_command("wish")
-        self.assertIsNotNone(wish_group)
-        wish_list_command = wish_group.get_command("list")
-        self.assertIsNotNone(wish_list_command)
+        wish_list_command = _get_group_command(self.bot, "wish", "list")
 
         ctx = AsyncMock()
         ctx.guild = _FakeGuild(1)
@@ -63,10 +76,7 @@ class CommandsWishlistTests(unittest.IsolatedAsyncioTestCase):
         wish_list_impl.assert_awaited_once_with(ctx, target)
 
     async def test_wish_add_falls_back_to_exact_card_name(self) -> None:
-        wish_group = self.bot.get_command("wish")
-        self.assertIsNotNone(wish_group)
-        wish_add_command = wish_group.get_command("add")
-        self.assertIsNotNone(wish_add_command)
+        wish_add_command = _get_group_command(self.bot, "wish", "add")
 
         ctx = AsyncMock()
         ctx.guild = _FakeGuild(1)
@@ -83,11 +93,26 @@ class CommandsWishlistTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("Added to wishlist", sent_embed.description)
         self.assertIn("(`SPG`)", sent_embed.description)
 
+    async def test_wish_add_lists_multiple_name_matches_with_numbering(self) -> None:
+        wish_add_command = _get_group_command(self.bot, "wish", "add")
+
+        ctx = AsyncMock()
+        ctx.guild = _FakeGuild(1)
+        ctx.author = _FakeMember(100, "Caller")
+        ctx.send = AsyncMock()
+
+        with patch("noodswap.commands.add_card_to_wishlist", return_value=True) as add_wishlist:
+            await wish_add_command.callback(ctx, card_id="cheddar")
+
+        add_wishlist.assert_not_called()
+        ctx.send.assert_awaited_once()
+        sent_embed = ctx.send.await_args.kwargs["embed"]
+        self.assertEqual(sent_embed.title, "Wishlist Matches")
+        self.assertIn("1. **Cheddar**", sent_embed.description)
+        self.assertIn("2. **Cheddar Jack**", sent_embed.description)
+
     async def test_wish_remove_lists_multiple_name_matches(self) -> None:
-        wish_group = self.bot.get_command("wish")
-        self.assertIsNotNone(wish_group)
-        wish_remove_command = wish_group.get_command("remove")
-        self.assertIsNotNone(wish_remove_command)
+        wish_remove_command = _get_group_command(self.bot, "wish", "remove")
 
         ctx = AsyncMock()
         ctx.guild = _FakeGuild(1)
@@ -101,8 +126,8 @@ class CommandsWishlistTests(unittest.IsolatedAsyncioTestCase):
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
         self.assertEqual(sent_embed.title, "Wishlist Matches")
-        self.assertIn("(`CHD`)", sent_embed.description)
-        self.assertIn("(`CHJ`)", sent_embed.description)
+        self.assertIn("1. **Cheddar**", sent_embed.description)
+        self.assertIn("2. **Cheddar Jack**", sent_embed.description)
 
 
 class CommandsAliasRegistrationTests(unittest.TestCase):
@@ -111,21 +136,21 @@ class CommandsAliasRegistrationTests(unittest.TestCase):
         register_commands(self.bot)
 
     def test_requested_aliases_exist(self) -> None:
-        self.assertIsNotNone(self.bot.get_command("wa"))
-        self.assertIsNotNone(self.bot.get_command("wr"))
-        self.assertIsNotNone(self.bot.get_command("wl"))
+        self.assertIsNotNone(_get_command(self.bot, "wa"))
+        self.assertIsNotNone(_get_command(self.bot, "wr"))
+        self.assertIsNotNone(_get_command(self.bot, "wl"))
 
-        self.assertIn("m", self.bot.get_command("marry").aliases)
-        self.assertIn("dv", self.bot.get_command("divorce").aliases)
-        self.assertIn("t", self.bot.get_command("trade").aliases)
-        self.assertIn("b", self.bot.get_command("burn").aliases)
-        self.assertIn("cd", self.bot.get_command("cooldown").aliases)
-        self.assertIn("d", self.bot.get_command("drop").aliases)
-        self.assertIn("h", self.bot.get_command("help").aliases)
-        self.assertIn("ca", self.bot.get_command("cards").aliases)
-        self.assertIn("l", self.bot.get_command("lookup").aliases)
-        self.assertIn("c", self.bot.get_command("collection").aliases)
-        self.assertIn("i", self.bot.get_command("info").aliases)
+        self.assertIn("m", _get_command(self.bot, "marry").aliases)
+        self.assertIn("dv", _get_command(self.bot, "divorce").aliases)
+        self.assertIn("t", _get_command(self.bot, "trade").aliases)
+        self.assertIn("b", _get_command(self.bot, "burn").aliases)
+        self.assertIn("cd", _get_command(self.bot, "cooldown").aliases)
+        self.assertIn("d", _get_command(self.bot, "drop").aliases)
+        self.assertIn("h", _get_command(self.bot, "help").aliases)
+        self.assertIn("ca", _get_command(self.bot, "cards").aliases)
+        self.assertIn("l", _get_command(self.bot, "lookup").aliases)
+        self.assertIn("c", _get_command(self.bot, "collection").aliases)
+        self.assertIn("i", _get_command(self.bot, "info").aliases)
 
 
 class CommandsLookupTests(unittest.IsolatedAsyncioTestCase):
@@ -134,8 +159,7 @@ class CommandsLookupTests(unittest.IsolatedAsyncioTestCase):
         register_commands(self.bot)
 
     async def test_lookup_rejects_unknown_card_id(self) -> None:
-        lookup_command = self.bot.get_command("lookup")
-        self.assertIsNotNone(lookup_command)
+        lookup_command = _get_command(self.bot, "lookup")
 
         ctx = AsyncMock()
         ctx.guild = _FakeGuild(1)
@@ -147,11 +171,25 @@ class CommandsLookupTests(unittest.IsolatedAsyncioTestCase):
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
         self.assertEqual(sent_embed.title, "Lookup")
-        self.assertEqual(sent_embed.description, "Unknown card id.")
+        self.assertEqual(sent_embed.description, "No results found.")
+
+    async def test_lookup_shows_usage_when_missing_argument(self) -> None:
+        lookup_command = _get_command(self.bot, "lookup")
+
+        ctx = AsyncMock()
+        ctx.guild = _FakeGuild(1)
+        ctx.author = _FakeMember(100, "Caller")
+        ctx.send = AsyncMock()
+
+        await lookup_command.callback(ctx, card_id=None)
+
+        ctx.send.assert_awaited_once()
+        sent_embed = ctx.send.await_args.kwargs["embed"]
+        self.assertEqual(sent_embed.title, "Lookup")
+        self.assertEqual(sent_embed.description, "Usage: `ns lookup <card_id|query>`.")
 
     async def test_lookup_shows_base_card_embed(self) -> None:
-        lookup_command = self.bot.get_command("lookup")
-        self.assertIsNotNone(lookup_command)
+        lookup_command = _get_command(self.bot, "lookup")
 
         ctx = AsyncMock()
         ctx.guild = _FakeGuild(1)
@@ -166,8 +204,7 @@ class CommandsLookupTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("(`SPG`)", sent_embed.description)
 
     async def test_lookup_falls_back_to_exact_card_name(self) -> None:
-        lookup_command = self.bot.get_command("lookup")
-        self.assertIsNotNone(lookup_command)
+        lookup_command = _get_command(self.bot, "lookup")
 
         ctx = AsyncMock()
         ctx.guild = _FakeGuild(1)
@@ -182,8 +219,7 @@ class CommandsLookupTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("(`SPG`)", sent_embed.description)
 
     async def test_lookup_lists_multiple_name_matches(self) -> None:
-        lookup_command = self.bot.get_command("lookup")
-        self.assertIsNotNone(lookup_command)
+        lookup_command = _get_command(self.bot, "lookup")
 
         ctx = AsyncMock()
         ctx.guild = _FakeGuild(1)
@@ -194,23 +230,43 @@ class CommandsLookupTests(unittest.IsolatedAsyncioTestCase):
 
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
+        sent_view = ctx.send.await_args.kwargs["view"]
         self.assertEqual(sent_embed.title, "Lookup Matches")
-        self.assertIn("(`CHD`)", sent_embed.description)
-        self.assertIn("(`CHJ`)", sent_embed.description)
+        self.assertIsInstance(sent_view, PaginatedLinesView)
+        self.assertIn("1. **Cheddar**", sent_embed.description)
+        self.assertIn("2. **Cheddar Jack**", sent_embed.description)
 
-    async def test_lookup_unknown_card_id_falls_back_to_search_query(self) -> None:
-        lookup_command = self.bot.get_command("lookup")
-        self.assertIsNotNone(lookup_command)
+    async def test_lookup_lists_matches_for_series_query(self) -> None:
+        lookup_command = _get_command(self.bot, "lookup")
 
         ctx = AsyncMock()
         ctx.guild = _FakeGuild(1)
         ctx.author = _FakeMember(100, "Caller")
         ctx.send = AsyncMock()
 
-        with patch("noodswap.commands.search_card_ids_by_name", return_value=["SPG"]) as search_cards:
+        await lookup_command.callback(ctx, card_id="cheese")
+
+        ctx.send.assert_awaited_once()
+        sent_embed = ctx.send.await_args.kwargs["embed"]
+        sent_view = ctx.send.await_args.kwargs["view"]
+        self.assertEqual(sent_embed.title, "Lookup Matches")
+        self.assertIsInstance(sent_view, PaginatedLinesView)
+        self.assertIn("1.", sent_embed.description)
+        self.assertTrue(sent_embed.footer.text.startswith("Page 1/"))
+        self.assertGreater(sent_view.total_pages, 1)
+
+    async def test_lookup_unknown_card_id_falls_back_to_search_query(self) -> None:
+        lookup_command = _get_command(self.bot, "lookup")
+
+        ctx = AsyncMock()
+        ctx.guild = _FakeGuild(1)
+        ctx.author = _FakeMember(100, "Caller")
+        ctx.send = AsyncMock()
+
+        with patch("noodswap.commands.search_card_ids", return_value=["SPG"]) as search_cards:
             await lookup_command.callback(ctx, card_id="spicy noodle")
 
-        search_cards.assert_called_once_with("spicy noodle")
+        search_cards.assert_called_once_with("spicy noodle", include_series=True)
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
         self.assertEqual(sent_embed.title, "Card Lookup")
@@ -223,8 +279,7 @@ class CommandsCollectionTests(unittest.IsolatedAsyncioTestCase):
         register_commands(self.bot)
 
     async def test_collection_defaults_to_author_when_player_omitted(self) -> None:
-        collection_command = self.bot.get_command("collection")
-        self.assertIsNotNone(collection_command)
+        collection_command = _get_command(self.bot, "collection")
 
         ctx = AsyncMock()
         ctx.guild = _FakeGuild(1)
@@ -240,8 +295,7 @@ class CommandsCollectionTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(sent_embed.description, "Your collection is empty. Try `ns drop`.")
 
     async def test_collection_uses_resolved_player_when_argument_provided(self) -> None:
-        collection_command = self.bot.get_command("collection")
-        self.assertIsNotNone(collection_command)
+        collection_command = _get_command(self.bot, "collection")
 
         ctx = AsyncMock()
         ctx.guild = _FakeGuild(1)
@@ -262,8 +316,7 @@ class CommandsCollectionTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(sent_embed.description, "Target has an empty collection.")
 
     async def test_collection_sends_error_when_player_resolution_fails(self) -> None:
-        collection_command = self.bot.get_command("collection")
-        self.assertIsNotNone(collection_command)
+        collection_command = _get_command(self.bot, "collection")
 
         ctx = AsyncMock()
         ctx.guild = _FakeGuild(1)
@@ -286,8 +339,7 @@ class CommandsCollectionTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(sent_embed.description, "Could not find that player.")
 
     async def test_collection_lists_each_instance_separately(self) -> None:
-        collection_command = self.bot.get_command("collection")
-        self.assertIsNotNone(collection_command)
+        collection_command = _get_command(self.bot, "collection")
 
         ctx = AsyncMock()
         ctx.guild = _FakeGuild(1)
@@ -309,11 +361,44 @@ class CommandsCollectionTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("×", sent_embed.description)
         self.assertIn("#", sent_embed.description)
 
+    async def test_collection_uses_pagination_view_for_multi_page_results(self) -> None:
+        collection_command = _get_command(self.bot, "collection")
+
+        ctx = AsyncMock()
+        ctx.guild = _FakeGuild(1)
+        ctx.author = _FakeMember(100, "Caller")
+        ctx.send = AsyncMock()
+
+        instances = [(idx, "SPG", 100 + idx, str(idx)) for idx in range(1, 13)]
+        with patch("noodswap.commands.get_player_card_instances", return_value=instances):
+            await collection_command.callback(ctx, player=None)
+
+        ctx.send.assert_awaited_once()
+        send_kwargs = ctx.send.await_args.kwargs
+        self.assertIn("view", send_kwargs)
+        self.assertIsInstance(send_kwargs["view"], PaginatedLinesView)
+        self.assertEqual(send_kwargs["embed"].footer.text, "Page 1/2")
+
+    async def test_wish_list_uses_pagination_view_for_multi_page_results(self) -> None:
+        wish_list_command = _get_group_command(self.bot, "wish", "list")
+
+        ctx = AsyncMock()
+        ctx.guild = _FakeGuild(1)
+        ctx.author = _FakeMember(100, "Caller")
+        ctx.send = AsyncMock()
+
+        wishlisted_ids = ["SPG", "PEN", "FUS", "CHD", "CHJ", "BGL", "BAG", "BOL", "PIT", "RYE", "SOU"]
+        with patch("noodswap.commands.get_wishlist_cards", return_value=wishlisted_ids):
+            await wish_list_command.callback(ctx, player=None)
+
+        ctx.send.assert_awaited_once()
+        send_kwargs = ctx.send.await_args.kwargs
+        self.assertIn("view", send_kwargs)
+        self.assertIsInstance(send_kwargs["view"], PaginatedLinesView)
+        self.assertEqual(send_kwargs["embed"].footer.text, "Page 1/2")
+
     async def test_wish_list_sends_error_when_player_resolution_fails(self) -> None:
-        wish_group = self.bot.get_command("wish")
-        self.assertIsNotNone(wish_group)
-        wish_list_command = wish_group.get_command("list")
-        self.assertIsNotNone(wish_list_command)
+        wish_list_command = _get_group_command(self.bot, "wish", "list")
 
         ctx = AsyncMock()
         ctx.guild = _FakeGuild(1)
@@ -337,8 +422,7 @@ class CommandsCollectionTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(sent_embed.description, "Could not find that player.")
 
     async def test_wl_accepts_optional_player_argument(self) -> None:
-        wish_list_short = self.bot.get_command("wl")
-        self.assertIsNotNone(wish_list_short)
+        wish_list_short = _get_command(self.bot, "wl")
 
         ctx = AsyncMock()
         ctx.guild = _FakeGuild(1)
@@ -362,8 +446,7 @@ class CommandsCooldownTests(unittest.IsolatedAsyncioTestCase):
         register_commands(self.bot)
 
     async def test_cooldown_defaults_to_author(self) -> None:
-        cooldown_command = self.bot.get_command("cooldown")
-        self.assertIsNotNone(cooldown_command)
+        cooldown_command = _get_command(self.bot, "cooldown")
 
         ctx = AsyncMock()
         ctx.guild = _FakeGuild(1)
@@ -382,8 +465,7 @@ class CommandsCooldownTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(sent_embed.description, "Ready now.")
 
     async def test_cooldown_uses_resolved_player_when_argument_provided(self) -> None:
-        cooldown_command = self.bot.get_command("cooldown")
-        self.assertIsNotNone(cooldown_command)
+        cooldown_command = _get_command(self.bot, "cooldown")
 
         ctx = AsyncMock()
         ctx.guild = _FakeGuild(1)
@@ -411,8 +493,7 @@ class CommandsInfoTests(unittest.IsolatedAsyncioTestCase):
         register_commands(self.bot)
 
     async def test_info_includes_wishes_count_field(self) -> None:
-        info_command = self.bot.get_command("info")
-        self.assertIsNotNone(info_command)
+        info_command = _get_command(self.bot, "info")
 
         ctx = AsyncMock()
         ctx.guild = _FakeGuild(1)
@@ -432,6 +513,44 @@ class CommandsInfoTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(field_values.get("Cards"), "7")
         self.assertEqual(field_values.get("Dough"), "123")
         self.assertEqual(field_values.get("Wishes"), "3")
+
+
+class CommandsBurnTests(unittest.IsolatedAsyncioTestCase):
+    def setUp(self) -> None:
+        self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)
+        register_commands(self.bot)
+
+    async def test_burn_confirmation_embed_shows_dupe_code(self) -> None:
+        burn_command = _get_command(self.bot, "burn")
+
+        ctx = AsyncMock()
+        ctx.guild = _FakeGuild(1)
+        ctx.author = _FakeMember(100, "Caller")
+        ctx.send = AsyncMock()
+
+        prepared = SimpleNamespace(
+            is_error=False,
+            error_message=None,
+            instance_id=77,
+            card_id="SPG",
+            generation=321,
+            dupe_code="a",
+            payout=42,
+            value=40,
+            base_value=38,
+            delta=2,
+            delta_range=8,
+            multiplier=1.05,
+        )
+
+        with patch("noodswap.commands.prepare_burn", return_value=prepared):
+            await burn_command.callback(ctx, card_code="a")
+
+        ctx.send.assert_awaited_once()
+        sent_embed = ctx.send.await_args.kwargs["embed"]
+        self.assertEqual(sent_embed.title, "Burn Confirmation")
+        self.assertIn("`#a`", sent_embed.description)
+        self.assertNotIn("`#?`", sent_embed.description)
 
 
 class DropPreviewRegressionTests(unittest.TestCase):
@@ -458,6 +577,8 @@ class DropPreviewRegressionTests(unittest.TestCase):
             ])
 
         self.assertIsNotNone(preview)
+        if preview is None:
+            self.fail("Expected drop preview bytes")
         composed = Image.open(io.BytesIO(preview)).convert("RGB")
 
         card_w = 360
@@ -470,6 +591,49 @@ class DropPreviewRegressionTests(unittest.TestCase):
         pixel_slot_2 = composed.getpixel((x_slot_2, y))
         pixel_slot_3 = composed.getpixel((x_slot_3, y))
         self.assertNotEqual(pixel_slot_2, pixel_slot_3)
+
+
+class LazyImageCacheTests(unittest.TestCase):
+    def test_get_card_image_bytes_uses_existing_cache(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            cache_dir = Path(tmpdir)
+            manifest_path = cache_dir / "manifest.json"
+            image_path = cache_dir / "SPG.jpg"
+            image_path.write_bytes(b"cached-bytes")
+            manifest_path.write_text(
+                json.dumps({"SPG": {"file": "SPG.jpg", "source": "https://example.com/spg.jpg", "attempts": 1}}),
+                encoding="utf-8",
+            )
+
+            with (
+                patch("noodswap.commands.CARD_IMAGE_CACHE_MANIFEST", manifest_path),
+                patch("noodswap.commands._fetch_image_bytes", return_value=None) as fetch_mock,
+            ):
+                resolved = _get_card_image_bytes("SPG")
+
+            self.assertEqual(resolved, b"cached-bytes")
+            fetch_mock.assert_not_called()
+
+    def test_get_card_image_bytes_fetches_and_persists_on_miss(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            cache_dir = Path(tmpdir)
+            manifest_path = cache_dir / "manifest.json"
+
+            with (
+                patch("noodswap.commands.CARD_IMAGE_CACHE_MANIFEST", manifest_path),
+                patch("noodswap.commands.card_image_url", return_value="https://example.com/spg.jpg"),
+                patch("noodswap.commands._fetch_image_bytes", return_value=b"fresh-bytes") as fetch_mock,
+            ):
+                resolved = _get_card_image_bytes("SPG")
+
+            self.assertEqual(resolved, b"fresh-bytes")
+            fetch_mock.assert_called_once_with("https://example.com/spg.jpg")
+            self.assertEqual((cache_dir / "SPG.jpg").read_bytes(), b"fresh-bytes")
+
+            manifest_data = json.loads(manifest_path.read_text(encoding="utf-8"))
+            self.assertIn("SPG", manifest_data)
+            self.assertEqual(manifest_data["SPG"]["file"], "SPG.jpg")
+            self.assertEqual(manifest_data["SPG"]["source"], "https://example.com/spg.jpg")
 
 if __name__ == "__main__":
     unittest.main()

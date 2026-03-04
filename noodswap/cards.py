@@ -35,6 +35,16 @@ CARD_CATALOG: dict[str, CardData] = {
     "TRG": {"name": "Truffle Garlic Bread", "series": "bread", "rarity": "epic", "base_value": 47},
     "GRA": {"name": "Golden Grain Loaf", "series": "bread", "rarity": "legendary", "base_value": 220},
     "IMM": {"name": "Immortal Garlic Loaf", "series": "bread", "rarity": "legendary", "base_value": 230},
+    "SDM": {"name": "Semolina Bread", "series": "bread", "rarity": "common", "base_value": 10},
+    "MKB": {"name": "Milk Bread", "series": "bread", "rarity": "common", "base_value": 9},
+    "CRB": {"name": "Crusty Roll", "series": "bread", "rarity": "common", "base_value": 9},
+    "BUN": {"name": "Brioche Bun", "series": "bread", "rarity": "common", "base_value": 10},
+    "CRO": {"name": "Crostini", "series": "bread", "rarity": "uncommon", "base_value": 15},
+    "GRI": {"name": "Grissini", "series": "bread", "rarity": "uncommon", "base_value": 16},
+    "PTS": {"name": "Pane Toscano", "series": "bread", "rarity": "uncommon", "base_value": 17},
+    "FCC": {"name": "Focaccia al Formaggio", "series": "bread", "rarity": "rare", "base_value": 29},
+    "RSF": {"name": "Rosemary Sea-Salt Focaccia", "series": "bread", "rarity": "rare", "base_value": 30},
+    "RDB": {"name": "Rustic Durum Boule", "series": "bread", "rarity": "epic", "base_value": 44},
     "CHD": {"name": "Cheddar", "series": "cheese", "rarity": "common", "base_value": 10},
     "COL": {"name": "Colby", "series": "cheese", "rarity": "common", "base_value": 10},
     "MON": {"name": "Monterey Jack", "series": "cheese", "rarity": "common", "base_value": 10},
@@ -60,6 +70,16 @@ CARD_CATALOG: dict[str, CardData] = {
     "RCT": {"name": "Ricotta Salata", "series": "cheese", "rarity": "epic", "base_value": 45},
     "TRF": {"name": "Truffle Pecorino", "series": "cheese", "rarity": "epic", "base_value": 46},
     "GOL": {"name": "Golden Parm Wheel", "series": "cheese", "rarity": "legendary", "base_value": 225},
+    "RCO": {"name": "Ricotta", "series": "cheese", "rarity": "common", "base_value": 9},
+    "SCA": {"name": "Scamorza", "series": "cheese", "rarity": "common", "base_value": 10},
+    "CAC": {"name": "Caciocavallo", "series": "cheese", "rarity": "common", "base_value": 10},
+    "STR": {"name": "Stracciatella", "series": "cheese", "rarity": "uncommon", "base_value": 16},
+    "PDM": {"name": "Provola del Monaco", "series": "cheese", "rarity": "uncommon", "base_value": 17},
+    "MFL": {"name": "Mozzarella Fior di Latte", "series": "cheese", "rarity": "uncommon", "base_value": 17},
+    "CAT": {"name": "Caciotta al Tartufo", "series": "cheese", "rarity": "rare", "base_value": 29},
+    "RBL": {"name": "Robiola", "series": "cheese", "rarity": "rare", "base_value": 30},
+    "GPR": {"name": "Grana Riserva", "series": "cheese", "rarity": "epic", "base_value": 45},
+    "IMB": {"name": "Imperial Burrata", "series": "cheese", "rarity": "legendary", "base_value": 236},
     "BIS": {"name": "Biscotti", "series": "dessert", "rarity": "common", "base_value": 10},
     "AFF": {"name": "Affogato", "series": "dessert", "rarity": "uncommon", "base_value": 18},
     "CNO": {"name": "Cannoli", "series": "dessert", "rarity": "uncommon", "base_value": 17},
@@ -70,6 +90,46 @@ CARD_CATALOG: dict[str, CardData] = {
     "SFL": {"name": "Sfogliatella", "series": "dessert", "rarity": "epic", "base_value": 44},
     "ZAB": {"name": "Zabaglione", "series": "dessert", "rarity": "epic", "base_value": 45},
     "AMB": {"name": "Ambrosia Tiramisu", "series": "dessert", "rarity": "legendary", "base_value": 236},
+    "BRW": {"name": "Brownie", "series": "dessert", "rarity": "common", "base_value": 9},
+    "CHK": {"name": "Chocolate Chip Cookie", "series": "dessert", "rarity": "common", "base_value": 10},
+    "SCK": {"name": "Sugar Cookie", "series": "dessert", "rarity": "common", "base_value": 8},
+    "OMC": {"name": "Oatmeal Cookie", "series": "dessert", "rarity": "common", "base_value": 8},
+    "LMB": {"name": "Lemon Bar", "series": "dessert", "rarity": "common", "base_value": 9},
+    "RKT": {"name": "Rice Krispie Treat", "series": "dessert", "rarity": "common", "base_value": 9},
+    "APL": {"name": "Apple Pie", "series": "dessert", "rarity": "common", "base_value": 10},
+    "CRP": {"name": "Cherry Pie", "series": "dessert", "rarity": "common", "base_value": 10},
+    "BPD": {"name": "Banana Pudding", "series": "dessert", "rarity": "common", "base_value": 9},
+    "DNT": {"name": "Donut", "series": "dessert", "rarity": "common", "base_value": 8},
+    "FDG": {"name": "Fudge", "series": "dessert", "rarity": "common", "base_value": 9},
+    "BCP": {"name": "Banana Cream Pie", "series": "dessert", "rarity": "common", "base_value": 10},
+    "CUP": {"name": "Cupcake", "series": "dessert", "rarity": "common", "base_value": 9},
+    "CHR": {"name": "Churro", "series": "dessert", "rarity": "common", "base_value": 10},
+    "BLD": {"name": "Blondie", "series": "dessert", "rarity": "uncommon", "base_value": 15},
+    "MCR": {"name": "Macaron", "series": "dessert", "rarity": "uncommon", "base_value": 17},
+    "ECL": {"name": "Eclair", "series": "dessert", "rarity": "uncommon", "base_value": 16},
+    "PRL": {"name": "Profiterole", "series": "dessert", "rarity": "uncommon", "base_value": 17},
+    "CBB": {"name": "Berry Cobbler", "series": "dessert", "rarity": "uncommon", "base_value": 15},
+    "BNS": {"name": "Bread Pudding", "series": "dessert", "rarity": "uncommon", "base_value": 16},
+    "FYG": {"name": "Frozen Yogurt", "series": "dessert", "rarity": "uncommon", "base_value": 16},
+    "PSC": {"name": "Popsicle", "series": "dessert", "rarity": "uncommon", "base_value": 14},
+    "ICS": {"name": "Ice Cream Sandwich", "series": "dessert", "rarity": "uncommon", "base_value": 17},
+    "SND": {"name": "Sundae", "series": "dessert", "rarity": "uncommon", "base_value": 17},
+    "MLS": {"name": "Milkshake", "series": "dessert", "rarity": "uncommon", "base_value": 16},
+    "CHS": {"name": "Cheesecake", "series": "dessert", "rarity": "rare", "base_value": 27},
+    "NYC": {"name": "New York Cheesecake", "series": "dessert", "rarity": "rare", "base_value": 30},
+    "RVC": {"name": "Red Velvet Cake", "series": "dessert", "rarity": "rare", "base_value": 29},
+    "BAK": {"name": "Baklava", "series": "dessert", "rarity": "rare", "base_value": 28},
+    "MCI": {"name": "Mochi Ice Cream", "series": "dessert", "rarity": "rare", "base_value": 29},
+    "TRM": {"name": "Tres Leches Cake", "series": "dessert", "rarity": "rare", "base_value": 30},
+    "CBR": {"name": "Creme Brulee", "series": "dessert", "rarity": "rare", "base_value": 31},
+    "GLS": {"name": "Gelato Sundae", "series": "dessert", "rarity": "rare", "base_value": 32},
+    "BSC": {"name": "Basque Cheesecake", "series": "dessert", "rarity": "epic", "base_value": 43},
+    "BTA": {"name": "Baked Alaska", "series": "dessert", "rarity": "epic", "base_value": 46},
+    "GFL": {"name": "Gelato Flight", "series": "dessert", "rarity": "epic", "base_value": 45},
+    "MTC": {"name": "Matcha Cheesecake", "series": "dessert", "rarity": "epic", "base_value": 44},
+    "LVC": {"name": "Lava Cake", "series": "dessert", "rarity": "epic", "base_value": 45},
+    "GLC": {"name": "Golden Cheesecake", "series": "dessert", "rarity": "legendary", "base_value": 234},
+    "NIT": {"name": "Nitrogen Gelato", "series": "dessert", "rarity": "legendary", "base_value": 238},
     "MBS": {"name": "Meatball Sub", "series": "entree", "rarity": "uncommon", "base_value": 18},
     "PNI": {"name": "Panini", "series": "entree", "rarity": "uncommon", "base_value": 19},
     "PZA": {"name": "Pizza", "series": "entree", "rarity": "uncommon", "base_value": 18},
@@ -80,6 +140,16 @@ CARD_CATALOG: dict[str, CardData] = {
     "OSB": {"name": "Osso Buco", "series": "entree", "rarity": "epic", "base_value": 47},
     "OXT": {"name": "Oxtail Ragu", "series": "entree", "rarity": "epic", "base_value": 46},
     "CAG": {"name": "Chicken Alfredo Garlic Bread", "series": "entree", "rarity": "legendary", "base_value": 224},
+    "GNP": {"name": "Gnocchi al Pesto", "series": "entree", "rarity": "common", "base_value": 11},
+    "EPA": {"name": "Eggplant Parmigiana", "series": "entree", "rarity": "uncommon", "base_value": 18},
+    "VSL": {"name": "Veal Saltimbocca", "series": "entree", "rarity": "uncommon", "base_value": 19},
+    "PLF": {"name": "Polenta ai Funghi", "series": "entree", "rarity": "uncommon", "base_value": 17},
+    "BFL": {"name": "Bistecca Fiorentina", "series": "entree", "rarity": "rare", "base_value": 30},
+    "LAV": {"name": "Linguine alle Vongole", "series": "entree", "rarity": "rare", "base_value": 31},
+    "SCP": {"name": "Seafood Cioppino", "series": "entree", "rarity": "rare", "base_value": 32},
+    "TRR": {"name": "Truffle Risotto", "series": "entree", "rarity": "epic", "base_value": 46},
+    "LGP": {"name": "Lobster Gnocchi Piccata", "series": "entree", "rarity": "epic", "base_value": 47},
+    "RMF": {"name": "Royal Milanese Feast", "series": "entree", "rarity": "legendary", "base_value": 238},
     "ANG": {"name": "Angel Hair", "series": "noodles", "rarity": "common", "base_value": 10},
     "BCT": {"name": "Bucatini", "series": "noodles", "rarity": "common", "base_value": 10},
     "CAP": {"name": "Capellini", "series": "noodles", "rarity": "common", "base_value": 9},
@@ -101,6 +171,16 @@ CARD_CATALOG: dict[str, CardData] = {
     "LOM": {"name": "Lo Mein", "series": "noodles", "rarity": "uncommon", "base_value": 16},
     "YAK": {"name": "Yakisoba", "series": "noodles", "rarity": "uncommon", "base_value": 16},
     "NOO": {"name": "Nood God", "series": "noodles", "rarity": "legendary", "base_value": 215},
+    "SPN": {"name": "Spinach Noodles", "series": "noodles", "rarity": "common", "base_value": 9},
+    "BLN": {"name": "Black Garlic Noodles", "series": "noodles", "rarity": "common", "base_value": 10},
+    "TAJ": {"name": "Tajarin", "series": "noodles", "rarity": "common", "base_value": 11},
+    "CPR": {"name": "Cappellini Rustica", "series": "noodles", "rarity": "common", "base_value": 9},
+    "UDC": {"name": "Udon Carbonara", "series": "noodles", "rarity": "uncommon", "base_value": 17},
+    "RGN": {"name": "Ragu Noodles", "series": "noodles", "rarity": "uncommon", "base_value": 16},
+    "SFN": {"name": "Saffron Noodles", "series": "noodles", "rarity": "uncommon", "base_value": 17},
+    "LBN": {"name": "Lobster Bisque Noodles", "series": "noodles", "rarity": "rare", "base_value": 30},
+    "TRN": {"name": "Truffle Noodles", "series": "noodles", "rarity": "rare", "base_value": 31},
+    "GTN": {"name": "Golden Truffle Noodles", "series": "noodles", "rarity": "epic", "base_value": 45},
     "CON": {"name": "Conchiglie", "series": "pasta", "rarity": "common", "base_value": 11},
     "ZIT": {"name": "Ziti", "series": "pasta", "rarity": "common", "base_value": 10},
     "CPL": {"name": "Cappelletti", "series": "pasta", "rarity": "uncommon", "base_value": 16},
@@ -124,6 +204,16 @@ CARD_CATALOG: dict[str, CardData] = {
     "TOR": {"name": "Tortellini", "series": "pasta", "rarity": "epic", "base_value": 40},
     "BLA": {"name": "Black Truffle Ravioli", "series": "pasta", "rarity": "legendary", "base_value": 218},
     "WHT": {"name": "White Truffle Tagliolini", "series": "pasta", "rarity": "legendary", "base_value": 235},
+    "MLF": {"name": "Mafaldine", "series": "pasta", "rarity": "common", "base_value": 10},
+    "DTV": {"name": "Ditaloni Verdi", "series": "pasta", "rarity": "common", "base_value": 9},
+    "SLA": {"name": "Sicilian Linguine Arc", "series": "pasta", "rarity": "common", "base_value": 10},
+    "CPN": {"name": "Campanelle", "series": "pasta", "rarity": "uncommon", "base_value": 16},
+    "LUM": {"name": "Lumache", "series": "pasta", "rarity": "uncommon", "base_value": 15},
+    "TBB": {"name": "Trofie al Burro", "series": "pasta", "rarity": "uncommon", "base_value": 17},
+    "SFR": {"name": "Saffron Ravioli", "series": "pasta", "rarity": "rare", "base_value": 30},
+    "PRC": {"name": "Porcini Ravioli", "series": "pasta", "rarity": "rare", "base_value": 31},
+    "BLP": {"name": "Black Pepper Pappardelle", "series": "pasta", "rarity": "epic", "base_value": 46},
+    "CSP": {"name": "Crown Stuffed Pasta", "series": "pasta", "rarity": "legendary", "base_value": 239},
     "CHB": {"name": "Chardonnay", "series": "wine", "rarity": "common", "base_value": 11},
     "CNT": {"name": "Chianti", "series": "wine", "rarity": "common", "base_value": 11},
     "LAM": {"name": "Lambrusco", "series": "wine", "rarity": "common", "base_value": 11},
@@ -140,6 +230,16 @@ CARD_CATALOG: dict[str, CardData] = {
     "ICE": {"name": "Icewine", "series": "wine", "rarity": "epic", "base_value": 48},
     "AMS": {"name": "Amarone Riserva", "series": "wine", "rarity": "legendary", "base_value": 228},
     "RWB": {"name": "Royal Wine Barrique", "series": "wine", "rarity": "legendary", "base_value": 237},
+    "VDT": {"name": "Vino da Tavola", "series": "wine", "rarity": "common", "base_value": 10},
+    "FRZ": {"name": "Frizzante Bianco", "series": "wine", "rarity": "common", "base_value": 11},
+    "RSR": {"name": "Rosso Riserva", "series": "wine", "rarity": "uncommon", "base_value": 17},
+    "PGR": {"name": "Pinot Grigio Riserva", "series": "wine", "rarity": "uncommon", "base_value": 16},
+    "VSC": {"name": "Vin Santo Classico", "series": "wine", "rarity": "uncommon", "base_value": 18},
+    "BRS": {"name": "Barbaresco", "series": "wine", "rarity": "rare", "base_value": 30},
+    "SUT": {"name": "Super Tuscan", "series": "wine", "rarity": "rare", "base_value": 31},
+    "AGL": {"name": "Aglianico", "series": "wine", "rarity": "rare", "base_value": 29},
+    "MCB": {"name": "Metodo Classico Brut", "series": "wine", "rarity": "epic", "base_value": 47},
+    "EMV": {"name": "Emperor's Vineyard", "series": "wine", "rarity": "legendary", "base_value": 240},
 }
 
 
@@ -258,7 +358,7 @@ CARD_IMAGE_URLS: dict[str, str] = {
     "TAG": "https://upload.wikimedia.org/wikipedia/commons/6/67/Nests_of_tagliatelle_bolognesi.jpg",
     "TIR": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5d/Tiramisu_-_Raffaele_Diomede.jpg/960px-Tiramisu_-_Raffaele_Diomede.jpg",
     "TOR": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/42/Tortellini_Bolognesi.jpg/960px-Tortellini_Bolognesi.jpg",
-    "CHL": "https://i.pinimg.com/736x/b2/d4/14/b2d4142c7011caf548fbade4e83d8c59.jpg",
+    "CHL": "https://upload.wikimedia.org/wikipedia/commons/5/55/Chocolate_fudge_cake.jpg",
     "TRF": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ee/Pecorino_romano_cheese.jpg/960px-Pecorino_romano_cheese.jpg",
     "TRG": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/59/Garlicbread.jpg/960px-Garlicbread.jpg",
     "VER": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/92/Spaghettoni.jpg/960px-Spaghettoni.jpg",
@@ -298,6 +398,46 @@ CARD_IMAGE_URLS: dict[str, str] = {
     "SFL": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/74/Sfogliatella_napoletana.jpg/960px-Sfogliatella_napoletana.jpg",
     "ZAB": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5d/Tiramisu_-_Raffaele_Diomede.jpg/960px-Tiramisu_-_Raffaele_Diomede.jpg",
     "AMB": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5d/Tiramisu_-_Raffaele_Diomede.jpg/960px-Tiramisu_-_Raffaele_Diomede.jpg",
+    "BRW": "https://upload.wikimedia.org/wikipedia/commons/5/55/Chocolate_fudge_cake.jpg",
+    "CHK": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/96/Semi-sweet_chocolate_chips.jpg/1280px-Semi-sweet_chocolate_chips.jpg",
+    "SCK": "https://upload.wikimedia.org/wikipedia/commons/b/b4/Choco_chip_cookie.png",
+    "OMC": "https://upload.wikimedia.org/wikipedia/commons/e/e4/Girl_Scout_cookies_%28Girl_Scouts_of_the_USA%29.jpg",
+    "LMB": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/Layered_bar.jpg/1280px-Layered_bar.jpg",
+    "RKT": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/Layered_bar.jpg/1280px-Layered_bar.jpg",
+    "APL": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e1/Lattice_apple_pie.png/1280px-Lattice_apple_pie.png",
+    "CRP": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7e/Cherry-Pie-Slice.jpg/1280px-Cherry-Pie-Slice.jpg",
+    "BPD": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/46/Banana_pudding%2C_homemade.jpg/1280px-Banana_pudding%2C_homemade.jpg",
+    "DNT": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c6/Chocolate_con_churros_%2827343655726%29.jpg/1280px-Chocolate_con_churros_%2827343655726%29.jpg",
+    "FDG": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/91/Handmade_fruit_fudge_squares.jpg/1280px-Handmade_fruit_fudge_squares.jpg",
+    "BCP": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/64/Frank_Fat%27s_banana_cream_pie.jpg/1280px-Frank_Fat%27s_banana_cream_pie.jpg",
+    "CUP": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/74/Sfogliatella_napoletana.jpg/960px-Sfogliatella_napoletana.jpg",
+    "CHR": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c6/Chocolate_con_churros_%2827343655726%29.jpg/1280px-Chocolate_con_churros_%2827343655726%29.jpg",
+    "BLD": "https://upload.wikimedia.org/wikipedia/commons/5/55/Chocolate_fudge_cake.jpg",
+    "MCR": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/11/VanillaMacaron.jpg/1280px-VanillaMacaron.jpg",
+    "ECL": "https://upload.wikimedia.org/wikipedia/commons/4/47/Jennyeclair.jpg",
+    "PRL": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c8/Bossche_bol_1.jpg/1280px-Bossche_bol_1.jpg",
+    "CBB": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0f/Cobbler_%287303683612%29.jpg/1280px-Cobbler_%287303683612%29.jpg",
+    "BNS": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/Bread_pudding_June_2020.jpg/1280px-Bread_pudding_June_2020.jpg",
+    "FYG": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/45/French_fry_frozen_yoghurt.jpg/1280px-French_fry_frozen_yoghurt.jpg",
+    "PSC": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2b/Popsicle_The_Original_Brand.svg/1280px-Popsicle_The_Original_Brand.svg.png",
+    "ICS": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2e/Ice_cream_with_whipped_cream%2C_chocolate_syrup%2C_and_a_wafer_%28cropped%29.jpg/1280px-Ice_cream_with_whipped_cream%2C_chocolate_syrup%2C_and_a_wafer_%28cropped%29.jpg",
+    "SND": "https://upload.wikimedia.org/wikipedia/commons/a/ae/StrawberrySundae.jpg",
+    "MLS": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/68/Strawberry_milk_shake_%28cropped%29.jpg/1280px-Strawberry_milk_shake_%28cropped%29.jpg",
+    "CHS": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/34/Basque-cheesecake.jpg/1280px-Basque-cheesecake.jpg",
+    "NYC": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/34/Basque-cheesecake.jpg/1280px-Basque-cheesecake.jpg",
+    "RVC": "https://upload.wikimedia.org/wikipedia/commons/5/55/Chocolate_fudge_cake.jpg",
+    "BAK": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c8/Bossche_bol_1.jpg/1280px-Bossche_bol_1.jpg",
+    "MCI": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/05/Mochi_Ice_Cream.jpg/1280px-Mochi_Ice_Cream.jpg",
+    "TRM": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/22/Collage_Mexican_Cuisine_by_User-EME.png/1280px-Collage_Mexican_Cuisine_by_User-EME.png",
+    "CBR": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/77/Creme_anglaise_p1050164.jpg/1280px-Creme_anglaise_p1050164.jpg",
+    "GLS": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2e/Ice_cream_with_whipped_cream%2C_chocolate_syrup%2C_and_a_wafer_%28cropped%29.jpg/1280px-Ice_cream_with_whipped_cream%2C_chocolate_syrup%2C_and_a_wafer_%28cropped%29.jpg",
+    "BSC": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/34/Basque-cheesecake.jpg/1280px-Basque-cheesecake.jpg",
+    "BTA": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f8/Baked_Alaska.jpg/1280px-Baked_Alaska.jpg",
+    "GFL": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2e/Ice_cream_with_whipped_cream%2C_chocolate_syrup%2C_and_a_wafer_%28cropped%29.jpg/1280px-Ice_cream_with_whipped_cream%2C_chocolate_syrup%2C_and_a_wafer_%28cropped%29.jpg",
+    "MTC": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/34/Basque-cheesecake.jpg/1280px-Basque-cheesecake.jpg",
+    "LVC": "https://upload.wikimedia.org/wikipedia/commons/5/55/Chocolate_fudge_cake.jpg",
+    "GLC": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/34/Basque-cheesecake.jpg/1280px-Basque-cheesecake.jpg",
+    "NIT": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2e/Ice_cream_with_whipped_cream%2C_chocolate_syrup%2C_and_a_wafer_%28cropped%29.jpg/1280px-Ice_cream_with_whipped_cream%2C_chocolate_syrup%2C_and_a_wafer_%28cropped%29.jpg",
     "FON": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d0/Asiago_-_2615694751.jpg/960px-Asiago_-_2615694751.jpg",
     "MAS": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/88/Brie_01.jpg/960px-Brie_01.jpg",
     "TAL": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fb/Chesses_gouda_affinage.JPG/960px-Chesses_gouda_affinage.JPG",
@@ -311,6 +451,66 @@ CARD_IMAGE_URLS: dict[str, str] = {
     "FRC": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/40/Glass_of_champagne.jpg/960px-Glass_of_champagne.jpg",
     "BRU": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/01/Cascin_Adelaide_Barolo_%26_decanter.jpg/960px-Cascin_Adelaide_Barolo_%26_decanter.jpg",
     "RWB": "https://upload.wikimedia.org/wikipedia/commons/1/1c/Amarone_BMK.jpg",
+    "SDM": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3b/Home_made_sour_dough_bread.jpg/960px-Home_made_sour_dough_bread.jpg",
+    "MKB": "https://upload.wikimedia.org/wikipedia/commons/4/4a/Brioche.jpg",
+    "CRB": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/86/Baguettes%2C_Paris%2C_France_-_panoramio.jpg/960px-Baguettes%2C_Paris%2C_France_-_panoramio.jpg",
+    "BUN": "https://upload.wikimedia.org/wikipedia/commons/4/4a/Brioche.jpg",
+    "CRO": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/59/Garlicbread.jpg/960px-Garlicbread.jpg",
+    "GRI": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6f/Pretzel_01.jpg/960px-Pretzel_01.jpg",
+    "PTS": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b2/Ciabatta_cut.JPG/960px-Ciabatta_cut.JPG",
+    "FCC": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/bf/Focaccia_with_Crumb.jpg/960px-Focaccia_with_Crumb.jpg",
+    "RSF": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/bf/Focaccia_with_Crumb.jpg/960px-Focaccia_with_Crumb.jpg",
+    "RDB": "https://upload.wikimedia.org/wikipedia/commons/a/a9/Compleat_Wheat_Sourdough_B%C3%A2tard.jpg",
+    "RCO": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/57/Mozzarella_di_bufala3.jpg/960px-Mozzarella_di_bufala3.jpg",
+    "SCA": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d0/Asiago_-_2615694751.jpg/960px-Asiago_-_2615694751.jpg",
+    "CAC": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fb/Chesses_gouda_affinage.JPG/960px-Chesses_gouda_affinage.JPG",
+    "STR": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f1/Burrata2.jpg/960px-Burrata2.jpg",
+    "PDM": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a0/Provolone_watermelon_shape.jpg/960px-Provolone_watermelon_shape.jpg",
+    "MFL": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/57/Mozzarella_di_bufala3.jpg/960px-Mozzarella_di_bufala3.jpg",
+    "CAT": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ee/Pecorino_romano_cheese.jpg/960px-Pecorino_romano_cheese.jpg",
+    "RBL": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/88/Brie_01.jpg/960px-Brie_01.jpg",
+    "GPR": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d1/Parmigiano_Reggiano%2C_Italien%2C_Europ%C3%A4ische_Union.jpg/960px-Parmigiano_Reggiano%2C_Italien%2C_Europ%C3%A4ische_Union.jpg",
+    "IMB": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f1/Burrata2.jpg/960px-Burrata2.jpg",
+    "GNP": "https://upload.wikimedia.org/wikipedia/commons/8/86/Gnocchi_di_ricotta_burro_e_salvia.jpg",
+    "EPA": "https://commons.wikimedia.org/wiki/Special:FilePath/Chicken_parmigiana.jpg",
+    "VSL": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/Supreme_pizza.jpg/960px-Supreme_pizza.jpg",
+    "PLF": "https://commons.wikimedia.org/wiki/Special:FilePath/Lemon_Pea_Risotto.jpg",
+    "BFL": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/Supreme_pizza.jpg/960px-Supreme_pizza.jpg",
+    "LAV": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/da/Linguine.jpg/960px-Linguine.jpg",
+    "SCP": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/Supreme_pizza.jpg/960px-Supreme_pizza.jpg",
+    "TRR": "https://commons.wikimedia.org/wiki/Special:FilePath/Lemon_Pea_Risotto.jpg",
+    "LGP": "https://upload.wikimedia.org/wikipedia/commons/8/86/Gnocchi_di_ricotta_burro_e_salvia.jpg",
+    "RMF": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/Supreme_pizza.jpg/960px-Supreme_pizza.jpg",
+    "SPN": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/92/Spaghettoni.jpg/960px-Spaghettoni.jpg",
+    "BLN": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b1/Ramen_with_chashu_and_egg.jpg/960px-Ramen_with_chashu_and_egg.jpg",
+    "TAJ": "https://upload.wikimedia.org/wikipedia/commons/6/67/Nests_of_tagliatelle_bolognesi.jpg",
+    "CPR": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/03/Capelli_angelo_front.jpg/960px-Capelli_angelo_front.jpg",
+    "UDC": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/30/Miso_udon.jpg/960px-Miso_udon.jpg",
+    "RGN": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9f/Lo_mein.jpg/960px-Lo_mein.jpg",
+    "SFN": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f0/Zaru_soba_by_jenh_via_flickr.jpg/960px-Zaru_soba_by_jenh_via_flickr.jpg",
+    "LBN": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/47/Yakisoba_at_Festival.jpg/960px-Yakisoba_at_Festival.jpg",
+    "TRN": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b1/Ramen_with_chashu_and_egg.jpg/960px-Ramen_with_chashu_and_egg.jpg",
+    "GTN": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/90/Touched_by_His_Noodly_Appendage_HD.jpg/960px-Touched_by_His_Noodly_Appendage_HD.jpg",
+    "MLF": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/Pappardelle.jpg/960px-Pappardelle.jpg",
+    "DTV": "https://upload.wikimedia.org/wikipedia/commons/6/6a/Ditalini-230.jpg",
+    "SLA": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/da/Linguine.jpg/960px-Linguine.jpg",
+    "CPN": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/ac/Farfalle_Pasta.JPG/960px-Farfalle_Pasta.JPG",
+    "LUM": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/ac/Farfalle_Pasta.JPG/960px-Farfalle_Pasta.JPG",
+    "TBB": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/67/Nests_of_tagliatelle_bolognesi.jpg/960px-Nests_of_tagliatelle_bolognesi.jpg",
+    "SFR": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/95/Flickr_-_cyclonebill_-_Ravioli_med_skinke_og_asparges_i_mascarponecreme.jpg/960px-Flickr_-_cyclonebill_-_Ravioli_med_skinke_og_asparges_i_mascarponecreme.jpg",
+    "PRC": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/95/Flickr_-_cyclonebill_-_Ravioli_med_skinke_og_asparges_i_mascarponecreme.jpg/960px-Flickr_-_cyclonebill_-_Ravioli_med_skinke_og_asparges_i_mascarponecreme.jpg",
+    "BLP": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/Pappardelle.jpg/960px-Pappardelle.jpg",
+    "CSP": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/42/Tortellini_Bolognesi.jpg/960px-Tortellini_Bolognesi.jpg",
+    "VDT": "https://upload.wikimedia.org/wikipedia/commons/7/77/Canadian_Cab-merlot_blend.JPG",
+    "FRZ": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/40/Glass_of_champagne.jpg/960px-Glass_of_champagne.jpg",
+    "RSR": "https://upload.wikimedia.org/wikipedia/commons/8/81/Rioja_alavesa_wine.jpg",
+    "PGR": "https://upload.wikimedia.org/wikipedia/commons/1/19/Pinot_Noir_being_poured_into_a_wine_glass.jpg",
+    "VSC": "https://upload.wikimedia.org/wikipedia/commons/b/ba/Sauvignon_blanc_wine.jpg",
+    "BRS": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/01/Cascin_Adelaide_Barolo_%26_decanter.jpg/960px-Cascin_Adelaide_Barolo_%26_decanter.jpg",
+    "SUT": "https://upload.wikimedia.org/wikipedia/commons/1/1c/Amarone_BMK.jpg",
+    "AGL": "https://upload.wikimedia.org/wikipedia/commons/7/77/Canadian_Cab-merlot_blend.JPG",
+    "MCB": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/40/Glass_of_champagne.jpg/960px-Glass_of_champagne.jpg",
+    "EMV": "https://upload.wikimedia.org/wikipedia/commons/1/1c/Amarone_BMK.jpg",
 }
 
 
@@ -383,7 +583,7 @@ def normalize_card_id(card_id: str) -> str:
     return card_id.strip().upper()
 
 
-def search_card_ids_by_name(query: str) -> list[str]:
+def search_card_ids(query: str, *, include_series: bool = False) -> list[str]:
     cleaned_query = query.strip().casefold()
     if not cleaned_query:
         return []
@@ -391,6 +591,9 @@ def search_card_ids_by_name(query: str) -> list[str]:
     exact_name_matches: list[str] = []
     prefix_name_matches: list[str] = []
     contains_name_matches: list[str] = []
+    exact_series_matches: list[str] = []
+    prefix_series_matches: list[str] = []
+    contains_series_matches: list[str] = []
 
     for card_id, card in CARD_CATALOG.items():
         card_name = card["name"]
@@ -402,8 +605,44 @@ def search_card_ids_by_name(query: str) -> list[str]:
         elif cleaned_query in normalized_name:
             contains_name_matches.append(card_id)
 
+        if include_series:
+            normalized_series = card["series"].casefold()
+            if normalized_series == cleaned_query:
+                exact_series_matches.append(card_id)
+            elif normalized_series.startswith(cleaned_query):
+                prefix_series_matches.append(card_id)
+            elif cleaned_query in normalized_series:
+                contains_series_matches.append(card_id)
+
     key = lambda cid: (CARD_CATALOG[cid]["name"].casefold(), cid)
-    return sorted(exact_name_matches, key=key) + sorted(prefix_name_matches, key=key) + sorted(contains_name_matches, key=key)
+
+    ordered_groups = [
+        sorted(exact_name_matches, key=key),
+        sorted(prefix_name_matches, key=key),
+        sorted(contains_name_matches, key=key),
+    ]
+    if include_series:
+        ordered_groups.extend(
+            [
+                sorted(exact_series_matches, key=key),
+                sorted(prefix_series_matches, key=key),
+                sorted(contains_series_matches, key=key),
+            ]
+        )
+
+    seen: set[str] = set()
+    results: list[str] = []
+    for group in ordered_groups:
+        for card_id in group:
+            if card_id in seen:
+                continue
+            seen.add(card_id)
+            results.append(card_id)
+    return results
+
+
+def search_card_ids_by_name(query: str) -> list[str]:
+    return search_card_ids(query)
 
 
 def card_code(card_id: str, dupe_code: str) -> str:
@@ -444,7 +683,7 @@ def card_value(card_id: str, generation: int) -> int:
 def card_base_display(card_id: str) -> str:
     card = CARD_CATALOG[card_id]
     return (
-        f"**{card['name']}** · (`{card_id}`) "
+        f"**{card['name']}** • (`{card_id}`) "
         f"[{proper_case(card['series'])}] ({proper_case(card['rarity'])}) "
         f"(Base: **{card_base_value(card_id)}** dough)"
     )

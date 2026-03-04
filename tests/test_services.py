@@ -17,11 +17,11 @@ class ServicesTests(unittest.TestCase):
         storage.DB_PATH = self._original_db_path
         self._tmp_dir.cleanup()
 
-    def test_prepare_drop_returns_cooldown_when_recent_pull(self) -> None:
+    def test_prepare_drop_returns_cooldown_when_recent_drop(self) -> None:
         guild_id = 1
         user_id = 10
         now = time.time()
-        storage.set_last_pull_at(guild_id, user_id, now)
+        storage.set_last_drop_at(guild_id, user_id, now)
 
         prepared = services.prepare_drop(guild_id, user_id, now + 1)
 
@@ -40,7 +40,7 @@ class ServicesTests(unittest.TestCase):
         self.assertEqual(len(prepared.choices), 3)
         self.assertEqual(prepared.cooldown_remaining_seconds, 0.0)
 
-    def test_prepare_burn_errors_without_last_dropped(self) -> None:
+    def test_prepare_burn_errors_without_last_pulled(self) -> None:
         prepared = services.prepare_burn(guild_id=1, user_id=20, card_code=None)
 
         self.assertTrue(prepared.is_error)
@@ -79,7 +79,7 @@ class ServicesTests(unittest.TestCase):
         self.assertIsNotNone(prepared.delta_range)
         self.assertIsNotNone(prepared.multiplier)
 
-    def test_execute_marry_errors_without_last_dropped(self) -> None:
+    def test_execute_marry_errors_without_last_pulled(self) -> None:
         result = services.execute_marry(guild_id=1, user_id=30, card_code=None)
 
         self.assertTrue(result.is_error)
@@ -109,7 +109,7 @@ class ServicesTests(unittest.TestCase):
         self.assertEqual(result.generation, instances[0][2])
         self.assertEqual(result.dupe_code, instances[0][3])
 
-    def test_execute_marry_without_card_uses_last_dropped(self) -> None:
+    def test_execute_marry_without_card_uses_last_pulled(self) -> None:
         guild_id = 1
         user_id = 33
         storage.add_card_to_player(guild_id, user_id, "PEN", 222)

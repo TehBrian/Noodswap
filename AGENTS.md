@@ -19,6 +19,7 @@ This file is the primary handoff guide for AI coding agents working on Noodswap.
 4. Run syntax validation:
    - `.venv/bin/python -m py_compile bot.py noodswap/*.py scripts/*.py tests/*.py`
    - `.venv/bin/python -m unittest discover -s tests -p 'test_*.py'`
+   - SQLite guardrail is enforced by `tests/test_sqlite_guardrails.py` (no raw `with sqlite3.connect(...) as conn:`).
 5. If changing command output, read `docs/commands-and-ux.md` (embed style contract).
 
 ## 3) Architecture Map
@@ -31,7 +32,9 @@ This file is the primary handoff guide for AI coding agents working on Noodswap.
 - `noodswap/presentation.py`: shared embed style + reusable command description formatting helpers
 - `noodswap/cards.py`: card catalog + generation/pull/burn helper functions
 - `noodswap/rarities.py`: rarity weights used in pull selection
-- `noodswap/storage.py`: SQLite schema, migration, and domain persistence operations
+- `noodswap/storage.py`: SQLite domain persistence operations
+- `noodswap/migrations.py`: SQLite schema versioning and startup migration steps
+- `noodswap/repositories.py`: repository-style DB access helpers used by storage facade
 - `noodswap/settings.py`: constants (`PULL_COOLDOWN_SECONDS`, `COMMAND_PREFIX`, `DB_PATH`)
 - `noodswap/utils.py`: utility helpers (`format_cooldown`)
 
@@ -54,7 +57,7 @@ This file is the primary handoff guide for AI coding agents working on Noodswap.
 ## 5) Data Model Summary
 
 Primary tables (see `docs/data-model.md` for details):
-- `players(guild_id, user_id, dough, last_pull_at, married_instance_id, married_card_id, last_dropped_instance_id)`
+- `players(guild_id, user_id, dough, last_pull_at, married_instance_id, married_card_id, last_dropped_instance_id)` (`last_dropped_instance_id` stores the last pulled instance)
 - `card_instances(instance_id, guild_id, user_id, card_id, generation)`
 - legacy `player_cards` may still exist for migration compatibility.
 
@@ -65,7 +68,9 @@ Migration behavior in `init_db()`:
 
 ## 6) High-Risk Change Areas
 
-- `noodswap/storage.py`: ownership, marriage integrity, trades, and migration safety.
+- `noodswap/storage.py`: ownership, marriage integrity, and trade safety.
+- `noodswap/migrations.py`: migration safety/versioning and legacy backfill behavior.
+- `noodswap/repositories.py`: SQL behavior changes affecting ownership/trade/marriage semantics.
 - `noodswap/views.py`: interaction race conditions and timeout behavior.
 - `noodswap/commands.py`: UX consistency, embeds, and argument handling.
 - `noodswap/cards.py`: catalog IDs and rarity/value consistency.

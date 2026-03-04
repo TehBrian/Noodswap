@@ -259,6 +259,11 @@
     "file": "SOU.jpg",
     "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3b/Home_made_sour_dough_bread.jpg/960px-Home_made_sour_dough_bread.jpg"
   },
+  "SPG": {
+    "attempts": 1,
+    "file": "SPG.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/92/Spaghettoni.jpg/960px-Spaghettoni.jpg"
+  },
   "STP": {
     "attempts": 1,
     "file": "STP.jpg",

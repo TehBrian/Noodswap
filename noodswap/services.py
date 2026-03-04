@@ -6,10 +6,10 @@ from .settings import DROP_CHOICES_COUNT, PULL_COOLDOWN_SECONDS
 from .storage import (
     divorce_card,
     get_instance_by_code,
-    get_last_dropped_instance,
+    get_last_pulled_instance,
     get_player_stats,
     marry_card_instance,
-    set_last_pull_at,
+    set_last_drop_at,
 )
 
 
@@ -24,8 +24,8 @@ class DropPreparation:
 
 
 def prepare_drop(guild_id: int, user_id: int, now: float) -> DropPreparation:
-    _, last_pull_at, _ = get_player_stats(guild_id, user_id)
-    elapsed = now - last_pull_at
+    _, last_drop_at, _ = get_player_stats(guild_id, user_id)
+    elapsed = now - last_drop_at
 
     if elapsed < PULL_COOLDOWN_SECONDS:
         return DropPreparation(
@@ -34,7 +34,7 @@ def prepare_drop(guild_id: int, user_id: int, now: float) -> DropPreparation:
         )
 
     choices = make_drop_choices(DROP_CHOICES_COUNT)
-    set_last_pull_at(guild_id, user_id, now)
+    set_last_drop_at(guild_id, user_id, now)
     return DropPreparation(choices=choices, cooldown_remaining_seconds=0.0)
 
 
@@ -61,7 +61,7 @@ def prepare_burn(guild_id: int, user_id: int, card_code: Optional[str]) -> BurnP
     target_instance: Optional[tuple[int, str, int, str]] = None
 
     if card_code is None:
-        target_instance = get_last_dropped_instance(guild_id, user_id)
+        target_instance = get_last_pulled_instance(guild_id, user_id)
         if target_instance is None:
             return BurnPreparation(
                 error_message="No previous pulled card found. Provide a card code, e.g. `ns burn 0`.",
@@ -140,8 +140,8 @@ class MarryExecution:
 
 def execute_marry(guild_id: int, user_id: int, card_code: Optional[str]) -> MarryExecution:
     if card_code is None:
-        last_dropped = get_last_dropped_instance(guild_id, user_id)
-        if last_dropped is None:
+        last_pulled = get_last_pulled_instance(guild_id, user_id)
+        if last_pulled is None:
             return MarryExecution(
                 error_message="No previous pulled card found. Use `ns marry <card_code>` or pull from `ns drop` first.",
                 card_id=None,
@@ -149,7 +149,7 @@ def execute_marry(guild_id: int, user_id: int, card_code: Optional[str]) -> Marr
                 dupe_code=None,
             )
 
-        instance_id, _, _, _ = last_dropped
+        instance_id, _, _, _ = last_pulled
         success, message, married_card_id, married_generation, married_dupe_code = marry_card_instance(
             guild_id,
             user_id,

@@ -8,7 +8,6 @@ from .cards import (
     card_dupe_display,
     card_image_url,
     get_burn_payout,
-    proper_case,
 )
 from .presentation import italy_embed
 from .settings import BURN_CONFIRM_TIMEOUT_SECONDS, DROP_TIMEOUT_SECONDS, TRADE_TIMEOUT_SECONDS
@@ -38,7 +37,7 @@ class DropView(discord.ui.View):
         async def callback(interaction: discord.Interaction):
             if interaction.user.id != self.user_id:
                 await interaction.response.send_message(
-                    embed=italy_embed("Drop", "Only the player who used `drop` can pull from this drop."),
+                    embed=italy_embed("Drop", "Only the command user can pull from this drop."),
                     ephemeral=True,
                 )
                 return
@@ -121,7 +120,7 @@ class TradeView(discord.ui.View):
     async def _resolve(self, interaction: discord.Interaction, accepted: bool):
         if interaction.user.id != self.buyer_id:
             await interaction.response.send_message(
-                embed=italy_embed("Trade", "Only the offered player can respond to this trade."),
+                embed=italy_embed("Trade", "Only the offered member can respond to this trade."),
                 ephemeral=True,
             )
             return
@@ -169,16 +168,19 @@ class TradeView(discord.ui.View):
             traded_card_text = card_dupe_display(self.card_id, generation, dupe_code=dupe_code)
 
         await interaction.response.edit_message(
-            content=None,
+            view=self,
+        )
+        await interaction.followup.send(
             embed=italy_embed(
                 "Trade Accepted",
                 (
                     f"Buyer: <@{self.buyer_id}>\n"
+                    f"Seller: <@{self.seller_id}>\n"
+                    ""
                     f"Card: {traded_card_text}\n"
-                    f"Price: **{self.amount} dough**"
+                    f"Price: **{self.amount}** dough"
                 ),
-            ),
-            view=self,
+            )
         )
 
     @discord.ui.button(label="Accept", style=discord.ButtonStyle.success)
@@ -262,7 +264,7 @@ class BurnConfirmView(discord.ui.View):
             return
 
         burned_card_id, burned_generation, burned_dupe_code = burned
-        payout, value, base_value, delta, multiplier, resolved_delta_range = get_burn_payout(
+        payout, _value, _base_value, delta, _multiplier, _resolved_delta_range = get_burn_payout(
             burned_card_id,
             burned_generation,
             self.delta_range,
@@ -273,9 +275,8 @@ class BurnConfirmView(discord.ui.View):
             f"""{card_dupe_display(burned_card_id, burned_generation, dupe_code=burned_dupe_code)}
 
 Payout: **{payout} dough**
-    RNG: **{delta:+}** (range ±{resolved_delta_range})""",
+    RNG: **{delta:+}**""",
         )
-        burned_embed.set_image(url=card_image_url(burned_card_id))
 
         self.finished = True
         self._disable_buttons()
@@ -364,7 +365,7 @@ class CardCatalogView(discord.ui.View):
             description = "No cards available."
         else:
             lines = [
-                f"{idx}. {card_base_display(card_id)} · Wishes: **{wish_count}**"
+                f"{idx}. {card_base_display(card_id)} • Wishes: **{wish_count}**"
                 for idx, (card_id, wish_count) in enumerate(page_entries, start=start + 1)
             ]
             description = multiline_text(lines)
@@ -381,6 +382,105 @@ class CardCatalogView(discord.ui.View):
         if interaction.user.id != self.user_id:
             await interaction.response.send_message(
                 embed=italy_embed("All Cards", "Only the command user can control this pagination."),
+                ephemeral=True,
+            )
+            return False
+        return True
+
+    @discord.ui.button(label="First Page", style=discord.ButtonStyle.secondary)
+    async def first_page_button(self, interaction: discord.Interaction, _button: discord.ui.Button):
+        if not await self._guard_user(interaction):
+            return
+        self.page_index = 0
+        await self._update_message(interaction)
+
+    @discord.ui.button(label="Previous Page", style=discord.ButtonStyle.secondary)
+    async def previous_page_button(self, interaction: discord.Interaction, _button: discord.ui.Button):
+        if not await self._guard_user(interaction):
+            return
+        self.page_index = max(0, self.page_index - 1)
+        await self._update_message(interaction)
+
+    @discord.ui.button(label="Next Page", style=discord.ButtonStyle.secondary)
+    async def next_page_button(self, interaction: discord.Interaction, _button: discord.ui.Button):
+        if not await self._guard_user(interaction):
+            return
+        self.page_index = min(self.total_pages - 1, self.page_index + 1)
+        await self._update_message(interaction)
+
+    @discord.ui.button(label="Last Page", style=discord.ButtonStyle.secondary)
+    async def last_page_button(self, interaction: discord.Interaction, _button: discord.ui.Button):
+        if not await self._guard_user(interaction):
+            return
+        self.page_index = self.total_pages - 1
+        await self._update_message(interaction)
+
+    async def on_timeout(self) -> None:
+        if self.message is None:
+            return
+        for item in self.children:
+            if isinstance(item, discord.ui.Button):
+                item.disabled = True
+        try:
+            await self.message.edit(embed=self.build_embed(), view=self)
+        except discord.HTTPException:
+            pass
+
+
+class PaginatedLinesView(discord.ui.View):
+    def __init__(
+        self,
+        *,
+        user_id: int,
+        title: str,
+        lines: list[str],
+        guard_title: str,
+        page_size: int = 10,
+    ):
+        super().__init__(timeout=TRADE_TIMEOUT_SECONDS)
+        self.user_id = user_id
+        self.title = title
+        self.lines = lines
+        self.guard_title = guard_title
+        self.page_size = max(1, page_size)
+        self.page_index = 0
+        self.message: Optional[discord.Message] = None
+        self._refresh_button_state()
+
+    @property
+    def total_pages(self) -> int:
+        return max(1, (len(self.lines) + self.page_size - 1) // self.page_size)
+
+    def _page_slice(self) -> tuple[int, int]:
+        start = self.page_index * self.page_size
+        end = start + self.page_size
+        return start, end
+
+    def _refresh_button_state(self) -> None:
+        is_first = self.page_index <= 0
+        is_last = self.page_index >= (self.total_pages - 1)
+        self.first_page_button.disabled = is_first
+        self.previous_page_button.disabled = is_first
+        self.next_page_button.disabled = is_last
+        self.last_page_button.disabled = is_last
+
+    def build_embed(self) -> discord.Embed:
+        start, end = self._page_slice()
+        page_lines = self.lines[start:end]
+        description = multiline_text(page_lines) if page_lines else "No entries available."
+
+        embed = italy_embed(self.title, description)
+        embed.set_footer(text=f"Page {self.page_index + 1}/{self.total_pages}")
+        return embed
+
+    async def _update_message(self, interaction: discord.Interaction) -> None:
+        self._refresh_button_state()
+        await interaction.response.edit_message(embed=self.build_embed(), view=self)
+
+    async def _guard_user(self, interaction: discord.Interaction) -> bool:
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message(
+                embed=italy_embed(self.guard_title, "Only the command user can control this pagination."),
                 ephemeral=True,
             )
             return False

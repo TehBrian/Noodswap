@@ -29,6 +29,7 @@ def drop_choices_description(choices: list[tuple[str, int]]) -> str:
 def burn_confirmation_description(
     card_id: str,
     generation: int,
+    dupe_code: str | None,
     value: int,
     base_value: int,
     delta_range: int,
@@ -36,7 +37,7 @@ def burn_confirmation_description(
 ) -> str:
     return f"""Burn this card?
 
-{card_dupe_display(card_id, generation)}
+{card_dupe_display(card_id, generation, dupe_code=dupe_code)}
 
 Base Value: **{base_value}**
 Generation Multiplier: **x{multiplier:.2f}**
@@ -53,13 +54,11 @@ def trade_offer_description(
     dupe_code: str | None,
     amount: int,
 ) -> str:
-    return (
-        f"Offered to: {offered_to_mention}\n"
-        f"Seller: {seller_mention}\n"
-        f"Card: {card_dupe_display(card_id, generation, dupe_code=dupe_code)}\n"
-        "Copy Rule: highest generation number copy\n"
-        f"Price: **{amount} dough**"
-    )
+    return f"""Offered to: {offered_to_mention}
+Seller: {seller_mention}
+
+Card: {card_dupe_display(card_id, generation, dupe_code=dupe_code)}
+Price: **{amount}** dough"""
 
 def help_description() -> str:
     return """Commands:
@@ -68,7 +67,7 @@ Overview:
 - `ns info [player]` (`ns i`, `ni`) — View a player's stats; defaults to yourself.
 - `ns collection [player]` (`ns c`, `nc`) — View a player's cards; defaults to yourself.
 - `ns cards` (`ns ca`, `nca`) — View all cards, ranked by wish count.
-- `ns lookup <card_id>` (`ns l`, `nl`) — Look up a base card.
+- `ns lookup <card_id|query>` (`ns l`, `nl`) — Look up a base card.
 - `ns help` (`ns h`, `nh`) — Show this help menu.
 
 Economy:

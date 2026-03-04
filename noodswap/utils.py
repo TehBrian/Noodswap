@@ -6,11 +6,4 @@ def format_cooldown(seconds_remaining: float) -> str:
 
 
 def multiline_text(lines: list[str]) -> str:
-    if not lines:
-        return ""
-
-    text = lines[0]
-    for line in lines[1:]:
-        text = f"""{text}
-{line}"""
-    return text
+    return "\n".join(lines)

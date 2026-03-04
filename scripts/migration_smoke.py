@@ -1,6 +1,7 @@
 import sqlite3
 import sys
 import tempfile
+from contextlib import closing
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -34,7 +35,7 @@ def _run_fresh_init_validation() -> None:
             storage.DB_PATH = db_path
             storage.init_db()
 
-            with sqlite3.connect(db_path) as conn:
+            with closing(sqlite3.connect(db_path)) as conn:
                 _assert(_table_exists(conn, "schema_migrations"), "schema_migrations table was not created")
                 version_row = conn.execute("SELECT version FROM schema_migrations LIMIT 1").fetchone()
                 _assert(version_row is not None, "schema_migrations has no version row")
@@ -53,46 +54,47 @@ def _run_legacy_backfill_validation() -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
         db_path = Path(temp_dir) / "legacy.db"
 
-        with sqlite3.connect(db_path) as conn:
-            conn.executescript(
-                """
-                CREATE TABLE players (
-                    guild_id INTEGER NOT NULL,
-                    user_id INTEGER NOT NULL,
-                    dough INTEGER NOT NULL DEFAULT 0,
-                    last_pull_at REAL NOT NULL DEFAULT 0,
-                    married_card_id TEXT,
-                    PRIMARY KEY (guild_id, user_id)
-                );
+        with closing(sqlite3.connect(db_path)) as conn:
+            with conn:
+                conn.executescript(
+                    """
+                    CREATE TABLE players (
+                        guild_id INTEGER NOT NULL,
+                        user_id INTEGER NOT NULL,
+                        dough INTEGER NOT NULL DEFAULT 0,
+                        last_pull_at REAL NOT NULL DEFAULT 0,
+                        married_card_id TEXT,
+                        PRIMARY KEY (guild_id, user_id)
+                    );
 
-                CREATE TABLE player_cards (
-                    guild_id INTEGER NOT NULL,
-                    user_id INTEGER NOT NULL,
-                    card_id TEXT NOT NULL,
-                    quantity INTEGER NOT NULL CHECK(quantity > 0),
-                    PRIMARY KEY (guild_id, user_id, card_id)
-                );
-                """
-            )
-            conn.execute(
-                "INSERT INTO players (guild_id, user_id, dough, last_pull_at, married_card_id) VALUES (?, ?, ?, ?, ?)",
-                (1, 10, 0, 0, None),
-            )
-            conn.execute(
-                "INSERT INTO player_cards (guild_id, user_id, card_id, quantity) VALUES (?, ?, ?, ?)",
-                (1, 10, "SPG", 2),
-            )
-            conn.execute(
-                "INSERT INTO player_cards (guild_id, user_id, card_id, quantity) VALUES (?, ?, ?, ?)",
-                (1, 10, "PEN", 1),
-            )
+                    CREATE TABLE player_cards (
+                        guild_id INTEGER NOT NULL,
+                        user_id INTEGER NOT NULL,
+                        card_id TEXT NOT NULL,
+                        quantity INTEGER NOT NULL CHECK(quantity > 0),
+                        PRIMARY KEY (guild_id, user_id, card_id)
+                    );
+                    """
+                )
+                conn.execute(
+                    "INSERT INTO players (guild_id, user_id, dough, last_pull_at, married_card_id) VALUES (?, ?, ?, ?, ?)",
+                    (1, 10, 0, 0, None),
+                )
+                conn.execute(
+                    "INSERT INTO player_cards (guild_id, user_id, card_id, quantity) VALUES (?, ?, ?, ?)",
+                    (1, 10, "SPG", 2),
+                )
+                conn.execute(
+                    "INSERT INTO player_cards (guild_id, user_id, card_id, quantity) VALUES (?, ?, ?, ?)",
+                    (1, 10, "PEN", 1),
+                )
 
         original_db_path = storage.DB_PATH
         try:
             storage.DB_PATH = db_path
             storage.init_db()
 
-            with sqlite3.connect(db_path) as conn:
+            with closing(sqlite3.connect(db_path)) as conn:
                 _assert(_table_exists(conn, "schema_migrations"), "schema_migrations table missing after migration")
                 version_row = conn.execute("SELECT version FROM schema_migrations LIMIT 1").fetchone()
                 _assert(version_row is not None, "schema_migrations has no version row after migration")

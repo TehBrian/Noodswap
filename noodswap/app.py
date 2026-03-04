@@ -16,6 +16,29 @@ from .storage import init_db
 logger = logging.getLogger(__name__)
 
 
+def resolve_discord_token() -> str:
+    token = os.getenv("DISCORD_TOKEN")
+    if token:
+        return token.strip()
+
+    token_file = os.getenv("DISCORD_TOKEN_FILE")
+    if token_file:
+        try:
+            with open(token_file, "r", encoding="utf-8") as file:
+                token_from_file = file.read().strip()
+        except OSError as exc:
+            raise RuntimeError(
+                "DISCORD_TOKEN_FILE is set but could not be read."
+            ) from exc
+
+        if token_from_file:
+            return token_from_file
+
+        raise RuntimeError("DISCORD_TOKEN_FILE is set but empty.")
+
+    raise RuntimeError("Set DISCORD_TOKEN or DISCORD_TOKEN_FILE in your environment.")
+
+
 def create_bot() -> commands.Bot:
     intents = discord.Intents.default()
     intents.message_content = True
@@ -47,10 +70,21 @@ def create_bot() -> commands.Bot:
             return
 
         if isinstance(error, commands.MissingRequiredArgument):
+            usage_overrides = {
+                "lookup": "Usage: `ns lookup <card_id|query>`."
+            }
+            usage_hint = ""
+            if ctx.command is not None:
+                usage_hint = usage_overrides.get(ctx.command.name, "")
+
+            description = f"Missing required argument: **{error.param.name}**."
+            if usage_hint:
+                description = f"{description}\n{usage_hint}"
+
             await ctx.send(
                 embed=italy_embed(
                     "Command Error",
-                    f"Missing required argument: **{error.param.name}**.",
+                    description,
                 )
             )
             return
@@ -77,9 +111,7 @@ def create_bot() -> commands.Bot:
 
 def main() -> None:
     logging.basicConfig(level=logging.INFO)
-    token = os.getenv("DISCORD_TOKEN")
-    if not token:
-        raise RuntimeError("Set DISCORD_TOKEN in your environment.")
+    token = resolve_discord_token()
 
     init_db()
     bot = create_bot()

@@ -15,6 +15,7 @@ SERIES_HINTS = {
     "pasta": "pasta",
     "bread": "bread",
     "cheese": "cheese",
+    "dessert": "dessert",
     "wine": "wine",
 }
 
@@ -61,8 +62,11 @@ class PullResult:
 
 def _request_json(url: str) -> dict:
     request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-    with urllib.request.urlopen(request, timeout=20) as response:
-        return json.loads(response.read().decode("utf-8"))
+    try:
+        with urllib.request.urlopen(request, timeout=20) as response:
+            return json.loads(response.read().decode("utf-8"))
+    except Exception:
+        return {}
 
 
 def _wikipedia_thumbnail(query: str) -> str | None:
@@ -128,10 +132,13 @@ def _search_queries(card_id: str, card_name: str, series: str) -> list[str]:
     return queries
 
 
-def pull_card_images(only_missing: bool) -> list[PullResult]:
+def pull_card_images(only_missing: bool, card_ids: set[str] | None = None) -> list[PullResult]:
     results: list[PullResult] = []
 
     for card_id, card in CARD_CATALOG.items():
+        if card_ids is not None and card_id not in card_ids:
+            continue
+
         existing = CARD_IMAGE_URLS.get(card_id)
         if only_missing and existing:
             continue
@@ -207,12 +214,23 @@ def main() -> None:
         default="card_image_pull_report.json",
         help="Path to write JSON report.",
     )
+    parser.add_argument(
+        "--card-ids",
+        default="",
+        help="Comma-separated card IDs to process (optional).",
+    )
     args = parser.parse_args()
 
     only_missing = not args.all
     output_path = Path(args.output).resolve()
+    requested_ids = {
+        token.strip().upper()
+        for token in args.card_ids.split(",")
+        if token.strip()
+    }
+    card_ids = requested_ids or None
 
-    results = pull_card_images(only_missing=only_missing)
+    results = pull_card_images(only_missing=only_missing, card_ids=card_ids)
     write_report(results, output_path, only_missing=only_missing)
 
     found = sum(1 for r in results if r.found_image)

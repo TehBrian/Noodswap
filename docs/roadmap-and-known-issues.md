@@ -65,6 +65,10 @@ Status: Stage 1 is complete. Stages below are intentionally deferred for later.
 
 ## Decision log (recent)
 
+- Added `tests/test_sqlite_guardrails.py` to enforce explicit sqlite connection closing and prevent future raw `with sqlite3.connect(...) as conn:` regressions.
+- Introduced `repositories.py` and refactored `storage.py` into a stable facade that delegates player/card/wishlist/trade SQL operations to repository-style boundaries.
+- Split migration responsibilities out of `storage.py` into `migrations.py` and kept `storage.init_db()` as the single startup entry point.
+- Hardened startup secret handling to accept `DISCORD_TOKEN` or `DISCORD_TOKEN_FILE`, replaced `.env.example` with a placeholder token value, and added `.gitignore` rules to keep real `.env` files out of git.
  - Reworked burn RNG to roll a per-burn payout band between 5% and 20% of computed value, display it as an absolute `±N` range at confirmation, and apply final RNG within that fixed range on confirm.
 - Fixed `remove_card_from_player()` to clear `last_dropped_instance_id` when the pointed instance is removed.
 - Added `tests/test_views.py` for interaction authorization/resolution and timeout behavior checks for `DropView` and `TradeView`.

@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch
 
-from noodswap.views import BurnConfirmView, CardCatalogView, DropView, TradeView
+from noodswap.views import BurnConfirmView, CardCatalogView, DropView, PaginatedLinesView, TradeView
 
 
 class _FakeUser:
@@ -109,7 +109,7 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(sent.get("ephemeral"))
         self.assertEqual(sent["embed"].title, "Trade")
 
-    async def test_trade_accept_success_edits_message_and_finishes(self) -> None:
+    async def test_trade_accept_success_sends_followup_and_keeps_offer(self) -> None:
         view = TradeView(guild_id=1, seller_id=10, buyer_id=20, card_id="SPG", dupe_code="0", amount=25)
         interaction = _FakeInteraction(user_id=20)
 
@@ -121,8 +121,12 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(all(getattr(item, "disabled", False) for item in view.children))
         self.assertEqual(len(interaction.response.edited_messages), 1)
         edited = interaction.response.edited_messages[0]
-        self.assertEqual(edited["embed"].title, "Trade Accepted")
-        self.assertIn("G-123", edited["embed"].description)
+        self.assertEqual(edited.get("view"), view)
+        self.assertNotIn("embed", edited)
+        self.assertEqual(len(interaction.followup.sent_messages), 1)
+        accepted = interaction.followup.sent_messages[0]
+        self.assertEqual(accepted["embed"].title, "Trade Accepted")
+        self.assertIn("G-123", accepted["embed"].description)
 
     async def test_trade_timeout_disables_buttons_and_edits_message(self) -> None:
         view = TradeView(guild_id=1, seller_id=10, buyer_id=20, card_id="SPG", dupe_code="0", amount=25)
@@ -195,6 +199,30 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(view.page_index, 0)
         self.assertEqual(len(interaction.response.sent_messages), 1)
         self.assertTrue(interaction.response.sent_messages[0].get("ephemeral"))
+
+    async def test_paginated_lines_view_navigation_updates_page(self) -> None:
+        lines = ["One", "Two", "Three"]
+        view = PaginatedLinesView(user_id=10, title="Collection", lines=lines, guard_title="Collection", page_size=1)
+
+        interaction = _FakeInteraction(user_id=10)
+        await view.next_page_button.callback(interaction)
+
+        self.assertEqual(view.page_index, 1)
+        self.assertEqual(len(interaction.response.edited_messages), 1)
+        edited_embed = interaction.response.edited_messages[0]["embed"]
+        self.assertEqual(edited_embed.description, "Two")
+
+    async def test_paginated_lines_view_rejects_unauthorized_navigation(self) -> None:
+        lines = ["One", "Two"]
+        view = PaginatedLinesView(user_id=10, title="Wishlist", lines=lines, guard_title="Wishlist", page_size=1)
+
+        interaction = _FakeInteraction(user_id=99)
+        await view.next_page_button.callback(interaction)
+
+        self.assertEqual(view.page_index, 0)
+        self.assertEqual(len(interaction.response.sent_messages), 1)
+        self.assertTrue(interaction.response.sent_messages[0].get("ephemeral"))
+        self.assertEqual(interaction.response.sent_messages[0]["embed"].title, "Wishlist")
 
 
 if __name__ == "__main__":

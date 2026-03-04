@@ -5,6 +5,7 @@ import json
 import time
 import urllib.request
 from pathlib import Path
+from threading import Lock
 
 asyncio.iscoroutinefunction = inspect.iscoroutinefunction  # type: ignore[assignment]
 
@@ -17,6 +18,7 @@ from .cards import (
     card_dupe_display,
     card_image_url,
     normalize_card_id,
+    search_card_ids,
     search_card_ids_by_name,
 )
 from .presentation import (
@@ -41,14 +43,17 @@ from .storage import (
     reset_db_data,
 )
 from .utils import format_cooldown, multiline_text
-from .views import BurnConfirmView, CardCatalogView, DropView, TradeView
+from .views import BurnConfirmView, CardCatalogView, DropView, PaginatedLinesView, TradeView
 
 
-async def resolve_member_argument(ctx: commands.Context, raw_player: str) -> tuple[discord.Member | None, str | None]:
+_CARD_IMAGE_CACHE_LOCK = Lock()
+
+
+async def resolve_member_argument(ctx: commands.Context, raw_member: str) -> tuple[discord.Member | None, str | None]:
     if ctx.guild is None:
         return None, "Use this command in a server."
 
-    candidate = raw_player.strip()
+    candidate = raw_member.strip()
     if not candidate:
         return None, "Provide a player (mention or username)."
 
@@ -88,12 +93,39 @@ def _fetch_image_bytes(url: str) -> bytes | None:
         return None
 
 
-def _read_cached_image_bytes(card_id: str) -> bytes | None:
-    try:
-        manifest_data = json.loads(CARD_IMAGE_CACHE_MANIFEST.read_text(encoding="utf-8"))
-    except Exception:
-        return None
+def _cache_file_extension_for_url(url: str) -> str:
+    suffix = Path(url.split("?", 1)[0]).suffix.lower()
+    if suffix in {".jpg", ".jpeg", ".png", ".webp", ".gif"}:
+        return suffix
+    return ".img"
 
+
+def _read_image_manifest() -> dict[str, dict[str, str | int]]:
+    try:
+        parsed = json.loads(CARD_IMAGE_CACHE_MANIFEST.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+
+    if not isinstance(parsed, dict):
+        return {}
+
+    manifest: dict[str, dict[str, str | int]] = {}
+    for card_id, value in parsed.items():
+        if isinstance(card_id, str) and isinstance(value, dict):
+            manifest[card_id] = value
+    return manifest
+
+
+def _write_image_manifest(manifest: dict[str, dict[str, str | int]]) -> None:
+    CARD_IMAGE_CACHE_MANIFEST.parent.mkdir(parents=True, exist_ok=True)
+    CARD_IMAGE_CACHE_MANIFEST.write_text(
+        json.dumps(manifest, indent=2, sort_keys=True),
+        encoding="utf-8",
+    )
+
+
+def _read_cached_image_bytes(card_id: str) -> bytes | None:
+    manifest_data = _read_image_manifest()
     entry = manifest_data.get(card_id)
     if not isinstance(entry, dict):
         return None
@@ -107,6 +139,38 @@ def _read_cached_image_bytes(card_id: str) -> bytes | None:
         return image_path.read_bytes()
     except Exception:
         return None
+
+
+def _fetch_and_cache_image_bytes(card_id: str) -> bytes | None:
+    source_url = card_image_url(card_id)
+    fetched = _fetch_image_bytes(source_url)
+    if fetched is None:
+        return None
+
+    extension = _cache_file_extension_for_url(source_url)
+    file_name = f"{card_id}{extension}"
+
+    with _CARD_IMAGE_CACHE_LOCK:
+        CARD_IMAGE_CACHE_MANIFEST.parent.mkdir(parents=True, exist_ok=True)
+        image_path = CARD_IMAGE_CACHE_MANIFEST.parent / file_name
+        image_path.write_bytes(fetched)
+
+        manifest_data = _read_image_manifest()
+        manifest_data[card_id] = {
+            "file": file_name,
+            "source": source_url,
+            "attempts": 1,
+        }
+        _write_image_manifest(manifest_data)
+
+    return fetched
+
+
+def _get_card_image_bytes(card_id: str) -> bytes | None:
+    cached = _read_cached_image_bytes(card_id)
+    if cached is not None:
+        return cached
+    return _fetch_and_cache_image_bytes(card_id)
 
 
 def _build_drop_preview_blocking(choices: list[tuple[str, int]]) -> bytes | None:
@@ -127,9 +191,7 @@ def _build_drop_preview_blocking(choices: list[tuple[str, int]]) -> bytes | None
 
     images: list[Image.Image] = []
     for card_id, generation in choices:
-        raw = _read_cached_image_bytes(card_id)
-        if raw is None:
-            raw = _fetch_image_bytes(card_image_url(card_id))
+        raw = _get_card_image_bytes(card_id)
         if raw is None:
             images.append(_placeholder_image(card_id, generation))
             continue
@@ -179,7 +241,10 @@ async def _wish_add(ctx: commands.Context, card_id: str) -> None:
         return
 
     if len(matched_card_ids) > 1:
-        match_lines = [card_base_display(matched_card_id) for matched_card_id in matched_card_ids]
+        match_lines = [
+            f"{index}. {card_base_display(matched_card_id)}"
+            for index, matched_card_id in enumerate(matched_card_ids, start=1)
+        ]
         await ctx.send(embed=italy_embed("Wishlist Matches", multiline_text(match_lines)))
         return
 
@@ -205,7 +270,10 @@ async def _wish_remove(ctx: commands.Context, card_id: str) -> None:
         return
 
     if len(matched_card_ids) > 1:
-        match_lines = [card_base_display(matched_card_id) for matched_card_id in matched_card_ids]
+        match_lines = [
+            f"{index}. {card_base_display(matched_card_id)}"
+            for index, matched_card_id in enumerate(matched_card_ids, start=1)
+        ]
         await ctx.send(embed=italy_embed("Wishlist Matches", multiline_text(match_lines)))
         return
 
@@ -238,7 +306,14 @@ async def _wish_list(ctx: commands.Context, target_member: discord.Member | None
         return
 
     lines = [card_base_display(card_id) for card_id in wishlisted_card_ids]
-    await ctx.send(embed=italy_embed(title, multiline_text(lines)))
+    view = PaginatedLinesView(
+        user_id=ctx.author.id,
+        title=title,
+        lines=lines,
+        guard_title="Wishlist",
+    )
+    message = await ctx.send(embed=view.build_embed(), view=view)
+    view.message = message
 
 
 def register_commands(bot: commands.Bot) -> None:
@@ -263,11 +338,11 @@ def register_commands(bot: commands.Bot) -> None:
     async def wish_list(ctx: commands.Context, *, player: str | None = None):
         target_member = ctx.author
         if player is not None:
-            resolved_player, resolve_error = await resolve_member_argument(ctx, player)
-            if resolved_player is None:
+            resolved_member, resolve_error = await resolve_member_argument(ctx, player)
+            if resolved_member is None:
                 await ctx.send(embed=italy_embed("Wishlist", resolve_error or "Could not resolve player."))
                 return
-            target_member = resolved_player
+            target_member = resolved_member
         await _wish_list(ctx, target_member)
 
     @bot.command(name="wa")
@@ -282,11 +357,11 @@ def register_commands(bot: commands.Bot) -> None:
     async def wish_list_short(ctx: commands.Context, *, player: str | None = None):
         target_member = ctx.author
         if player is not None:
-            resolved_player, resolve_error = await resolve_member_argument(ctx, player)
-            if resolved_player is None:
+            resolved_member, resolve_error = await resolve_member_argument(ctx, player)
+            if resolved_member is None:
                 await ctx.send(embed=italy_embed("Wishlist", resolve_error or "Could not resolve player."))
                 return
-            target_member = resolved_player
+            target_member = resolved_member
         await _wish_list(ctx, target_member)
 
     @bot.command(name="cards", aliases=["ca"])
@@ -309,7 +384,7 @@ def register_commands(bot: commands.Bot) -> None:
     @bot.command(name="lookup", aliases=["l"])
     async def lookup(ctx: commands.Context, *, card_id: str | None = None):
         if card_id is None:
-            await ctx.send(embed=italy_embed("Lookup", "Usage: `ns lookup <card_id>`."))
+            await ctx.send(embed=italy_embed("Lookup", "Usage: `ns lookup <card_id|query>`."))
             return
 
         normalized_card_id = normalize_card_id(card_id)
@@ -319,9 +394,9 @@ def register_commands(bot: commands.Bot) -> None:
             await ctx.send(embed=lookup_embed)
             return
 
-        name_matches = search_card_ids_by_name(card_id)
+        name_matches = search_card_ids(card_id, include_series=True)
         if not name_matches:
-            await ctx.send(embed=italy_embed("Lookup", "Unknown card id."))
+            await ctx.send(embed=italy_embed("Lookup", "No results found."))
             return
 
         if len(name_matches) == 1:
@@ -331,8 +406,18 @@ def register_commands(bot: commands.Bot) -> None:
             await ctx.send(embed=lookup_embed)
             return
 
-        match_lines = [card_base_display(matched_card_id) for matched_card_id in name_matches]
-        await ctx.send(embed=italy_embed("Lookup Matches", multiline_text(match_lines)))
+        match_lines = [
+            f"{index}. {card_base_display(matched_card_id)}"
+            for index, matched_card_id in enumerate(name_matches, start=1)
+        ]
+        view = PaginatedLinesView(
+            user_id=ctx.author.id,
+            title="Lookup Matches",
+            lines=match_lines,
+            guard_title="Lookup",
+        )
+        message = await ctx.send(embed=view.build_embed(), view=view)
+        view.message = message
         return
 
     @bot.command(name="drop", aliases=["d"])
@@ -427,11 +512,11 @@ def register_commands(bot: commands.Bot) -> None:
 
         target_member = ctx.author
         if player is not None:
-            resolved_player, resolve_error = await resolve_member_argument(ctx, player)
-            if resolved_player is None:
+            resolved_member, resolve_error = await resolve_member_argument(ctx, player)
+            if resolved_member is None:
                 await ctx.send(embed=italy_embed("Collection", resolve_error or "Could not resolve player."))
                 return
-            target_member = resolved_player
+            target_member = resolved_member
 
         instances = get_player_card_instances(ctx.guild.id, target_member.id)
         title = f"{target_member.display_name}'s Collection"
@@ -449,7 +534,14 @@ def register_commands(bot: commands.Bot) -> None:
             card_dupe_display(card_id, generation, dupe_code=dupe_code)
             for _, card_id, generation, dupe_code in sorted_instances
         ]
-        await ctx.send(embed=italy_embed(title, multiline_text(lines)))
+        view = PaginatedLinesView(
+            user_id=ctx.author.id,
+            title=title,
+            lines=lines,
+            guard_title="Collection",
+        )
+        message = await ctx.send(embed=view.build_embed(), view=view)
+        view.message = message
 
     @bot.command(name="burn", aliases=["b"])
     async def burn(ctx: commands.Context, card_code: str | None = None):
@@ -466,6 +558,7 @@ def register_commands(bot: commands.Bot) -> None:
             prepared.instance_id is None
             or prepared.card_id is None
             or prepared.generation is None
+            or prepared.dupe_code is None
             or prepared.payout is None
             or prepared.value is None
             or prepared.base_value is None
@@ -478,6 +571,7 @@ def register_commands(bot: commands.Bot) -> None:
         instance_id = prepared.instance_id
         burn_card_id = prepared.card_id
         burn_generation = prepared.generation
+        burn_dupe_code = prepared.dupe_code
         value = prepared.value
         base_value = prepared.base_value
         delta_range = prepared.delta_range
@@ -488,6 +582,7 @@ def register_commands(bot: commands.Bot) -> None:
             burn_confirmation_description(
                 card_id=burn_card_id,
                 generation=burn_generation,
+                dupe_code=burn_dupe_code,
                 value=value,
                 base_value=base_value,
                 delta_range=delta_range,
@@ -515,14 +610,14 @@ def register_commands(bot: commands.Bot) -> None:
 
         target_member = ctx.author
         if player is not None:
-            resolved_player, resolve_error = await resolve_member_argument(ctx, player)
-            if resolved_player is None:
+            resolved_member, resolve_error = await resolve_member_argument(ctx, player)
+            if resolved_member is None:
                 await ctx.send(embed=italy_embed("Drop Cooldown", resolve_error or "Could not resolve player."))
                 return
-            target_member = resolved_player
+            target_member = resolved_member
 
-        _, last_pull_at, _ = get_player_stats(ctx.guild.id, target_member.id)
-        elapsed = time.time() - last_pull_at
+        _, last_drop_at, _ = get_player_stats(ctx.guild.id, target_member.id)
+        elapsed = time.time() - last_drop_at
         if elapsed < PULL_COOLDOWN_SECONDS:
             remaining = PULL_COOLDOWN_SECONDS - elapsed
             description = f"Ready in **{format_cooldown(remaining)}**."
@@ -539,11 +634,11 @@ def register_commands(bot: commands.Bot) -> None:
 
         target_member = ctx.author
         if player is not None:
-            resolved_player, resolve_error = await resolve_member_argument(ctx, player)
-            if resolved_player is None:
+            resolved_member, resolve_error = await resolve_member_argument(ctx, player)
+            if resolved_member is None:
                 await ctx.send(embed=italy_embed("Info", resolve_error or "Could not resolve player."))
                 return
-            target_member = resolved_player
+            target_member = resolved_member
 
         dough, _, married_instance_id = get_player_stats(ctx.guild.id, target_member.id)
         wishes_count = len(get_wishlist_cards(ctx.guild.id, target_member.id))
@@ -577,16 +672,16 @@ def register_commands(bot: commands.Bot) -> None:
             await ctx.send(embed=italy_embed("Trade", "Use this command in a server."))
             return
 
-        resolved_player, resolve_error = await resolve_member_argument(ctx, player)
-        if resolved_player is None:
+        resolved_member, resolve_error = await resolve_member_argument(ctx, player)
+        if resolved_member is None:
             await ctx.send(embed=italy_embed("Trade", resolve_error or "Could not resolve player."))
             return
 
         prepared = prepare_trade_offer(
             guild_id=ctx.guild.id,
             seller_id=ctx.author.id,
-            buyer_id=resolved_player.id,
-            buyer_is_bot=resolved_player.bot,
+            buyer_id=resolved_member.id,
+            buyer_is_bot=resolved_member.bot,
             card_code=card_code,
             amount=amount,
         )
@@ -606,7 +701,7 @@ def register_commands(bot: commands.Bot) -> None:
         view = TradeView(
             guild_id=ctx.guild.id,
             seller_id=ctx.author.id,
-            buyer_id=resolved_player.id,
+            buyer_id=resolved_member.id,
             card_id=card_id,
             dupe_code=dupe_code,
             amount=amount,
@@ -615,7 +710,7 @@ def register_commands(bot: commands.Bot) -> None:
         message = await ctx.send(
             embed=italy_embed(
                 "Trade Offer",
-                trade_offer_description(resolved_player.mention, ctx.author.mention, card_id, generation, dupe_code, amount),
+                trade_offer_description(resolved_member.mention, ctx.author.mention, card_id, generation, dupe_code, amount),
             ),
             view=view,
         )

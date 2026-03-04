@@ -18,7 +18,9 @@ Noodswap is structured in a pragmatic layered style:
   - `noodswap/settings.py` (global settings/constants)
   - `noodswap/utils.py` (small utility helpers)
 - Data/persistence layer:
-  - `noodswap/storage.py` (SQLite schema, migration, data operations)
+  - `noodswap/storage.py` (SQLite data operations)
+  - `noodswap/migrations.py` (schema versioning + startup migration steps)
+  - `noodswap/repositories.py` (repository-style SQL boundaries used by `storage.py`)
 - Application bootstrap:
   - `bot.py` (thin launcher)
   - `noodswap/app.py` (bot factory, intents, startup)
@@ -33,7 +35,7 @@ Noodswap is structured in a pragmatic layered style:
 
 1. `python bot.py`
 2. `bot.py` calls `noodswap.app.main()`
-3. `main()` loads `DISCORD_TOKEN`
+3. `main()` resolves token from `DISCORD_TOKEN` or `DISCORD_TOKEN_FILE`
 4. `main()` calls `storage.init_db()`
 5. `create_bot()` builds the `commands.Bot`, registers handlers, and returns bot
 6. Bot starts and begins handling prefix commands and interaction callbacks
@@ -43,7 +45,7 @@ Noodswap is structured in a pragmatic layered style:
 ### Drop flow
 
 1. User runs `ns drop`
-2. Command checks cooldown from `players.last_pull_at`
+2. Command checks cooldown from the player's last drop timestamp (`players.last_pull_at` column)
 3. Command calls `cards.make_drop_choices(3)` to generate three `(card_id, generation)` offers
 4. Message is sent with embed + `DropView` buttons
 5. On button click, selected card instance is persisted into `card_instances`

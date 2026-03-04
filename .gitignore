@@ -1,0 +1,8 @@
+.env
+.env.*
+!.env.example
+
+noodswap.db
+
+__pycache__/
+*.py[cod]

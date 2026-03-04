@@ -19,10 +19,10 @@ Columns:
 - `guild_id INTEGER NOT NULL`
 - `user_id INTEGER NOT NULL`
 - `dough INTEGER NOT NULL DEFAULT 0`
-- `last_pull_at REAL NOT NULL DEFAULT 0`
+- `last_pull_at REAL NOT NULL DEFAULT 0` (tracks last `drop` timestamp)
 - `married_card_id TEXT` (legacy compatibility)
 - `married_instance_id INTEGER` (current marriage reference)
-- `last_dropped_instance_id INTEGER` (default target for `burn` without args)
+- `last_dropped_instance_id INTEGER` (legacy column name; stores last pulled instance for arg-less `burn`/`marry`)
 
 Purpose:
 - Player economy and cooldown state in the global Noodswap scope
@@ -111,7 +111,7 @@ Current migration set:
 	- Rebuilds duplicate-code uniqueness index as `idx_card_instances_dupe_code`.
 
 Notes:
-- Startup migration is in-code (`noodswap/storage.py`) and currently uses incremental version checks.
+- Startup migration is in-code (`noodswap/migrations.py`) and invoked by `storage.init_db()` using incremental version checks.
 - Existing DB files are upgraded in place when the bot starts.
 
 ## Domain invariants
@@ -134,7 +134,7 @@ Notes:
 - `burn <card_code>`: targets the exact referenced instance
 - `trade <card_code>`: transfers the exact referenced instance
 - card code format is standalone base36 (`0-9a-z`) without card-id prefix
-- arg-less `marry` / `burn`: default to `last_dropped_instance_id`
+- arg-less `marry` / `burn`: default to the last pulled instance (`last_dropped_instance_id` column)
 
 ## Terminology (explicit)
 
