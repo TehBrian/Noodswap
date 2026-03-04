@@ -1,4 +1,9 @@
 {
+  "AGL": {
+    "attempts": 1,
+    "file": "AGL.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/7/77/Canadian_Cab-merlot_blend.JPG"
+  },
   "AGN": {
     "attempts": 1,
     "file": "AGN.jpg",
@@ -34,6 +39,11 @@
     "file": "BLA.jpg",
     "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/95/Flickr_-_cyclonebill_-_Ravioli_med_skinke_og_asparges_i_mascarponecreme.jpg/960px-Flickr_-_cyclonebill_-_Ravioli_med_skinke_og_asparges_i_mascarponecreme.jpg"
   },
+  "BOL": {
+    "attempts": 1,
+    "file": "BOL.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/86/Baguettes%2C_Paris%2C_France_-_panoramio.jpg/960px-Baguettes%2C_Paris%2C_France_-_panoramio.jpg"
+  },
   "BRC": {
     "attempts": 1,
     "file": "BRC.jpg",
@@ -47,6 +57,11 @@
   "BRI2": {
     "attempts": 2,
     "file": "BRI2.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/4/4a/Brioche.jpg"
+  },
+  "BUN": {
+    "attempts": 1,
+    "file": "BUN.jpg",
     "source": "https://upload.wikimedia.org/wikipedia/commons/4/4a/Brioche.jpg"
   },
   "CAN": {
@@ -158,6 +173,11 @@
     "attempts": 3,
     "file": "MBS.jpg",
     "source": "https://commons.wikimedia.org/wiki/Special:FilePath/Mmm..._Meatball_sub_with_marinara_sauce,_mozzarella,_and_roasted_peppers_(6432603233).jpg"
+  },
+  "MKB": {
+    "attempts": 1,
+    "file": "MKB.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/4/4a/Brioche.jpg"
   },
   "MON": {
     "attempts": 2,
@@ -273,6 +293,11 @@
     "attempts": 2,
     "file": "TAG.jpg",
     "source": "https://upload.wikimedia.org/wikipedia/commons/6/67/Nests_of_tagliatelle_bolognesi.jpg"
+  },
+  "TAJ": {
+    "attempts": 1,
+    "file": "TAJ.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/54/2016_1129_Turin_Tajarin_al_Castelmagno.jpg/1280px-2016_1129_Turin_Tajarin_al_Castelmagno.jpg"
   },
   "TRG": {
     "attempts": 1,

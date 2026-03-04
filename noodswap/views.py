@@ -69,7 +69,8 @@ class DropView(discord.ui.View):
                 content=None,
                 view=self,
             )
-            await interaction.followup.send(embed=pulled_embed)
+            if interaction.message is not None:
+                await interaction.message.reply(embed=pulled_embed, mention_author=False)
 
         return callback
 
@@ -85,8 +86,9 @@ class DropView(discord.ui.View):
             pass
 
         try:
-            await self.message.channel.send(
+            await self.message.reply(
                 embed=italy_embed("Drop Expired", "No card was pulled from this drop."),
+                mention_author=False,
             )
         except discord.HTTPException:
             pass
@@ -170,18 +172,20 @@ class TradeView(discord.ui.View):
         await interaction.response.edit_message(
             view=self,
         )
-        await interaction.followup.send(
-            embed=italy_embed(
-                "Trade Accepted",
-                (
-                    f"Buyer: <@{self.buyer_id}>\n"
-                    f"Seller: <@{self.seller_id}>\n"
-                    ""
-                    f"Card: {traded_card_text}\n"
-                    f"Price: **{self.amount}** dough"
+        if interaction.message is not None:
+            await interaction.message.reply(
+                embed=italy_embed(
+                    "Trade Accepted",
+                    (
+                        f"Buyer: <@{self.buyer_id}>\n"
+                        f"Seller: <@{self.seller_id}>\n"
+                        ""
+                        f"Card: {traded_card_text}\n"
+                        f"Price: **{self.amount}** dough"
+                    ),
                 ),
+                mention_author=False,
             )
-        )
 
     @discord.ui.button(label="Accept", style=discord.ButtonStyle.success)
     async def accept_button(
@@ -258,9 +262,11 @@ class BurnConfirmView(discord.ui.View):
             await interaction.response.edit_message(
                 view=self,
             )
-            await interaction.followup.send(
-                embed=italy_embed("Burn Failed", "That card instance is no longer available."),
-            )
+            if interaction.message is not None:
+                await interaction.message.reply(
+                    embed=italy_embed("Burn Failed", "That card instance is no longer available."),
+                    mention_author=False,
+                )
             return
 
         burned_card_id, burned_generation, burned_dupe_code = burned
@@ -283,7 +289,8 @@ Payout: **{payout} dough**
         await interaction.response.edit_message(
             view=self,
         )
-        await interaction.followup.send(embed=burned_embed)
+        if interaction.message is not None:
+            await interaction.message.reply(embed=burned_embed, mention_author=False)
 
     @discord.ui.button(label="Cancel", style=discord.ButtonStyle.secondary)
     async def cancel_button(
@@ -309,7 +316,11 @@ Payout: **{payout} dough**
         await interaction.response.edit_message(
             view=self,
         )
-        await interaction.followup.send(embed=italy_embed("Burn Cancelled", "No card was burned."))
+        if interaction.message is not None:
+            await interaction.message.reply(
+                embed=italy_embed("Burn Cancelled", "No card was burned."),
+                mention_author=False,
+            )
 
     async def on_timeout(self) -> None:
         if self.finished or self.message is None:

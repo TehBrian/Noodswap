@@ -34,6 +34,7 @@ class _FakeInteraction:
         self.user = _FakeUser(user_id)
         self.response = _FakeResponse()
         self.followup = _FakeFollowup()
+        self.message = _FakeMessage()
 
 
 class _FakeMessage:
@@ -46,10 +47,14 @@ class _FakeMessage:
 
     def __init__(self):
         self.edits: list[dict] = []
+        self.replies: list[dict] = []
         self.channel = self._FakeChannel()
 
     async def edit(self, **kwargs):
         self.edits.append(kwargs)
+
+    async def reply(self, **kwargs):
+        self.replies.append(kwargs)
 
 
 class ViewTests(unittest.IsolatedAsyncioTestCase):
@@ -93,8 +98,8 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(fake_message.edits), 1)
         self.assertEqual(fake_message.edits[0].get("view"), view)
         self.assertNotIn("embed", fake_message.edits[0])
-        self.assertEqual(len(fake_message.channel.sent_messages), 1)
-        self.assertEqual(fake_message.channel.sent_messages[0]["embed"].title, "Drop Expired")
+        self.assertEqual(len(fake_message.replies), 1)
+        self.assertEqual(fake_message.replies[0]["embed"].title, "Drop Expired")
 
     async def test_trade_rejects_non_buyer(self) -> None:
         view = TradeView(guild_id=1, seller_id=10, buyer_id=20, card_id="SPG", dupe_code="0", amount=25)
@@ -123,8 +128,8 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         edited = interaction.response.edited_messages[0]
         self.assertEqual(edited.get("view"), view)
         self.assertNotIn("embed", edited)
-        self.assertEqual(len(interaction.followup.sent_messages), 1)
-        accepted = interaction.followup.sent_messages[0]
+        self.assertEqual(len(interaction.message.replies), 1)
+        accepted = interaction.message.replies[0]
         self.assertEqual(accepted["embed"].title, "Trade Accepted")
         self.assertIn("G-123", accepted["embed"].description)
 
@@ -157,8 +162,8 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(interaction.response.edited_messages), 1)
         self.assertEqual(interaction.response.edited_messages[0].get("view"), view)
         self.assertNotIn("embed", interaction.response.edited_messages[0])
-        self.assertEqual(len(interaction.followup.sent_messages), 1)
-        self.assertEqual(interaction.followup.sent_messages[0]["embed"].title, "**Card Burned**")
+        self.assertEqual(len(interaction.message.replies), 1)
+        self.assertEqual(interaction.message.replies[0]["embed"].title, "**Card Burned**")
 
     async def test_burn_cancel_sends_followup_embed_and_keeps_prompt(self) -> None:
         view = BurnConfirmView(guild_id=1, user_id=10, instance_id=77, card_id="SPG", generation=321, delta_range=8)
@@ -170,8 +175,8 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(interaction.response.edited_messages), 1)
         self.assertEqual(interaction.response.edited_messages[0].get("view"), view)
         self.assertNotIn("embed", interaction.response.edited_messages[0])
-        self.assertEqual(len(interaction.followup.sent_messages), 1)
-        self.assertEqual(interaction.followup.sent_messages[0]["embed"].title, "Burn Cancelled")
+        self.assertEqual(len(interaction.message.replies), 1)
+        self.assertEqual(interaction.message.replies[0]["embed"].title, "Burn Cancelled")
 
     async def test_card_catalog_pagination_buttons_update_page(self) -> None:
         entries = [
