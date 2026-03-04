@@ -291,6 +291,73 @@ class StorageTests(unittest.TestCase):
 
         self.assertIsNone(storage.get_last_pulled_instance(guild_id, user_id))
 
+    def test_get_last_pulled_instance_clears_stale_pointer(self) -> None:
+        guild_id = 1
+        user_id = 912
+        card_id = "SPG"
+
+        storage.init_db()
+        instance_id = storage.add_card_to_player(guild_id, user_id, card_id, 300)
+
+        with closing(sqlite3.connect(storage.DB_PATH)) as conn:
+            with conn:
+                conn.execute(
+                    "DELETE FROM card_instances WHERE instance_id = ?",
+                    (instance_id,),
+                )
+
+        self.assertIsNone(storage.get_last_pulled_instance(guild_id, user_id))
+
+        with closing(sqlite3.connect(storage.DB_PATH)) as conn:
+            row = conn.execute(
+                "SELECT last_dropped_instance_id FROM players WHERE guild_id = ? AND user_id = ?",
+                (storage.GLOBAL_GUILD_ID, user_id),
+            ).fetchone()
+        self.assertIsNotNone(row)
+        if row is None:
+            return
+        self.assertIsNone(row[0])
+
+    def test_get_last_pulled_instance_clears_pointer_after_trade_transfer(self) -> None:
+        guild_id = 1
+        seller_id = 913
+        buyer_id = 914
+        card_id = "SPG"
+
+        storage.init_db()
+        storage.add_card_to_player(guild_id, seller_id, card_id, 300)
+        selected = storage.get_last_pulled_instance(guild_id, seller_id)
+        self.assertIsNotNone(selected)
+        if selected is None:
+            return
+        _instance_id, _card_id, _generation, dupe_code = selected
+
+        storage.add_dough(guild_id, buyer_id, 100)
+        success, message, traded_generation, traded_dupe_code = storage.execute_trade(
+            guild_id=guild_id,
+            seller_id=seller_id,
+            buyer_id=buyer_id,
+            card_id=card_id,
+            dupe_code=dupe_code,
+            amount=10,
+        )
+        self.assertTrue(success)
+        self.assertEqual(message, "")
+        self.assertEqual(traded_generation, 300)
+        self.assertEqual(traded_dupe_code, dupe_code)
+
+        self.assertIsNone(storage.get_last_pulled_instance(guild_id, seller_id))
+
+        with closing(sqlite3.connect(storage.DB_PATH)) as conn:
+            row = conn.execute(
+                "SELECT last_dropped_instance_id FROM players WHERE guild_id = ? AND user_id = ?",
+                (storage.GLOBAL_GUILD_ID, seller_id),
+            ).fetchone()
+        self.assertIsNotNone(row)
+        if row is None:
+            return
+        self.assertIsNone(row[0])
+
     def test_dupe_codes_assign_sequential_and_reuse_lowest_free(self) -> None:
         guild_id = 1
         user_id = 911

@@ -352,6 +352,7 @@ def execute_trade(
 
         instances.transfer_to_user(instance_id, buyer_id)
         players.clear_marriage_if_matches(guild_id, seller_id, instance_id)
+        players.clear_last_pulled_if_matches(guild_id, seller_id, instance_id)
         players.add_dough(guild_id, seller_id, amount)
         players.add_dough(guild_id, buyer_id, -amount)
 

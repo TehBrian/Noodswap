@@ -116,20 +116,37 @@ class PlayerRepository:
             """
             SELECT p.last_dropped_instance_id, ci.card_id, ci.generation, ci.dupe_code
             FROM players p
-            LEFT JOIN card_instances ci ON ci.instance_id = p.last_dropped_instance_id
+            LEFT JOIN card_instances ci
+                ON ci.instance_id = p.last_dropped_instance_id
+                AND ci.guild_id = p.guild_id
+                AND ci.user_id = p.user_id
             WHERE p.guild_id = ? AND p.user_id = ?
             """,
             (guild_id, user_id),
         ).fetchone()
-        if (
-            row is None
-            or row["last_dropped_instance_id"] is None
-            or row["card_id"] is None
-            or row["generation"] is None
-            or row["dupe_code"] is None
-        ):
+        if row is None:
             return None
-        return int(row["last_dropped_instance_id"]), str(row["card_id"]), int(row["generation"]), str(row["dupe_code"])
+
+        last_dropped_instance_id = row["last_dropped_instance_id"]
+        card_id = row["card_id"]
+        generation = row["generation"]
+        dupe_code = row["dupe_code"]
+
+        if last_dropped_instance_id is None:
+            return None
+
+        if card_id is None or generation is None or dupe_code is None:
+            self.conn.execute(
+                """
+                UPDATE players
+                SET last_dropped_instance_id = NULL
+                WHERE guild_id = ? AND user_id = ? AND last_dropped_instance_id = ?
+                """,
+                (guild_id, user_id, int(last_dropped_instance_id)),
+            )
+            return None
+
+        return int(last_dropped_instance_id), str(card_id), int(generation), str(dupe_code)
 
     def add_dough(self, guild_id: int, user_id: int, amount: int) -> None:
         self.conn.execute(
