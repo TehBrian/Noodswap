@@ -351,13 +351,12 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
             before_morph_key=None,
             before_frame_key=None,
             before_font_key=None,
-            after_morph_key="black_and_white",
-            after_morph_name="Black and White",
             cost=9,
         )
         interaction = _FakeInteraction(user_id=10)
 
         with (
+            patch("noodswap.views.random.choice", return_value="black_and_white"),
             patch("noodswap.views.apply_morph_to_instance", return_value=(True, "")) as apply_morph,
             patch("noodswap.views.get_player_stats", return_value=(41, 0.0, None)),
         ):
@@ -369,7 +368,7 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(interaction.response.edited_messages[0].get("view"), view)
         self.assertEqual(len(interaction.message.replies), 1)
         sent_embed = interaction.message.replies[0]["embed"]
-        self.assertEqual(sent_embed.title, "Morph Applied")
+        self.assertEqual(sent_embed.title, "Morph Rolled")
         self.assertIn("Morph Cost: **9**", sent_embed.description)
         self.assertIn("Dough Remaining: **41**", sent_embed.description)
 
@@ -384,8 +383,6 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
             before_morph_key=None,
             before_frame_key=None,
             before_font_key=None,
-            after_morph_key="black_and_white",
-            after_morph_name="Black and White",
             cost=9,
         )
         interaction = _FakeInteraction(user_id=99)
@@ -409,8 +406,6 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
             before_morph_key=None,
             before_frame_key=None,
             before_font_key=None,
-            after_morph_key="black_and_white",
-            after_morph_name="Black and White",
             cost=9,
         )
         fake_message = _FakeMessage()
@@ -422,9 +417,9 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(view.cancel_button.disabled)
         self.assertEqual(len(fake_message.edits), 1)
         edit_kwargs = fake_message.edits[0]
-        self.assertEqual(edit_kwargs["embed"].title, "Morph Expired")
-        self.assertEqual(edit_kwargs["attachments"], [])
         self.assertEqual(edit_kwargs["view"], view)
+        self.assertNotIn("embed", edit_kwargs)
+        self.assertNotIn("attachments", edit_kwargs)
 
     async def test_frame_confirm_applies_and_replies_with_summary(self) -> None:
         view = FrameConfirmView(
@@ -437,13 +432,12 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
             before_morph_key=None,
             before_frame_key=None,
             before_font_key=None,
-            after_frame_key="buttery",
-            after_frame_name="Buttery",
             cost=9,
         )
         interaction = _FakeInteraction(user_id=10)
 
         with (
+            patch("noodswap.views.random.choice", return_value="buttery"),
             patch("noodswap.views.apply_frame_to_instance", return_value=(True, "")) as apply_frame,
             patch("noodswap.views.get_player_stats", return_value=(41, 0.0, None)),
         ):
@@ -455,7 +449,7 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(interaction.response.edited_messages[0].get("view"), view)
         self.assertEqual(len(interaction.message.replies), 1)
         sent_embed = interaction.message.replies[0]["embed"]
-        self.assertEqual(sent_embed.title, "Frame Applied")
+        self.assertEqual(sent_embed.title, "Frame Rolled")
         self.assertIn("Frame Cost: **9**", sent_embed.description)
         self.assertIn("Dough Remaining: **41**", sent_embed.description)
 
@@ -470,8 +464,6 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
             before_morph_key=None,
             before_frame_key=None,
             before_font_key=None,
-            after_frame_key="buttery",
-            after_frame_name="Buttery",
             cost=9,
         )
         fake_message = _FakeMessage()
@@ -483,9 +475,9 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(view.cancel_button.disabled)
         self.assertEqual(len(fake_message.edits), 1)
         edit_kwargs = fake_message.edits[0]
-        self.assertEqual(edit_kwargs["embed"].title, "Frame Expired")
-        self.assertEqual(edit_kwargs["attachments"], [])
         self.assertEqual(edit_kwargs["view"], view)
+        self.assertNotIn("embed", edit_kwargs)
+        self.assertNotIn("attachments", edit_kwargs)
 
     async def test_font_confirm_applies_and_replies_with_summary(self) -> None:
         view = FontConfirmView(
@@ -498,13 +490,12 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
             before_morph_key=None,
             before_frame_key=None,
             before_font_key=None,
-            after_font_key="serif",
-            after_font_name="Serif",
             cost=9,
         )
         interaction = _FakeInteraction(user_id=10)
 
         with (
+            patch("noodswap.views.random.choice", return_value="serif"),
             patch("noodswap.views.apply_font_to_instance", return_value=(True, "")) as apply_font,
             patch("noodswap.views.get_player_stats", return_value=(41, 0.0, None)),
         ):
@@ -516,7 +507,7 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(interaction.response.edited_messages[0].get("view"), view)
         self.assertEqual(len(interaction.message.replies), 1)
         sent_embed = interaction.message.replies[0]["embed"]
-        self.assertEqual(sent_embed.title, "Font Applied")
+        self.assertEqual(sent_embed.title, "Font Rolled")
         self.assertIn("Font Cost: **9**", sent_embed.description)
         self.assertIn("Dough Remaining: **41**", sent_embed.description)
 
@@ -531,8 +522,6 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
             before_morph_key=None,
             before_frame_key=None,
             before_font_key=None,
-            after_font_key="serif",
-            after_font_name="Serif",
             cost=9,
         )
         fake_message = _FakeMessage()
@@ -544,9 +533,9 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(view.cancel_button.disabled)
         self.assertEqual(len(fake_message.edits), 1)
         edit_kwargs = fake_message.edits[0]
-        self.assertEqual(edit_kwargs["embed"].title, "Font Expired")
-        self.assertEqual(edit_kwargs["attachments"], [])
         self.assertEqual(edit_kwargs["view"], view)
+        self.assertNotIn("embed", edit_kwargs)
+        self.assertNotIn("attachments", edit_kwargs)
 
     async def test_card_catalog_pagination_buttons_update_page(self) -> None:
         entries = [

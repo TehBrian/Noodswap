@@ -61,6 +61,35 @@ This runbook is for contributors and coding agents.
 - Print current target vs effective rarity odds from live catalog data:
   - `.venv/bin/python scripts/rarity_odds.py`
 
+## Adding cards
+
+When adding a new card to the live catalog, use this workflow to keep metadata and economy values consistent.
+
+### General Card Add Flow
+
+Use this default process unless there is a specific reason to do otherwise:
+
+1. Add the card metadata entry in `noodswap/data/cards.json`.
+2. Run `.venv/bin/python scripts/rebalance_base_values.py --mode missing` to fill only absent base values.
+3. Do not add default image files during card creation; fallback image behavior is acceptable and images can be pulled later as needed.
+
+1. Add the new card entry to `noodswap/data/cards.json` with:
+  - unique `card_id`
+  - `name`, `series`, `rarity`
+  - optional `image` path (no need to add a default/local image file up front)
+2. Do not manually write a base value in `noodswap/data/base_values.json` for new card IDs.
+3. Generate missing base values only:
+  - preview: `.venv/bin/python scripts/rebalance_base_values.py --mode missing --dry-run`
+  - write: `.venv/bin/python scripts/rebalance_base_values.py --mode missing`
+4. Validate quickly:
+  - `.venv/bin/python -m py_compile bot.py noodswap/*.py scripts/*.py`
+  - `.venv/bin/python scripts/migration_smoke.py`
+
+Notes:
+- `--mode missing` preserves existing values and only fills absent IDs.
+- Use `--mode all` only when intentionally rebalancing the full catalog.
+- No need to add default image assets for new cards immediately. Fallback image behavior is acceptable, and images can be pulled/populated later as needed.
+
 ## Card image sync helper
 
 - Pull image URLs dynamically from `CARD_CATALOG` and write a JSON report:

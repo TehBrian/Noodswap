@@ -1,4 +1,5 @@
 import asyncio
+import random
 import time
 from typing import Optional
 
@@ -12,9 +13,9 @@ from .cards import (
     get_burn_payout,
 )
 from .images import embed_image_payload, morph_transition_image_payload
-from .fonts import font_label
-from .frames import frame_label
-from .morphs import morph_label
+from .fonts import AVAILABLE_FONTS, font_label
+from .frames import available_frame_keys, frame_label
+from .morphs import AVAILABLE_MORPHS, morph_label
 from .presentation import italy_embed
 from .presentation import help_category_content, help_category_pages, help_overview_description
 from .settings import (
@@ -503,8 +504,6 @@ class MorphConfirmView(discord.ui.View):
         before_morph_key: str | None,
         before_frame_key: str | None,
         before_font_key: str | None,
-        after_morph_key: str,
-        after_morph_name: str,
         cost: int,
     ):
         super().__init__(timeout=BURN_CONFIRM_TIMEOUT_SECONDS)
@@ -517,8 +516,6 @@ class MorphConfirmView(discord.ui.View):
         self.before_morph_key = before_morph_key
         self.before_frame_key = before_frame_key
         self.before_font_key = before_font_key
-        self.after_morph_key = after_morph_key
-        self.after_morph_name = after_morph_name
         self.cost = cost
         self.finished = False
         self.message: Optional[discord.Message] = None
@@ -542,11 +539,26 @@ class MorphConfirmView(discord.ui.View):
             )
             return
 
+        available_rolls = [morph_key for morph_key in AVAILABLE_MORPHS if morph_key != self.before_morph_key]
+        if not available_rolls:
+            self.finished = True
+            self._disable_buttons()
+            await interaction.response.edit_message(view=self)
+            if interaction.message is not None:
+                await interaction.message.reply(
+                    embed=italy_embed("Morph Failed", "No new morphs are currently available for this card."),
+                    mention_author=False,
+                )
+            return
+
+        rolled_morph_key = random.choice(available_rolls)
+        rolled_morph_name = morph_label(rolled_morph_key)
+
         applied, message = apply_morph_to_instance(
             self.guild_id,
             self.user_id,
             self.instance_id,
-            self.after_morph_key,
+            rolled_morph_key,
             self.cost,
         )
         if not applied:
@@ -566,12 +578,12 @@ class MorphConfirmView(discord.ui.View):
 
         dough_after, _, _ = get_player_stats(self.guild_id, self.user_id)
         morph_embed = italy_embed(
-            "Morph Applied",
+            "Morph Rolled",
             (
-                f"Applied **{self.after_morph_name}** to "
+                f"Rolled **{rolled_morph_name}** for "
                 f"{card_dupe_display(self.card_id, self.generation, dupe_code=self.dupe_code)}.\n\n"
                 f"Before: **{morph_label(self.before_morph_key)}**\n"
-                f"After: **{self.after_morph_name}**\n\n"
+                f"After: **{rolled_morph_name}**\n\n"
                 f"Morph Cost: **{self.cost}** dough\n"
                 f"Dough Remaining: **{dough_after}**"
             ),
@@ -580,7 +592,7 @@ class MorphConfirmView(discord.ui.View):
             self.card_id,
             generation=self.generation,
             before_morph_key=self.before_morph_key,
-            after_morph_key=self.after_morph_key,
+            after_morph_key=rolled_morph_key,
             before_frame_key=self.before_frame_key,
             after_frame_key=self.before_frame_key,
             before_font_key=self.before_font_key,
@@ -629,12 +641,7 @@ class MorphConfirmView(discord.ui.View):
 
         self._disable_buttons()
         try:
-            await self.message.edit(
-                content=None,
-                embed=italy_embed("Morph Expired", "Morph confirmation timed out."),
-                attachments=[],
-                view=self,
-            )
+            await self.message.edit(view=self)
         except discord.HTTPException:
             pass
 
@@ -657,8 +664,6 @@ class FrameConfirmView(discord.ui.View):
         before_morph_key: str | None,
         before_frame_key: str | None,
         before_font_key: str | None,
-        after_frame_key: str,
-        after_frame_name: str,
         cost: int,
     ):
         super().__init__(timeout=BURN_CONFIRM_TIMEOUT_SECONDS)
@@ -671,8 +676,6 @@ class FrameConfirmView(discord.ui.View):
         self.before_morph_key = before_morph_key
         self.before_frame_key = before_frame_key
         self.before_font_key = before_font_key
-        self.after_frame_key = after_frame_key
-        self.after_frame_name = after_frame_name
         self.cost = cost
         self.finished = False
         self.message: Optional[discord.Message] = None
@@ -696,11 +699,26 @@ class FrameConfirmView(discord.ui.View):
             )
             return
 
+        frame_choices = [frame_key for frame_key in available_frame_keys() if frame_key != self.before_frame_key]
+        if not frame_choices:
+            self.finished = True
+            self._disable_buttons()
+            await interaction.response.edit_message(view=self)
+            if interaction.message is not None:
+                await interaction.message.reply(
+                    embed=italy_embed("Frame Failed", "No new frames are currently available for this card."),
+                    mention_author=False,
+                )
+            return
+
+        rolled_frame_key = random.choice(frame_choices)
+        rolled_frame_name = frame_label(rolled_frame_key)
+
         applied, message = apply_frame_to_instance(
             self.guild_id,
             self.user_id,
             self.instance_id,
-            self.after_frame_key,
+            rolled_frame_key,
             self.cost,
         )
         if not applied:
@@ -720,12 +738,12 @@ class FrameConfirmView(discord.ui.View):
 
         dough_after, _, _ = get_player_stats(self.guild_id, self.user_id)
         frame_embed = italy_embed(
-            "Frame Applied",
+            "Frame Rolled",
             (
-                f"Applied **{self.after_frame_name}** to "
+                f"Rolled **{rolled_frame_name}** for "
                 f"{card_dupe_display(self.card_id, self.generation, dupe_code=self.dupe_code)}.\n\n"
                 f"Before: **{frame_label(self.before_frame_key)}**\n"
-                f"After: **{self.after_frame_name}**\n\n"
+                f"After: **{rolled_frame_name}**\n\n"
                 f"Frame Cost: **{self.cost}** dough\n"
                 f"Dough Remaining: **{dough_after}**"
             ),
@@ -736,7 +754,7 @@ class FrameConfirmView(discord.ui.View):
             before_morph_key=self.before_morph_key,
             after_morph_key=self.before_morph_key,
             before_frame_key=self.before_frame_key,
-            after_frame_key=self.after_frame_key,
+            after_frame_key=rolled_frame_key,
             before_font_key=self.before_font_key,
             after_font_key=self.before_font_key,
         )
@@ -783,12 +801,7 @@ class FrameConfirmView(discord.ui.View):
 
         self._disable_buttons()
         try:
-            await self.message.edit(
-                content=None,
-                embed=italy_embed("Frame Expired", "Frame confirmation timed out."),
-                attachments=[],
-                view=self,
-            )
+            await self.message.edit(view=self)
         except discord.HTTPException:
             pass
 
@@ -811,8 +824,6 @@ class FontConfirmView(discord.ui.View):
         before_morph_key: str | None,
         before_frame_key: str | None,
         before_font_key: str | None,
-        after_font_key: str,
-        after_font_name: str,
         cost: int,
     ):
         super().__init__(timeout=BURN_CONFIRM_TIMEOUT_SECONDS)
@@ -825,8 +836,6 @@ class FontConfirmView(discord.ui.View):
         self.before_morph_key = before_morph_key
         self.before_frame_key = before_frame_key
         self.before_font_key = before_font_key
-        self.after_font_key = after_font_key
-        self.after_font_name = after_font_name
         self.cost = cost
         self.finished = False
         self.message: Optional[discord.Message] = None
@@ -850,11 +859,26 @@ class FontConfirmView(discord.ui.View):
             )
             return
 
+        available_rolls = [font_key for font_key in AVAILABLE_FONTS if font_key != self.before_font_key]
+        if not available_rolls:
+            self.finished = True
+            self._disable_buttons()
+            await interaction.response.edit_message(view=self)
+            if interaction.message is not None:
+                await interaction.message.reply(
+                    embed=italy_embed("Font Failed", "No new fonts are currently available for this card."),
+                    mention_author=False,
+                )
+            return
+
+        rolled_font_key = random.choice(available_rolls)
+        rolled_font_name = font_label(rolled_font_key)
+
         applied, message = apply_font_to_instance(
             self.guild_id,
             self.user_id,
             self.instance_id,
-            self.after_font_key,
+            rolled_font_key,
             self.cost,
         )
         if not applied:
@@ -874,12 +898,12 @@ class FontConfirmView(discord.ui.View):
 
         dough_after, _, _ = get_player_stats(self.guild_id, self.user_id)
         font_embed = italy_embed(
-            "Font Applied",
+            "Font Rolled",
             (
-                f"Applied **{self.after_font_name}** to "
+                f"Rolled **{rolled_font_name}** for "
                 f"{card_dupe_display(self.card_id, self.generation, dupe_code=self.dupe_code)}.\n\n"
                 f"Before: **{font_label(self.before_font_key)}**\n"
-                f"After: **{self.after_font_name}**\n\n"
+                f"After: **{rolled_font_name}**\n\n"
                 f"Font Cost: **{self.cost}** dough\n"
                 f"Dough Remaining: **{dough_after}**"
             ),
@@ -892,7 +916,7 @@ class FontConfirmView(discord.ui.View):
             before_frame_key=self.before_frame_key,
             after_frame_key=self.before_frame_key,
             before_font_key=self.before_font_key,
-            after_font_key=self.after_font_key,
+            after_font_key=rolled_font_key,
         )
         if image_url is not None:
             font_embed.set_image(url=image_url)
@@ -937,12 +961,7 @@ class FontConfirmView(discord.ui.View):
 
         self._disable_buttons()
         try:
-            await self.message.edit(
-                content=None,
-                embed=italy_embed("Font Expired", "Font confirmation timed out."),
-                attachments=[],
-                view=self,
-            )
+            await self.message.edit(view=self)
         except discord.HTTPException:
             pass
 

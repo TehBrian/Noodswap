@@ -128,13 +128,13 @@ class ServicesTests(unittest.TestCase):
         storage.add_dough(guild_id, user_id, 200)
         instance_id = storage.add_card_to_player(guild_id, user_id, "SPG", 333)
 
-        with patch("noodswap.services.random.choice", return_value="black_and_white"):
-            result = services.prepare_morph(guild_id=guild_id, user_id=user_id, card_code=None)
+        result = services.prepare_morph(guild_id=guild_id, user_id=user_id, card_code=None)
 
         self.assertFalse(result.is_error)
         self.assertEqual(result.instance_id, instance_id)
         self.assertEqual(result.card_id, "SPG")
-        self.assertEqual(result.morph_key, "black_and_white")
+        self.assertIsNone(result.morph_key)
+        self.assertIsNone(result.morph_name)
         self.assertIsNotNone(result.cost)
         self.assertEqual(storage.get_instance_morph(guild_id, instance_id), None)
 
@@ -162,18 +162,18 @@ class ServicesTests(unittest.TestCase):
         self.assertIsNotNone(result.remaining_dough)
         self.assertEqual(storage.get_instance_morph(guild_id, instance_id), "black_and_white")
 
-    def test_prepare_morph_rejects_duplicate_morph(self) -> None:
+    def test_prepare_morph_rejects_when_no_new_morphs_available(self) -> None:
         guild_id = 1
         user_id = 25
         storage.add_dough(guild_id, user_id, 200)
         instance_id = storage.add_card_to_player(guild_id, user_id, "SPG", 333)
         storage.apply_morph_to_instance(guild_id, user_id, instance_id, "black_and_white", 1)
 
-        with patch("noodswap.services.random.choice", return_value="black_and_white"):
+        with patch("noodswap.services.AVAILABLE_MORPHS", ["black_and_white"]):
             result = services.prepare_morph(guild_id=guild_id, user_id=user_id, card_code=None)
 
         self.assertTrue(result.is_error)
-        self.assertEqual(result.error_message, "That card already has the Black and White morph.")
+        self.assertEqual(result.error_message, "No new morphs are currently available for this card.")
 
     def test_prepare_frame_returns_preview_without_applying(self) -> None:
         guild_id = 1
@@ -181,13 +181,13 @@ class ServicesTests(unittest.TestCase):
         storage.add_dough(guild_id, user_id, 200)
         instance_id = storage.add_card_to_player(guild_id, user_id, "SPG", 333)
 
-        with patch("noodswap.services.random.choice", return_value="buttery"):
-            result = services.prepare_frame(guild_id=guild_id, user_id=user_id, card_code=None)
+        result = services.prepare_frame(guild_id=guild_id, user_id=user_id, card_code=None)
 
         self.assertFalse(result.is_error)
         self.assertEqual(result.instance_id, instance_id)
         self.assertEqual(result.card_id, "SPG")
-        self.assertEqual(result.frame_key, "buttery")
+        self.assertIsNone(result.frame_key)
+        self.assertIsNone(result.frame_name)
         self.assertIsNotNone(result.cost)
         self.assertEqual(storage.get_instance_frame(guild_id, instance_id), None)
 
@@ -215,18 +215,18 @@ class ServicesTests(unittest.TestCase):
         self.assertIsNotNone(result.remaining_dough)
         self.assertEqual(storage.get_instance_frame(guild_id, instance_id), "buttery")
 
-    def test_prepare_frame_rejects_duplicate_frame(self) -> None:
+    def test_prepare_frame_rejects_when_no_new_frames_available(self) -> None:
         guild_id = 1
         user_id = 27
         storage.add_dough(guild_id, user_id, 200)
         instance_id = storage.add_card_to_player(guild_id, user_id, "SPG", 333)
         storage.apply_frame_to_instance(guild_id, user_id, instance_id, "buttery", 1)
 
-        with patch("noodswap.services.random.choice", return_value="buttery"):
+        with patch("noodswap.services.available_frame_keys", return_value=["buttery"]):
             result = services.prepare_frame(guild_id=guild_id, user_id=user_id, card_code=None)
 
         self.assertTrue(result.is_error)
-        self.assertEqual(result.error_message, "That card already has the Buttery frame.")
+        self.assertEqual(result.error_message, "No new frames are currently available for this card.")
 
     def test_prepare_font_returns_preview_without_applying(self) -> None:
         guild_id = 1
@@ -234,13 +234,13 @@ class ServicesTests(unittest.TestCase):
         storage.add_dough(guild_id, user_id, 200)
         instance_id = storage.add_card_to_player(guild_id, user_id, "SPG", 333)
 
-        with patch("noodswap.services.random.choice", return_value="serif"):
-            result = services.prepare_font(guild_id=guild_id, user_id=user_id, card_code=None)
+        result = services.prepare_font(guild_id=guild_id, user_id=user_id, card_code=None)
 
         self.assertFalse(result.is_error)
         self.assertEqual(result.instance_id, instance_id)
         self.assertEqual(result.card_id, "SPG")
-        self.assertEqual(result.font_key, "serif")
+        self.assertIsNone(result.font_key)
+        self.assertIsNone(result.font_name)
         self.assertIsNotNone(result.cost)
         self.assertEqual(storage.get_instance_font(guild_id, instance_id), None)
 
@@ -268,18 +268,18 @@ class ServicesTests(unittest.TestCase):
         self.assertIsNotNone(result.remaining_dough)
         self.assertEqual(storage.get_instance_font(guild_id, instance_id), "serif")
 
-    def test_prepare_font_rejects_duplicate_font(self) -> None:
+    def test_prepare_font_rejects_when_no_new_fonts_available(self) -> None:
         guild_id = 1
         user_id = 29
         storage.add_dough(guild_id, user_id, 200)
         instance_id = storage.add_card_to_player(guild_id, user_id, "SPG", 333)
         storage.apply_font_to_instance(guild_id, user_id, instance_id, "serif", 1)
 
-        with patch("noodswap.services.random.choice", return_value="serif"):
+        with patch("noodswap.services.AVAILABLE_FONTS", ["serif"]):
             result = services.prepare_font(guild_id=guild_id, user_id=user_id, card_code=None)
 
         self.assertTrue(result.is_error)
-        self.assertEqual(result.error_message, "That card already has the Serif font.")
+        self.assertEqual(result.error_message, "No new fonts are currently available for this card.")
 
     def test_execute_marry_errors_without_last_pulled(self) -> None:
         result = services.execute_marry(guild_id=1, user_id=30, card_code=None)

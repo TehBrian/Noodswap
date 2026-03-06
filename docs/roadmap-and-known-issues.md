@@ -45,6 +45,12 @@
 - anti-abuse controls and audit logging
 - add lightweight economy event ledger tables for pull/burn/trade telemetry so balancing reports can use true time-window flow metrics instead of ownership snapshots
 
+6. top.gg push vote confirmations
+- Add a signed top.gg webhook endpoint for vote events (no polling loop).
+- Verify webhook secret header before processing payloads.
+- Auto-claim vote rewards from webhook events using existing cooldown safeguards.
+- Document deployment requirements (public HTTPS route, secret config, reverse-proxy wiring).
+
 ## Refactor backlog (staged)
 
 Status: Stage 1 is complete. Stages below are intentionally deferred for later.
@@ -68,6 +74,7 @@ Status: Stage 1 is complete. Stages below are intentionally deferred for later.
 
 - Added `leaderboard` / `le` with invoker-scoped pagination + criterion dropdown (`Cards`, `Wishes`, `Dough`, `Starter`, `Collection Value`) to rank players by global player metrics.
 - Added `vote` / `v` command with top.gg link-button UX, top.gg API vote verification (`TOPGG_API_TOKEN` + `TOPGG_BOT_ID`), and `starter` reward claims with a 24-hour cooldown surfaced in both `info` and `cooldown`.
+- Planned follow-up: switch vote confirmation from pull-based checks to top.gg push webhooks so rewards can be granted immediately after vote events.
 - Changed `help` to send a brief bot overview plus an invoker-scoped category dropdown (`Overview`, `Economy`, `Cosmetics`, `Wishlist`, `Tags`, `Relationship`, `Owner-only`) that edits the same embed to the selected command page.
 - Added `frame` / `fr` confirmation flow with before/after transition previews and per-instance frame persistence (`card_instances.frame_key`), initially shipping a `buttery` golden dripping-border frame.
 - Expanded frame cosmetics to support multiple overlay-backed frame keys (`buttery`, `gilded`, `drizzled`) and added a parallel `font` / `fo` confirmation flow with per-instance font persistence (`card_instances.font_key`).

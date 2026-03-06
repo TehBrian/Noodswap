@@ -855,6 +855,7 @@ def render_morph_transition_image_bytes(
     after_frame_key: str | None = None,
     before_font_key: str | None = None,
     after_font_key: str | None = None,
+    hide_after: bool = False,
     size: tuple[int, int] = DEFAULT_CARD_RENDER_SIZE,
 ) -> bytes | None:
     try:
@@ -878,15 +879,32 @@ def render_morph_transition_image_bytes(
         font_key=normalized_before_font,
         size=size,
     )
-    after_surface = render_card_surface(
-        normalized_card_id,
-        generation=generation,
-        morph_key=normalized_after,
-        frame_key=normalized_after_frame,
-        font_key=normalized_after_font,
-        size=size,
-    )
-    if before_surface is None or after_surface is None:
+    after_surface = None
+    if not hide_after:
+        after_surface = render_card_surface(
+            normalized_card_id,
+            generation=generation,
+            morph_key=normalized_after,
+            frame_key=normalized_after_frame,
+            font_key=normalized_after_font,
+            size=size,
+        )
+    if before_surface is None:
+        return None
+
+    if hide_after:
+        after_surface = Image.new("RGBA", before_surface.size, (0, 0, 0, 0))
+        draw_after = ImageDraw.Draw(after_surface)
+        question_font = _load_overlay_font(max(48, before_surface.size[1] // 4), bold=True)
+        question = "?"
+        question_bbox = draw_after.textbbox((0, 0), question, font=question_font)
+        question_w = max(1, question_bbox[2] - question_bbox[0])
+        question_h = max(1, question_bbox[3] - question_bbox[1])
+        question_x = (before_surface.size[0] - question_w) // 2
+        question_y = (before_surface.size[1] - question_h) // 2
+        draw_after.text((question_x, question_y), question, fill=(245, 245, 245, 255), font=question_font)
+
+    if after_surface is None:
         return None
 
     card_width, card_height = before_surface.size
@@ -896,7 +914,7 @@ def render_morph_transition_image_bytes(
     canvas_width = (pad * 2) + card_width + gap + arrow_width + gap + card_width
     canvas_height = (pad * 2) + card_height
 
-    canvas = Image.new("RGBA", (canvas_width, canvas_height), (20, 20, 20, 255))
+    canvas = Image.new("RGBA", (canvas_width, canvas_height), (0, 0, 0, 0))
     left_x = pad
     card_y = pad
     arrow_x = left_x + card_width + gap
@@ -940,6 +958,7 @@ def morph_transition_image_payload(
     after_frame_key: str | None = None,
     before_font_key: str | None = None,
     after_font_key: str | None = None,
+    hide_after: bool = False,
 ) -> tuple[str | None, discord.File | None]:
     rendered_image = render_morph_transition_image_bytes(
         card_id,
@@ -950,6 +969,7 @@ def morph_transition_image_payload(
         after_frame_key=after_frame_key,
         before_font_key=before_font_key,
         after_font_key=after_font_key,
+        hide_after=hide_after,
     )
     if rendered_image is None:
         return None, None

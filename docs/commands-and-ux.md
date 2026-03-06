@@ -128,9 +128,10 @@ Burn result format should remain:
 - card code format is standalone base36 with optional leading `#` (examples: `0`, `a`, `10`, `#10`)
 - morph selection is random from available morphs
 - morph cost is `20%` of the target card's computed value (`card_value`), rounded up to the nearest whole dough
-- if a card already has the rolled morph, the command returns an error and does not charge dough
-- morph now uses a confirmation step: initial response shows `before -> after` preview and cost, and only `Confirm Morph` applies the change
-- successful morph confirmations display the same `before -> after` image and show cost + remaining dough
+- morph uses a hidden-roll confirmation step: initial response shows current style and `before -> ?` preview, and only `Confirm Morph` rolls and applies the result
+- successful morph confirmations reveal the rolled style and display the final `before -> after` image plus cost + remaining dough
+- if no different morph outcome is available for that instance, preparation returns an error and no confirmation is shown
+- morph confirmation timeout only disables buttons; the original confirmation embed is not replaced
 
 ## Frame UX
 
@@ -139,9 +140,10 @@ Burn result format should remain:
 - card code format is standalone base36 with optional leading `#` (examples: `0`, `a`, `10`, `#10`)
 - frame selection is random from available frames
 - frame cost is `20%` of the target card's computed value (`card_value`), rounded up to the nearest whole dough
-- if a card already has the rolled frame, the command returns an error and does not charge dough
-- frame uses a confirmation step: initial response shows `before -> after` preview and cost, and only `Confirm Frame` applies the change
-- successful frame confirmations display the same `before -> after` image and show cost + remaining dough
+- frame uses a hidden-roll confirmation step: initial response shows current style and `before -> ?` preview, and only `Confirm Frame` rolls and applies the result
+- successful frame confirmations reveal the rolled style and display the final `before -> after` image plus cost + remaining dough
+- if no different frame outcome is available for that instance, preparation returns an error and no confirmation is shown
+- frame confirmation timeout only disables buttons; the original confirmation embed is not replaced
 
 ## Font UX
 
@@ -150,9 +152,10 @@ Burn result format should remain:
 - card code format is standalone base36 with optional leading `#` (examples: `0`, `a`, `10`, `#10`)
 - font selection is random from available fonts
 - font cost is `20%` of the target card's computed value (`card_value`), rounded up to the nearest whole dough
-- if a card already has the rolled font, the command returns an error and does not charge dough
-- font uses a confirmation step: initial response shows `before -> after` preview and cost, and only `Confirm Font` applies the change
-- successful font confirmations display the same `before -> after` image and show cost + remaining dough
+- font uses a hidden-roll confirmation step: initial response shows current style and `before -> ?` preview, and only `Confirm Font` rolls and applies the result
+- successful font confirmations reveal the rolled style and display the final `before -> after` image plus cost + remaining dough
+- if no different font outcome is available for that instance, preparation returns an error and no confirmation is shown
+- font confirmation timeout only disables buttons; the original confirmation embed is not replaced
 
 Card identity terms:
 

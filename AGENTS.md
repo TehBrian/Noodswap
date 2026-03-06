@@ -86,7 +86,9 @@ When making non-trivial changes:
 
 ## 8) Common Tasks
 
-- **Add card:** edit `CARD_CATALOG` in `noodswap/cards.py`.
+- **Add card:** add metadata in `noodswap/data/cards.json`, then run `.venv/bin/python scripts/rebalance_base_values.py --mode missing` to fill only absent base values.
+   - No need to add default/local image assets up front; fallback image behavior is acceptable and card images can be pulled later.
+   - General flow: add card metadata -> run missing-only rebalance -> skip image creation for now.
 - **Tune pull odds:** edit `RARITY_WEIGHTS` in `noodswap/rarities.py`.
 - **Change cooldown:** edit `PULL_COOLDOWN_SECONDS` in `noodswap/settings.py`.
 - **Adjust embed theme:** edit `ITALY_RED` and helper in `noodswap/presentation.py`.

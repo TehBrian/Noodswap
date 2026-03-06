@@ -1,0 +1,13 @@
+{
+  "terminal.integrated.profiles.osx": {
+    "fish (venv)": {
+      "path": "fish",
+      "args": [
+        "-l",
+        "-C",
+        "source /Users/brian/stuff/dev/mine/discord-bots/Noodswap/.venv/bin/activate.fish"
+      ]
+    }
+  },
+  "terminal.integrated.defaultProfile.osx": "fish (venv)"
+}

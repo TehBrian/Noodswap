@@ -21,9 +21,7 @@ def format_drop_choice_line(card_id: str, generation: int) -> str:
 
 def drop_choices_description(choices: list[tuple[str, int]]) -> str:
     lines = [format_drop_choice_line(card_id, generation) for card_id, generation in choices]
-    return f"""Anyone can pull unclaimed cards from this drop:
-
-{multiline_text(lines)}"""
+    return f"""{multiline_text(lines)}"""
 
 
 def burn_confirmation_description(
@@ -65,7 +63,7 @@ HELP_CATEGORY_PAGES: tuple[tuple[str, str, str], ...] = (
         "overview",
         "Overview",
         """- `ns info [player]` (`ns i`, `ni`) — View a player's stats; defaults to yourself or the replied user.
-    - `ns leaderboard` (`ns le`, `nle`) — View ranked players with selectable leaderboard criteria.
+- `ns leaderboard` (`ns le`, `nle`) — View ranked players with selectable leaderboard criteria.
 - `ns collection [player]` (`ns c`, `nc`) — View a player's cards; defaults to yourself or the replied user.
 - `ns cards` (`ns ca`, `nca`) — View all cards, ranked by wish count.
 - `ns lookup <card_id|card_code|query>` (`ns l`, `nl`) — Look up a base card or exact dupe code.

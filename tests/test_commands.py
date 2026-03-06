@@ -943,8 +943,6 @@ class CommandsMorphTests(unittest.IsolatedAsyncioTestCase):
             generation=321,
             dupe_code="a",
             current_morph_key=None,
-            morph_key="black_and_white",
-            morph_name="Black and White",
             cost=9,
         )
 
@@ -954,9 +952,9 @@ class CommandsMorphTests(unittest.IsolatedAsyncioTestCase):
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
         self.assertEqual(sent_embed.title, "Morph Confirmation")
-        self.assertIn("Black and White", sent_embed.description)
-        self.assertIn("Morph Cost: **9**", sent_embed.description)
-        self.assertIn("After (if confirmed): **Black and White**", sent_embed.description)
+        self.assertIn("Current Morph", sent_embed.description)
+        self.assertIn("Roll Result: **?**", sent_embed.description)
+        self.assertIn("Roll Cost: **9** dough", sent_embed.description)
         self.assertIn("view", ctx.send.await_args.kwargs)
 
     async def test_morph_error_surfaces_service_message(self) -> None:
@@ -1002,8 +1000,6 @@ class CommandsFrameTests(unittest.IsolatedAsyncioTestCase):
             generation=321,
             dupe_code="a",
             current_frame_key=None,
-            frame_key="buttery",
-            frame_name="Buttery",
             cost=9,
         )
 
@@ -1013,9 +1009,9 @@ class CommandsFrameTests(unittest.IsolatedAsyncioTestCase):
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
         self.assertEqual(sent_embed.title, "Frame Confirmation")
-        self.assertIn("Buttery", sent_embed.description)
-        self.assertIn("Frame Cost: **9**", sent_embed.description)
-        self.assertIn("After (if confirmed): **Buttery**", sent_embed.description)
+        self.assertIn("Current Frame", sent_embed.description)
+        self.assertIn("Roll Result: **?**", sent_embed.description)
+        self.assertIn("Roll Cost: **9** dough", sent_embed.description)
         self.assertIn("view", ctx.send.await_args.kwargs)
 
     async def test_frame_error_surfaces_service_message(self) -> None:
@@ -1061,8 +1057,6 @@ class CommandsFontTests(unittest.IsolatedAsyncioTestCase):
             generation=321,
             dupe_code="a",
             current_font_key=None,
-            font_key="serif",
-            font_name="Serif",
             cost=9,
         )
 
@@ -1072,9 +1066,9 @@ class CommandsFontTests(unittest.IsolatedAsyncioTestCase):
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
         self.assertEqual(sent_embed.title, "Font Confirmation")
-        self.assertIn("Serif", sent_embed.description)
-        self.assertIn("Font Cost: **9**", sent_embed.description)
-        self.assertIn("After (if confirmed): **Serif**", sent_embed.description)
+        self.assertIn("Current Font", sent_embed.description)
+        self.assertIn("Roll Result: **?**", sent_embed.description)
+        self.assertIn("Roll Cost: **9** dough", sent_embed.description)
         self.assertIn("view", ctx.send.await_args.kwargs)
 
     async def test_font_error_surfaces_service_message(self) -> None:
@@ -1169,6 +1163,34 @@ class DropPreviewRegressionTests(unittest.TestCase):
         expected_width = (card_w * 3) + (gap * 2) + (pad * 2)
         expected_height = card_h + (pad * 2)
         self.assertEqual(composed.size, (expected_width, expected_height))
+
+    def test_drop_preview_background_is_transparent(self) -> None:
+        try:
+            from PIL import Image
+        except ImportError:
+            self.skipTest("Pillow is not installed")
+
+        def png_bytes(color: tuple[int, int, int]) -> bytes:
+            image = Image.new("RGB", (32, 32), color)
+            output = io.BytesIO()
+            image.save(output, format="PNG")
+            return output.getvalue()
+
+        raw = png_bytes((120, 40, 200))
+        with patch("noodswap.images.read_local_card_image_bytes", side_effect=[raw, raw, raw]):
+            preview = _build_drop_preview_blocking([
+                ("SPG", 1),
+                ("PEN", 2),
+                ("FUS", 3),
+            ])
+
+        self.assertIsNotNone(preview)
+        if preview is None:
+            self.fail("Expected drop preview bytes")
+
+        composed = Image.open(io.BytesIO(preview)).convert("RGBA")
+        # The top-left pixel is outside all card surfaces and should stay fully transparent.
+        self.assertEqual(composed.getpixel((0, 0)), (0, 0, 0, 0))
 
 
 class CardRenderRegressionTests(unittest.TestCase):

@@ -215,7 +215,8 @@ def _build_drop_preview_blocking(choices: list[tuple[str, int]]) -> bytes | None
     canvas_w = (card_w * len(choices)) + (gap * (len(choices) - 1)) + (pad * 2)
     canvas_h = card_h + (pad * 2)
 
-    canvas = Image.new("RGBA", (canvas_w, canvas_h), (20, 20, 20, 255))
+    # Keep drop preview background transparent so Discord surfaces the channel theme behind cards.
+    canvas = Image.new("RGBA", (canvas_w, canvas_h), (0, 0, 0, 0))
 
     for idx in range(len(choices)):
         image = card_surfaces[idx]
@@ -973,8 +974,6 @@ def register_commands(bot: commands.Bot) -> None:
             or prepared.card_id is None
             or prepared.generation is None
             or prepared.dupe_code is None
-            or prepared.morph_key is None
-            or prepared.morph_name is None
             or prepared.cost is None
         ):
             await ctx.send(embed=italy_embed("Morph", "Morph failed."))
@@ -984,9 +983,9 @@ def register_commands(bot: commands.Bot) -> None:
             "Morph Confirmation",
             (
                 f"{card_dupe_display(prepared.card_id, prepared.generation, dupe_code=prepared.dupe_code)}\n\n"
-                f"Before: **{morph_label(prepared.current_morph_key)}**\n"
-                f"After (if confirmed): **{prepared.morph_name}**\n\n"
-                f"Morph Cost: **{prepared.cost}** dough"
+                f"Current Morph: **{morph_label(prepared.current_morph_key)}**\n"
+                "Roll Result: **?**\n\n"
+                f"Roll Cost: **{prepared.cost}** dough"
             ),
         )
         before_frame_key = get_instance_frame(ctx.guild.id, prepared.instance_id)
@@ -995,11 +994,12 @@ def register_commands(bot: commands.Bot) -> None:
             prepared.card_id,
             generation=prepared.generation,
             before_morph_key=prepared.current_morph_key,
-            after_morph_key=prepared.morph_key,
+            after_morph_key=prepared.current_morph_key,
             before_frame_key=before_frame_key,
             after_frame_key=before_frame_key,
             before_font_key=before_font_key,
             after_font_key=before_font_key,
+            hide_after=True,
         )
         if image_url is not None:
             confirm_embed.set_image(url=image_url)
@@ -1012,8 +1012,6 @@ def register_commands(bot: commands.Bot) -> None:
             generation=prepared.generation,
             dupe_code=prepared.dupe_code,
             before_morph_key=prepared.current_morph_key,
-            after_morph_key=prepared.morph_key,
-            after_morph_name=prepared.morph_name,
             before_frame_key=before_frame_key,
             before_font_key=before_font_key,
             cost=prepared.cost,
@@ -1041,8 +1039,6 @@ def register_commands(bot: commands.Bot) -> None:
             or prepared.card_id is None
             or prepared.generation is None
             or prepared.dupe_code is None
-            or prepared.frame_key is None
-            or prepared.frame_name is None
             or prepared.cost is None
         ):
             await ctx.send(embed=italy_embed("Frame", "Frame failed."))
@@ -1052,9 +1048,9 @@ def register_commands(bot: commands.Bot) -> None:
             "Frame Confirmation",
             (
                 f"{card_dupe_display(prepared.card_id, prepared.generation, dupe_code=prepared.dupe_code)}\n\n"
-                f"Before: **{frame_label(prepared.current_frame_key)}**\n"
-                f"After (if confirmed): **{prepared.frame_name}**\n\n"
-                f"Frame Cost: **{prepared.cost}** dough"
+                f"Current Frame: **{frame_label(prepared.current_frame_key)}**\n"
+                "Roll Result: **?**\n\n"
+                f"Roll Cost: **{prepared.cost}** dough"
             ),
         )
         current_morph_key = get_instance_morph(ctx.guild.id, prepared.instance_id)
@@ -1065,9 +1061,10 @@ def register_commands(bot: commands.Bot) -> None:
             before_morph_key=current_morph_key,
             after_morph_key=current_morph_key,
             before_frame_key=prepared.current_frame_key,
-            after_frame_key=prepared.frame_key,
+            after_frame_key=prepared.current_frame_key,
             before_font_key=current_font_key,
             after_font_key=current_font_key,
+            hide_after=True,
         )
         if image_url is not None:
             confirm_embed.set_image(url=image_url)
@@ -1082,8 +1079,6 @@ def register_commands(bot: commands.Bot) -> None:
             before_morph_key=current_morph_key,
             before_frame_key=prepared.current_frame_key,
             before_font_key=current_font_key,
-            after_frame_key=prepared.frame_key,
-            after_frame_name=prepared.frame_name,
             cost=prepared.cost,
         )
 
@@ -1109,8 +1104,6 @@ def register_commands(bot: commands.Bot) -> None:
             or prepared.card_id is None
             or prepared.generation is None
             or prepared.dupe_code is None
-            or prepared.font_key is None
-            or prepared.font_name is None
             or prepared.cost is None
         ):
             await ctx.send(embed=italy_embed("Font", "Font failed."))
@@ -1120,9 +1113,9 @@ def register_commands(bot: commands.Bot) -> None:
             "Font Confirmation",
             (
                 f"{card_dupe_display(prepared.card_id, prepared.generation, dupe_code=prepared.dupe_code)}\n\n"
-                f"Before: **{font_label(prepared.current_font_key)}**\n"
-                f"After (if confirmed): **{prepared.font_name}**\n\n"
-                f"Font Cost: **{prepared.cost}** dough"
+                f"Current Font: **{font_label(prepared.current_font_key)}**\n"
+                "Roll Result: **?**\n\n"
+                f"Roll Cost: **{prepared.cost}** dough"
             ),
         )
         current_morph_key = get_instance_morph(ctx.guild.id, prepared.instance_id)
@@ -1135,7 +1128,8 @@ def register_commands(bot: commands.Bot) -> None:
             before_frame_key=current_frame_key,
             after_frame_key=current_frame_key,
             before_font_key=prepared.current_font_key,
-            after_font_key=prepared.font_key,
+            after_font_key=prepared.current_font_key,
+            hide_after=True,
         )
         if image_url is not None:
             confirm_embed.set_image(url=image_url)
@@ -1150,8 +1144,6 @@ def register_commands(bot: commands.Bot) -> None:
             before_morph_key=current_morph_key,
             before_frame_key=current_frame_key,
             before_font_key=prepared.current_font_key,
-            after_font_key=prepared.font_key,
-            after_font_name=prepared.font_name,
             cost=prepared.cost,
         )
 

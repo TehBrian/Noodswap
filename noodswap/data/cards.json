@@ -1127,6 +1127,12 @@
     "rarity": "rare",
     "series": "cheese"
   },
+  "RPS": {
+    "image": "assets/card_images/PSC.png",
+    "name": "Rainbow Popsicle",
+    "rarity": "legendary",
+    "series": "dessert"
+  },
   "ROT": {
     "image": "assets/card_images/ROT.jpg",
     "name": "Rotini",
@@ -1156,6 +1162,12 @@
     "name": "Royal Wine Barrique",
     "rarity": "mythic",
     "series": "wine"
+  },
+  "RYS": {
+    "image": "assets/card_images/RYS.img",
+    "name": "Reyne's Shrimp",
+    "rarity": "celestial",
+    "series": "relic"
   },
   "RYE": {
     "image": "assets/card_images/RYE.jpg",
@@ -1222,6 +1234,35 @@
     "name": "Sharp Cheddar",
     "rarity": "rare",
     "series": "cheese"
+  },
+  "SHA": {
+    "image": "assets/card_images/ALF.png",
+    "name": "Shrimp Alfredo",
+    "rarity": "rare",
+    "series": "entree"
+  },
+  "SHK": {
+    "image": "assets/card_images/SHK.img",
+    "name": "Shrimp Cocktail",
+    "rarity": "legendary",
+    "series": "entree"
+  },
+  "SHR": {
+    "image": "assets/card_images/SHR.img",
+    "name": "Shrimp",
+    "rarity": "common",
+    "series": "entree"
+  },
+  "SHT": {
+    "image": "assets/card_images/SHT.img",
+    "name": "Shrimp Tempura",
+    "rarity": "rare",
+    "series": "entree"
+  },
+  "SKS": {
+    "name": "Sisi's Kipper Snack",
+    "rarity": "epic",
+    "series": "entree"
   },
   "SLA": {
     "image": "assets/card_images/SLA.jpg",

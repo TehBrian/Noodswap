@@ -327,12 +327,11 @@ def prepare_morph(guild_id: int, user_id: int, card_code: Optional[str]) -> Morp
         )
 
     instance_id, morph_card_id, morph_generation, morph_dupe_code = target_instance
-    rolled_morph = random.choice(AVAILABLE_MORPHS)
-
     current_morph_key = get_instance_morph(guild_id, instance_id)
-    if current_morph_key == rolled_morph:
+    available_rolls = [morph_key for morph_key in AVAILABLE_MORPHS if morph_key != current_morph_key]
+    if not available_rolls:
         return MorphPreparation(
-            error_message=f"That card already has the {morph_label(rolled_morph)} morph.",
+            error_message="No new morphs are currently available for this card.",
             instance_id=None,
             card_id=None,
             generation=None,
@@ -366,8 +365,8 @@ def prepare_morph(guild_id: int, user_id: int, card_code: Optional[str]) -> Morp
         generation=morph_generation,
         dupe_code=morph_dupe_code,
         current_morph_key=current_morph_key,
-        morph_key=rolled_morph,
-        morph_name=morph_label(rolled_morph),
+        morph_key=None,
+        morph_name=None,
         cost=cost,
     )
 
@@ -432,8 +431,6 @@ def execute_morph(guild_id: int, user_id: int, card_code: Optional[str]) -> Morp
         or prepared.card_id is None
         or prepared.generation is None
         or prepared.dupe_code is None
-        or prepared.morph_key is None
-        or prepared.morph_name is None
         or prepared.cost is None
     ):
         return MorphExecution(
@@ -448,6 +445,22 @@ def execute_morph(guild_id: int, user_id: int, card_code: Optional[str]) -> Morp
             remaining_dough=None,
         )
 
+    available_rolls = [morph_key for morph_key in AVAILABLE_MORPHS if morph_key != prepared.current_morph_key]
+    if not available_rolls:
+        return MorphExecution(
+            error_message="No new morphs are currently available for this card.",
+            instance_id=None,
+            card_id=None,
+            generation=None,
+            dupe_code=None,
+            morph_key=None,
+            morph_name=None,
+            cost=None,
+            remaining_dough=None,
+        )
+
+    rolled_morph = random.choice(available_rolls)
+
     return confirm_morph(
         guild_id,
         user_id,
@@ -455,8 +468,8 @@ def execute_morph(guild_id: int, user_id: int, card_code: Optional[str]) -> Morp
         card_id=prepared.card_id,
         generation=prepared.generation,
         dupe_code=prepared.dupe_code,
-        morph_key=prepared.morph_key,
-        morph_name=prepared.morph_name,
+        morph_key=rolled_morph,
+        morph_name=morph_label(rolled_morph),
         cost=prepared.cost,
     )
 
@@ -556,12 +569,11 @@ def prepare_frame(guild_id: int, user_id: int, card_code: Optional[str]) -> Fram
         )
 
     instance_id, frame_card_id, frame_generation, frame_dupe_code = target_instance
-    rolled_frame = random.choice(frame_choices)
-
     current_frame_key = get_instance_frame(guild_id, instance_id)
-    if current_frame_key == rolled_frame:
+    available_rolls = [frame_key for frame_key in frame_choices if frame_key != current_frame_key]
+    if not available_rolls:
         return FramePreparation(
-            error_message=f"That card already has the {frame_label(rolled_frame)} frame.",
+            error_message="No new frames are currently available for this card.",
             instance_id=None,
             card_id=None,
             generation=None,
@@ -595,8 +607,8 @@ def prepare_frame(guild_id: int, user_id: int, card_code: Optional[str]) -> Fram
         generation=frame_generation,
         dupe_code=frame_dupe_code,
         current_frame_key=current_frame_key,
-        frame_key=rolled_frame,
-        frame_name=frame_label(rolled_frame),
+        frame_key=None,
+        frame_name=None,
         cost=cost,
     )
 
@@ -661,8 +673,6 @@ def execute_frame(guild_id: int, user_id: int, card_code: Optional[str]) -> Fram
         or prepared.card_id is None
         or prepared.generation is None
         or prepared.dupe_code is None
-        or prepared.frame_key is None
-        or prepared.frame_name is None
         or prepared.cost is None
     ):
         return FrameExecution(
@@ -677,6 +687,23 @@ def execute_frame(guild_id: int, user_id: int, card_code: Optional[str]) -> Fram
             remaining_dough=None,
         )
 
+    frame_choices = available_frame_keys()
+    available_rolls = [frame_key for frame_key in frame_choices if frame_key != prepared.current_frame_key]
+    if not available_rolls:
+        return FrameExecution(
+            error_message="No new frames are currently available for this card.",
+            instance_id=None,
+            card_id=None,
+            generation=None,
+            dupe_code=None,
+            frame_key=None,
+            frame_name=None,
+            cost=None,
+            remaining_dough=None,
+        )
+
+    rolled_frame = random.choice(available_rolls)
+
     return confirm_frame(
         guild_id,
         user_id,
@@ -684,8 +711,8 @@ def execute_frame(guild_id: int, user_id: int, card_code: Optional[str]) -> Fram
         card_id=prepared.card_id,
         generation=prepared.generation,
         dupe_code=prepared.dupe_code,
-        frame_key=prepared.frame_key,
-        frame_name=prepared.frame_name,
+        frame_key=rolled_frame,
+        frame_name=frame_label(rolled_frame),
         cost=prepared.cost,
     )
 
@@ -784,12 +811,11 @@ def prepare_font(guild_id: int, user_id: int, card_code: Optional[str]) -> FontP
         )
 
     instance_id, font_card_id, font_generation, font_dupe_code = target_instance
-    rolled_font = random.choice(AVAILABLE_FONTS)
-
     current_font_key = get_instance_font(guild_id, instance_id)
-    if current_font_key == rolled_font:
+    available_rolls = [font_key for font_key in AVAILABLE_FONTS if font_key != current_font_key]
+    if not available_rolls:
         return FontPreparation(
-            error_message=f"That card already has the {font_label(rolled_font)} font.",
+            error_message="No new fonts are currently available for this card.",
             instance_id=None,
             card_id=None,
             generation=None,
@@ -823,8 +849,8 @@ def prepare_font(guild_id: int, user_id: int, card_code: Optional[str]) -> FontP
         generation=font_generation,
         dupe_code=font_dupe_code,
         current_font_key=current_font_key,
-        font_key=rolled_font,
-        font_name=font_label(rolled_font),
+        font_key=None,
+        font_name=None,
         cost=cost,
     )
 
@@ -889,8 +915,6 @@ def execute_font(guild_id: int, user_id: int, card_code: Optional[str]) -> FontE
         or prepared.card_id is None
         or prepared.generation is None
         or prepared.dupe_code is None
-        or prepared.font_key is None
-        or prepared.font_name is None
         or prepared.cost is None
     ):
         return FontExecution(
@@ -905,6 +929,22 @@ def execute_font(guild_id: int, user_id: int, card_code: Optional[str]) -> FontE
             remaining_dough=None,
         )
 
+    available_rolls = [font_key for font_key in AVAILABLE_FONTS if font_key != prepared.current_font_key]
+    if not available_rolls:
+        return FontExecution(
+            error_message="No new fonts are currently available for this card.",
+            instance_id=None,
+            card_id=None,
+            generation=None,
+            dupe_code=None,
+            font_key=None,
+            font_name=None,
+            cost=None,
+            remaining_dough=None,
+        )
+
+    rolled_font = random.choice(available_rolls)
+
     return confirm_font(
         guild_id,
         user_id,
@@ -912,8 +952,8 @@ def execute_font(guild_id: int, user_id: int, card_code: Optional[str]) -> FontE
         card_id=prepared.card_id,
         generation=prepared.generation,
         dupe_code=prepared.dupe_code,
-        font_key=prepared.font_key,
-        font_name=prepared.font_name,
+        font_key=rolled_font,
+        font_name=font_label(rolled_font),
         cost=prepared.cost,
     )
 
