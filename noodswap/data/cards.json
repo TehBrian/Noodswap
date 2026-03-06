@@ -443,6 +443,12 @@
     "rarity": "common",
     "series": "pasta"
   },
+  "DVE": {
+    "image": "assets/card_images/DVE.jpg",
+    "name": "Deviled Egg",
+    "rarity": "uncommon",
+    "series": "entree"
+  },
   "EBG": {
     "image": "assets/card_images/EBG.jpg",
     "name": "Everything Bagel",
