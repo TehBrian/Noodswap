@@ -14,6 +14,7 @@ from .cards import (
     CARD_CATALOG,
     card_base_display,
     card_dupe_display,
+    card_dupe_display_concise,
     normalize_card_id,
     search_card_ids,
     search_card_ids_by_name,
@@ -904,6 +905,7 @@ def register_commands(bot: commands.Bot) -> None:
                 )
                 for instance_id, _card_id, _generation, _dupe_code in instances
             },
+            card_line_formatter=card_dupe_display_concise,
             guard_title="Collection",
         )
         message = await _reply(ctx, embed=view.build_embed(), view=view)

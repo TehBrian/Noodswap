@@ -1,4 +1,5 @@
 import asyncio
+from collections.abc import Callable
 from typing import Optional
 
 import discord
@@ -192,7 +193,10 @@ class DropView(discord.ui.View):
 
             pulled_embed = italy_embed(
                 "Pulled Card",
-                f"<@{interaction.user.id}> pulled {card_dupe_display(card_id, generation, dupe_code=pulled_dupe_code)}.",
+                (
+                    f"<@{interaction.user.id}> pulled "
+                    f"{card_dupe_display(card_id, generation, dupe_code=pulled_dupe_code, pad_dupe_code=False)}."
+                ),
             )
             image_url, image_file = embed_image_payload(card_id, generation=generation)
             if image_url is not None:
@@ -1509,6 +1513,7 @@ class SortableCollectionView(discord.ui.View):
         instance_styles: dict[int, tuple[str | None, str | None, str | None]] | None,
         guard_title: str,
         locked_instance_ids: set[int] | None = None,
+        card_line_formatter: Callable[[str, int, str | None], str] | None = None,
         page_size: int = 10,
     ):
         super().__init__(timeout=TRADE_TIMEOUT_SECONDS)
@@ -1518,6 +1523,7 @@ class SortableCollectionView(discord.ui.View):
         self.locked_instance_ids = locked_instance_ids or set()
         self.wish_counts = wish_counts or {}
         self.instance_styles = instance_styles or {}
+        self.card_line_formatter = card_line_formatter or card_dupe_display
         self.guard_title = guard_title
         self.default_page_size = max(1, page_size)
         self.page_index = 0
@@ -1664,11 +1670,11 @@ class SortableCollectionView(discord.ui.View):
         elif self.gallery_mode:
             instance_id, card_id, generation, dupe_code = page_instances[0]
             lock_marker = "🔒 " if instance_id in self.locked_instance_ids else "`  ` "
-            description = f"{start + 1}. {lock_marker}{card_dupe_display(card_id, generation, dupe_code=dupe_code)}"
+            description = f"{start + 1}. {lock_marker}{self.card_line_formatter(card_id, generation, dupe_code)}"
         else:
             lines = [
                 f"{idx}. {'🔒 ' if instance_id in self.locked_instance_ids else '`  ` '}"
-                f"{card_dupe_display(card_id, generation, dupe_code=dupe_code)}"
+                f"{self.card_line_formatter(card_id, generation, dupe_code)}"
                 for idx, (instance_id, card_id, generation, dupe_code) in enumerate(page_instances, start=start + 1)
             ]
             description = multiline_text(lines)
@@ -2002,7 +2008,7 @@ class PlayerLeaderboardView(discord.ui.View):
             lines = []
             for rank, (player_id, cards, wishes, dough, starter, total_value) in enumerate(page_entries, start=start + 1):
                 value = self._metric_value((player_id, cards, wishes, dough, starter, total_value), self.criteria)
-                lines.append(f"{rank}. <@{player_id}> - {criteria_label}: **{value}**")
+                lines.append(f"{rank}. {criteria_label}: **{value}** • <@{player_id}>")
             description = multiline_text(lines)
 
         embed = italy_embed(self.title, description)

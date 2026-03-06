@@ -16,7 +16,7 @@ def italy_marry_embed(title: str, description: str = "") -> discord.Embed:
 
 
 def format_drop_choice_line(card_id: str, generation: int) -> str:
-    return card_dupe_display(card_id, generation)
+    return card_dupe_display(card_id, generation, pad_dupe_code=False)
 
 
 def drop_choices_description(choices: list[tuple[str, int]]) -> str:

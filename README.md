@@ -26,27 +26,24 @@ Early prototype Discord trading-card style bot using `discord.py`.
    python bot.py
    ```
 
-## CI/CD and Docker deployment
+## Deployment (Docker + Jenkins)
 
-This repo now includes:
+### What is included
 
-- CI: `.github/workflows/ci.yml`
-   - runs compile checks, migration smoke checks, and `unittest` on push/PR
-- CD: `.github/workflows/cd.yml`
-   - after CI succeeds on `main`, builds/pushes Docker image to GHCR
-- Jenkins deploy: `Jenkinsfile`
-   - on `main` pushes, Jenkins runs local host deploy via `deploy/update.sh`
+- CI: `.github/workflows/ci.yml` runs compile, migration smoke, and unit tests on push/PR.
+- CD image publish: `.github/workflows/cd.yml` builds and pushes GHCR images after CI passes on `main`.
+- Host deploy: `Jenkinsfile` runs `deploy/update.sh` on your Ubuntu server.
 
-### Build and run locally with Docker
+### Local Docker smoke test
 
 ```bash
 docker build -t noodswap:local .
 docker run --rm -e DISCORD_TOKEN=your-token noodswap:local
 ```
 
-### Ubuntu server layout (recommended)
+### Server setup (one time)
 
-On your Ubuntu server, clone this repo to a deployment path (for example `/opt/noodswap`) and set up deploy config:
+Use a deploy path such as `/opt/noodswap`.
 
 ```bash
 cd /opt/noodswap/deploy
@@ -55,36 +52,38 @@ cp runtime.env.example runtime.env
 mkdir -p data/card_images
 ```
 
-Edit files:
+Set required values:
 
-- `deploy/.env`
-   - `IMAGE_REPOSITORY=ghcr.io/<your-github-user-or-org>/noodswap`
-- `deploy/runtime.env`
-   - set `DISCORD_TOKEN`
-   - optional: `TOPGG_API_TOKEN`, `TOPGG_BOT_ID`
+- `deploy/.env`: `IMAGE_REPOSITORY=ghcr.io/<your-github-user-or-org>/noodswap`
+- `deploy/runtime.env`: `DISCORD_TOKEN=<your-token>`
 
-Manual deploy/update on server:
+Optional runtime values:
+
+- `TOPGG_API_TOKEN`
+- `TOPGG_BOT_ID`
+
+### Manual deploy/update
 
 ```bash
 cd /opt/noodswap
 ./deploy/update.sh
 ```
 
-### Jenkins setup for CD
+### Jenkins minimum setup
 
-See `docs/deploy-jenkins.md` for full setup.
+- Credential ID `ghcr-readonly` (`Username with password`, PAT needs `read:packages`)
+- Job environment variables:
+  - `DEPLOY_PATH=/opt/noodswap`
+  - `IMAGE_REPOSITORY=ghcr.io/<your-github-user-or-org>/noodswap`
+- GitHub webhook for push events
 
-At minimum:
+Full Jenkins instructions: `docs/deploy-jenkins.md`.
 
-- create Jenkins credential `ghcr-readonly` (username/password where password is PAT with `read:packages`)
-- configure `DEPLOY_PATH` and `IMAGE_REPOSITORY` in Jenkins job
-- add GitHub webhook to trigger Jenkins on pushes
+### Persistence notes
 
-Notes:
-
-- GitHub Actions no longer SSHes into your host; Jenkins performs deploy locally on Ubuntu.
-- SQLite data persists via bind mount at `deploy/data/noodswap.db`.
-- Cached card images persist at `deploy/data/card_images`.
+- SQLite DB: `deploy/data/noodswap.db`
+- Cached card images: `deploy/data/card_images`
+- Deploys run locally on Ubuntu via Jenkins (no SSH deploy from GitHub Actions)
 
 ### Discord developer portal requirements
 

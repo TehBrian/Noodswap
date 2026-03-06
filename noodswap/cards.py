@@ -319,6 +319,18 @@ def split_card_code(raw_code: str) -> str | None:
     return dupe_code
 
 
+def display_dupe_code(dupe_code: str | None) -> str:
+    if dupe_code is None:
+        return "?  "
+    return dupe_code.strip().lower().ljust(3)
+
+
+def display_dupe_code_raw(dupe_code: str | None) -> str:
+    if dupe_code is None:
+        return "?"
+    return dupe_code.strip().lower()
+
+
 def generation_label(generation: int) -> str:
     return f"G-{generation}"
 
@@ -336,6 +348,13 @@ def series_display(series: str) -> str:
     return f"{series_meta['emoji']} {label}"
 
 
+def series_emoji(series: str) -> str:
+    series_meta = SERIES_CATALOG.get(series)
+    if series_meta is None:
+        return proper_case(series)
+    return series_meta["emoji"]
+
+
 def card_base_value(card_id: str) -> int:
     return int(CARD_CATALOG[card_id]["base_value"])
 
@@ -349,19 +368,35 @@ def card_value(card_id: str, generation: int) -> int:
 def card_base_display(card_id: str) -> str:
     card = CARD_CATALOG[card_id]
     return (
-        f"**{card['name']}** • (`{card_id}`) "
-        f"[{series_display(card['series'])}] ({proper_case(card['rarity'])}) "
-        f"(Base: **{card_base_value(card_id)}** dough)"
+        f"(`{card_id}`) [{series_emoji(card['series'])}] "
+        f"**{card['name']}** ({proper_case(card['rarity'])}) "
+        f"(**{card_base_value(card_id)}** dough)"
     )
 
 
-def card_dupe_display(card_id: str, generation: int, dupe_code: str | None = None) -> str:
+def card_dupe_display(
+    card_id: str,
+    generation: int,
+    dupe_code: str | None = None,
+    *,
+    pad_dupe_code: bool = True,
+) -> str:
     card = CARD_CATALOG[card_id]
-    dupe_code_text = card_code(card_id, dupe_code) if dupe_code is not None else "?"
+    dupe_code_text = display_dupe_code(dupe_code) if pad_dupe_code else display_dupe_code_raw(dupe_code)
     return (
         f"`#{dupe_code_text}` **{card['name']}** • (`{card_id}`) "
         f"[{series_display(card['series'])}] ({proper_case(card['rarity'])}) "
-        f"• **{generation_label(generation)}** (Value: **{card_value(card_id, generation)}** dough)"
+        f"• **{generation_label(generation)}** (**{card_value(card_id, generation)}** dough)"
+    )
+
+
+def card_dupe_display_concise(card_id: str, generation: int, dupe_code: str | None = None) -> str:
+    card = CARD_CATALOG[card_id]
+    dupe_code_text = display_dupe_code(dupe_code)
+    return (
+        f"`#{dupe_code_text}` (`{card_id}`) [{series_emoji(card['series'])}] "
+        f"**{card['name']}** ({proper_case(card['rarity'])}) • **{generation_label(generation)}** "
+        f"(**{card_value(card_id, generation)}** dough)"
     )
 
 

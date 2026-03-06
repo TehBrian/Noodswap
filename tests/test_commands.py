@@ -138,8 +138,8 @@ class CommandsWishlistTests(unittest.IsolatedAsyncioTestCase):
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
         self.assertEqual(sent_embed.title, "Wishlist Matches")
-        self.assertIn("1. **Cheddar**", sent_embed.description)
-        self.assertIn("2. **Cheddar Jack**", sent_embed.description)
+        self.assertIn("1. (`CHD`) [🧀] **Cheddar**", sent_embed.description)
+        self.assertIn("2. (`CHJ`) [🧀] **Cheddar Jack**", sent_embed.description)
 
 
 class CommandsTagTests(unittest.IsolatedAsyncioTestCase):
@@ -271,8 +271,8 @@ class CommandsTagTests(unittest.IsolatedAsyncioTestCase):
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
         self.assertEqual(sent_embed.title, "Wishlist Matches")
-        self.assertIn("1. **Cheddar**", sent_embed.description)
-        self.assertIn("2. **Cheddar Jack**", sent_embed.description)
+        self.assertIn("1. (`CHD`) [🧀] **Cheddar**", sent_embed.description)
+        self.assertIn("2. (`CHJ`) [🧀] **Cheddar Jack**", sent_embed.description)
 
 
 class CommandsAliasRegistrationTests(unittest.TestCase):
@@ -433,7 +433,7 @@ class CommandsLookupTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(sent_embed.title, "Card Lookup")
         self.assertIn("`#abc`", sent_embed.description)
         self.assertIn("G-101", sent_embed.description)
-        self.assertIn("Value:", sent_embed.description)
+        self.assertIn("dough", sent_embed.description)
 
     async def test_lookup_shows_dupe_card_embed_for_hash_prefixed_code(self) -> None:
         lookup_command = _get_command(self.bot, "lookup")
@@ -456,7 +456,7 @@ class CommandsLookupTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(sent_embed.title, "Card Lookup")
         self.assertIn("`#abc`", sent_embed.description)
         self.assertIn("G-101", sent_embed.description)
-        self.assertIn("Value:", sent_embed.description)
+        self.assertIn("dough", sent_embed.description)
 
     async def test_lookup_prefers_exact_dupe_code_over_card_id(self) -> None:
         lookup_command = _get_command(self.bot, "lookup")
@@ -478,7 +478,7 @@ class CommandsLookupTests(unittest.IsolatedAsyncioTestCase):
         sent_embed = ctx.send.await_args.kwargs["embed"]
         self.assertEqual(sent_embed.title, "Card Lookup")
         self.assertIn("`#spg`", sent_embed.description)
-        self.assertIn("Value:", sent_embed.description)
+        self.assertIn("dough", sent_embed.description)
         self.assertNotIn("Base:", sent_embed.description)
 
     async def test_lookup_falls_back_to_exact_card_name(self) -> None:
@@ -1008,7 +1008,7 @@ class CommandsBurnTests(unittest.IsolatedAsyncioTestCase):
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
         self.assertEqual(sent_embed.title, "Burn Confirmation")
-        self.assertIn("`#a`", sent_embed.description)
+        self.assertIn("`#a", sent_embed.description)
         self.assertNotIn("`#?`", sent_embed.description)
 
 

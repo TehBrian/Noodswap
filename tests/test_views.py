@@ -87,6 +87,7 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         cards_embed = view.build_embed()
         self.assertIn("<@2>", cards_embed.description)
         self.assertIn("Cards: **9**", cards_embed.description)
+        self.assertIn("Cards: **9** • <@2>", cards_embed.description)
 
         interaction = _FakeInteraction(user_id=10)
         view.criteria_select._values = ["wishes"]
@@ -95,6 +96,7 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         edited_embed = interaction.response.edited_messages[0]["embed"]
         self.assertIn("<@1>", edited_embed.description)
         self.assertIn("Wishes: **8**", edited_embed.description)
+        self.assertIn("Wishes: **8** • <@1>", edited_embed.description)
 
     async def test_player_leaderboard_view_rejects_unauthorized_user(self) -> None:
         view = PlayerLeaderboardView(
