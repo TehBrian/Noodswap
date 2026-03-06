@@ -6,7 +6,7 @@ This setup keeps CI/builds in GitHub Actions and runs deployment locally on your
 
 1. `CI` workflow validates code.
 2. `CD` workflow builds and pushes Docker images to GHCR (`:latest` + commit SHA).
-3. Jenkins job receives push webhook and runs `./deploy/update.sh` on Ubuntu.
+3. Jenkins job receives push webhook, resolves the checked-out commit SHA, waits for that exact GHCR tag, then runs `./deploy/update.sh` on Ubuntu.
 
 ## One-time server prep
 
@@ -61,3 +61,10 @@ Run one Jenkins build on `main` and verify:
 1. `docker ps` shows `noodswap-bot` running.
 2. `docker logs --tail 100 noodswap-bot` shows bot startup.
 3. `deploy/data/noodswap.db` exists and persists across restarts.
+
+## Deploy semantics (important)
+
+- Jenkins deploys by immutable commit tag, not by mutable `latest`.
+- Effective deploy image is `IMAGE_REPOSITORY:<git-rev-parse-HEAD>` from Jenkins checkout.
+- This removes race conditions where Jenkins could otherwise pull an older `latest` if CD publish lags behind webhook delivery.
+- Jenkins then validates the `noodswap-bot` container is running and that `docker inspect .Config.Image` matches the expected commit-tag image reference.

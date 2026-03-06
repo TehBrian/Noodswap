@@ -32,7 +32,7 @@ Early prototype Discord trading-card style bot using `discord.py`.
 
 - CI: `.github/workflows/ci.yml` runs compile, migration smoke, and unit tests on push/PR.
 - CD image publish: `.github/workflows/cd.yml` builds and pushes GHCR images after CI passes on `main`.
-- Host deploy: `Jenkinsfile` runs `deploy/update.sh` on your Ubuntu server.
+- Host deploy: `Jenkinsfile` runs `deploy/update.sh` on your Ubuntu server, pinned to the checked-out commit SHA image tag.
 
 ### Local Docker smoke test
 
@@ -75,6 +75,12 @@ sudo -u noodswap-user bash -lc 'cd /home/noodswap-user/noodswap && ./deploy/upda
   - `IMAGE_REPOSITORY=ghcr.io/<your-github-user-or-org>/noodswap`
 - Ensure the Jenkins job executes deploy commands as `noodswap-user` (for example via `sudo -u noodswap-user ...`).
 - GitHub webhook for push events
+
+Behavior notes:
+
+- Jenkins resolves `git rev-parse HEAD` and deploys `IMAGE_REPOSITORY:<that-sha>`.
+- The pipeline waits for that exact GHCR tag to become available before running the deploy step, avoiding stale `latest` races.
+- After deploy, Jenkins verifies `noodswap-bot` is running and that its configured image exactly equals `IMAGE_REPOSITORY:<that-sha>`.
 
 Full Jenkins instructions: `docs/deploy-jenkins.md`.
 
