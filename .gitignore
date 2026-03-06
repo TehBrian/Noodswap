@@ -6,3 +6,9 @@ noodswap.db
 
 __pycache__/
 *.py[cod]
+
+# Generated local analysis artifacts
+.VSCodeCounter/
+card_image_distinct_report.json
+card_image_pull_report.json
+card_image_pull_report_desserts.json
