@@ -56,6 +56,7 @@ class CommandsWishlistTests(unittest.IsolatedAsyncioTestCase):
         ctx.guild = _FakeGuild(1)
         ctx.author = _FakeMember(100, "Caller")
         ctx.send = AsyncMock()
+        ctx.reply = ctx.send
 
         with patch("noodswap.commands._wish_list", new=AsyncMock()) as wish_list_impl:
             await wish_list_command.callback(ctx, player=None)
@@ -69,6 +70,7 @@ class CommandsWishlistTests(unittest.IsolatedAsyncioTestCase):
         ctx.guild = _FakeGuild(1)
         ctx.author = _FakeMember(100, "Caller")
         ctx.send = AsyncMock()
+        ctx.reply = ctx.send
 
         target = _FakeMember(200, "Target")
         with (
@@ -94,6 +96,7 @@ class CommandsWishlistTests(unittest.IsolatedAsyncioTestCase):
             )
         )
         ctx.send = AsyncMock()
+        ctx.reply = ctx.send
 
         with patch("noodswap.commands._wish_list", new=AsyncMock()) as wish_list_impl:
             await wish_list_command.callback(ctx, player=None)
@@ -107,6 +110,7 @@ class CommandsWishlistTests(unittest.IsolatedAsyncioTestCase):
         ctx.guild = _FakeGuild(1)
         ctx.author = _FakeMember(100, "Caller")
         ctx.send = AsyncMock()
+        ctx.reply = ctx.send
 
         with patch("noodswap.commands.add_card_to_wishlist", return_value=True) as add_wishlist:
             await wish_add_command.callback(ctx, card_id="spaghetti")
@@ -125,6 +129,7 @@ class CommandsWishlistTests(unittest.IsolatedAsyncioTestCase):
         ctx.guild = _FakeGuild(1)
         ctx.author = _FakeMember(100, "Caller")
         ctx.send = AsyncMock()
+        ctx.reply = ctx.send
 
         with patch("noodswap.commands.add_card_to_wishlist", return_value=True) as add_wishlist:
             await wish_add_command.callback(ctx, card_id="cheddar")
@@ -149,6 +154,7 @@ class CommandsTagTests(unittest.IsolatedAsyncioTestCase):
         ctx.guild = _FakeGuild(1)
         ctx.author = _FakeMember(100, "Caller")
         ctx.send = AsyncMock()
+        ctx.reply = ctx.send
 
         with patch("noodswap.commands.list_player_tags", return_value=[]):
             await tag_list_command.callback(ctx)
@@ -158,6 +164,27 @@ class CommandsTagTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(sent_embed.title, "Your Tags")
         self.assertIn("No tags yet", sent_embed.description)
 
+    async def test_tag_list_shows_lock_markers_for_locked_and_unlocked_tags(self) -> None:
+        tag_list_command = _get_group_command(self.bot, "tag", "list")
+
+        ctx = AsyncMock()
+        ctx.guild = _FakeGuild(1)
+        ctx.author = _FakeMember(100, "Caller")
+        ctx.send = AsyncMock()
+        ctx.reply = ctx.send
+
+        with patch(
+            "noodswap.commands.list_player_tags",
+            return_value=[("safe", True, 2), ("trash", False, 1)],
+        ):
+            await tag_list_command.callback(ctx)
+
+        ctx.send.assert_awaited_once()
+        sent_embed = ctx.send.await_args.kwargs["embed"]
+        self.assertEqual(sent_embed.title, "Your Tags")
+        self.assertIn("🔒 `safe` - Locked - 2 card(s)", sent_embed.description)
+        self.assertIn("`trash` - Unlocked - 1 card(s)", sent_embed.description)
+
     async def test_tag_assign_rejects_unowned_card_code(self) -> None:
         tag_assign_command = _get_group_command(self.bot, "tag", "assign")
 
@@ -165,6 +192,7 @@ class CommandsTagTests(unittest.IsolatedAsyncioTestCase):
         ctx.guild = _FakeGuild(1)
         ctx.author = _FakeMember(100, "Caller")
         ctx.send = AsyncMock()
+        ctx.reply = ctx.send
 
         with patch("noodswap.commands.get_instance_by_code", return_value=None):
             await tag_assign_command.callback(ctx, tag_name="safe", card_code="0")
@@ -174,6 +202,29 @@ class CommandsTagTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(sent_embed.title, "Tags")
         self.assertEqual(sent_embed.description, "You do not own that card code.")
 
+    async def test_tag_assign_rejects_duplicate_assignment_explicitly(self) -> None:
+        tag_assign_command = _get_group_command(self.bot, "tag", "assign")
+
+        ctx = AsyncMock()
+        ctx.guild = _FakeGuild(1)
+        ctx.author = _FakeMember(100, "Caller")
+        ctx.send = AsyncMock()
+        ctx.reply = ctx.send
+
+        selected = (5, "SPG", 1200, "0")
+        with (
+            patch("noodswap.commands.get_instance_by_code", return_value=selected),
+            patch("noodswap.commands.is_tag_assigned_to_instance", return_value=True),
+            patch("noodswap.commands.assign_tag_to_instance", return_value=False) as assign_tag,
+        ):
+            await tag_assign_command.callback(ctx, tag_name="safe", card_code="0")
+
+        assign_tag.assert_not_called()
+        ctx.send.assert_awaited_once()
+        sent_embed = ctx.send.await_args.kwargs["embed"]
+        self.assertEqual(sent_embed.title, "Tags")
+        self.assertEqual(sent_embed.description, "You have already assigned that card that tag.")
+
     async def test_tag_cards_shows_sortable_collection_view(self) -> None:
         tag_cards_command = _get_group_command(self.bot, "tag", "cards")
 
@@ -181,6 +232,7 @@ class CommandsTagTests(unittest.IsolatedAsyncioTestCase):
         ctx.guild = _FakeGuild(1)
         ctx.author = _FakeMember(100, "Caller")
         ctx.send = AsyncMock(return_value=SimpleNamespace())
+        ctx.reply = ctx.send
 
         tagged_instances = [
             (1, "SPG", 1200, "0"),
@@ -188,6 +240,7 @@ class CommandsTagTests(unittest.IsolatedAsyncioTestCase):
         ]
         with (
             patch("noodswap.commands.get_instances_by_tag", return_value=tagged_instances),
+            patch("noodswap.commands.get_locked_instance_ids", return_value=set()),
             patch("noodswap.commands.get_card_wish_counts", return_value={"SPG": 1, "BAR": 2}),
             patch("noodswap.commands.get_instance_morph", return_value=None),
             patch("noodswap.commands.get_instance_frame", return_value=None),
@@ -209,6 +262,7 @@ class CommandsTagTests(unittest.IsolatedAsyncioTestCase):
         ctx.guild = _FakeGuild(1)
         ctx.author = _FakeMember(100, "Caller")
         ctx.send = AsyncMock()
+        ctx.reply = ctx.send
 
         with patch("noodswap.commands.remove_card_from_wishlist", return_value=True) as remove_wishlist:
             await wish_remove_command.callback(ctx, card_id="cheddar")
@@ -264,6 +318,7 @@ class CommandsLeaderboardTests(unittest.IsolatedAsyncioTestCase):
         ctx.guild = _FakeGuild(1)
         ctx.author = _FakeMember(100, "Caller")
         ctx.send = AsyncMock(return_value=SimpleNamespace())
+        ctx.reply = ctx.send
 
         leaderboard_rows = [
             (100, 2, 1, 20, 0, 40),
@@ -291,6 +346,7 @@ class CommandsHelpTests(unittest.IsolatedAsyncioTestCase):
         ctx = AsyncMock()
         ctx.author = _FakeMember(100, "Caller")
         ctx.send = AsyncMock(return_value=SimpleNamespace())
+        ctx.reply = ctx.send
 
         await help_command.callback(ctx)
 
@@ -315,6 +371,7 @@ class CommandsLookupTests(unittest.IsolatedAsyncioTestCase):
         ctx.guild = _FakeGuild(1)
         ctx.author = _FakeMember(100, "Caller")
         ctx.send = AsyncMock()
+        ctx.reply = ctx.send
 
         await lookup_command.callback(ctx, card_id="zzz")
 
@@ -330,6 +387,7 @@ class CommandsLookupTests(unittest.IsolatedAsyncioTestCase):
         ctx.guild = _FakeGuild(1)
         ctx.author = _FakeMember(100, "Caller")
         ctx.send = AsyncMock()
+        ctx.reply = ctx.send
 
         await lookup_command.callback(ctx, card_id=None)
 
@@ -345,6 +403,7 @@ class CommandsLookupTests(unittest.IsolatedAsyncioTestCase):
         ctx.guild = _FakeGuild(1)
         ctx.author = _FakeMember(100, "Caller")
         ctx.send = AsyncMock()
+        ctx.reply = ctx.send
 
         await lookup_command.callback(ctx, card_id="spg")
 
@@ -360,6 +419,7 @@ class CommandsLookupTests(unittest.IsolatedAsyncioTestCase):
         ctx.guild = _FakeGuild(1)
         ctx.author = _FakeMember(100, "Caller")
         ctx.send = AsyncMock()
+        ctx.reply = ctx.send
 
         with patch(
             "noodswap.commands.get_instance_by_dupe_code",
@@ -382,6 +442,7 @@ class CommandsLookupTests(unittest.IsolatedAsyncioTestCase):
         ctx.guild = _FakeGuild(1)
         ctx.author = _FakeMember(100, "Caller")
         ctx.send = AsyncMock()
+        ctx.reply = ctx.send
 
         with patch(
             "noodswap.commands.get_instance_by_dupe_code",
@@ -404,6 +465,7 @@ class CommandsLookupTests(unittest.IsolatedAsyncioTestCase):
         ctx.guild = _FakeGuild(1)
         ctx.author = _FakeMember(100, "Caller")
         ctx.send = AsyncMock()
+        ctx.reply = ctx.send
 
         with patch(
             "noodswap.commands.get_instance_by_dupe_code",
@@ -426,6 +488,7 @@ class CommandsLookupTests(unittest.IsolatedAsyncioTestCase):
         ctx.guild = _FakeGuild(1)
         ctx.author = _FakeMember(100, "Caller")
         ctx.send = AsyncMock()
+        ctx.reply = ctx.send
 
         await lookup_command.callback(ctx, card_id="spaghetti")
 
@@ -441,6 +504,7 @@ class CommandsLookupTests(unittest.IsolatedAsyncioTestCase):
         ctx.guild = _FakeGuild(1)
         ctx.author = _FakeMember(100, "Caller")
         ctx.send = AsyncMock()
+        ctx.reply = ctx.send
 
         await lookup_command.callback(ctx, card_id="cheddar")
 
@@ -460,6 +524,7 @@ class CommandsLookupTests(unittest.IsolatedAsyncioTestCase):
         ctx.guild = _FakeGuild(1)
         ctx.author = _FakeMember(100, "Caller")
         ctx.send = AsyncMock()
+        ctx.reply = ctx.send
 
         await lookup_command.callback(ctx, card_id="cheese")
 
@@ -480,6 +545,7 @@ class CommandsLookupTests(unittest.IsolatedAsyncioTestCase):
         ctx.guild = _FakeGuild(1)
         ctx.author = _FakeMember(100, "Caller")
         ctx.send = AsyncMock()
+        ctx.reply = ctx.send
 
         with patch("noodswap.commands.search_card_ids", return_value=["SPG"]) as search_cards:
             await lookup_command.callback(ctx, card_id="spicy noodle")
@@ -497,6 +563,7 @@ class CommandsLookupTests(unittest.IsolatedAsyncioTestCase):
         ctx.guild = _FakeGuild(1)
         ctx.author = _FakeMember(100, "Caller")
         ctx.send = AsyncMock()
+        ctx.reply = ctx.send
 
         with patch(
             "noodswap.commands.embed_image_payload",
@@ -523,6 +590,7 @@ class CommandsCollectionTests(unittest.IsolatedAsyncioTestCase):
         ctx.guild = _FakeGuild(1)
         ctx.author = _FakeMember(100, "Caller")
         ctx.send = AsyncMock()
+        ctx.reply = ctx.send
 
         with patch("noodswap.commands.get_player_card_instances", return_value=[]):
             await collection_command.callback(ctx, player=None)
@@ -539,6 +607,7 @@ class CommandsCollectionTests(unittest.IsolatedAsyncioTestCase):
         ctx.guild = _FakeGuild(1)
         ctx.author = _FakeMember(100, "Caller")
         ctx.send = AsyncMock()
+        ctx.reply = ctx.send
 
         target = _FakeMember(200, "Target")
         with (
@@ -567,6 +636,7 @@ class CommandsCollectionTests(unittest.IsolatedAsyncioTestCase):
             )
         )
         ctx.send = AsyncMock()
+        ctx.reply = ctx.send
 
         with patch("noodswap.commands.get_player_card_instances", return_value=[]):
             await collection_command.callback(ctx, player=None)
@@ -583,6 +653,7 @@ class CommandsCollectionTests(unittest.IsolatedAsyncioTestCase):
         ctx.guild = _FakeGuild(1)
         ctx.author = _FakeMember(100, "Caller")
         ctx.send = AsyncMock()
+        ctx.reply = ctx.send
 
         with (
             patch(
@@ -606,13 +677,17 @@ class CommandsCollectionTests(unittest.IsolatedAsyncioTestCase):
         ctx.guild = _FakeGuild(1)
         ctx.author = _FakeMember(100, "Caller")
         ctx.send = AsyncMock()
+        ctx.reply = ctx.send
 
         instances = [
             (3, "SPG", 100, "0"),
             (4, "SPG", 100, "1"),
             (5, "SPG", 90, "2"),
         ]
-        with patch("noodswap.commands.get_player_card_instances", return_value=instances):
+        with (
+            patch("noodswap.commands.get_player_card_instances", return_value=instances),
+            patch("noodswap.commands.get_locked_instance_ids", return_value=set()),
+        ):
             await collection_command.callback(ctx, player=None)
 
         ctx.send.assert_awaited_once()
@@ -629,9 +704,13 @@ class CommandsCollectionTests(unittest.IsolatedAsyncioTestCase):
         ctx.guild = _FakeGuild(1)
         ctx.author = _FakeMember(100, "Caller")
         ctx.send = AsyncMock()
+        ctx.reply = ctx.send
 
         instances = [(idx, "SPG", 100 + idx, str(idx)) for idx in range(1, 13)]
-        with patch("noodswap.commands.get_player_card_instances", return_value=instances):
+        with (
+            patch("noodswap.commands.get_player_card_instances", return_value=instances),
+            patch("noodswap.commands.get_locked_instance_ids", return_value=set()),
+        ):
             await collection_command.callback(ctx, player=None)
 
         ctx.send.assert_awaited_once()
@@ -647,6 +726,7 @@ class CommandsCollectionTests(unittest.IsolatedAsyncioTestCase):
         ctx.guild = _FakeGuild(1)
         ctx.author = _FakeMember(100, "Caller")
         ctx.send = AsyncMock()
+        ctx.reply = ctx.send
 
         wishlisted_ids = ["SPG", "PEN", "FUS", "CHD", "CHJ", "BGL", "BAG", "BOL", "PIT", "RYE", "SOU"]
         with patch("noodswap.commands.get_wishlist_cards", return_value=wishlisted_ids):
@@ -665,6 +745,7 @@ class CommandsCollectionTests(unittest.IsolatedAsyncioTestCase):
         ctx.guild = _FakeGuild(1)
         ctx.author = _FakeMember(100, "Caller")
         ctx.send = AsyncMock()
+        ctx.reply = ctx.send
 
         with (
             patch(
@@ -689,6 +770,7 @@ class CommandsCollectionTests(unittest.IsolatedAsyncioTestCase):
         ctx.guild = _FakeGuild(1)
         ctx.author = _FakeMember(100, "Caller")
         ctx.send = AsyncMock()
+        ctx.reply = ctx.send
 
         target = _FakeMember(222, "Target")
         with (
@@ -713,6 +795,7 @@ class CommandsCooldownTests(unittest.IsolatedAsyncioTestCase):
         ctx.guild = _FakeGuild(1)
         ctx.author = _FakeMember(100, "Caller")
         ctx.send = AsyncMock()
+        ctx.reply = ctx.send
 
         with (
             patch("noodswap.commands.get_player_cooldown_timestamps", return_value=(0.0, 0.0)),
@@ -736,6 +819,7 @@ class CommandsCooldownTests(unittest.IsolatedAsyncioTestCase):
         ctx.guild = _FakeGuild(1)
         ctx.author = _FakeMember(100, "Caller")
         ctx.send = AsyncMock()
+        ctx.reply = ctx.send
 
         target = _FakeMember(222, "Target")
         with (
@@ -769,6 +853,7 @@ class CommandsCooldownTests(unittest.IsolatedAsyncioTestCase):
             )
         )
         ctx.send = AsyncMock()
+        ctx.reply = ctx.send
 
         with (
             patch("noodswap.commands.get_player_cooldown_timestamps", return_value=(9_800.0, 9_850.0)),
@@ -794,6 +879,7 @@ class CommandsInfoTests(unittest.IsolatedAsyncioTestCase):
         ctx.guild = _FakeGuild(1)
         ctx.author = _FakeMember(100, "Caller")
         ctx.send = AsyncMock()
+        ctx.reply = ctx.send
 
         with (
             patch("noodswap.commands.get_player_stats", return_value=(123, 0.0, None)),
@@ -825,6 +911,7 @@ class CommandsInfoTests(unittest.IsolatedAsyncioTestCase):
             )
         )
         ctx.send = AsyncMock()
+        ctx.reply = ctx.send
 
         with (
             patch("noodswap.commands.get_player_stats", return_value=(999, 0.0, None)),
@@ -851,6 +938,7 @@ class CommandsVoteTests(unittest.IsolatedAsyncioTestCase):
         ctx.guild = _FakeGuild(1)
         ctx.author = _FakeMember(100, "Caller")
         ctx.send = AsyncMock()
+        ctx.reply = ctx.send
 
         with patch.dict("os.environ", {}, clear=True):
             await vote_command.callback(ctx)
@@ -870,6 +958,7 @@ class CommandsVoteTests(unittest.IsolatedAsyncioTestCase):
         ctx.guild = _FakeGuild(1)
         ctx.author = _FakeMember(100, "Caller")
         ctx.send = AsyncMock()
+        ctx.reply = ctx.send
 
         with (
             patch.dict("os.environ", {"TOPGG_API_TOKEN": "token", "TOPGG_BOT_ID": "123"}, clear=True),
@@ -896,6 +985,7 @@ class CommandsBurnTests(unittest.IsolatedAsyncioTestCase):
         ctx.guild = _FakeGuild(1)
         ctx.author = _FakeMember(100, "Caller")
         ctx.send = AsyncMock()
+        ctx.reply = ctx.send
 
         prepared = SimpleNamespace(
             is_error=False,
@@ -934,6 +1024,7 @@ class CommandsMorphTests(unittest.IsolatedAsyncioTestCase):
         ctx.guild = _FakeGuild(1)
         ctx.author = _FakeMember(100, "Caller")
         ctx.send = AsyncMock()
+        ctx.reply = ctx.send
 
         result = SimpleNamespace(
             is_error=False,
@@ -964,6 +1055,7 @@ class CommandsMorphTests(unittest.IsolatedAsyncioTestCase):
         ctx.guild = _FakeGuild(1)
         ctx.author = _FakeMember(100, "Caller")
         ctx.send = AsyncMock()
+        ctx.reply = ctx.send
 
         result = SimpleNamespace(
             is_error=True,
@@ -991,6 +1083,7 @@ class CommandsFrameTests(unittest.IsolatedAsyncioTestCase):
         ctx.guild = _FakeGuild(1)
         ctx.author = _FakeMember(100, "Caller")
         ctx.send = AsyncMock()
+        ctx.reply = ctx.send
 
         result = SimpleNamespace(
             is_error=False,
@@ -1021,6 +1114,7 @@ class CommandsFrameTests(unittest.IsolatedAsyncioTestCase):
         ctx.guild = _FakeGuild(1)
         ctx.author = _FakeMember(100, "Caller")
         ctx.send = AsyncMock()
+        ctx.reply = ctx.send
 
         result = SimpleNamespace(
             is_error=True,
@@ -1048,6 +1142,7 @@ class CommandsFontTests(unittest.IsolatedAsyncioTestCase):
         ctx.guild = _FakeGuild(1)
         ctx.author = _FakeMember(100, "Caller")
         ctx.send = AsyncMock()
+        ctx.reply = ctx.send
 
         result = SimpleNamespace(
             is_error=False,
@@ -1078,6 +1173,7 @@ class CommandsFontTests(unittest.IsolatedAsyncioTestCase):
         ctx.guild = _FakeGuild(1)
         ctx.author = _FakeMember(100, "Caller")
         ctx.send = AsyncMock()
+        ctx.reply = ctx.send
 
         result = SimpleNamespace(
             is_error=True,

@@ -66,6 +66,8 @@ from .storage import (
     get_instance_frame,
     get_instance_morph,
     get_instances_by_tag,
+    get_locked_instance_ids,
+    is_tag_assigned_to_instance,
     get_player_cooldown_timestamps,
     get_player_card_instances,
     get_player_leaderboard_stats,
@@ -250,6 +252,11 @@ def _vote_link_view(vote_url: str) -> discord.ui.View:
     return view
 
 
+async def _reply(ctx: commands.Context, **kwargs):
+    """Reply to the invoking command message without pinging the author."""
+    return await ctx.reply(mention_author=False, **kwargs)
+
+
 def _topgg_auth_header(api_token: str) -> str:
     token = api_token.strip()
     if token.lower().startswith("bearer "):
@@ -289,13 +296,13 @@ async def _topgg_recent_vote_status(user_id: int, api_token: str) -> tuple[bool 
 
 async def _wish_add(ctx: commands.Context, card_id: str) -> None:
     if ctx.guild is None:
-        await ctx.send(embed=italy_embed("Wishlist", "Use this command in a server."))
+        await _reply(ctx, embed=italy_embed("Wishlist", "Use this command in a server."))
         return
 
     normalized_card_id = normalize_card_id(card_id)
     matched_card_ids = [normalized_card_id] if normalized_card_id in CARD_CATALOG else search_card_ids_by_name(card_id)
     if not matched_card_ids:
-        await ctx.send(embed=italy_embed("Wishlist", "Unknown card id."))
+        await _reply(ctx, embed=italy_embed("Wishlist", "Unknown card id."))
         return
 
     if len(matched_card_ids) > 1:
@@ -303,28 +310,28 @@ async def _wish_add(ctx: commands.Context, card_id: str) -> None:
             f"{index}. {card_base_display(matched_card_id)}"
             for index, matched_card_id in enumerate(matched_card_ids, start=1)
         ]
-        await ctx.send(embed=italy_embed("Wishlist Matches", multiline_text(match_lines)))
+        await _reply(ctx, embed=italy_embed("Wishlist Matches", multiline_text(match_lines)))
         return
 
     resolved_card_id = matched_card_ids[0]
 
     was_added = add_card_to_wishlist(ctx.guild.id, ctx.author.id, resolved_card_id)
     if not was_added:
-        await ctx.send(embed=italy_embed("Wishlist", f"Already wishlisted: {card_base_display(resolved_card_id)}"))
+        await _reply(ctx, embed=italy_embed("Wishlist", f"Already wishlisted: {card_base_display(resolved_card_id)}"))
         return
 
-    await ctx.send(embed=italy_embed("Wishlist", f"Added to wishlist: {card_base_display(resolved_card_id)}"))
+    await _reply(ctx, embed=italy_embed("Wishlist", f"Added to wishlist: {card_base_display(resolved_card_id)}"))
 
 
 async def _wish_remove(ctx: commands.Context, card_id: str) -> None:
     if ctx.guild is None:
-        await ctx.send(embed=italy_embed("Wishlist", "Use this command in a server."))
+        await _reply(ctx, embed=italy_embed("Wishlist", "Use this command in a server."))
         return
 
     normalized_card_id = normalize_card_id(card_id)
     matched_card_ids = [normalized_card_id] if normalized_card_id in CARD_CATALOG else search_card_ids_by_name(card_id)
     if not matched_card_ids:
-        await ctx.send(embed=italy_embed("Wishlist", "Unknown card id."))
+        await _reply(ctx, embed=italy_embed("Wishlist", "Unknown card id."))
         return
 
     if len(matched_card_ids) > 1:
@@ -332,22 +339,22 @@ async def _wish_remove(ctx: commands.Context, card_id: str) -> None:
             f"{index}. {card_base_display(matched_card_id)}"
             for index, matched_card_id in enumerate(matched_card_ids, start=1)
         ]
-        await ctx.send(embed=italy_embed("Wishlist Matches", multiline_text(match_lines)))
+        await _reply(ctx, embed=italy_embed("Wishlist Matches", multiline_text(match_lines)))
         return
 
     resolved_card_id = matched_card_ids[0]
 
     was_removed = remove_card_from_wishlist(ctx.guild.id, ctx.author.id, resolved_card_id)
     if not was_removed:
-        await ctx.send(embed=italy_embed("Wishlist", f"Not on wishlist: {card_base_display(resolved_card_id)}"))
+        await _reply(ctx, embed=italy_embed("Wishlist", f"Not on wishlist: {card_base_display(resolved_card_id)}"))
         return
 
-    await ctx.send(embed=italy_embed("Wishlist", f"Removed from wishlist: {card_base_display(resolved_card_id)}"))
+    await _reply(ctx, embed=italy_embed("Wishlist", f"Removed from wishlist: {card_base_display(resolved_card_id)}"))
 
 
 async def _wish_list(ctx: commands.Context, target_member: discord.Member | None = None) -> None:
     if ctx.guild is None:
-        await ctx.send(embed=italy_embed("Wishlist", "Use this command in a server."))
+        await _reply(ctx, embed=italy_embed("Wishlist", "Use this command in a server."))
         return
 
     if target_member is None:
@@ -360,7 +367,7 @@ async def _wish_list(ctx: commands.Context, target_member: discord.Member | None
             description = "Your wishlist is empty. Add cards with `ns wish add <card_id>`."
         else:
             description = f"{target_member.display_name} has an empty wishlist."
-        await ctx.send(embed=italy_embed(title, description))
+        await _reply(ctx, embed=italy_embed(title, description))
         return
 
     view = SortableCardListView(
@@ -370,19 +377,19 @@ async def _wish_list(ctx: commands.Context, target_member: discord.Member | None
         wish_counts=get_card_wish_counts(ctx.guild.id),
         guard_title="Wishlist",
     )
-    message = await ctx.send(embed=view.build_embed(), view=view)
+    message = await _reply(ctx, embed=view.build_embed(), view=view)
     view.message = message
 
 
 async def _tag_add(ctx: commands.Context, tag_name: str) -> None:
     if ctx.guild is None:
-        await ctx.send(embed=italy_embed("Tags", "Use this command in a server."))
+        await _reply(ctx, embed=italy_embed("Tags", "Use this command in a server."))
         return
 
     created = create_player_tag(ctx.guild.id, ctx.author.id, tag_name)
     normalized = tag_name.strip().lower()
     if not created:
-        await ctx.send(
+        await _reply(ctx, 
             embed=italy_embed(
                 "Tags",
                 "Could not create that tag. Tags must be unique, non-empty, and up to 32 characters.",
@@ -390,70 +397,74 @@ async def _tag_add(ctx: commands.Context, tag_name: str) -> None:
         )
         return
 
-    await ctx.send(embed=italy_embed("Tags", f"Created tag: `{normalized}`"))
+    await _reply(ctx, embed=italy_embed("Tags", f"Created tag: `{normalized}`"))
 
 
 async def _tag_remove(ctx: commands.Context, tag_name: str) -> None:
     if ctx.guild is None:
-        await ctx.send(embed=italy_embed("Tags", "Use this command in a server."))
+        await _reply(ctx, embed=italy_embed("Tags", "Use this command in a server."))
         return
 
     removed = delete_player_tag(ctx.guild.id, ctx.author.id, tag_name)
     normalized = tag_name.strip().lower()
     if not removed:
-        await ctx.send(embed=italy_embed("Tags", f"Tag not found: `{normalized}`"))
+        await _reply(ctx, embed=italy_embed("Tags", f"Tag not found: `{normalized}`"))
         return
 
-    await ctx.send(embed=italy_embed("Tags", f"Deleted tag: `{normalized}`"))
+    await _reply(ctx, embed=italy_embed("Tags", f"Deleted tag: `{normalized}`"))
 
 
 async def _tag_list(ctx: commands.Context) -> None:
     if ctx.guild is None:
-        await ctx.send(embed=italy_embed("Tags", "Use this command in a server."))
+        await _reply(ctx, embed=italy_embed("Tags", "Use this command in a server."))
         return
 
     tags = list_player_tags(ctx.guild.id, ctx.author.id)
     if not tags:
-        await ctx.send(embed=italy_embed("Your Tags", "No tags yet. Create one with `ns tag add <tag_name>`."))
+        await _reply(ctx, embed=italy_embed("Your Tags", "No tags yet. Create one with `ns tag add <tag_name>`."))
         return
 
     lines = [
-        f"`{tag_name}` - {'Locked' if is_locked else 'Unlocked'} - {card_count} card(s)"
+        f"{'🔒 ' if is_locked else '`  ` '}" f"`{tag_name}` - {'Locked' if is_locked else 'Unlocked'} - {card_count} card(s)"
         for tag_name, is_locked, card_count in tags
     ]
-    await ctx.send(embed=italy_embed("Your Tags", multiline_text(lines)))
+    await _reply(ctx, embed=italy_embed("Your Tags", multiline_text(lines)))
 
 
 async def _tag_lock(ctx: commands.Context, tag_name: str, locked: bool) -> None:
     if ctx.guild is None:
-        await ctx.send(embed=italy_embed("Tags", "Use this command in a server."))
+        await _reply(ctx, embed=italy_embed("Tags", "Use this command in a server."))
         return
 
     updated = set_player_tag_locked(ctx.guild.id, ctx.author.id, tag_name, locked)
     normalized = tag_name.strip().lower()
     if not updated:
-        await ctx.send(embed=italy_embed("Tags", f"Tag not found: `{normalized}`"))
+        await _reply(ctx, embed=italy_embed("Tags", f"Tag not found: `{normalized}`"))
         return
 
     state = "locked" if locked else "unlocked"
-    await ctx.send(embed=italy_embed("Tags", f"Tag `{normalized}` is now **{state}**."))
+    await _reply(ctx, embed=italy_embed("Tags", f"Tag `{normalized}` is now **{state}**."))
 
 
 async def _tag_assign(ctx: commands.Context, tag_name: str, card_code: str) -> None:
     if ctx.guild is None:
-        await ctx.send(embed=italy_embed("Tags", "Use this command in a server."))
+        await _reply(ctx, embed=italy_embed("Tags", "Use this command in a server."))
         return
 
     selected = get_instance_by_code(ctx.guild.id, ctx.author.id, card_code)
     if selected is None:
-        await ctx.send(embed=italy_embed("Tags", "You do not own that card code."))
+        await _reply(ctx, embed=italy_embed("Tags", "You do not own that card code."))
         return
 
     instance_id, card_id, generation, dupe_code = selected
+    if is_tag_assigned_to_instance(ctx.guild.id, ctx.author.id, instance_id, tag_name):
+        await _reply(ctx, embed=italy_embed("Tags", "You have already assigned that card that tag."))
+        return
+
     assigned = assign_tag_to_instance(ctx.guild.id, ctx.author.id, instance_id, tag_name)
     normalized = tag_name.strip().lower()
     if not assigned:
-        await ctx.send(
+        await _reply(ctx, 
             embed=italy_embed(
                 "Tags",
                 "Could not tag that card. Make sure the tag exists and the card is yours.",
@@ -461,7 +472,7 @@ async def _tag_assign(ctx: commands.Context, tag_name: str, card_code: str) -> N
         )
         return
 
-    await ctx.send(
+    await _reply(ctx, 
         embed=italy_embed(
             "Tags",
             f"Tagged {card_dupe_display(card_id, generation, dupe_code=dupe_code)} with `{normalized}`.",
@@ -471,22 +482,22 @@ async def _tag_assign(ctx: commands.Context, tag_name: str, card_code: str) -> N
 
 async def _tag_unassign(ctx: commands.Context, tag_name: str, card_code: str) -> None:
     if ctx.guild is None:
-        await ctx.send(embed=italy_embed("Tags", "Use this command in a server."))
+        await _reply(ctx, embed=italy_embed("Tags", "Use this command in a server."))
         return
 
     selected = get_instance_by_code(ctx.guild.id, ctx.author.id, card_code)
     if selected is None:
-        await ctx.send(embed=italy_embed("Tags", "You do not own that card code."))
+        await _reply(ctx, embed=italy_embed("Tags", "You do not own that card code."))
         return
 
     instance_id, card_id, generation, dupe_code = selected
     unassigned = unassign_tag_from_instance(ctx.guild.id, ctx.author.id, instance_id, tag_name)
     normalized = tag_name.strip().lower()
     if not unassigned:
-        await ctx.send(embed=italy_embed("Tags", f"That card is not tagged with `{normalized}`."))
+        await _reply(ctx, embed=italy_embed("Tags", f"That card is not tagged with `{normalized}`."))
         return
 
-    await ctx.send(
+    await _reply(ctx, 
         embed=italy_embed(
             "Tags",
             f"Removed `{normalized}` from {card_dupe_display(card_id, generation, dupe_code=dupe_code)}.",
@@ -496,19 +507,24 @@ async def _tag_unassign(ctx: commands.Context, tag_name: str, card_code: str) ->
 
 async def _tag_cards(ctx: commands.Context, tag_name: str) -> None:
     if ctx.guild is None:
-        await ctx.send(embed=italy_embed("Tags", "Use this command in a server."))
+        await _reply(ctx, embed=italy_embed("Tags", "Use this command in a server."))
         return
 
     normalized = tag_name.strip().lower()
     tagged_instances = get_instances_by_tag(ctx.guild.id, ctx.author.id, normalized)
     if not tagged_instances:
-        await ctx.send(embed=italy_embed("Tags", f"No cards found for tag `{normalized}`."))
+        await _reply(ctx, embed=italy_embed("Tags", f"No cards found for tag `{normalized}`."))
         return
 
     view = SortableCollectionView(
         user_id=ctx.author.id,
         title=f"Tag: `{normalized}`",
         instances=tagged_instances,
+        locked_instance_ids=get_locked_instance_ids(
+            ctx.guild.id,
+            ctx.author.id,
+            [instance_id for instance_id, _card_id, _generation, _dupe_code in tagged_instances],
+        ),
         wish_counts=get_card_wish_counts(ctx.guild.id),
         instance_styles={
             instance_id: (
@@ -520,14 +536,14 @@ async def _tag_cards(ctx: commands.Context, tag_name: str) -> None:
         },
         guard_title="Tags",
     )
-    message = await ctx.send(embed=view.build_embed(), view=view)
+    message = await _reply(ctx, embed=view.build_embed(), view=view)
     view.message = message
 
 
 def register_commands(bot: commands.Bot) -> None:
     @bot.group(name="wish", aliases=["w"], invoke_without_command=True)
     async def wish(ctx: commands.Context):
-        await ctx.send(
+        await _reply(ctx, 
             embed=italy_embed(
                 "Wishlist",
                 "Usage: `ns wish add <card_id>`, `ns wish remove <card_id>`, or `ns wish list [player]`.",
@@ -546,7 +562,7 @@ def register_commands(bot: commands.Bot) -> None:
     async def wish_list(ctx: commands.Context, *, player: str | None = None):
         resolved_member, resolve_error = await resolve_optional_player_argument(ctx, player)
         if resolved_member is None:
-            await ctx.send(embed=italy_embed("Wishlist", resolve_error or "Could not resolve player."))
+            await _reply(ctx, embed=italy_embed("Wishlist", resolve_error or "Could not resolve player."))
             return
         target_member = resolved_member
         await _wish_list(ctx, target_member)
@@ -563,14 +579,14 @@ def register_commands(bot: commands.Bot) -> None:
     async def wish_list_short(ctx: commands.Context, *, player: str | None = None):
         resolved_member, resolve_error = await resolve_optional_player_argument(ctx, player)
         if resolved_member is None:
-            await ctx.send(embed=italy_embed("Wishlist", resolve_error or "Could not resolve player."))
+            await _reply(ctx, embed=italy_embed("Wishlist", resolve_error or "Could not resolve player."))
             return
         target_member = resolved_member
         await _wish_list(ctx, target_member)
 
     @bot.group(name="tag", aliases=["tg"], invoke_without_command=True)
     async def tag(ctx: commands.Context):
-        await ctx.send(
+        await _reply(ctx, 
             embed=italy_embed(
                 "Tags",
                 (
@@ -617,14 +633,14 @@ def register_commands(bot: commands.Bot) -> None:
     @bot.command(name="cards", aliases=["ca"])
     async def cards(ctx: commands.Context):
         if ctx.guild is None:
-            await ctx.send(embed=italy_embed("All Cards", "Use this command in a server."))
+            await _reply(ctx, embed=italy_embed("All Cards", "Use this command in a server."))
             return
 
         wish_counts = get_card_wish_counts(ctx.guild.id)
         entries = [(card_id, wish_counts.get(card_id, 0)) for card_id in CARD_CATALOG.keys()]
 
         view = CardCatalogView(user_id=ctx.author.id, entries=entries)
-        message = await ctx.send(embed=view.build_embed(), view=view)
+        message = await _reply(ctx, embed=view.build_embed(), view=view)
         view.message = message
 
     async def _run_lookup(
@@ -636,7 +652,7 @@ def register_commands(bot: commands.Bot) -> None:
         usage_name: str,
     ) -> None:
         if card_id is None:
-            await ctx.send(embed=italy_embed("Lookup", f"Usage: `ns {usage_name} <card_id|card_code|query>`."))
+            await _reply(ctx, embed=italy_embed("Lookup", f"Usage: `ns {usage_name} <card_id|card_code|query>`."))
             return
 
         if ctx.guild is not None:
@@ -660,7 +676,7 @@ def register_commands(bot: commands.Bot) -> None:
                 send_kwargs: dict[str, object] = {"embed": lookup_embed}
                 if image_file is not None:
                     send_kwargs["file"] = image_file
-                await ctx.send(**send_kwargs)
+                await _reply(ctx, **send_kwargs)
                 return
 
         normalized_card_id = normalize_card_id(card_id)
@@ -672,12 +688,12 @@ def register_commands(bot: commands.Bot) -> None:
             send_kwargs: dict[str, object] = {"embed": lookup_embed}
             if image_file is not None:
                 send_kwargs["file"] = image_file
-            await ctx.send(**send_kwargs)
+            await _reply(ctx, **send_kwargs)
             return
 
         name_matches = search_card_ids(card_id, include_series=True)
         if not name_matches:
-            await ctx.send(embed=italy_embed("Lookup", "No results found."))
+            await _reply(ctx, embed=italy_embed("Lookup", "No results found."))
             return
 
         if len(name_matches) == 1:
@@ -689,7 +705,7 @@ def register_commands(bot: commands.Bot) -> None:
             send_kwargs: dict[str, object] = {"embed": lookup_embed}
             if image_file is not None:
                 send_kwargs["file"] = image_file
-            await ctx.send(**send_kwargs)
+            await _reply(ctx, **send_kwargs)
             return
 
         lookup_wish_counts = get_card_wish_counts(ctx.guild.id) if ctx.guild is not None else {}
@@ -700,7 +716,7 @@ def register_commands(bot: commands.Bot) -> None:
             wish_counts=lookup_wish_counts,
             guard_title="Lookup",
         )
-        message = await ctx.send(embed=view.build_embed(), view=view)
+        message = await _reply(ctx, embed=view.build_embed(), view=view)
         view.message = message
 
     @bot.command(name="lookup", aliases=["l"])
@@ -727,14 +743,14 @@ def register_commands(bot: commands.Bot) -> None:
     @bot.command(name="drop", aliases=["d"])
     async def drop(ctx: commands.Context):
         if ctx.guild is None:
-            await ctx.send(embed=italy_embed("Drop", "Use this command in a server."))
+            await _reply(ctx, embed=italy_embed("Drop", "Use this command in a server."))
             return
 
         now = time.time()
         prepared = prepare_drop(ctx.guild.id, ctx.author.id, now)
 
         if prepared.is_cooldown:
-            await ctx.send(
+            await _reply(ctx, 
                 embed=italy_embed(
                     "Drop Cooldown",
                     f"You need to wait **{format_cooldown(prepared.cooldown_remaining_seconds)}** before your next drop.",
@@ -756,22 +772,22 @@ def register_commands(bot: commands.Bot) -> None:
             send_kwargs["file"] = preview_file
 
         view = DropView(ctx.guild.id, ctx.author.id, choices)
-        message = await ctx.send(view=view, **send_kwargs)
+        message = await _reply(ctx, view=view, **send_kwargs)
         view.message = message
 
     @bot.command(name="marry", aliases=["m"])
     async def marry(ctx: commands.Context, card_code: str | None = None):
         if ctx.guild is None:
-            await ctx.send(embed=italy_marry_embed("Marry", "Use this command in a server."))
+            await _reply(ctx, embed=italy_marry_embed("Marry", "Use this command in a server."))
             return
 
         result = execute_marry(ctx.guild.id, ctx.author.id, card_code)
         if result.is_error:
-            await ctx.send(embed=italy_marry_embed("Marry", result.error_message or "Marry failed."))
+            await _reply(ctx, embed=italy_marry_embed("Marry", result.error_message or "Marry failed."))
             return
 
         if result.card_id is None or result.generation is None:
-            await ctx.send(embed=italy_marry_embed("Marry", "Marry failed."))
+            await _reply(ctx, embed=italy_marry_embed("Marry", "Marry failed."))
             return
 
         marry_embed = italy_marry_embed(
@@ -801,21 +817,21 @@ def register_commands(bot: commands.Bot) -> None:
         send_kwargs: dict[str, object] = {"embed": marry_embed}
         if image_file is not None:
             send_kwargs["file"] = image_file
-        await ctx.send(**send_kwargs)
+        await _reply(ctx, **send_kwargs)
 
     @bot.command(name="divorce", aliases=["dv"])
     async def divorce(ctx: commands.Context):
         if ctx.guild is None:
-            await ctx.send(embed=italy_marry_embed("Divorce", "Use this command in a server."))
+            await _reply(ctx, embed=italy_marry_embed("Divorce", "Use this command in a server."))
             return
 
         result = execute_divorce(ctx.guild.id, ctx.author.id)
         if result.is_error:
-            await ctx.send(embed=italy_marry_embed("Divorce", result.error_message or "Divorce failed."))
+            await _reply(ctx, embed=italy_marry_embed("Divorce", result.error_message or "Divorce failed."))
             return
 
         if result.card_id is None or result.generation is None:
-            await ctx.send(embed=italy_marry_embed("Divorce", "Divorce failed."))
+            await _reply(ctx, embed=italy_marry_embed("Divorce", "Divorce failed."))
             return
 
         divorce_embed = italy_marry_embed(
@@ -845,17 +861,17 @@ def register_commands(bot: commands.Bot) -> None:
         send_kwargs: dict[str, object] = {"embed": divorce_embed}
         if image_file is not None:
             send_kwargs["file"] = image_file
-        await ctx.send(**send_kwargs)
+        await _reply(ctx, **send_kwargs)
 
     @bot.command(name="collection", aliases=["c"])
     async def collection(ctx: commands.Context, *, player: str | None = None):
         if ctx.guild is None:
-            await ctx.send(embed=italy_embed("Collection", "Use this command in a server."))
+            await _reply(ctx, embed=italy_embed("Collection", "Use this command in a server."))
             return
 
         resolved_member, resolve_error = await resolve_optional_player_argument(ctx, player)
         if resolved_member is None:
-            await ctx.send(embed=italy_embed("Collection", resolve_error or "Could not resolve player."))
+            await _reply(ctx, embed=italy_embed("Collection", resolve_error or "Could not resolve player."))
             return
         target_member = resolved_member
 
@@ -867,13 +883,18 @@ def register_commands(bot: commands.Bot) -> None:
                 if target_member.id == ctx.author.id
                 else f"{target_member.display_name} has an empty collection."
             )
-            await ctx.send(embed=italy_embed(title, description))
+            await _reply(ctx, embed=italy_embed(title, description))
             return
 
         view = SortableCollectionView(
             user_id=ctx.author.id,
             title=title,
             instances=instances,
+            locked_instance_ids=get_locked_instance_ids(
+                ctx.guild.id,
+                target_member.id,
+                [instance_id for instance_id, _card_id, _generation, _dupe_code in instances],
+            ),
             wish_counts=get_card_wish_counts(ctx.guild.id),
             instance_styles={
                 instance_id: (
@@ -885,18 +906,18 @@ def register_commands(bot: commands.Bot) -> None:
             },
             guard_title="Collection",
         )
-        message = await ctx.send(embed=view.build_embed(), view=view)
+        message = await _reply(ctx, embed=view.build_embed(), view=view)
         view.message = message
 
     @bot.command(name="burn", aliases=["b"])
     async def burn(ctx: commands.Context, card_code: str | None = None):
         if ctx.guild is None:
-            await ctx.send(embed=italy_embed("Burn", "Use this command in a server."))
+            await _reply(ctx, embed=italy_embed("Burn", "Use this command in a server."))
             return
 
         prepared = prepare_burn(ctx.guild.id, ctx.author.id, card_code)
         if prepared.is_error:
-            await ctx.send(embed=italy_embed("Burn", prepared.error_message or "Burn failed."))
+            await _reply(ctx, embed=italy_embed("Burn", prepared.error_message or "Burn failed."))
             return
 
         if (
@@ -910,7 +931,7 @@ def register_commands(bot: commands.Bot) -> None:
             or prepared.delta_range is None
             or prepared.multiplier is None
         ):
-            await ctx.send(embed=italy_embed("Burn", "Burn failed."))
+            await _reply(ctx, embed=italy_embed("Burn", "Burn failed."))
             return
 
         instance_id = prepared.instance_id
@@ -955,18 +976,18 @@ def register_commands(bot: commands.Bot) -> None:
         send_kwargs: dict[str, object] = {"embed": confirm_embed, "view": view}
         if image_file is not None:
             send_kwargs["file"] = image_file
-        message = await ctx.send(**send_kwargs)
+        message = await _reply(ctx, **send_kwargs)
         view.message = message
 
     @bot.command(name="morph", aliases=["mo"])
     async def morph(ctx: commands.Context, card_code: str | None = None):
         if ctx.guild is None:
-            await ctx.send(embed=italy_embed("Morph", "Use this command in a server."))
+            await _reply(ctx, embed=italy_embed("Morph", "Use this command in a server."))
             return
 
         prepared = prepare_morph(ctx.guild.id, ctx.author.id, card_code)
         if prepared.is_error:
-            await ctx.send(embed=italy_embed("Morph", prepared.error_message or "Morph failed."))
+            await _reply(ctx, embed=italy_embed("Morph", prepared.error_message or "Morph failed."))
             return
 
         if (
@@ -976,7 +997,7 @@ def register_commands(bot: commands.Bot) -> None:
             or prepared.dupe_code is None
             or prepared.cost is None
         ):
-            await ctx.send(embed=italy_embed("Morph", "Morph failed."))
+            await _reply(ctx, embed=italy_embed("Morph", "Morph failed."))
             return
 
         confirm_embed = italy_embed(
@@ -1020,18 +1041,18 @@ def register_commands(bot: commands.Bot) -> None:
         send_kwargs: dict[str, object] = {"embed": confirm_embed, "view": view}
         if image_file is not None:
             send_kwargs["file"] = image_file
-        message = await ctx.send(**send_kwargs)
+        message = await _reply(ctx, **send_kwargs)
         view.message = message
 
     @bot.command(name="frame", aliases=["fr"])
     async def frame(ctx: commands.Context, card_code: str | None = None):
         if ctx.guild is None:
-            await ctx.send(embed=italy_embed("Frame", "Use this command in a server."))
+            await _reply(ctx, embed=italy_embed("Frame", "Use this command in a server."))
             return
 
         prepared = prepare_frame(ctx.guild.id, ctx.author.id, card_code)
         if prepared.is_error:
-            await ctx.send(embed=italy_embed("Frame", prepared.error_message or "Frame failed."))
+            await _reply(ctx, embed=italy_embed("Frame", prepared.error_message or "Frame failed."))
             return
 
         if (
@@ -1041,7 +1062,7 @@ def register_commands(bot: commands.Bot) -> None:
             or prepared.dupe_code is None
             or prepared.cost is None
         ):
-            await ctx.send(embed=italy_embed("Frame", "Frame failed."))
+            await _reply(ctx, embed=italy_embed("Frame", "Frame failed."))
             return
 
         confirm_embed = italy_embed(
@@ -1085,18 +1106,18 @@ def register_commands(bot: commands.Bot) -> None:
         send_kwargs: dict[str, object] = {"embed": confirm_embed, "view": view}
         if image_file is not None:
             send_kwargs["file"] = image_file
-        message = await ctx.send(**send_kwargs)
+        message = await _reply(ctx, **send_kwargs)
         view.message = message
 
     @bot.command(name="font", aliases=["fo"])
     async def font(ctx: commands.Context, card_code: str | None = None):
         if ctx.guild is None:
-            await ctx.send(embed=italy_embed("Font", "Use this command in a server."))
+            await _reply(ctx, embed=italy_embed("Font", "Use this command in a server."))
             return
 
         prepared = prepare_font(ctx.guild.id, ctx.author.id, card_code)
         if prepared.is_error:
-            await ctx.send(embed=italy_embed("Font", prepared.error_message or "Font failed."))
+            await _reply(ctx, embed=italy_embed("Font", prepared.error_message or "Font failed."))
             return
 
         if (
@@ -1106,7 +1127,7 @@ def register_commands(bot: commands.Bot) -> None:
             or prepared.dupe_code is None
             or prepared.cost is None
         ):
-            await ctx.send(embed=italy_embed("Font", "Font failed."))
+            await _reply(ctx, embed=italy_embed("Font", "Font failed."))
             return
 
         confirm_embed = italy_embed(
@@ -1150,13 +1171,13 @@ def register_commands(bot: commands.Bot) -> None:
         send_kwargs: dict[str, object] = {"embed": confirm_embed, "view": view}
         if image_file is not None:
             send_kwargs["file"] = image_file
-        message = await ctx.send(**send_kwargs)
+        message = await _reply(ctx, **send_kwargs)
         view.message = message
 
     @bot.command(name="vote", aliases=["v"])
     async def vote(ctx: commands.Context):
         if ctx.guild is None:
-            await ctx.send(embed=italy_embed("Vote", "Use this command in a server."))
+            await _reply(ctx, embed=italy_embed("Vote", "Use this command in a server."))
             return
 
         bot_user = bot.user
@@ -1188,7 +1209,7 @@ def register_commands(bot: commands.Bot) -> None:
                     "`TOPGG_BOT_ID` is optional and only used as a vote-link fallback.",
                 ]
             )
-            await ctx.send(embed=italy_embed("Vote", multiline_text(lines)), view=_vote_link_view(vote_url))
+            await _reply(ctx, embed=italy_embed("Vote", multiline_text(lines)), view=_vote_link_view(vote_url))
             return
 
         voted, vote_error = await _topgg_recent_vote_status(ctx.author.id, api_token)
@@ -1227,17 +1248,17 @@ def register_commands(bot: commands.Bot) -> None:
         else:
             lines.extend(["", f"Could not verify your top.gg vote right now: {vote_error or 'unknown error'}"])
 
-        await ctx.send(embed=italy_embed("Vote", multiline_text(lines)), view=_vote_link_view(vote_url))
+        await _reply(ctx, embed=italy_embed("Vote", multiline_text(lines)), view=_vote_link_view(vote_url))
 
     @bot.command(name="cooldown", aliases=["cd"])
     async def cooldown(ctx: commands.Context, player: str | None = None):
         if ctx.guild is None:
-            await ctx.send(embed=italy_embed("Cooldowns", "Use this command in a server."))
+            await _reply(ctx, embed=italy_embed("Cooldowns", "Use this command in a server."))
             return
 
         resolved_member, resolve_error = await resolve_optional_player_argument(ctx, player)
         if resolved_member is None:
-            await ctx.send(embed=italy_embed("Cooldowns", resolve_error or "Could not resolve player."))
+            await _reply(ctx, embed=italy_embed("Cooldowns", resolve_error or "Could not resolve player."))
             return
         target_member = resolved_member
 
@@ -1256,17 +1277,17 @@ def register_commands(bot: commands.Bot) -> None:
             ]
         )
 
-        await ctx.send(embed=italy_embed(f"{target_member.display_name}'s Cooldowns", description))
+        await _reply(ctx, embed=italy_embed(f"{target_member.display_name}'s Cooldowns", description))
 
     @bot.command(name="leaderboard", aliases=["le"])
     async def leaderboard(ctx: commands.Context):
         if ctx.guild is None:
-            await ctx.send(embed=italy_embed("Leaderboard", "Use this command in a server."))
+            await _reply(ctx, embed=italy_embed("Leaderboard", "Use this command in a server."))
             return
 
         leaderboard_rows = get_player_leaderboard_stats(ctx.guild.id)
         if not leaderboard_rows:
-            await ctx.send(embed=italy_embed("Leaderboard", "No players found yet. Try `ns drop` first."))
+            await _reply(ctx, embed=italy_embed("Leaderboard", "No players found yet. Try `ns drop` first."))
             return
 
         view = PlayerLeaderboardView(
@@ -1275,18 +1296,18 @@ def register_commands(bot: commands.Bot) -> None:
             entries=leaderboard_rows,
             guard_title="Leaderboard",
         )
-        message = await ctx.send(embed=view.build_embed(), view=view)
+        message = await _reply(ctx, embed=view.build_embed(), view=view)
         view.message = message
 
     @bot.command(name="info", aliases=["i"])
     async def info(ctx: commands.Context, player: str | None = None):
         if ctx.guild is None:
-            await ctx.send(embed=italy_embed("Info", "Use this command in a server."))
+            await _reply(ctx, embed=italy_embed("Info", "Use this command in a server."))
             return
 
         resolved_member, resolve_error = await resolve_optional_player_argument(ctx, player)
         if resolved_member is None:
-            await ctx.send(embed=italy_embed("Info", resolve_error or "Could not resolve player."))
+            await _reply(ctx, embed=italy_embed("Info", resolve_error or "Could not resolve player."))
             return
         target_member = resolved_member
 
@@ -1322,7 +1343,7 @@ def register_commands(bot: commands.Bot) -> None:
         send_kwargs: dict[str, object] = {"embed": embed}
         if married_image_file is not None:
             send_kwargs["file"] = married_image_file
-        await ctx.send(**send_kwargs)
+        await _reply(ctx, **send_kwargs)
 
     @bot.command(name="trade", aliases=["t"])
     async def trade(
@@ -1332,12 +1353,12 @@ def register_commands(bot: commands.Bot) -> None:
         amount: int,
     ):
         if ctx.guild is None:
-            await ctx.send(embed=italy_embed("Trade", "Use this command in a server."))
+            await _reply(ctx, embed=italy_embed("Trade", "Use this command in a server."))
             return
 
         resolved_member, resolve_error = await resolve_member_argument(ctx, player)
         if resolved_member is None:
-            await ctx.send(embed=italy_embed("Trade", resolve_error or "Could not resolve player."))
+            await _reply(ctx, embed=italy_embed("Trade", resolve_error or "Could not resolve player."))
             return
 
         prepared = prepare_trade_offer(
@@ -1350,11 +1371,11 @@ def register_commands(bot: commands.Bot) -> None:
         )
 
         if prepared.is_error:
-            await ctx.send(embed=italy_embed("Trade", prepared.error_message or "Trade failed."))
+            await _reply(ctx, embed=italy_embed("Trade", prepared.error_message or "Trade failed."))
             return
 
         if prepared.card_id is None or prepared.generation is None or prepared.dupe_code is None:
-            await ctx.send(embed=italy_embed("Trade", "Trade failed."))
+            await _reply(ctx, embed=italy_embed("Trade", "Trade failed."))
             return
 
         card_id = prepared.card_id
@@ -1370,7 +1391,7 @@ def register_commands(bot: commands.Bot) -> None:
             amount=amount,
         )
 
-        message = await ctx.send(
+        message = await _reply(ctx, 
             embed=italy_embed(
                 "Trade Offer",
                 trade_offer_description(resolved_member.mention, ctx.author.mention, card_id, generation, dupe_code, amount),
@@ -1382,17 +1403,17 @@ def register_commands(bot: commands.Bot) -> None:
     @bot.command(name="help", aliases=["h"])
     async def help_command(ctx: commands.Context):
         view = HelpView(user_id=ctx.author.id)
-        message = await ctx.send(embed=view.build_overview_embed(), view=view)
+        message = await _reply(ctx, embed=view.build_overview_embed(), view=view)
         view.message = message
 
     @bot.command(name="dbexport")
     @commands.is_owner()
     async def dbexport(ctx: commands.Context):
         if not DB_PATH.exists():
-            await ctx.send(embed=italy_embed("DB Export", "No database file found yet."))
+            await _reply(ctx, embed=italy_embed("DB Export", "No database file found yet."))
             return
 
-        await ctx.send(
+        await _reply(ctx, 
             embed=italy_embed("DB Export", "Exporting current `noodswap.db`."),
             file=discord.File(DB_PATH, filename="noodswap.db"),
         )
@@ -1401,7 +1422,7 @@ def register_commands(bot: commands.Bot) -> None:
     @commands.is_owner()
     async def dbreset(ctx: commands.Context):
         reset_db_data()
-        await ctx.send(
+        await _reply(ctx, 
             embed=italy_embed(
                 "DB Reset",
                 "Database reset complete. All persisted Noodswap data has been deleted.",

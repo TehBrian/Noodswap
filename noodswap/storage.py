@@ -143,6 +143,28 @@ def assign_tag_to_instance(guild_id: int, user_id: int, instance_id: int, tag_na
         return instance_tags.add(guild_id, user_id, instance_id, normalized)
 
 
+def is_tag_assigned_to_instance(guild_id: int, user_id: int, instance_id: int, tag_name: str) -> bool:
+    guild_id = _scope_guild_id(guild_id)
+    normalized = _normalize_tag_name(tag_name)
+    if normalized is None:
+        return False
+
+    with get_db_connection() as conn:
+        players = PlayerRepository(conn, STARTING_DOUGH)
+        instances = CardInstanceRepository(conn)
+        tags = PlayerTagRepository(conn)
+        instance_tags = CardInstanceTagRepository(conn)
+        players.ensure_player(guild_id, user_id)
+
+        owned = instances.get_owned_instance_for_marry(guild_id, user_id, instance_id)
+        if owned is None:
+            return False
+        if not tags.exists(guild_id, user_id, normalized):
+            return False
+
+        return instance_tags.exists(guild_id, user_id, instance_id, normalized)
+
+
 def unassign_tag_from_instance(guild_id: int, user_id: int, instance_id: int, tag_name: str) -> bool:
     guild_id = _scope_guild_id(guild_id)
     normalized = _normalize_tag_name(tag_name)
@@ -170,6 +192,15 @@ def get_locked_tags_for_instance(guild_id: int, user_id: int, instance_id: int) 
         tags = PlayerTagRepository(conn)
         players.ensure_player(guild_id, user_id)
         return tags.list_locked_for_instance(guild_id, user_id, instance_id)
+
+
+def get_locked_instance_ids(guild_id: int, user_id: int, instance_ids: list[int] | None = None) -> set[int]:
+    guild_id = _scope_guild_id(guild_id)
+    with get_db_connection() as conn:
+        players = PlayerRepository(conn, STARTING_DOUGH)
+        tags = PlayerTagRepository(conn)
+        players.ensure_player(guild_id, user_id)
+        return tags.list_locked_instance_ids(guild_id, user_id, instance_ids)
 
 
 def get_instances_by_tag(guild_id: int, user_id: int, tag_name: str) -> list[tuple[int, str, int, str]]:

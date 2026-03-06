@@ -1505,12 +1505,14 @@ class SortableCollectionView(discord.ui.View):
         wish_counts: dict[str, int] | None,
         instance_styles: dict[int, tuple[str | None, str | None, str | None]] | None,
         guard_title: str,
+        locked_instance_ids: set[int] | None = None,
         page_size: int = 10,
     ):
         super().__init__(timeout=TRADE_TIMEOUT_SECONDS)
         self.user_id = user_id
         self.title = title
         self.instances = instances
+        self.locked_instance_ids = locked_instance_ids or set()
         self.wish_counts = wish_counts or {}
         self.instance_styles = instance_styles or {}
         self.guard_title = guard_title
@@ -1551,6 +1553,16 @@ class SortableCollectionView(discord.ui.View):
         return order.get(rarity, len(order))
 
     def _sorted_entries_for_mode(self, mode: str) -> list[tuple[int, str, int, str]]:
+        if mode == "generation":
+            return sorted(
+                self.instances,
+                key=lambda item: (
+                    item[2],
+                    str(CARD_CATALOG[item[1]]["name"]),
+                    item[0],
+                ),
+            )
+
         if mode == "wishes":
             return sorted(
                 self.instances,
@@ -1647,12 +1659,14 @@ class SortableCollectionView(discord.ui.View):
         if not page_instances:
             description = "No entries available."
         elif self.gallery_mode:
-            _, card_id, generation, dupe_code = page_instances[0]
-            description = f"{start + 1}. {card_dupe_display(card_id, generation, dupe_code=dupe_code)}"
+            instance_id, card_id, generation, dupe_code = page_instances[0]
+            lock_marker = "🔒 " if instance_id in self.locked_instance_ids else "`  ` "
+            description = f"{start + 1}. {lock_marker}{card_dupe_display(card_id, generation, dupe_code=dupe_code)}"
         else:
             lines = [
-                f"{idx}. {card_dupe_display(card_id, generation, dupe_code=dupe_code)}"
-                for idx, (_instance_id, card_id, generation, dupe_code) in enumerate(page_instances, start=start + 1)
+                f"{idx}. {'🔒 ' if instance_id in self.locked_instance_ids else '`  ` '}"
+                f"{card_dupe_display(card_id, generation, dupe_code=dupe_code)}"
+                for idx, (instance_id, card_id, generation, dupe_code) in enumerate(page_instances, start=start + 1)
             ]
             description = multiline_text(lines)
 
@@ -1671,6 +1685,7 @@ class SortableCollectionView(discord.ui.View):
                 embed.set_image(url=image_url)
 
         sort_label_map = {
+            "generation": "Generation",
             "wishes": "Wishes",
             "rarity": "Rarity",
             "series": "Series",
@@ -1713,6 +1728,7 @@ class SortableCollectionView(discord.ui.View):
         min_values=1,
         max_values=1,
         options=[
+            discord.SelectOption(label="Generation", value="generation", description="Lowest generation first"),
             discord.SelectOption(label="Wishes", value="wishes", description="Highest wish count first"),
             discord.SelectOption(label="Rarity", value="rarity", description="Rarest cards first"),
             discord.SelectOption(label="Series", value="series", description="Group by series"),

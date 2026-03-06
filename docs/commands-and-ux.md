@@ -258,15 +258,16 @@ Shows:
 
 - Render one line per owned card instance (no grouping)
 - Keep duplicate copies visible as separate entries
+- Show a `🔒` marker next to instances protected by at least one locked tag
 - Include each dupe's `Code` (e.g. `0`, `a`, `10`, `#10`)
-- Includes a sort dropdown with modes: `Wishes`, `Rarity`, `Series`, `Base Value`, `Actual Value`, `Alphabetical`
+- Includes a sort dropdown with modes: `Generation`, `Wishes`, `Rarity`, `Series`, `Base Value`, `Actual Value`, `Alphabetical`
 - Default sort mode is `Alphabetical`
 - Includes a `Gallery` toggle that switches to one-card-per-page image mode while keeping page navigation
 
 ## Tags UX
 
 - `tag cards <tag_name>` shows tagged card instances in a sortable, paginated embed
-- Sort modes are: `Wishes`, `Rarity`, `Series`, `Base Value`, `Actual Value`, `Alphabetical`
+- Sort modes are: `Generation`, `Wishes`, `Rarity`, `Series`, `Base Value`, `Actual Value`, `Alphabetical`
 - `Actual Value` uses per-instance computed card value (`card_value`), so generation differences affect order
 
 ## Interaction constraints

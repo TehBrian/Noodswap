@@ -689,6 +689,12 @@
     "rarity": "divine",
     "series": "relic"
   },
+  "KML": {
+    "image": "assets/card_images/KML.jpg",
+    "name": "Kee's Meatloaf",
+    "rarity": "divine",
+    "series": "entree"
+  },
   "LAM": {
     "image": "assets/card_images/LAM.jpg",
     "name": "Lambrusco",
@@ -760,6 +766,12 @@
     "name": "Macaroni",
     "rarity": "common",
     "series": "noodles"
+  },
+  "MNC": {
+    "image": "assets/card_images/MNC.jpg",
+    "name": "Macaroni and Cheese",
+    "rarity": "uncommon",
+    "series": "entree"
   },
   "MAN": {
     "image": "assets/card_images/MAN.jpg",
@@ -1177,7 +1189,7 @@
   },
   "RYE": {
     "image": "assets/card_images/RYE.jpg",
-    "name": "Rye",
+    "name": "Rye Bread",
     "rarity": "common",
     "series": "bread"
   },
@@ -1234,6 +1246,12 @@
     "name": "Saffron Ravioli",
     "rarity": "epic",
     "series": "pasta"
+  },
+  "SRI": {
+    "image": "assets/card_images/SRI.jpg",
+    "name": "Shrimp Fried Rice",
+    "rarity": "uncommon",
+    "series": "entree"
   },
   "SHC": {
     "image": "assets/card_images/SHC.jpg",

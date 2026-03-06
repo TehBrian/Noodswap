@@ -924,6 +924,51 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         edited_embed = interaction.response.edited_messages[0]["embed"]
         self.assertIn("Sort: Actual Value", edited_embed.footer.text)
 
+    async def test_sortable_collection_view_generation_sort_prioritizes_lowest_generation(self) -> None:
+        instances = [
+            (1, "SPG", 500, "0"),
+            (2, "BAR", 20, "1"),
+            (3, "BLA", 20, "2"),
+            (4, "SPG", 10, "3"),
+        ]
+        view = SortableCollectionView(
+            user_id=10,
+            title="Caller's Collection",
+            instances=instances,
+            wish_counts={},
+            instance_styles={},
+            guard_title="Collection",
+            page_size=10,
+        )
+
+        interaction = _FakeInteraction(user_id=10)
+        view.sort_select._values = ["generation"]
+        await view.sort_select.callback(interaction)
+
+        self.assertEqual(view.sort_mode, "generation")
+        self.assertEqual([row[0] for row in view._sorted_instances], [4, 2, 3, 1])
+        edited_embed = interaction.response.edited_messages[0]["embed"]
+        self.assertIn("Sort: Generation", edited_embed.footer.text)
+
+    async def test_sortable_collection_view_marks_locked_instances_with_emoji(self) -> None:
+        instances = [
+            (1, "SPG", 100, "0"),
+            (2, "BLA", 120, "1"),
+        ]
+        view = SortableCollectionView(
+            user_id=10,
+            title="Caller's Collection",
+            instances=instances,
+            wish_counts={},
+            instance_styles={},
+            guard_title="Collection",
+            locked_instance_ids={1},
+            page_size=10,
+        )
+
+        embed = view.build_embed()
+        self.assertIn("🔒", embed.description)
+
     async def test_sortable_collection_view_gallery_toggle(self) -> None:
         instances = [
             (1, "SPG", 100, "0"),

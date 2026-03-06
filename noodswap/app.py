@@ -16,6 +16,10 @@ from .storage import init_db
 logger = logging.getLogger(__name__)
 
 
+async def _reply(ctx: commands.Context, **kwargs):
+    return await ctx.reply(mention_author=False, **kwargs)
+
+
 def resolve_discord_token() -> str:
     token = os.getenv("DISCORD_TOKEN")
     if token:
@@ -97,7 +101,8 @@ def create_bot() -> commands.Bot:
             if usage_hint:
                 description = f"{description}\n{usage_hint}"
 
-            await ctx.send(
+            await _reply(
+                ctx,
                 embed=italy_embed(
                     "Command Error",
                     description,
@@ -106,15 +111,16 @@ def create_bot() -> commands.Bot:
             return
 
         if isinstance(error, commands.BadArgument):
-            await ctx.send(embed=italy_embed("Command Error", "Invalid argument provided."))
+            await _reply(ctx, embed=italy_embed("Command Error", "Invalid argument provided."))
             return
 
         if isinstance(error, commands.CheckFailure):
-            await ctx.send(embed=italy_embed("Permission", "You are not allowed to run this command."))
+            await _reply(ctx, embed=italy_embed("Permission", "You are not allowed to run this command."))
             return
 
         logger.exception("Unhandled command error", exc_info=error)
-        await ctx.send(
+        await _reply(
+            ctx,
             embed=italy_embed(
                 "Unexpected Error",
                 "Something went wrong while processing that command.",

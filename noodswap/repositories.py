@@ -479,10 +479,53 @@ class PlayerTagRepository:
         ).fetchall()
         return [str(row["tag_name"]) for row in rows]
 
+    def list_locked_instance_ids(
+        self,
+        guild_id: int,
+        user_id: int,
+        instance_ids: list[int] | None = None,
+    ) -> set[int]:
+        base_query = (
+            """
+            SELECT DISTINCT cit.instance_id
+            FROM card_instance_tags cit
+            JOIN player_tags pt
+                ON pt.guild_id = cit.guild_id
+                AND pt.user_id = cit.user_id
+                AND pt.tag_name = cit.tag_name
+            WHERE cit.guild_id = ?
+                AND cit.user_id = ?
+                AND pt.is_locked = 1
+            """
+        )
+        params: list[int] = [guild_id, user_id]
+
+        if instance_ids is not None:
+            if not instance_ids:
+                return set()
+            placeholders = ", ".join("?" for _ in instance_ids)
+            base_query += f" AND cit.instance_id IN ({placeholders})"
+            params.extend(instance_ids)
+
+        rows = self.conn.execute(base_query, params).fetchall()
+        return {int(row["instance_id"]) for row in rows}
+
 
 class CardInstanceTagRepository:
     def __init__(self, conn: sqlite3.Connection):
         self.conn = conn
+
+    def exists(self, guild_id: int, user_id: int, instance_id: int, tag_name: str) -> bool:
+        row = self.conn.execute(
+            """
+            SELECT 1
+            FROM card_instance_tags
+            WHERE guild_id = ? AND user_id = ? AND instance_id = ? AND tag_name = ?
+            LIMIT 1
+            """,
+            (guild_id, user_id, instance_id, tag_name),
+        ).fetchone()
+        return row is not None
 
     def add(self, guild_id: int, user_id: int, instance_id: int, tag_name: str) -> bool:
         cursor = self.conn.execute(
