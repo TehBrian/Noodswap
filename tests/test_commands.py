@@ -183,7 +183,7 @@ class CommandsTagTests(unittest.IsolatedAsyncioTestCase):
         sent_embed = ctx.send.await_args.kwargs["embed"]
         self.assertEqual(sent_embed.title, "Your Tags")
         self.assertIn("🔒 `safe` - Locked - 2 card(s)", sent_embed.description)
-        self.assertIn("`trash` - Unlocked - 1 card(s)", sent_embed.description)
+        self.assertIn("`  ` `trash` - Unlocked - 1 card(s)", sent_embed.description)
 
     async def test_tag_assign_rejects_unowned_card_code(self) -> None:
         tag_assign_command = _get_group_command(self.bot, "tag", "assign")

@@ -968,6 +968,7 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
 
         embed = view.build_embed()
         self.assertIn("🔒", embed.description)
+        self.assertIn("`  `", embed.description)
 
     async def test_sortable_collection_view_gallery_toggle(self) -> None:
         instances = [
