@@ -43,13 +43,12 @@ docker run --rm -e DISCORD_TOKEN=your-token noodswap:local
 
 ### Server setup (one time)
 
-Use a deploy path such as `/opt/noodswap`.
+Use a deploy path such as `/home/noodswap-user/noodswap` owned by a dedicated Linux user named `noodswap-user`.
 
 ```bash
-cd /opt/noodswap/deploy
-cp .env.example .env
-cp runtime.env.example runtime.env
-mkdir -p data/card_images
+sudo useradd --system --create-home --home-dir /home/noodswap-user --shell /usr/sbin/nologin noodswap-user
+sudo -u noodswap-user mkdir -p /home/noodswap-user/noodswap
+sudo -u noodswap-user bash -lc 'cd /home/noodswap-user/noodswap/deploy && cp .env.example .env && cp runtime.env.example runtime.env && mkdir -p data/card_images'
 ```
 
 Set required values:
@@ -65,16 +64,16 @@ Optional runtime values:
 ### Manual deploy/update
 
 ```bash
-cd /opt/noodswap
-./deploy/update.sh
+sudo -u noodswap-user bash -lc 'cd /home/noodswap-user/noodswap && ./deploy/update.sh'
 ```
 
 ### Jenkins minimum setup
 
 - Credential ID `ghcr-readonly` (`Username with password`, PAT needs `read:packages`)
 - Job environment variables:
-  - `DEPLOY_PATH=/opt/noodswap`
+   - `DEPLOY_PATH=/home/noodswap-user/noodswap`
   - `IMAGE_REPOSITORY=ghcr.io/<your-github-user-or-org>/noodswap`
+- Ensure the Jenkins job executes deploy commands as `noodswap-user` (for example via `sudo -u noodswap-user ...`).
 - GitHub webhook for push events
 
 Full Jenkins instructions: `docs/deploy-jenkins.md`.

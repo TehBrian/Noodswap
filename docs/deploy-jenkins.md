@@ -22,14 +22,10 @@ sudo usermod -aG docker $USER
 Then clone repo and prepare deploy files:
 
 ```bash
-sudo mkdir -p /opt/noodswap
-sudo chown -R "$USER":"$USER" /opt/noodswap
-cd /opt/noodswap
-git clone <your-repo-url> .
-cd deploy
-cp .env.example .env
-cp runtime.env.example runtime.env
-mkdir -p data/card_images
+sudo useradd --system --create-home --home-dir /home/noodswap-user --shell /usr/sbin/nologin noodswap-user
+sudo usermod -aG docker noodswap-user
+sudo -u noodswap-user mkdir -p /home/noodswap-user/noodswap
+sudo -u noodswap-user bash -lc 'cd /home/noodswap-user/noodswap && git clone <your-repo-url> . && cd deploy && cp .env.example .env && cp runtime.env.example runtime.env && mkdir -p data/card_images'
 ```
 
 Edit `deploy/.env`:
@@ -54,7 +50,7 @@ DISCORD_TOKEN=<your-token>
    - Username: your GitHub username or org service account
    - Password: GitHub PAT with `read:packages`
 4. In job configuration/environment, set:
-   - `DEPLOY_PATH=/opt/noodswap`
+   - `DEPLOY_PATH=/home/noodswap-user/noodswap`
    - `IMAGE_REPOSITORY=ghcr.io/<your-github-user-or-org>/noodswap`
 5. Add GitHub webhook to Jenkins endpoint for push events.
 
