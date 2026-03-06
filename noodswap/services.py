@@ -1,10 +1,17 @@
 from dataclasses import dataclass
+import math
+import random
 from typing import Optional
 
-from .cards import get_burn_payout, make_drop_choices, split_card_code
-from .settings import DROP_CHOICES_COUNT, PULL_COOLDOWN_SECONDS
+from .cards import card_value, get_burn_payout, make_drop_choices, split_card_code
+from .morphs import AVAILABLE_MORPHS, MORPH_COST_FRACTION, morph_label
+from .settings import DROP_CHOICES_COUNT, DROP_COOLDOWN_SECONDS
 from .storage import (
+    apply_morph_to_instance,
     divorce_card,
+    get_locked_tags_for_instance,
+    get_player_cooldown_timestamps,
+    get_instance_morph,
     get_instance_by_code,
     get_last_pulled_instance,
     get_player_stats,
@@ -24,13 +31,13 @@ class DropPreparation:
 
 
 def prepare_drop(guild_id: int, user_id: int, now: float) -> DropPreparation:
-    _, last_drop_at, _ = get_player_stats(guild_id, user_id)
+    last_drop_at, _ = get_player_cooldown_timestamps(guild_id, user_id)
     elapsed = now - last_drop_at
 
-    if elapsed < PULL_COOLDOWN_SECONDS:
+    if elapsed < DROP_COOLDOWN_SECONDS:
         return DropPreparation(
             choices=[],
-            cooldown_remaining_seconds=PULL_COOLDOWN_SECONDS - elapsed,
+            cooldown_remaining_seconds=DROP_COOLDOWN_SECONDS - elapsed,
         )
 
     choices = make_drop_choices(DROP_CHOICES_COUNT)
@@ -80,7 +87,7 @@ def prepare_burn(guild_id: int, user_id: int, card_code: Optional[str]) -> BurnP
         parsed = split_card_code(card_code)
         if parsed is None:
             return BurnPreparation(
-                error_message="Invalid card code. Use format like `0`, `a`, or `10`.",
+                error_message="Invalid card code. Use format like `0`, `a`, `10`, or `#10`.",
                 instance_id=None,
                 card_id=None,
                 generation=None,
@@ -110,6 +117,23 @@ def prepare_burn(guild_id: int, user_id: int, card_code: Optional[str]) -> BurnP
             )
 
     instance_id, burn_card_id, burn_generation, burn_dupe_code = target_instance
+    locked_tags = get_locked_tags_for_instance(guild_id, user_id, instance_id)
+    if locked_tags:
+        locked_tags_text = ", ".join(f"`{tag}`" for tag in locked_tags)
+        return BurnPreparation(
+            error_message=f"That card is protected by locked tag(s): {locked_tags_text}.",
+            instance_id=None,
+            card_id=None,
+            generation=None,
+            dupe_code=None,
+            payout=None,
+            value=None,
+            base_value=None,
+            delta=None,
+            delta_range=None,
+            multiplier=None,
+        )
+
     payout, value, base_value, delta, multiplier, delta_range = get_burn_payout(burn_card_id, burn_generation)
     return BurnPreparation(
         error_message=None,
@@ -204,6 +228,129 @@ def execute_divorce(guild_id: int, user_id: int) -> DivorceExecution:
 
 
 @dataclass(frozen=True)
+class MorphExecution:
+    error_message: Optional[str]
+    instance_id: Optional[int]
+    card_id: Optional[str]
+    generation: Optional[int]
+    dupe_code: Optional[str]
+    morph_key: Optional[str]
+    morph_name: Optional[str]
+    cost: Optional[int]
+    remaining_dough: Optional[int]
+
+    @property
+    def is_error(self) -> bool:
+        return self.error_message is not None
+
+
+def execute_morph(guild_id: int, user_id: int, card_code: Optional[str]) -> MorphExecution:
+    target_instance: Optional[tuple[int, str, int, str]] = None
+
+    if card_code is None:
+        target_instance = get_last_pulled_instance(guild_id, user_id)
+        if target_instance is None:
+            return MorphExecution(
+                error_message="No previous pulled card found. Provide a card code, e.g. `ns morph 0`.",
+                instance_id=None,
+                card_id=None,
+                generation=None,
+                dupe_code=None,
+                morph_key=None,
+                morph_name=None,
+                cost=None,
+                remaining_dough=None,
+            )
+    else:
+        parsed = split_card_code(card_code)
+        if parsed is None:
+            return MorphExecution(
+                error_message="Invalid card code. Use format like `0`, `a`, `10`, or `#10`.",
+                instance_id=None,
+                card_id=None,
+                generation=None,
+                dupe_code=None,
+                morph_key=None,
+                morph_name=None,
+                cost=None,
+                remaining_dough=None,
+            )
+
+        target_instance = get_instance_by_code(guild_id, user_id, card_code)
+        if target_instance is None:
+            return MorphExecution(
+                error_message="You do not own that card code.",
+                instance_id=None,
+                card_id=None,
+                generation=None,
+                dupe_code=None,
+                morph_key=None,
+                morph_name=None,
+                cost=None,
+                remaining_dough=None,
+            )
+
+    if not AVAILABLE_MORPHS:
+        return MorphExecution(
+            error_message="No morphs are currently available.",
+            instance_id=None,
+            card_id=None,
+            generation=None,
+            dupe_code=None,
+            morph_key=None,
+            morph_name=None,
+            cost=None,
+            remaining_dough=None,
+        )
+
+    instance_id, morph_card_id, morph_generation, morph_dupe_code = target_instance
+    rolled_morph = random.choice(AVAILABLE_MORPHS)
+
+    if get_instance_morph(guild_id, instance_id) == rolled_morph:
+        return MorphExecution(
+            error_message=f"That card already has the {morph_label(rolled_morph)} morph.",
+            instance_id=None,
+            card_id=None,
+            generation=None,
+            dupe_code=None,
+            morph_key=None,
+            morph_name=None,
+            cost=None,
+            remaining_dough=None,
+        )
+
+    value = card_value(morph_card_id, morph_generation)
+    cost = max(1, int(math.ceil(value * MORPH_COST_FRACTION)))
+
+    applied, message = apply_morph_to_instance(guild_id, user_id, instance_id, rolled_morph, cost)
+    if not applied:
+        return MorphExecution(
+            error_message=message or "Morph failed.",
+            instance_id=None,
+            card_id=None,
+            generation=None,
+            dupe_code=None,
+            morph_key=None,
+            morph_name=None,
+            cost=None,
+            remaining_dough=None,
+        )
+
+    dough_after, _, _ = get_player_stats(guild_id, user_id)
+    return MorphExecution(
+        error_message=None,
+        instance_id=instance_id,
+        card_id=morph_card_id,
+        generation=morph_generation,
+        dupe_code=morph_dupe_code,
+        morph_key=rolled_morph,
+        morph_name=morph_label(rolled_morph),
+        cost=cost,
+        remaining_dough=dough_after,
+    )
+
+
+@dataclass(frozen=True)
 class TradeOfferPreparation:
     error_message: Optional[str]
     card_id: Optional[str]
@@ -235,7 +382,7 @@ def prepare_trade_offer(
     parsed = split_card_code(card_code)
     if parsed is None:
         return TradeOfferPreparation(
-            error_message="Invalid card code. Use format like `0`, `a`, or `10`.",
+            error_message="Invalid card code. Use format like `0`, `a`, `10`, or `#10`.",
             card_id=None,
             generation=None,
             dupe_code=None,

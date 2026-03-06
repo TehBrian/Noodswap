@@ -16,7 +16,7 @@ from .cards import (
     search_card_ids,
     search_card_ids_by_name,
 )
-from .images import embed_image_payload, read_local_card_image_bytes
+from .images import DEFAULT_CARD_RENDER_SIZE, embed_image_payload, read_local_card_image_bytes, render_card_surface
 from .presentation import (
     burn_confirmation_description,
     drop_choices_description,
@@ -25,14 +25,24 @@ from .presentation import (
     italy_marry_embed,
     trade_offer_description,
 )
-from .services import execute_divorce, execute_marry, prepare_burn, prepare_drop, prepare_trade_offer
-from .settings import DB_PATH, DROP_TIMEOUT_SECONDS, PULL_COOLDOWN_SECONDS
+from .services import execute_divorce, execute_marry, execute_morph, prepare_burn, prepare_drop, prepare_trade_offer
+from .settings import DB_PATH, DROP_COOLDOWN_SECONDS, DROP_TIMEOUT_SECONDS, PULL_COOLDOWN_SECONDS
 from .storage import (
+    assign_tag_to_instance,
+    create_player_tag,
+    delete_player_tag,
+    get_instance_by_code,
     get_instance_by_id,
     get_instance_by_dupe_code,
+    get_instance_morph,
+    get_instances_by_tag,
+    get_player_cooldown_timestamps,
     get_player_card_instances,
+    list_player_tags,
     get_player_stats,
     get_total_cards,
+    set_player_tag_locked,
+    unassign_tag_from_instance,
     add_card_to_wishlist,
     get_card_wish_counts,
     get_wishlist_cards,
@@ -40,7 +50,15 @@ from .storage import (
     reset_db_data,
 )
 from .utils import format_cooldown, multiline_text
-from .views import BurnConfirmView, CardCatalogView, DropView, PaginatedLinesView, SortableCardListView, TradeView
+from .views import (
+    BurnConfirmView,
+    CardCatalogView,
+    DropView,
+    PaginatedLinesView,
+    SortableCardListView,
+    SortableCollectionView,
+    TradeView,
+)
 
 
 async def resolve_member_argument(ctx: commands.Context, raw_member: str) -> tuple[discord.Member | None, str | None]:
@@ -78,52 +96,94 @@ async def resolve_member_argument(ctx: commands.Context, raw_member: str) -> tup
     return None, "Could not find that player. Mention them like `@Friend` or use their exact username."
 
 
+async def resolve_optional_player_argument(
+    ctx: commands.Context,
+    player: str | None,
+) -> tuple[discord.Member | None, str | None]:
+    if player is not None:
+        return await resolve_member_argument(ctx, player)
+
+    if ctx.guild is None:
+        return None, "Use this command in a server."
+
+    message = getattr(ctx, "message", None)
+    reference = getattr(message, "reference", None)
+    if reference is None:
+        return ctx.author, None
+
+    replied_author_id: int | None = None
+    resolved_reference = getattr(reference, "resolved", None)
+    if isinstance(resolved_reference, discord.Message):
+        replied_author_id = resolved_reference.author.id
+    else:
+        resolved_author = getattr(resolved_reference, "author", None)
+        resolved_author_id = getattr(resolved_author, "id", None)
+        if isinstance(resolved_author_id, int):
+            replied_author_id = resolved_author_id
+
+    if replied_author_id is None:
+        reference_message_id = getattr(reference, "message_id", None)
+        if not isinstance(reference_message_id, int):
+            return ctx.author, None
+
+        channel = getattr(ctx, "channel", None)
+        fetch_message = getattr(channel, "fetch_message", None)
+        if callable(fetch_message):
+            try:
+                referenced_message = await fetch_message(reference_message_id)
+                fetched_author_id = getattr(referenced_message.author, "id", None)
+                if isinstance(fetched_author_id, int):
+                    replied_author_id = fetched_author_id
+            except (discord.NotFound, discord.Forbidden, discord.HTTPException):
+                replied_author_id = None
+
+    if replied_author_id is None:
+        return ctx.author, None
+
+    target_member = ctx.guild.get_member(replied_author_id)
+    if target_member is not None:
+        return target_member, None
+
+    fetch_member = getattr(ctx.guild, "fetch_member", None)
+    if callable(fetch_member):
+        try:
+            return await fetch_member(replied_author_id), None
+        except (discord.NotFound, discord.Forbidden, discord.HTTPException):
+            return ctx.author, None
+
+    return ctx.author, None
+
+
 def _get_card_image_bytes(card_id: str) -> bytes | None:
     return read_local_card_image_bytes(card_id)
 
 
 def _build_drop_preview_blocking(choices: list[tuple[str, int]]) -> bytes | None:
     try:
-        from PIL import Image, ImageDraw, ImageOps
+        from PIL import Image
     except ImportError:
         return None
 
-    card_w = 360
-    card_h = 240
-
-    def _placeholder_image(card_id: str, generation: int) -> Image.Image:
-        image = Image.new("RGB", (card_w, card_h), (32, 32, 32))
-        draw = ImageDraw.Draw(image)
-        draw.text((16, 16), f"{card_id}\nG-{generation:04d}", fill=(235, 235, 235))
-        draw.text((16, card_h - 36), "Image unavailable", fill=(190, 190, 190))
-        return image
-
-    images: list[Image.Image] = []
+    card_w, card_h = DEFAULT_CARD_RENDER_SIZE
+    card_surfaces: list[Image.Image] = []
     for card_id, generation in choices:
-        raw = _get_card_image_bytes(card_id)
-        if raw is None:
-            images.append(_placeholder_image(card_id, generation))
-            continue
-
-        try:
-            image = Image.open(io.BytesIO(raw)).convert("RGB")
-            images.append(image)
-        except Exception:
-            images.append(_placeholder_image(card_id, generation))
+        surface = render_card_surface(card_id, generation=generation, size=(card_w, card_h))
+        if surface is None:
+            return None
+        card_surfaces.append(surface)
 
     gap = 16
     pad = 16
     canvas_w = (card_w * len(choices)) + (gap * (len(choices) - 1)) + (pad * 2)
     canvas_h = card_h + (pad * 2)
 
-    canvas = Image.new("RGB", (canvas_w, canvas_h), (20, 20, 20))
+    canvas = Image.new("RGBA", (canvas_w, canvas_h), (20, 20, 20, 255))
 
     for idx in range(len(choices)):
-        image = images[idx]
-        fitted = ImageOps.fit(image, (card_w, card_h), method=Image.Resampling.LANCZOS)
+        image = card_surfaces[idx]
         x = pad + idx * (card_w + gap)
         y = pad
-        canvas.paste(fitted, (x, y))
+        canvas.paste(image, (x, y), image)
 
     output = io.BytesIO()
     canvas.save(output, format="PNG")
@@ -136,6 +196,22 @@ async def build_drop_preview_file(choices: list[tuple[str, int]]) -> discord.Fil
     if image_bytes is None:
         return None
     return discord.File(io.BytesIO(image_bytes), filename="drop_choices.png")
+
+
+def _cooldown_progress_bar(elapsed_seconds: float, total_seconds: float, size: int = 8) -> str:
+    if total_seconds <= 0:
+        return "🟩" * size
+    normalized = max(0.0, min(1.0, elapsed_seconds / total_seconds))
+    filled = int(round(normalized * size))
+    return ("🟩" * filled) + ("⬜" * (size - filled))
+
+
+def _cooldown_status_line(label: str, elapsed_seconds: float, cooldown_seconds: float) -> str:
+    remaining = max(0.0, cooldown_seconds - elapsed_seconds)
+    progress = _cooldown_progress_bar(elapsed_seconds, cooldown_seconds)
+    if remaining > 0:
+        return f"{label}: {progress} **Cooling Down** (ready in **{format_cooldown(remaining)}**)"
+    return f"{label}: {progress} **Ready** (can use now)"
 
 
 async def _wish_add(ctx: commands.Context, card_id: str) -> None:
@@ -225,6 +301,144 @@ async def _wish_list(ctx: commands.Context, target_member: discord.Member | None
     view.message = message
 
 
+async def _tag_add(ctx: commands.Context, tag_name: str) -> None:
+    if ctx.guild is None:
+        await ctx.send(embed=italy_embed("Tags", "Use this command in a server."))
+        return
+
+    created = create_player_tag(ctx.guild.id, ctx.author.id, tag_name)
+    normalized = tag_name.strip().lower()
+    if not created:
+        await ctx.send(
+            embed=italy_embed(
+                "Tags",
+                "Could not create that tag. Tags must be unique, non-empty, and up to 32 characters.",
+            )
+        )
+        return
+
+    await ctx.send(embed=italy_embed("Tags", f"Created tag: `{normalized}`"))
+
+
+async def _tag_remove(ctx: commands.Context, tag_name: str) -> None:
+    if ctx.guild is None:
+        await ctx.send(embed=italy_embed("Tags", "Use this command in a server."))
+        return
+
+    removed = delete_player_tag(ctx.guild.id, ctx.author.id, tag_name)
+    normalized = tag_name.strip().lower()
+    if not removed:
+        await ctx.send(embed=italy_embed("Tags", f"Tag not found: `{normalized}`"))
+        return
+
+    await ctx.send(embed=italy_embed("Tags", f"Deleted tag: `{normalized}`"))
+
+
+async def _tag_list(ctx: commands.Context) -> None:
+    if ctx.guild is None:
+        await ctx.send(embed=italy_embed("Tags", "Use this command in a server."))
+        return
+
+    tags = list_player_tags(ctx.guild.id, ctx.author.id)
+    if not tags:
+        await ctx.send(embed=italy_embed("Your Tags", "No tags yet. Create one with `ns tag add <tag_name>`."))
+        return
+
+    lines = [
+        f"`{tag_name}` - {'Locked' if is_locked else 'Unlocked'} - {card_count} card(s)"
+        for tag_name, is_locked, card_count in tags
+    ]
+    await ctx.send(embed=italy_embed("Your Tags", multiline_text(lines)))
+
+
+async def _tag_lock(ctx: commands.Context, tag_name: str, locked: bool) -> None:
+    if ctx.guild is None:
+        await ctx.send(embed=italy_embed("Tags", "Use this command in a server."))
+        return
+
+    updated = set_player_tag_locked(ctx.guild.id, ctx.author.id, tag_name, locked)
+    normalized = tag_name.strip().lower()
+    if not updated:
+        await ctx.send(embed=italy_embed("Tags", f"Tag not found: `{normalized}`"))
+        return
+
+    state = "locked" if locked else "unlocked"
+    await ctx.send(embed=italy_embed("Tags", f"Tag `{normalized}` is now **{state}**."))
+
+
+async def _tag_assign(ctx: commands.Context, tag_name: str, card_code: str) -> None:
+    if ctx.guild is None:
+        await ctx.send(embed=italy_embed("Tags", "Use this command in a server."))
+        return
+
+    selected = get_instance_by_code(ctx.guild.id, ctx.author.id, card_code)
+    if selected is None:
+        await ctx.send(embed=italy_embed("Tags", "You do not own that card code."))
+        return
+
+    instance_id, card_id, generation, dupe_code = selected
+    assigned = assign_tag_to_instance(ctx.guild.id, ctx.author.id, instance_id, tag_name)
+    normalized = tag_name.strip().lower()
+    if not assigned:
+        await ctx.send(
+            embed=italy_embed(
+                "Tags",
+                "Could not tag that card. Make sure the tag exists and the card is yours.",
+            )
+        )
+        return
+
+    await ctx.send(
+        embed=italy_embed(
+            "Tags",
+            f"Tagged {card_dupe_display(card_id, generation, dupe_code=dupe_code)} with `{normalized}`.",
+        )
+    )
+
+
+async def _tag_unassign(ctx: commands.Context, tag_name: str, card_code: str) -> None:
+    if ctx.guild is None:
+        await ctx.send(embed=italy_embed("Tags", "Use this command in a server."))
+        return
+
+    selected = get_instance_by_code(ctx.guild.id, ctx.author.id, card_code)
+    if selected is None:
+        await ctx.send(embed=italy_embed("Tags", "You do not own that card code."))
+        return
+
+    instance_id, card_id, generation, dupe_code = selected
+    unassigned = unassign_tag_from_instance(ctx.guild.id, ctx.author.id, instance_id, tag_name)
+    normalized = tag_name.strip().lower()
+    if not unassigned:
+        await ctx.send(embed=italy_embed("Tags", f"That card is not tagged with `{normalized}`."))
+        return
+
+    await ctx.send(
+        embed=italy_embed(
+            "Tags",
+            f"Removed `{normalized}` from {card_dupe_display(card_id, generation, dupe_code=dupe_code)}.",
+        )
+    )
+
+
+async def _tag_cards(ctx: commands.Context, tag_name: str) -> None:
+    if ctx.guild is None:
+        await ctx.send(embed=italy_embed("Tags", "Use this command in a server."))
+        return
+
+    normalized = tag_name.strip().lower()
+    tagged_instances = get_instances_by_tag(ctx.guild.id, ctx.author.id, normalized)
+    if not tagged_instances:
+        await ctx.send(embed=italy_embed("Tags", f"No cards found for tag `{normalized}`."))
+        return
+
+    lines = [
+        card_dupe_display(card_id, generation, dupe_code=dupe_code)
+        for _instance_id, card_id, generation, dupe_code in tagged_instances
+    ]
+    await ctx.send(embed=italy_embed(f"Tag: `{normalized}`", multiline_text(lines)))
+
+
 def register_commands(bot: commands.Bot) -> None:
     @bot.group(name="wish", aliases=["w"], invoke_without_command=True)
     async def wish(ctx: commands.Context):
@@ -245,13 +459,11 @@ def register_commands(bot: commands.Bot) -> None:
 
     @wish.command(name="list", aliases=["l"])
     async def wish_list(ctx: commands.Context, *, player: str | None = None):
-        target_member = ctx.author
-        if player is not None:
-            resolved_member, resolve_error = await resolve_member_argument(ctx, player)
-            if resolved_member is None:
-                await ctx.send(embed=italy_embed("Wishlist", resolve_error or "Could not resolve player."))
-                return
-            target_member = resolved_member
+        resolved_member, resolve_error = await resolve_optional_player_argument(ctx, player)
+        if resolved_member is None:
+            await ctx.send(embed=italy_embed("Wishlist", resolve_error or "Could not resolve player."))
+            return
+        target_member = resolved_member
         await _wish_list(ctx, target_member)
 
     @bot.command(name="wa")
@@ -264,14 +476,58 @@ def register_commands(bot: commands.Bot) -> None:
 
     @bot.command(name="wl")
     async def wish_list_short(ctx: commands.Context, *, player: str | None = None):
-        target_member = ctx.author
-        if player is not None:
-            resolved_member, resolve_error = await resolve_member_argument(ctx, player)
-            if resolved_member is None:
-                await ctx.send(embed=italy_embed("Wishlist", resolve_error or "Could not resolve player."))
-                return
-            target_member = resolved_member
+        resolved_member, resolve_error = await resolve_optional_player_argument(ctx, player)
+        if resolved_member is None:
+            await ctx.send(embed=italy_embed("Wishlist", resolve_error or "Could not resolve player."))
+            return
+        target_member = resolved_member
         await _wish_list(ctx, target_member)
+
+    @bot.group(name="tag", aliases=["tg"], invoke_without_command=True)
+    async def tag(ctx: commands.Context):
+        await ctx.send(
+            embed=italy_embed(
+                "Tags",
+                (
+                    "Usage: `ns tag add <tag_name>`, `ns tag remove <tag_name>`, `ns tag list`, "
+                    "`ns tag lock <tag_name>`, `ns tag unlock <tag_name>`, "
+                    "`ns tag assign <tag_name> <card_code>`, `ns tag unassign <tag_name> <card_code>`, "
+                    "`ns tag cards <tag_name>`."
+                ),
+            )
+        )
+
+    @tag.command(name="add", aliases=["a", "create"])
+    async def tag_add(ctx: commands.Context, tag_name: str):
+        await _tag_add(ctx, tag_name)
+
+    @tag.command(name="remove", aliases=["r", "delete"])
+    async def tag_remove(ctx: commands.Context, tag_name: str):
+        await _tag_remove(ctx, tag_name)
+
+    @tag.command(name="list", aliases=["l"])
+    async def tag_list(ctx: commands.Context):
+        await _tag_list(ctx)
+
+    @tag.command(name="lock")
+    async def tag_lock(ctx: commands.Context, tag_name: str):
+        await _tag_lock(ctx, tag_name, True)
+
+    @tag.command(name="unlock")
+    async def tag_unlock(ctx: commands.Context, tag_name: str):
+        await _tag_lock(ctx, tag_name, False)
+
+    @tag.command(name="assign", aliases=["as"])
+    async def tag_assign(ctx: commands.Context, tag_name: str, card_code: str):
+        await _tag_assign(ctx, tag_name, card_code)
+
+    @tag.command(name="unassign", aliases=["u"])
+    async def tag_unassign(ctx: commands.Context, tag_name: str, card_code: str):
+        await _tag_unassign(ctx, tag_name, card_code)
+
+    @tag.command(name="cards", aliases=["c"])
+    async def tag_cards(ctx: commands.Context, tag_name: str):
+        await _tag_cards(ctx, tag_name)
 
     @bot.command(name="cards", aliases=["ca"])
     async def cards(ctx: commands.Context):
@@ -295,12 +551,16 @@ def register_commands(bot: commands.Bot) -> None:
         if ctx.guild is not None:
             matched_instance = get_instance_by_dupe_code(ctx.guild.id, card_id)
             if matched_instance is not None:
-                _, matched_card_id, matched_generation, matched_dupe_code = matched_instance
+                matched_instance_id, matched_card_id, matched_generation, matched_dupe_code = matched_instance
                 lookup_embed = italy_embed(
                     "Card Lookup",
                     card_dupe_display(matched_card_id, matched_generation, dupe_code=matched_dupe_code),
                 )
-                image_url, image_file = embed_image_payload(matched_card_id)
+                image_url, image_file = embed_image_payload(
+                    matched_card_id,
+                    generation=matched_generation,
+                    morph_key=get_instance_morph(ctx.guild.id, matched_instance_id),
+                )
                 if image_url is not None:
                     lookup_embed.set_image(url=image_url)
                 send_kwargs: dict[str, object] = {"embed": lookup_embed}
@@ -405,7 +665,14 @@ def register_commands(bot: commands.Bot) -> None:
             "Marry",
             f"You are now married to {card_dupe_display(result.card_id, result.generation, dupe_code=result.dupe_code)}.",
         )
-        image_url, image_file = embed_image_payload(result.card_id)
+        morph_key = None
+        if result.dupe_code is not None:
+            married_instance = get_instance_by_code(ctx.guild.id, ctx.author.id, result.dupe_code)
+            if married_instance is not None:
+                married_instance_id, _, _, _ = married_instance
+                morph_key = get_instance_morph(ctx.guild.id, married_instance_id)
+
+        image_url, image_file = embed_image_payload(result.card_id, generation=result.generation, morph_key=morph_key)
         if image_url is not None:
             marry_embed.set_image(url=image_url)
         send_kwargs: dict[str, object] = {"embed": marry_embed}
@@ -432,7 +699,14 @@ def register_commands(bot: commands.Bot) -> None:
             "Divorce",
             f"You divorced {card_dupe_display(result.card_id, result.generation, dupe_code=result.dupe_code)}.",
         )
-        image_url, image_file = embed_image_payload(result.card_id)
+        morph_key = None
+        if result.dupe_code is not None:
+            divorced_instance = get_instance_by_code(ctx.guild.id, ctx.author.id, result.dupe_code)
+            if divorced_instance is not None:
+                divorced_instance_id, _, _, _ = divorced_instance
+                morph_key = get_instance_morph(ctx.guild.id, divorced_instance_id)
+
+        image_url, image_file = embed_image_payload(result.card_id, generation=result.generation, morph_key=morph_key)
         if image_url is not None:
             divorce_embed.set_image(url=image_url)
         send_kwargs: dict[str, object] = {"embed": divorce_embed}
@@ -446,13 +720,11 @@ def register_commands(bot: commands.Bot) -> None:
             await ctx.send(embed=italy_embed("Collection", "Use this command in a server."))
             return
 
-        target_member = ctx.author
-        if player is not None:
-            resolved_member, resolve_error = await resolve_member_argument(ctx, player)
-            if resolved_member is None:
-                await ctx.send(embed=italy_embed("Collection", resolve_error or "Could not resolve player."))
-                return
-            target_member = resolved_member
+        resolved_member, resolve_error = await resolve_optional_player_argument(ctx, player)
+        if resolved_member is None:
+            await ctx.send(embed=italy_embed("Collection", resolve_error or "Could not resolve player."))
+            return
+        target_member = resolved_member
 
         instances = get_player_card_instances(ctx.guild.id, target_member.id)
         title = f"{target_member.display_name}'s Collection"
@@ -465,15 +737,11 @@ def register_commands(bot: commands.Bot) -> None:
             await ctx.send(embed=italy_embed(title, description))
             return
 
-        sorted_instances = sorted(instances, key=lambda item: (item[2], item[1], item[0]))
-        lines = [
-            card_dupe_display(card_id, generation, dupe_code=dupe_code)
-            for _, card_id, generation, dupe_code in sorted_instances
-        ]
-        view = PaginatedLinesView(
+        view = SortableCollectionView(
             user_id=ctx.author.id,
             title=title,
-            lines=lines,
+            instances=instances,
+            wish_counts=get_card_wish_counts(ctx.guild.id),
             guard_title="Collection",
         )
         message = await ctx.send(embed=view.build_embed(), view=view)
@@ -525,7 +793,11 @@ def register_commands(bot: commands.Bot) -> None:
                 multiplier=multiplier,
             ),
         )
-        image_url, image_file = embed_image_payload(burn_card_id)
+        image_url, image_file = embed_image_payload(
+            burn_card_id,
+            generation=burn_generation,
+            morph_key=get_instance_morph(ctx.guild.id, instance_id),
+        )
         if image_url is not None:
             confirm_embed.set_image(url=image_url)
 
@@ -543,29 +815,76 @@ def register_commands(bot: commands.Bot) -> None:
         message = await ctx.send(**send_kwargs)
         view.message = message
 
+    @bot.command(name="morph", aliases=["mo"])
+    async def morph(ctx: commands.Context, card_code: str | None = None):
+        if ctx.guild is None:
+            await ctx.send(embed=italy_embed("Morph", "Use this command in a server."))
+            return
+
+        result = execute_morph(ctx.guild.id, ctx.author.id, card_code)
+        if result.is_error:
+            await ctx.send(embed=italy_embed("Morph", result.error_message or "Morph failed."))
+            return
+
+        if (
+            result.card_id is None
+            or result.generation is None
+            or result.dupe_code is None
+            or result.morph_key is None
+            or result.morph_name is None
+            or result.cost is None
+            or result.remaining_dough is None
+        ):
+            await ctx.send(embed=italy_embed("Morph", "Morph failed."))
+            return
+
+        morph_embed = italy_embed(
+            "Morph Applied",
+            (
+                f"Applied **{result.morph_name}** to "
+                f"{card_dupe_display(result.card_id, result.generation, dupe_code=result.dupe_code)}.\n\n"
+                f"Morph Cost: **{result.cost}** dough\n"
+                f"Dough Remaining: **{result.remaining_dough}**"
+            ),
+        )
+        image_url, image_file = embed_image_payload(
+            result.card_id,
+            generation=result.generation,
+            morph_key=result.morph_key,
+        )
+        if image_url is not None:
+            morph_embed.set_image(url=image_url)
+
+        send_kwargs: dict[str, object] = {"embed": morph_embed}
+        if image_file is not None:
+            send_kwargs["file"] = image_file
+        await ctx.send(**send_kwargs)
+
     @bot.command(name="cooldown", aliases=["cd"])
     async def cooldown(ctx: commands.Context, player: str | None = None):
         if ctx.guild is None:
-            await ctx.send(embed=italy_embed("Drop Cooldown", "Use this command in a server."))
+            await ctx.send(embed=italy_embed("Cooldowns", "Use this command in a server."))
             return
 
-        target_member = ctx.author
-        if player is not None:
-            resolved_member, resolve_error = await resolve_member_argument(ctx, player)
-            if resolved_member is None:
-                await ctx.send(embed=italy_embed("Drop Cooldown", resolve_error or "Could not resolve player."))
-                return
-            target_member = resolved_member
+        resolved_member, resolve_error = await resolve_optional_player_argument(ctx, player)
+        if resolved_member is None:
+            await ctx.send(embed=italy_embed("Cooldowns", resolve_error or "Could not resolve player."))
+            return
+        target_member = resolved_member
 
-        _, last_drop_at, _ = get_player_stats(ctx.guild.id, target_member.id)
-        elapsed = time.time() - last_drop_at
-        if elapsed < PULL_COOLDOWN_SECONDS:
-            remaining = PULL_COOLDOWN_SECONDS - elapsed
-            description = f"Ready in **{format_cooldown(remaining)}**."
-        else:
-            description = "Ready now."
+        last_drop_at, last_pull_at = get_player_cooldown_timestamps(ctx.guild.id, target_member.id)
+        now = time.time()
+        drop_elapsed = now - last_drop_at
+        pull_elapsed = now - last_pull_at
 
-        await ctx.send(embed=italy_embed(f"{target_member.display_name}'s Drop Cooldown", description))
+        description = multiline_text(
+            [
+                _cooldown_status_line("Drop", drop_elapsed, DROP_COOLDOWN_SECONDS),
+                _cooldown_status_line("Pull", pull_elapsed, PULL_COOLDOWN_SECONDS),
+            ]
+        )
+
+        await ctx.send(embed=italy_embed(f"{target_member.display_name}'s Cooldowns", description))
 
     @bot.command(name="info", aliases=["i"])
     async def info(ctx: commands.Context, player: str | None = None):
@@ -573,25 +892,28 @@ def register_commands(bot: commands.Bot) -> None:
             await ctx.send(embed=italy_embed("Info", "Use this command in a server."))
             return
 
-        target_member = ctx.author
-        if player is not None:
-            resolved_member, resolve_error = await resolve_member_argument(ctx, player)
-            if resolved_member is None:
-                await ctx.send(embed=italy_embed("Info", resolve_error or "Could not resolve player."))
-                return
-            target_member = resolved_member
+        resolved_member, resolve_error = await resolve_optional_player_argument(ctx, player)
+        if resolved_member is None:
+            await ctx.send(embed=italy_embed("Info", resolve_error or "Could not resolve player."))
+            return
+        target_member = resolved_member
 
         dough, _, married_instance_id = get_player_stats(ctx.guild.id, target_member.id)
         wishes_count = len(get_wishlist_cards(ctx.guild.id, target_member.id))
         married = "None"
         married_image_url: str | None = None
         married_image_file: discord.File | None = None
+        married_generation: int | None = None
         if married_instance_id is not None:
             married_instance = get_instance_by_id(ctx.guild.id, married_instance_id)
             if married_instance is not None:
                 _, married_card_id, married_generation, married_dupe_code = married_instance
                 married = card_dupe_display(married_card_id, married_generation, dupe_code=married_dupe_code)
-            married_image_url, married_image_file = embed_image_payload(married_card_id)
+                married_image_url, married_image_file = embed_image_payload(
+                    married_card_id,
+                    generation=married_generation,
+                    morph_key=get_instance_morph(ctx.guild.id, married_instance_id),
+                )
 
         embed = italy_embed(f"{target_member.display_name}'s Stats")
         embed.add_field(name="Cards", value=str(get_total_cards(ctx.guild.id, target_member.id)), inline=True)

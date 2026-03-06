@@ -5,7 +5,7 @@ from typing import Optional
 
 from .cards import random_generation, split_card_code
 from .migrations import TARGET_SCHEMA_VERSION, run_migrations
-from .repositories import CardInstanceRepository, PlayerRepository, WishlistRepository
+from .repositories import CardInstanceRepository, CardInstanceTagRepository, PlayerRepository, PlayerTagRepository, WishlistRepository
 from .settings import (
     DB_LOCK_TIMEOUT_SECONDS,
     DB_PATH,
@@ -52,10 +52,140 @@ def init_db() -> None:
 def reset_db_data() -> None:
     with get_db_connection() as conn:
         _begin_immediate(conn)
+        conn.execute("DELETE FROM card_instance_tags")
+        conn.execute("DELETE FROM player_tags")
         conn.execute("DELETE FROM wishlist_cards")
         conn.execute("DELETE FROM card_instances")
         conn.execute("DELETE FROM player_cards")
         conn.execute("DELETE FROM players")
+
+
+def _normalize_tag_name(tag_name: str) -> Optional[str]:
+    normalized = tag_name.strip().lower()
+    if not normalized:
+        return None
+    if len(normalized) > 32:
+        return None
+    return normalized
+
+
+def create_player_tag(guild_id: int, user_id: int, tag_name: str) -> bool:
+    guild_id = _scope_guild_id(guild_id)
+    normalized = _normalize_tag_name(tag_name)
+    if normalized is None:
+        return False
+
+    with get_db_connection() as conn:
+        _begin_immediate(conn)
+        players = PlayerRepository(conn, STARTING_DOUGH)
+        tags = PlayerTagRepository(conn)
+        players.ensure_player(guild_id, user_id)
+        return tags.create(guild_id, user_id, normalized)
+
+
+def delete_player_tag(guild_id: int, user_id: int, tag_name: str) -> bool:
+    guild_id = _scope_guild_id(guild_id)
+    normalized = _normalize_tag_name(tag_name)
+    if normalized is None:
+        return False
+
+    with get_db_connection() as conn:
+        _begin_immediate(conn)
+        players = PlayerRepository(conn, STARTING_DOUGH)
+        tags = PlayerTagRepository(conn)
+        players.ensure_player(guild_id, user_id)
+        return tags.delete(guild_id, user_id, normalized)
+
+
+def list_player_tags(guild_id: int, user_id: int) -> list[tuple[str, bool, int]]:
+    guild_id = _scope_guild_id(guild_id)
+    with get_db_connection() as conn:
+        players = PlayerRepository(conn, STARTING_DOUGH)
+        tags = PlayerTagRepository(conn)
+        players.ensure_player(guild_id, user_id)
+        return tags.list_with_counts(guild_id, user_id)
+
+
+def set_player_tag_locked(guild_id: int, user_id: int, tag_name: str, locked: bool) -> bool:
+    guild_id = _scope_guild_id(guild_id)
+    normalized = _normalize_tag_name(tag_name)
+    if normalized is None:
+        return False
+
+    with get_db_connection() as conn:
+        _begin_immediate(conn)
+        players = PlayerRepository(conn, STARTING_DOUGH)
+        tags = PlayerTagRepository(conn)
+        players.ensure_player(guild_id, user_id)
+        return tags.set_locked(guild_id, user_id, normalized, locked)
+
+
+def assign_tag_to_instance(guild_id: int, user_id: int, instance_id: int, tag_name: str) -> bool:
+    guild_id = _scope_guild_id(guild_id)
+    normalized = _normalize_tag_name(tag_name)
+    if normalized is None:
+        return False
+
+    with get_db_connection() as conn:
+        _begin_immediate(conn)
+        players = PlayerRepository(conn, STARTING_DOUGH)
+        instances = CardInstanceRepository(conn)
+        tags = PlayerTagRepository(conn)
+        instance_tags = CardInstanceTagRepository(conn)
+        players.ensure_player(guild_id, user_id)
+
+        owned = instances.get_owned_instance_for_marry(guild_id, user_id, instance_id)
+        if owned is None:
+            return False
+        if not tags.exists(guild_id, user_id, normalized):
+            return False
+
+        return instance_tags.add(guild_id, user_id, instance_id, normalized)
+
+
+def unassign_tag_from_instance(guild_id: int, user_id: int, instance_id: int, tag_name: str) -> bool:
+    guild_id = _scope_guild_id(guild_id)
+    normalized = _normalize_tag_name(tag_name)
+    if normalized is None:
+        return False
+
+    with get_db_connection() as conn:
+        _begin_immediate(conn)
+        players = PlayerRepository(conn, STARTING_DOUGH)
+        instances = CardInstanceRepository(conn)
+        instance_tags = CardInstanceTagRepository(conn)
+        players.ensure_player(guild_id, user_id)
+
+        owned = instances.get_owned_instance_for_marry(guild_id, user_id, instance_id)
+        if owned is None:
+            return False
+
+        return instance_tags.remove(guild_id, user_id, instance_id, normalized)
+
+
+def get_locked_tags_for_instance(guild_id: int, user_id: int, instance_id: int) -> list[str]:
+    guild_id = _scope_guild_id(guild_id)
+    with get_db_connection() as conn:
+        players = PlayerRepository(conn, STARTING_DOUGH)
+        tags = PlayerTagRepository(conn)
+        players.ensure_player(guild_id, user_id)
+        return tags.list_locked_for_instance(guild_id, user_id, instance_id)
+
+
+def get_instances_by_tag(guild_id: int, user_id: int, tag_name: str) -> list[tuple[int, str, int, str]]:
+    guild_id = _scope_guild_id(guild_id)
+    normalized = _normalize_tag_name(tag_name)
+    if normalized is None:
+        return []
+
+    with get_db_connection() as conn:
+        players = PlayerRepository(conn, STARTING_DOUGH)
+        tags = PlayerTagRepository(conn)
+        instance_tags = CardInstanceTagRepository(conn)
+        players.ensure_player(guild_id, user_id)
+        if not tags.exists(guild_id, user_id, normalized):
+            return []
+        return instance_tags.list_tagged_instances(guild_id, user_id, normalized)
 
 
 def get_wishlist_cards(guild_id: int, user_id: int) -> list[str]:
@@ -114,6 +244,13 @@ def get_instance_by_id(guild_id: int, instance_id: int) -> Optional[tuple[int, s
         return instances.get_by_id(guild_id, instance_id)
 
 
+def get_instance_morph(guild_id: int, instance_id: int) -> Optional[str]:
+    guild_id = _scope_guild_id(guild_id)
+    with get_db_connection() as conn:
+        instances = CardInstanceRepository(conn)
+        return instances.get_morph_key(guild_id, instance_id)
+
+
 def get_instance_by_code(guild_id: int, user_id: int, card_code: str) -> Optional[tuple[int, str, int, str]]:
     guild_id = _scope_guild_id(guild_id)
     parsed = split_card_code(card_code)
@@ -126,6 +263,40 @@ def get_instance_by_code(guild_id: int, user_id: int, card_code: str) -> Optiona
         instances = CardInstanceRepository(conn)
         players.ensure_player(guild_id, user_id)
         return instances.get_by_code(guild_id, user_id, dupe_code)
+
+
+def apply_morph_to_instance(
+    guild_id: int,
+    user_id: int,
+    instance_id: int,
+    morph_key: str,
+    cost: int,
+) -> tuple[bool, str]:
+    guild_id = _scope_guild_id(guild_id)
+    with get_db_connection() as conn:
+        _begin_immediate(conn)
+        players = PlayerRepository(conn, STARTING_DOUGH)
+        instances = CardInstanceRepository(conn)
+        players.ensure_player(guild_id, user_id)
+
+        owned_instance = instances.get_owned_instance_for_marry(guild_id, user_id, instance_id)
+        if owned_instance is None:
+            return False, "You do not own that card code."
+
+        existing_morph = instances.get_morph_key(guild_id, instance_id)
+        if existing_morph == morph_key:
+            return False, "That card already has this morph."
+
+        dough = players.get_dough(guild_id, user_id)
+        if dough < cost:
+            return False, "You do not have enough dough."
+
+        did_update = instances.set_morph_key(guild_id, user_id, instance_id, morph_key)
+        if not did_update:
+            return False, "Morph failed: card instance was not updated."
+
+        players.add_dough(guild_id, user_id, -cost)
+        return True, ""
 
 
 def get_instance_by_dupe_code(guild_id: int, card_code: str) -> Optional[tuple[int, str, int, str]]:
@@ -146,6 +317,35 @@ def set_last_drop_at(guild_id: int, user_id: int, timestamp: float) -> None:
         players = PlayerRepository(conn, STARTING_DOUGH)
         players.ensure_player(guild_id, user_id)
         players.set_last_drop_at(guild_id, user_id, timestamp)
+
+
+def get_player_cooldown_timestamps(guild_id: int, user_id: int) -> tuple[float, float]:
+    guild_id = _scope_guild_id(guild_id)
+    with get_db_connection() as conn:
+        players = PlayerRepository(conn, STARTING_DOUGH)
+        players.ensure_player(guild_id, user_id)
+        return players.get_last_drop_at(guild_id, user_id), players.get_last_pull_at(guild_id, user_id)
+
+
+def consume_pull_cooldown_if_ready(
+    guild_id: int,
+    user_id: int,
+    now: float,
+    cooldown_seconds: float,
+) -> float:
+    guild_id = _scope_guild_id(guild_id)
+    with get_db_connection() as conn:
+        _begin_immediate(conn)
+        players = PlayerRepository(conn, STARTING_DOUGH)
+        players.ensure_player(guild_id, user_id)
+
+        last_pull_at = players.get_last_pull_at(guild_id, user_id)
+        elapsed = now - last_pull_at
+        if elapsed < cooldown_seconds:
+            return cooldown_seconds - elapsed
+
+        players.set_last_pull_at(guild_id, user_id, now)
+        return 0.0
 
 
 def get_card_quantity(guild_id: int, user_id: int, card_id: str) -> int:
@@ -240,7 +440,12 @@ def burn_instance(guild_id: int, user_id: int, instance_id: int) -> Optional[tup
         _begin_immediate(conn)
         players = PlayerRepository(conn, STARTING_DOUGH)
         instances = CardInstanceRepository(conn)
+        tags = PlayerTagRepository(conn)
         players.ensure_player(guild_id, user_id)
+
+        if tags.list_locked_for_instance(guild_id, user_id, instance_id):
+            return None
+
         burned = instances.burn_owned_instance(guild_id, user_id, instance_id)
         if burned is None:
             return None

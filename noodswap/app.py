@@ -39,13 +39,29 @@ def resolve_discord_token() -> str:
     raise RuntimeError("Set DISCORD_TOKEN or DISCORD_TOKEN_FILE in your environment.")
 
 
+def _resolve_command_prefix(bot: commands.Bot, message: discord.Message) -> list[str]:
+    prefixes: list[str] = []
+    if bot.user is not None:
+        prefixes.extend(commands.when_mentioned(bot, message))
+    content = message.content or ""
+
+    # Return the exact prefix slice from the incoming content so mixed-case
+    # variants like "Ns " still match while keeping canonical config values.
+    for configured in (COMMAND_PREFIX, SHORT_COMMAND_PREFIX):
+        candidate = content[: len(configured)]
+        if candidate.lower() == configured.lower() and candidate not in prefixes:
+            prefixes.append(candidate)
+
+    return prefixes
+
+
 def create_bot() -> commands.Bot:
     intents = discord.Intents.default()
     intents.message_content = True
     intents.members = True
 
     bot = commands.Bot(
-        command_prefix=commands.when_mentioned_or(COMMAND_PREFIX, SHORT_COMMAND_PREFIX),
+        command_prefix=_resolve_command_prefix,
         intents=intents,
         help_command=None,
     )
@@ -62,8 +78,8 @@ def create_bot() -> commands.Bot:
             return
 
         if isinstance(error, commands.CommandNotFound):
-            message = ctx.message.content.strip()
-            if message in {COMMAND_PREFIX.strip(), SHORT_COMMAND_PREFIX.strip()}:
+            message = ctx.message.content.strip().lower()
+            if message in {COMMAND_PREFIX.strip().lower(), SHORT_COMMAND_PREFIX.strip().lower()}:
                 help_cmd = bot.get_command("help")
                 if help_cmd is not None:
                     await help_cmd(ctx)

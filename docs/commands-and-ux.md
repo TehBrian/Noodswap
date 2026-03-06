@@ -16,6 +16,7 @@ This document defines behavior and presentation for commands and interaction flo
 - `drop` / `d`
 - `cooldown [player]` / `cd [player]`
 - `burn [card_code]` / `b [card_code]`
+- `morph [card_code]` / `mo [card_code]`
 - `trade <player> <card_code> <amount>` / `t ...`
 - `wish` / `w`
 - `wish add <card_id>` / `wish a <card_id>` / `w add <card_id>` / `w a <card_id>` / `wa <card_id>`
@@ -40,14 +41,33 @@ This includes:
 - interaction responses
 - interaction timeout updates
 
+## Card image presentation
+
+- Wherever a card image is shown (single-card embeds and drop previews), render through the shared card-image pipeline in `noodswap/images.py`.
+- Per-instance morph state (`card_instances.morph_key`) must be applied when rendering owned-instance images.
+- Initial morph behavior: `black_and_white` converts card art to grayscale while preserving existing overlay text and rarity border treatment.
+- Rendered card frame is normalized to a portrait `2.5:3.5` aspect ratio (`5:7`).
+- Cards use a rounded outer frame and rounded inner art window.
+- Border color is rarity-driven:
+  - `common`: brown
+  - `uncommon`: gray
+  - `rare`: light purple
+  - `epic`: orange
+  - `legendary`: light blue
+  - `mythic`: dark purple
+  - `divine`: yellow
+  - `celestial`: bright near-white blue
+
 ## Drop UX
 
 - Shows 3 random offers
 - Each offer line format is: `**CARD_NAME** • (ID: CARD_ID) [Series] (Rarity) • **G-####** (Base: **N** dough)`
 - Drop response is a single embed with one combined preview image showing all 3 offered cards
 - Buttons are labeled with **card names** (not IDs)
-- Buttons are private-action restricted to command invoker
-- After pull, original drop offer remains visible (buttons disabled) and a separate pulled-card embed is posted
+- Any player can claim any unclaimed card from the drop
+- Each card button can be claimed only once; once claimed, that button is disabled
+- A drop remains active until timeout or until all cards are claimed
+- Each successful claim posts a separate pulled-card embed
 - On timeout, buttons are disabled and a separate expiry embed is posted
 
 ## Burn UX
@@ -56,7 +76,7 @@ Burn flow:
 
 - `burn` with no argument targets the player's most recently pulled card instance
 - `burn <card_code>` targets that exact dupe code
-- card code format is standalone base36 (examples: `0`, `a`, `10`)
+- card code format is standalone base36 with optional leading `#` (examples: `0`, `a`, `10`, `#10`)
 - Burn always requires confirm/cancel interaction before destruction
 - Burn payout includes a generation multiplier (lower generation = higher payout)
 - Multiplier curve uses progress^7 scaling with a max of x70.00 (generation 1 = x70.00)
@@ -76,10 +96,20 @@ Burn result format should remain:
   - base + value + RNG lines
 - Burn confirmation and burn result both display the target card image
 
+## Morph UX
+
+- `morph` with no argument targets the player's most recently pulled card instance
+- `morph <card_code>` targets that exact owned dupe code
+- card code format is standalone base36 with optional leading `#` (examples: `0`, `a`, `10`, `#10`)
+- morph selection is random from available morphs
+- morph cost is `20%` of the target card's computed value (`card_value`), rounded up to the nearest whole dough
+- if a card already has the rolled morph, the command returns an error and does not charge dough
+- successful morph responses display the morphed card image and show cost + remaining dough
+
 Card identity terms:
 
 - `ID` means base catalog card identity (internal/base concept)
-- `Code` means a specific owned dupe reference (user-facing, e.g. `0`, `a`, `10`)
+- `Code` means a specific owned dupe reference (user-facing, e.g. `0`, `a`, `10`, `#10`)
 - DUPE CARDS have CODES.
 - BASE CARDS have IDS.
 
@@ -141,14 +171,16 @@ Shows:
 
 ## Cooldown UX
 
-- `cooldown [player]` / `cd [player]` shows drop cooldown status for yourself or another player
-- Uses **drop cooldown** terminology (not pull cooldown)
+- `cooldown [player]` / `cd [player]` shows both drop and pull cooldown status for yourself or another player
+- Drop cooldown is 6 minutes and applies to `ns drop`
+- Pull cooldown is 4 minutes and applies to claiming cards from drops
+- Embed title format is `{Player}'s Cooldowns`
 
 ## Marriage UX
 
 - `marry` with no argument targets the player's most recently pulled card instance
 - `marry <card_code>` targets that exact owned dupe code
-- card code format is standalone base36 (examples: `0`, `a`, `10`)
+- card code format is standalone base36 with optional leading `#` (examples: `0`, `a`, `10`, `#10`)
 - `marry` success responses display the selected card image
 - `divorce` success responses display the divorced card image
 
@@ -156,7 +188,10 @@ Shows:
 
 - Render one line per owned card instance (no grouping)
 - Keep duplicate copies visible as separate entries
-- Include each dupe's `Code` (e.g. `0`, `a`, `10`)
+- Include each dupe's `Code` (e.g. `0`, `a`, `10`, `#10`)
+- Includes a sort dropdown with modes: `Wishes`, `Rarity`, `Series`, `Base Value`, `Alphabetical`
+- Default sort mode is `Alphabetical`
+- Includes a `Gallery` toggle that switches to one-card-per-page image mode while keeping page navigation
 
 ## Interaction constraints
 

@@ -2,7 +2,7 @@ from collections.abc import Callable
 import sqlite3
 
 
-TARGET_SCHEMA_VERSION = 5
+TARGET_SCHEMA_VERSION = 8
 _BASE36_ALPHABET = "0123456789abcdefghijklmnopqrstuvwxyz"
 
 
@@ -353,6 +353,83 @@ def _apply_migration_v5(conn: sqlite3.Connection) -> None:
     )
 
 
+def _apply_migration_v6(conn: sqlite3.Connection) -> None:
+    players_table_exists = conn.execute(
+        """
+        SELECT 1
+        FROM sqlite_master
+        WHERE type = 'table' AND name = 'players'
+        LIMIT 1
+        """
+    ).fetchone() is not None
+    if not players_table_exists:
+        return
+
+    if not _has_column(conn, "players", "last_drop_at"):
+        conn.execute("ALTER TABLE players ADD COLUMN last_drop_at REAL NOT NULL DEFAULT 0")
+
+    # Before v6, last_pull_at tracked drop command usage. Preserve that history as
+    # drop cooldown state and reset pull cooldown state for the new split model.
+    conn.execute(
+        """
+        UPDATE players
+        SET last_drop_at = last_pull_at
+        WHERE last_drop_at = 0
+        """
+    )
+    conn.execute(
+        """
+        UPDATE players
+        SET last_pull_at = 0
+        """
+    )
+
+
+def _apply_migration_v7(conn: sqlite3.Connection) -> None:
+    if not _has_column(conn, "card_instances", "morph_key"):
+        conn.execute("ALTER TABLE card_instances ADD COLUMN morph_key TEXT")
+
+
+def _apply_migration_v8(conn: sqlite3.Connection) -> None:
+    conn.executescript(
+        """
+        CREATE TABLE IF NOT EXISTS player_tags (
+            guild_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            tag_name TEXT NOT NULL,
+            is_locked INTEGER NOT NULL DEFAULT 0 CHECK(is_locked IN (0, 1)),
+            PRIMARY KEY (guild_id, user_id, tag_name),
+            FOREIGN KEY (guild_id, user_id)
+                REFERENCES players(guild_id, user_id)
+                ON DELETE CASCADE
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_player_tags_owner
+            ON player_tags(guild_id, user_id, tag_name);
+
+        CREATE TABLE IF NOT EXISTS card_instance_tags (
+            guild_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            instance_id INTEGER NOT NULL,
+            tag_name TEXT NOT NULL,
+            PRIMARY KEY (guild_id, user_id, instance_id, tag_name),
+            FOREIGN KEY (guild_id, user_id, tag_name)
+                REFERENCES player_tags(guild_id, user_id, tag_name)
+                ON DELETE CASCADE,
+            FOREIGN KEY (instance_id)
+                REFERENCES card_instances(instance_id)
+                ON DELETE CASCADE
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_card_instance_tags_owner
+            ON card_instance_tags(guild_id, user_id, tag_name, instance_id);
+
+        CREATE INDEX IF NOT EXISTS idx_card_instance_tags_instance
+            ON card_instance_tags(instance_id);
+        """
+    )
+
+
 def run_migrations(
     conn: sqlite3.Connection,
     *,
@@ -386,6 +463,21 @@ def run_migrations(
         _apply_migration_v5(conn)
         _set_schema_version(conn, 5)
         current_version = 5
+
+    if current_version < 6:
+        _apply_migration_v6(conn)
+        _set_schema_version(conn, 6)
+        current_version = 6
+
+    if current_version < 7:
+        _apply_migration_v7(conn)
+        _set_schema_version(conn, 7)
+        current_version = 7
+
+    if current_version < 8:
+        _apply_migration_v8(conn)
+        _set_schema_version(conn, 8)
+        current_version = 8
 
     if current_version > target_schema_version:
         raise RuntimeError(

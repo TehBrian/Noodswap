@@ -1,7 +1,15 @@
 import unittest
 from unittest.mock import patch
 
-from noodswap.views import BurnConfirmView, CardCatalogView, DropView, PaginatedLinesView, SortableCardListView, TradeView
+from noodswap.views import (
+    BurnConfirmView,
+    CardCatalogView,
+    DropView,
+    PaginatedLinesView,
+    SortableCardListView,
+    SortableCollectionView,
+    TradeView,
+)
 
 
 class _FakeUser:
@@ -58,25 +66,30 @@ class _FakeMessage:
 
 
 class ViewTests(unittest.IsolatedAsyncioTestCase):
-    async def test_drop_rejects_unauthorized_puller(self) -> None:
+    async def test_drop_allows_any_user_to_claim(self) -> None:
         view = DropView(guild_id=1, user_id=100, choices=[("SPG", 50)])
         interaction = _FakeInteraction(user_id=200)
-        callback = view._make_pull_callback("SPG", 50)
+        callback = view.children[0].callback
+        self.assertIsNotNone(callback)
 
-        with patch("noodswap.views.add_card_to_player") as add_card:
+        with (
+            patch("noodswap.views.add_card_to_player", return_value=777) as add_card,
+            patch("noodswap.views.get_instance_by_id", return_value=(777, "SPG", 50, "abc")),
+            patch("noodswap.views.consume_pull_cooldown_if_ready", return_value=0.0),
+        ):
             await callback(interaction)
-            add_card.assert_not_called()
 
-        self.assertEqual(len(interaction.response.sent_messages), 1)
-        sent = interaction.response.sent_messages[0]
-        self.assertTrue(sent.get("ephemeral"))
-        self.assertEqual(sent["embed"].title, "Drop")
+        add_card.assert_called_once_with(1, 200, "SPG", 50)
+        self.assertEqual(len(interaction.response.edited_messages), 1)
+        self.assertEqual(len(interaction.message.replies), 1)
+        self.assertIn("<@200> pulled", interaction.message.replies[0]["embed"].description)
 
     async def test_drop_rejects_when_already_resolved(self) -> None:
         view = DropView(guild_id=1, user_id=100, choices=[("SPG", 50)])
         view.finished = True
         interaction = _FakeInteraction(user_id=100)
-        callback = view._make_pull_callback("SPG", 50)
+        callback = view.children[0].callback
+        self.assertIsNotNone(callback)
 
         with patch("noodswap.views.add_card_to_player") as add_card:
             await callback(interaction)
@@ -86,6 +99,42 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         sent = interaction.response.sent_messages[0]
         self.assertTrue(sent.get("ephemeral"))
         self.assertIn("already resolved", sent["embed"].description)
+
+    async def test_drop_rejects_claim_when_card_already_claimed(self) -> None:
+        view = DropView(guild_id=1, user_id=100, choices=[("SPG", 50), ("PEN", 60)])
+        first_interaction = _FakeInteraction(user_id=200)
+        second_interaction = _FakeInteraction(user_id=300)
+        callback = view.children[0].callback
+        self.assertIsNotNone(callback)
+
+        with (
+            patch("noodswap.views.add_card_to_player", return_value=777) as add_card,
+            patch("noodswap.views.get_instance_by_id", return_value=(777, "SPG", 50, "abc")),
+            patch("noodswap.views.consume_pull_cooldown_if_ready", return_value=0.0),
+        ):
+            await callback(first_interaction)
+            await callback(second_interaction)
+
+        add_card.assert_called_once_with(1, 200, "SPG", 50)
+        self.assertEqual(len(second_interaction.response.sent_messages), 1)
+        self.assertIn("already been claimed", second_interaction.response.sent_messages[0]["embed"].description)
+
+    async def test_drop_stays_open_until_all_cards_claimed(self) -> None:
+        view = DropView(guild_id=1, user_id=100, choices=[("SPG", 50), ("PEN", 60)])
+        first_interaction = _FakeInteraction(user_id=200)
+        callback = view.children[0].callback
+        self.assertIsNotNone(callback)
+
+        with (
+            patch("noodswap.views.add_card_to_player", return_value=777),
+            patch("noodswap.views.get_instance_by_id", return_value=(777, "SPG", 50, "abc")),
+            patch("noodswap.views.consume_pull_cooldown_if_ready", return_value=0.0),
+        ):
+            await callback(first_interaction)
+
+        self.assertFalse(view.finished)
+        self.assertTrue(view.children[0].disabled)
+        self.assertFalse(view.children[1].disabled)
 
     async def test_drop_timeout_disables_buttons_and_edits_message(self) -> None:
         view = DropView(guild_id=1, user_id=100, choices=[("SPG", 50), ("PEN", 60)])
@@ -98,8 +147,26 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(fake_message.edits), 1)
         self.assertEqual(fake_message.edits[0].get("view"), view)
         self.assertNotIn("embed", fake_message.edits[0])
-        self.assertEqual(len(fake_message.replies), 1)
-        self.assertEqual(fake_message.replies[0]["embed"].title, "Drop Expired")
+        self.assertEqual(len(fake_message.replies), 0)
+
+    async def test_drop_rejects_when_user_pull_cooldown_active(self) -> None:
+        view = DropView(guild_id=1, user_id=100, choices=[("SPG", 50)])
+        interaction = _FakeInteraction(user_id=200)
+        callback = view.children[0].callback
+        self.assertIsNotNone(callback)
+
+        with (
+            patch("noodswap.views.consume_pull_cooldown_if_ready", return_value=30.0) as consume,
+            patch("noodswap.views.add_card_to_player") as add_card,
+        ):
+            await callback(interaction)
+
+        consume.assert_called_once()
+        add_card.assert_not_called()
+        self.assertEqual(len(interaction.response.sent_messages), 1)
+        sent = interaction.response.sent_messages[0]
+        self.assertEqual(sent["embed"].title, "Pull Cooldown")
+        self.assertTrue(sent.get("ephemeral"))
 
     async def test_trade_rejects_non_buyer(self) -> None:
         view = TradeView(guild_id=1, seller_id=10, buyer_id=20, card_id="SPG", dupe_code="0", amount=25)
@@ -149,6 +216,7 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         interaction = _FakeInteraction(user_id=10)
 
         with (
+            patch("noodswap.views.get_locked_tags_for_instance", return_value=[]),
             patch("noodswap.views.burn_instance", return_value=("SPG", 321, "a")) as burn,
             patch("noodswap.views.get_burn_payout", return_value=(42, 40, 38, 2, 1.05, 8)) as payout,
             patch("noodswap.views.add_dough") as add_dough,
@@ -164,6 +232,22 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("embed", interaction.response.edited_messages[0])
         self.assertEqual(len(interaction.message.replies), 1)
         self.assertEqual(interaction.message.replies[0]["embed"].title, "**Card Burned**")
+
+    async def test_burn_confirm_blocks_when_card_in_locked_tag(self) -> None:
+        view = BurnConfirmView(guild_id=1, user_id=10, instance_id=77, card_id="SPG", generation=321, delta_range=8)
+        interaction = _FakeInteraction(user_id=10)
+
+        with (
+            patch("noodswap.views.get_locked_tags_for_instance", return_value=["safe"]),
+            patch("noodswap.views.burn_instance") as burn,
+        ):
+            await view.confirm_button.callback(interaction)
+
+        burn.assert_not_called()
+        self.assertTrue(view.finished)
+        self.assertEqual(len(interaction.response.edited_messages), 1)
+        self.assertEqual(len(interaction.message.replies), 1)
+        self.assertEqual(interaction.message.replies[0]["embed"].title, "Burn Blocked")
 
     async def test_burn_cancel_sends_followup_embed_and_keeps_prompt(self) -> None:
         view = BurnConfirmView(guild_id=1, user_id=10, instance_id=77, card_id="SPG", generation=321, delta_range=8)
@@ -492,6 +576,93 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(view.page_index, 11)
         edited_embed = interaction.response.edited_messages[0]["embed"]
         self.assertIn("12.", edited_embed.description)
+
+    async def test_sortable_collection_view_defaults_to_alphabetical_sort(self) -> None:
+        instances = [
+            (1, "SPG", 100, "0"),
+            (2, "BLA", 120, "1"),
+            (3, "BAR", 90, "2"),
+        ]
+        view = SortableCollectionView(
+            user_id=10,
+            title="Caller's Collection",
+            instances=instances,
+            wish_counts={"SPG": 2, "BLA": 3, "BAR": 1},
+            guard_title="Collection",
+            page_size=1,
+        )
+
+        embed = view.build_embed()
+        self.assertIn("Barolo", embed.description)
+        self.assertIn("Sort: Alphabetical", embed.footer.text)
+
+    async def test_sortable_collection_view_wishes_sort(self) -> None:
+        instances = [
+            (1, "SPG", 100, "0"),
+            (2, "BLA", 120, "1"),
+            (3, "BAR", 90, "2"),
+        ]
+        view = SortableCollectionView(
+            user_id=10,
+            title="Caller's Collection",
+            instances=instances,
+            wish_counts={"SPG": 2, "BLA": 3, "BAR": 1},
+            guard_title="Collection",
+            page_size=1,
+        )
+
+        interaction = _FakeInteraction(user_id=10)
+        view.sort_select._values = ["wishes"]
+        await view.sort_select.callback(interaction)
+
+        self.assertEqual(view.sort_mode, "wishes")
+        edited_embed = interaction.response.edited_messages[0]["embed"]
+        self.assertIn("Black Truffle Ravioli", edited_embed.description)
+        self.assertIn("Sort: Wishes", edited_embed.footer.text)
+
+    async def test_sortable_collection_view_gallery_toggle(self) -> None:
+        instances = [
+            (1, "SPG", 100, "0"),
+            (2, "BLA", 120, "1"),
+            (3, "BAR", 90, "2"),
+        ]
+        view = SortableCollectionView(
+            user_id=10,
+            title="Caller's Collection",
+            instances=instances,
+            wish_counts={"SPG": 2, "BLA": 3, "BAR": 1},
+            guard_title="Collection",
+            page_size=10,
+        )
+
+        interaction = _FakeInteraction(user_id=10)
+        await view.gallery_toggle_button.callback(interaction)
+
+        self.assertTrue(view.gallery_mode)
+        self.assertEqual(view.gallery_toggle_button.label, "Gallery: On")
+        self.assertEqual(view.total_pages, 3)
+
+    async def test_sortable_collection_view_rejects_unauthorized_navigation(self) -> None:
+        instances = [
+            (1, "SPG", 100, "0"),
+            (2, "BLA", 120, "1"),
+        ]
+        view = SortableCollectionView(
+            user_id=10,
+            title="Caller's Collection",
+            instances=instances,
+            wish_counts={"SPG": 2, "BLA": 3},
+            guard_title="Collection",
+            page_size=1,
+        )
+
+        interaction = _FakeInteraction(user_id=99)
+        await view.next_page_button.callback(interaction)
+
+        self.assertEqual(view.page_index, 0)
+        self.assertEqual(len(interaction.response.sent_messages), 1)
+        self.assertTrue(interaction.response.sent_messages[0].get("ephemeral"))
+        self.assertEqual(interaction.response.sent_messages[0]["embed"].title, "Collection")
 
     async def test_sortable_card_list_gallery_mode_includes_attachment_when_image_available(self) -> None:
         card_ids = ["SPG"]

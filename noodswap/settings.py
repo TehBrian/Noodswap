@@ -1,6 +1,7 @@
 from pathlib import Path
 
-PULL_COOLDOWN_SECONDS = 6 * 60
+DROP_COOLDOWN_SECONDS = 6 * 60
+PULL_COOLDOWN_SECONDS = 4 * 60
 STARTING_DOUGH = 0
 COMMAND_PREFIX = "ns "
 SHORT_COMMAND_PREFIX = "n"
@@ -14,3 +15,8 @@ DB_PATH = Path(__file__).resolve().parent.parent / "noodswap.db"
 DB_LOCK_TIMEOUT_SECONDS = 5.0
 CARD_IMAGE_CACHE_DIR = Path(__file__).resolve().parent.parent / "assets" / "card_images"
 CARD_IMAGE_CACHE_MANIFEST = CARD_IMAGE_CACHE_DIR / "manifest.json"
+
+PAGINATION_FIRST_EMOJI = "<:ns_left_double:1479310540554768485>"
+PAGINATION_PREVIOUS_EMOJI = "<:ns_left_arrow:1479310649270997152>"
+PAGINATION_NEXT_EMOJI = "<:ns_right_arrow:1479310677100200098>"
+PAGINATION_LAST_EMOJI = "<:ns_right_double:1479310578202705951>"

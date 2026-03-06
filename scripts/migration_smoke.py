@@ -46,6 +46,7 @@ def _run_fresh_init_validation() -> None:
                 _assert(_table_exists(conn, "wishlist_cards"), "wishlist_cards table was not created")
                 _assert(_column_exists(conn, "players", "married_instance_id"), "players.married_instance_id missing")
                 _assert(_column_exists(conn, "players", "last_dropped_instance_id"), "players.last_dropped_instance_id missing")
+                _assert(_column_exists(conn, "card_instances", "morph_key"), "card_instances.morph_key missing")
         finally:
             storage.DB_PATH = original_db_path
 
@@ -103,6 +104,7 @@ def _run_legacy_backfill_validation() -> None:
                 _assert(_column_exists(conn, "players", "married_instance_id"), "players.married_instance_id missing after migration")
                 _assert(_column_exists(conn, "players", "last_dropped_instance_id"), "players.last_dropped_instance_id missing after migration")
                 _assert(_table_exists(conn, "wishlist_cards"), "wishlist_cards table missing after migration")
+                _assert(_column_exists(conn, "card_instances", "morph_key"), "card_instances.morph_key missing after migration")
 
                 count_row = conn.execute("SELECT COUNT(*) FROM card_instances").fetchone()
                 _assert(count_row is not None, "card_instances count query failed")

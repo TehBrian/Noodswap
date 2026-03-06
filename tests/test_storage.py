@@ -30,10 +30,24 @@ class StorageTests(unittest.TestCase):
             self.assertIn("married_instance_id", column_names)
             self.assertIn("last_dropped_instance_id", column_names)
 
+            instance_columns = conn.execute("PRAGMA table_info(card_instances)").fetchall()
+            instance_column_names = {str(column[1]) for column in instance_columns}
+            self.assertIn("morph_key", instance_column_names)
+
             wishlist_row = conn.execute(
                 "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'wishlist_cards'"
             ).fetchone()
             self.assertIsNotNone(wishlist_row)
+
+            tags_row = conn.execute(
+                "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'player_tags'"
+            ).fetchone()
+            self.assertIsNotNone(tags_row)
+
+            instance_tags_row = conn.execute(
+                "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'card_instance_tags'"
+            ).fetchone()
+            self.assertIsNotNone(instance_tags_row)
 
     def test_init_db_backfills_legacy_player_cards(self) -> None:
         with closing(sqlite3.connect(storage.DB_PATH)) as conn:
@@ -392,6 +406,25 @@ class StorageTests(unittest.TestCase):
         self.assertEqual(dupe_by_instance[reused_instance], "1")
         self.assertEqual(dupe_by_instance[next_instance], "3")
 
+    def test_get_instance_by_code_accepts_hash_prefix(self) -> None:
+        guild_id = 1
+        user_id = 915
+
+        storage.init_db()
+        instance_id = storage.add_card_to_player(guild_id, user_id, "SPG", 123)
+        instance = storage.get_instance_by_id(guild_id, instance_id)
+        self.assertIsNotNone(instance)
+        if instance is None:
+            return
+        _found_instance_id, _card_id, _generation, dupe_code = instance
+
+        by_plain_code = storage.get_instance_by_code(guild_id, user_id, dupe_code.upper())
+        by_hash_code = storage.get_instance_by_code(guild_id, user_id, f"#{dupe_code.upper()}")
+        by_hash_global = storage.get_instance_by_dupe_code(guild_id, f"#{dupe_code.upper()}")
+
+        self.assertEqual(by_plain_code, by_hash_code)
+        self.assertEqual(by_plain_code, by_hash_global)
+
     def test_init_db_v5_renames_legacy_dupe_id_column(self) -> None:
         with closing(sqlite3.connect(storage.DB_PATH)) as conn:
             with conn:
@@ -464,6 +497,46 @@ class StorageTests(unittest.TestCase):
         removed_missing = storage.remove_card_from_wishlist(guild_id, user_id, "SPG")
         self.assertFalse(removed_missing)
 
+    def test_apply_morph_to_instance_persists_and_charges_dough(self) -> None:
+        guild_id = 1
+        user_id = 940
+
+        storage.init_db()
+        instance_id = storage.add_card_to_player(guild_id, user_id, "SPG", 123)
+        storage.add_dough(guild_id, user_id, 50)
+
+        applied, message = storage.apply_morph_to_instance(
+            guild_id,
+            user_id,
+            instance_id,
+            "black_and_white",
+            9,
+        )
+        self.assertTrue(applied)
+        self.assertEqual(message, "")
+        self.assertEqual(storage.get_instance_morph(guild_id, instance_id), "black_and_white")
+
+        dough, _, _ = storage.get_player_stats(guild_id, user_id)
+        self.assertEqual(dough, 41)
+
+    def test_apply_morph_to_instance_rejects_insufficient_dough(self) -> None:
+        guild_id = 1
+        user_id = 941
+
+        storage.init_db()
+        instance_id = storage.add_card_to_player(guild_id, user_id, "SPG", 123)
+
+        applied, message = storage.apply_morph_to_instance(
+            guild_id,
+            user_id,
+            instance_id,
+            "black_and_white",
+            99,
+        )
+        self.assertFalse(applied)
+        self.assertEqual(message, "You do not have enough dough.")
+        self.assertIsNone(storage.get_instance_morph(guild_id, instance_id))
+
     def test_wishlist_is_global_across_guilds(self) -> None:
         user_id = 930
 
@@ -490,6 +563,74 @@ class StorageTests(unittest.TestCase):
         self.assertEqual(counts_guild_1.get("PEN"), 1)
         self.assertIsNone(counts_guild_1.get("FUS"))
         self.assertEqual(counts_guild_2.get("SPG"), 3)
+
+    def test_player_tags_create_list_lock_and_delete(self) -> None:
+        guild_id = 1
+        user_id = 1200
+
+        storage.init_db()
+
+        self.assertTrue(storage.create_player_tag(guild_id, user_id, "Favorites"))
+        self.assertFalse(storage.create_player_tag(guild_id, user_id, "favorites"))
+
+        listed = storage.list_player_tags(guild_id, user_id)
+        self.assertEqual(listed, [("favorites", False, 0)])
+
+        self.assertTrue(storage.set_player_tag_locked(guild_id, user_id, "Favorites", True))
+        listed_after_lock = storage.list_player_tags(guild_id, user_id)
+        self.assertEqual(listed_after_lock, [("favorites", True, 0)])
+
+        self.assertTrue(storage.delete_player_tag(guild_id, user_id, "Favorites"))
+        self.assertEqual(storage.list_player_tags(guild_id, user_id), [])
+
+    def test_assign_and_unassign_tag_to_card_instance(self) -> None:
+        guild_id = 1
+        user_id = 1201
+
+        storage.init_db()
+        instance_id = storage.add_card_to_player(guild_id, user_id, "SPG", 111)
+        storage.create_player_tag(guild_id, user_id, "food")
+
+        self.assertTrue(storage.assign_tag_to_instance(guild_id, user_id, instance_id, "food"))
+        self.assertFalse(storage.assign_tag_to_instance(guild_id, user_id, instance_id, "food"))
+
+        tagged = storage.get_instances_by_tag(guild_id, user_id, "food")
+        self.assertEqual(len(tagged), 1)
+        self.assertEqual(tagged[0][0], instance_id)
+
+        self.assertTrue(storage.unassign_tag_from_instance(guild_id, user_id, instance_id, "food"))
+        self.assertFalse(storage.unassign_tag_from_instance(guild_id, user_id, instance_id, "food"))
+
+    def test_locked_tag_blocks_burn(self) -> None:
+        guild_id = 1
+        user_id = 1202
+
+        storage.init_db()
+        instance_id = storage.add_card_to_player(guild_id, user_id, "SPG", 222)
+        storage.create_player_tag(guild_id, user_id, "keep")
+        storage.assign_tag_to_instance(guild_id, user_id, instance_id, "keep")
+        storage.set_player_tag_locked(guild_id, user_id, "keep", True)
+
+        locked_tags = storage.get_locked_tags_for_instance(guild_id, user_id, instance_id)
+        self.assertEqual(locked_tags, ["keep"])
+
+        burned = storage.burn_instance(guild_id, user_id, instance_id)
+        self.assertIsNone(burned)
+
+        still_owned = storage.get_instance_by_id(guild_id, instance_id)
+        self.assertIsNotNone(still_owned)
+
+    def test_deleting_tag_cascades_instance_assignments(self) -> None:
+        guild_id = 1
+        user_id = 1203
+
+        storage.init_db()
+        instance_id = storage.add_card_to_player(guild_id, user_id, "SPG", 333)
+        storage.create_player_tag(guild_id, user_id, "archive")
+        storage.assign_tag_to_instance(guild_id, user_id, instance_id, "archive")
+
+        self.assertTrue(storage.delete_player_tag(guild_id, user_id, "archive"))
+        self.assertEqual(storage.get_instances_by_tag(guild_id, user_id, "archive"), [])
 
 
 if __name__ == "__main__":

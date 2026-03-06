@@ -27,21 +27,30 @@ This bot uses privileged intents. Enable these for your application in Discord D
 - Message Content Intent
 - Server Members Intent
 
-## Commands (prefixes: `ns ` and short `n`)
+## Commands (prefixes: `ns ` and short `n`, both case-insensitive)
 
 - `ns info [player]` / `ns i [player]` — show your stats or another player's stats (mention/username).
-- `ns collection [player]` / `ns c [player]` — show your collection or another player's collection (defaults to yourself).
+- `ns collection [player]` / `ns c [player]` — show your collection or another player's collection with interactive sorting and gallery toggle (defaults to yourself).
 - `ns cards` / `ns ca` — show all available cards with interactive sorting (wishes, rarity, series, base value, alphabetical; default alphabetical), plus a gallery toggle for one-card image mode.
 - `ns lookup <card_id|card_code|query>` / `ns l <card_id|card_code|query>` — show base card details, or exact dupe details when a card code is provided.
 - `ns help` / `ns h` — show command help.
-- `ns drop` / `ns d` — open a drop with 3 random cards and pull 1 via buttons.
-- `ns cooldown [player]` / `ns cd [player]` — show drop cooldown remaining for yourself or another player.
-- `ns burn [card_code]` / `ns b [card_code]` — burn a specific dupe for dough (randomized around base). If omitted, defaults to your most recently pulled card.
+- `ns drop` / `ns d` — open a drop with 3 random cards; anyone can claim unclaimed cards via buttons.
+- `ns cooldown [player]` / `ns cd [player]` — show both drop (6m) and pull (4m) cooldowns for yourself or another player.
+- `ns burn [card_code]` / `ns b [card_code]` — burn a specific dupe for dough (randomized around base). If omitted, defaults to your most recently pulled card. Burn is blocked for cards in locked tags.
+- `ns morph [card_code]` / `ns mo [card_code]` — pay 20% of card value (rounded up) to apply a random visual morph; currently supports `black_and_white`.
 - `ns trade <player> <card_code> <amount>` / `ns t ...` — offer a specific dupe-for-dough trade.
 - `ns wish` / `ns w` — wishlist command group.
 - `ns wish add <card_id>` / `ns wish a <card_id>` / `ns w add <card_id>` / `ns w a <card_id>` / `ns wa <card_id>` — add a card to your wishlist.
 - `ns wish remove <card_id>` / `ns wish r <card_id>` / `ns w remove <card_id>` / `ns w r <card_id>` / `ns wr <card_id>` — remove a card from your wishlist.
 - `ns wish list [player]` / `ns wish l [player]` / `ns w list [player]` / `ns w l [player]` / `ns wl [player]` — show a wishlist (defaults to yourself).
+- `ns tag` / `ns tg` — tag command group.
+- `ns tag add <tag_name>` / `ns tag a <tag_name>` — create a personal tag collection.
+- `ns tag remove <tag_name>` / `ns tag r <tag_name>` — delete one of your tags.
+- `ns tag list` / `ns tag l` — list your tags, lock status, and card counts.
+- `ns tag lock <tag_name>` / `ns tag unlock <tag_name>` — toggle burn protection for that tag.
+- `ns tag assign <tag_name> <card_code>` / `ns tag as ...` — tag one of your owned dupes.
+- `ns tag unassign <tag_name> <card_code>` / `ns tag u ...` — remove a card from a tag.
+- `ns tag cards <tag_name>` / `ns tag c <tag_name>` — list cards in a specific tag.
 - `ns marry [card_code]` / `ns m [card_code]` — marry a specific owned dupe by code.
 - `ns divorce` / `ns dv` — divorce your currently married card.
 
@@ -75,9 +84,11 @@ This writes files into `assets/card_images/` and a manifest at `assets/card_imag
   - `dv` for `divorce`
 - Card catalog is a constant dict in code for now, including `series` values (`noodles`, `pasta`, `cheese`, `wine`, `bread`, `entree`, `dessert`).
 - Card ownership is instance-based: each acquired card gets a generated `G-####` value (1-2000), where lower generations are rarer.
+- Generation rolls are sampled with a right-skewed beta distribution (`betavariate(1.6, 1.04)`) scaled to the 1-2000 range, making low-generation pulls ~1 in 48k while maintaining a stable median around 1270.
 - Drop buttons use card names for readability.
+- Each drop card can only be claimed once; claimed cards are locked to their claimant.
 - Drop preview generation prefers locally cached images when available.
-- User-facing dupe actions (`burn`, `marry`, `trade`) accept standalone card `Code` (e.g. `0`, `a`, `10`) and target that exact copy.
+- User-facing dupe actions (`burn`, `marry`, `trade`) accept standalone card `Code` (e.g. `0`, `a`, `10`, `#10`) and target that exact copy.
 - Catalog `ID` (e.g. `SPG`) is internal/base-card identity used in storage/catalog logic.
 - **DUPE CARDS have CODES. BASE CARDS have IDS.**
 - Player state is global across all guilds: inventories, dough, marriages, and wishlist are shared across every server where the bot is installed.

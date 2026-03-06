@@ -101,15 +101,16 @@ Use extra caution when editing:
 
 - `ns drop` creates offers with `G-####`
 - drop buttons show card names (not IDs)
-- pulling from a drop adds one instance and updates the last pulled target
+- claiming from a drop adds one instance for the claimant and updates their last pulled target
+- each drop card can only be claimed once, while other cards remain claimable until timeout
 - inventory/dough/marriage state appears consistently across guilds for the same user
 - `ns collection` shows instance generations
-- `ns marry <card_code>` marries the exact referenced dupe (code examples: `0`, `a`, `10`)
+- `ns marry <card_code>` marries the exact referenced dupe (code examples: `0`, `a`, `10`, `#10`)
 - `ns burn` asks for confirm/cancel before burning
 - `ns burn` (no arg) defaults to the last pulled card instance
-- `ns burn <card_code>` burns the exact referenced dupe (code examples: `0`, `a`, `10`)
+- `ns burn <card_code>` burns the exact referenced dupe (code examples: `0`, `a`, `10`, `#10`)
 - `ns trade <player> <card_code> <amount>` transfers the exact referenced dupe and dough
-- `ns cooldown [player]` shows correct drop cooldown status for self/target
+- `ns cooldown [player]` shows correct pull cooldown status for self/target
 - `ns info` shows correct dough/married display
 - `ns help` displays grouped command sections with descriptions
 - `ns dbexport` and `ns dbreset` work for owner

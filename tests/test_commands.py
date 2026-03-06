@@ -11,12 +11,17 @@ import discord
 from discord.ext import commands
 
 from noodswap.commands import _build_drop_preview_blocking, _get_card_image_bytes, register_commands
-from noodswap.views import PaginatedLinesView, SortableCardListView
+from noodswap.images import DEFAULT_CARD_RENDER_SIZE, RARITY_BORDER_COLORS, render_card_image_bytes
+from noodswap.views import PaginatedLinesView, SortableCardListView, SortableCollectionView
 
 
 class _FakeGuild:
-    def __init__(self, guild_id: int):
+    def __init__(self, guild_id: int, members: dict[int, Any] | None = None):
         self.id = guild_id
+        self._members = members or {}
+
+    def get_member(self, user_id: int) -> Any | None:
+        return self._members.get(user_id)
 
 
 class _FakeMember:
@@ -75,6 +80,26 @@ class CommandsWishlistTests(unittest.IsolatedAsyncioTestCase):
         resolve_member.assert_awaited_once_with(ctx, "@Target")
         wish_list_impl.assert_awaited_once_with(ctx, target)
 
+    async def test_wish_list_uses_replied_player_when_argument_omitted(self) -> None:
+        wish_list_command = _get_group_command(self.bot, "wish", "list")
+
+        target = _FakeMember(200, "Target")
+        ctx = AsyncMock()
+        ctx.guild = _FakeGuild(1, members={200: target})
+        ctx.author = _FakeMember(100, "Caller")
+        ctx.message = SimpleNamespace(
+            reference=SimpleNamespace(
+                resolved=SimpleNamespace(author=SimpleNamespace(id=200)),
+                message_id=123,
+            )
+        )
+        ctx.send = AsyncMock()
+
+        with patch("noodswap.commands._wish_list", new=AsyncMock()) as wish_list_impl:
+            await wish_list_command.callback(ctx, player=None)
+
+        wish_list_impl.assert_awaited_once_with(ctx, target)
+
     async def test_wish_add_falls_back_to_exact_card_name(self) -> None:
         wish_add_command = _get_group_command(self.bot, "wish", "add")
 
@@ -111,6 +136,44 @@ class CommandsWishlistTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("1. **Cheddar**", sent_embed.description)
         self.assertIn("2. **Cheddar Jack**", sent_embed.description)
 
+
+class CommandsTagTests(unittest.IsolatedAsyncioTestCase):
+    def setUp(self) -> None:
+        self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)
+        register_commands(self.bot)
+
+    async def test_tag_list_shows_empty_state(self) -> None:
+        tag_list_command = _get_group_command(self.bot, "tag", "list")
+
+        ctx = AsyncMock()
+        ctx.guild = _FakeGuild(1)
+        ctx.author = _FakeMember(100, "Caller")
+        ctx.send = AsyncMock()
+
+        with patch("noodswap.commands.list_player_tags", return_value=[]):
+            await tag_list_command.callback(ctx)
+
+        ctx.send.assert_awaited_once()
+        sent_embed = ctx.send.await_args.kwargs["embed"]
+        self.assertEqual(sent_embed.title, "Your Tags")
+        self.assertIn("No tags yet", sent_embed.description)
+
+    async def test_tag_assign_rejects_unowned_card_code(self) -> None:
+        tag_assign_command = _get_group_command(self.bot, "tag", "assign")
+
+        ctx = AsyncMock()
+        ctx.guild = _FakeGuild(1)
+        ctx.author = _FakeMember(100, "Caller")
+        ctx.send = AsyncMock()
+
+        with patch("noodswap.commands.get_instance_by_code", return_value=None):
+            await tag_assign_command.callback(ctx, tag_name="safe", card_code="0")
+
+        ctx.send.assert_awaited_once()
+        sent_embed = ctx.send.await_args.kwargs["embed"]
+        self.assertEqual(sent_embed.title, "Tags")
+        self.assertEqual(sent_embed.description, "You do not own that card code.")
+
     async def test_wish_remove_lists_multiple_name_matches(self) -> None:
         wish_remove_command = _get_group_command(self.bot, "wish", "remove")
 
@@ -144,13 +207,16 @@ class CommandsAliasRegistrationTests(unittest.TestCase):
         self.assertIn("dv", _get_command(self.bot, "divorce").aliases)
         self.assertIn("t", _get_command(self.bot, "trade").aliases)
         self.assertIn("b", _get_command(self.bot, "burn").aliases)
-        self.assertIn("cd", _get_command(self.bot, "cooldown").aliases)
+        self.assertIn("mo", _get_command(self.bot, "morph").aliases)
+        cooldown_command = _get_command(self.bot, "cooldown")
+        self.assertIn("cd", cooldown_command.aliases)
         self.assertIn("d", _get_command(self.bot, "drop").aliases)
         self.assertIn("h", _get_command(self.bot, "help").aliases)
         self.assertIn("ca", _get_command(self.bot, "cards").aliases)
         self.assertIn("l", _get_command(self.bot, "lookup").aliases)
         self.assertIn("c", _get_command(self.bot, "collection").aliases)
         self.assertIn("i", _get_command(self.bot, "info").aliases)
+        self.assertIn("tg", _get_command(self.bot, "tag").aliases)
 
 
 class CommandsLookupTests(unittest.IsolatedAsyncioTestCase):
@@ -218,6 +284,28 @@ class CommandsLookupTests(unittest.IsolatedAsyncioTestCase):
             await lookup_command.callback(ctx, card_id="AbC")
 
         lookup_dupe.assert_called_once_with(1, "AbC")
+        ctx.send.assert_awaited_once()
+        sent_embed = ctx.send.await_args.kwargs["embed"]
+        self.assertEqual(sent_embed.title, "Card Lookup")
+        self.assertIn("`#abc`", sent_embed.description)
+        self.assertIn("G-101", sent_embed.description)
+        self.assertIn("Value:", sent_embed.description)
+
+    async def test_lookup_shows_dupe_card_embed_for_hash_prefixed_code(self) -> None:
+        lookup_command = _get_command(self.bot, "lookup")
+
+        ctx = AsyncMock()
+        ctx.guild = _FakeGuild(1)
+        ctx.author = _FakeMember(100, "Caller")
+        ctx.send = AsyncMock()
+
+        with patch(
+            "noodswap.commands.get_instance_by_dupe_code",
+            return_value=(123, "SPG", 101, "abc"),
+        ) as lookup_dupe:
+            await lookup_command.callback(ctx, card_id="#AbC")
+
+        lookup_dupe.assert_called_once_with(1, "#AbC")
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
         self.assertEqual(sent_embed.title, "Card Lookup")
@@ -361,6 +449,29 @@ class CommandsCollectionTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(sent_embed.title, "Target's Collection")
         self.assertEqual(sent_embed.description, "Target has an empty collection.")
 
+    async def test_collection_uses_replied_player_when_argument_omitted(self) -> None:
+        collection_command = _get_command(self.bot, "collection")
+
+        target = _FakeMember(200, "Target")
+        ctx = AsyncMock()
+        ctx.guild = _FakeGuild(1, members={200: target})
+        ctx.author = _FakeMember(100, "Caller")
+        ctx.message = SimpleNamespace(
+            reference=SimpleNamespace(
+                resolved=SimpleNamespace(author=SimpleNamespace(id=200)),
+                message_id=123,
+            )
+        )
+        ctx.send = AsyncMock()
+
+        with patch("noodswap.commands.get_player_card_instances", return_value=[]):
+            await collection_command.callback(ctx, player=None)
+
+        ctx.send.assert_awaited_once()
+        sent_embed = ctx.send.await_args.kwargs["embed"]
+        self.assertEqual(sent_embed.title, "Target's Collection")
+        self.assertEqual(sent_embed.description, "Target has an empty collection.")
+
     async def test_collection_sends_error_when_player_resolution_fails(self) -> None:
         collection_command = _get_command(self.bot, "collection")
 
@@ -422,8 +533,8 @@ class CommandsCollectionTests(unittest.IsolatedAsyncioTestCase):
         ctx.send.assert_awaited_once()
         send_kwargs = ctx.send.await_args.kwargs
         self.assertIn("view", send_kwargs)
-        self.assertIsInstance(send_kwargs["view"], PaginatedLinesView)
-        self.assertEqual(send_kwargs["embed"].footer.text, "Page 1/2")
+        self.assertIsInstance(send_kwargs["view"], SortableCollectionView)
+        self.assertEqual(send_kwargs["embed"].footer.text, "Page 1/2 • Sort: Alphabetical")
 
     async def test_wish_list_uses_pagination_view_for_multi_page_results(self) -> None:
         wish_list_command = _get_group_command(self.bot, "wish", "list")
@@ -500,15 +611,17 @@ class CommandsCooldownTests(unittest.IsolatedAsyncioTestCase):
         ctx.send = AsyncMock()
 
         with (
-            patch("noodswap.commands.get_player_stats", return_value=(0, 0.0, None)),
+            patch("noodswap.commands.get_player_cooldown_timestamps", return_value=(0.0, 0.0)),
             patch("noodswap.commands.time.time", return_value=10_000.0),
         ):
             await cooldown_command.callback(ctx, player=None)
 
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
-        self.assertEqual(sent_embed.title, "Caller's Drop Cooldown")
-        self.assertEqual(sent_embed.description, "Ready now.")
+        self.assertEqual(sent_embed.title, "Caller's Cooldowns")
+        self.assertIn("Drop:", sent_embed.description)
+        self.assertIn("Pull:", sent_embed.description)
+        self.assertIn("Ready", sent_embed.description)
 
     async def test_cooldown_uses_resolved_player_when_argument_provided(self) -> None:
         cooldown_command = _get_command(self.bot, "cooldown")
@@ -521,7 +634,7 @@ class CommandsCooldownTests(unittest.IsolatedAsyncioTestCase):
         target = _FakeMember(222, "Target")
         with (
             patch("noodswap.commands.resolve_member_argument", new=AsyncMock(return_value=(target, None))) as resolve_member,
-            patch("noodswap.commands.get_player_stats", return_value=(0, 9_800.0, None)),
+            patch("noodswap.commands.get_player_cooldown_timestamps", return_value=(9_800.0, 9_850.0)),
             patch("noodswap.commands.time.time", return_value=10_000.0),
         ):
             await cooldown_command.callback(ctx, player="@Target")
@@ -529,8 +642,35 @@ class CommandsCooldownTests(unittest.IsolatedAsyncioTestCase):
         resolve_member.assert_awaited_once_with(ctx, "@Target")
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
-        self.assertEqual(sent_embed.title, "Target's Drop Cooldown")
-        self.assertIn("Ready in", sent_embed.description)
+        self.assertEqual(sent_embed.title, "Target's Cooldowns")
+        self.assertIn("Drop:", sent_embed.description)
+        self.assertIn("Pull:", sent_embed.description)
+        self.assertIn("Cooling Down", sent_embed.description)
+
+    async def test_cooldown_uses_replied_player_when_argument_omitted(self) -> None:
+        cooldown_command = _get_command(self.bot, "cooldown")
+
+        target = _FakeMember(222, "Target")
+        ctx = AsyncMock()
+        ctx.guild = _FakeGuild(1, members={222: target})
+        ctx.author = _FakeMember(100, "Caller")
+        ctx.message = SimpleNamespace(
+            reference=SimpleNamespace(
+                resolved=SimpleNamespace(author=SimpleNamespace(id=222)),
+                message_id=123,
+            )
+        )
+        ctx.send = AsyncMock()
+
+        with (
+            patch("noodswap.commands.get_player_cooldown_timestamps", return_value=(9_800.0, 9_850.0)),
+            patch("noodswap.commands.time.time", return_value=10_000.0),
+        ):
+            await cooldown_command.callback(ctx, player=None)
+
+        ctx.send.assert_awaited_once()
+        sent_embed = ctx.send.await_args.kwargs["embed"]
+        self.assertEqual(sent_embed.title, "Target's Cooldowns")
 
 
 class CommandsInfoTests(unittest.IsolatedAsyncioTestCase):
@@ -559,6 +699,32 @@ class CommandsInfoTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(field_values.get("Cards"), "7")
         self.assertEqual(field_values.get("Dough"), "123")
         self.assertEqual(field_values.get("Wishes"), "3")
+
+    async def test_info_uses_replied_player_when_argument_omitted(self) -> None:
+        info_command = _get_command(self.bot, "info")
+
+        target = _FakeMember(222, "Target")
+        ctx = AsyncMock()
+        ctx.guild = _FakeGuild(1, members={222: target})
+        ctx.author = _FakeMember(100, "Caller")
+        ctx.message = SimpleNamespace(
+            reference=SimpleNamespace(
+                resolved=SimpleNamespace(author=SimpleNamespace(id=222)),
+                message_id=123,
+            )
+        )
+        ctx.send = AsyncMock()
+
+        with (
+            patch("noodswap.commands.get_player_stats", return_value=(999, 0.0, None)),
+            patch("noodswap.commands.get_total_cards", return_value=4),
+            patch("noodswap.commands.get_wishlist_cards", return_value=["SPG"]),
+        ):
+            await info_command.callback(ctx, player=None)
+
+        ctx.send.assert_awaited_once()
+        sent_embed = ctx.send.await_args.kwargs["embed"]
+        self.assertEqual(sent_embed.title, "Target's Stats")
 
 
 class CommandsBurnTests(unittest.IsolatedAsyncioTestCase):
@@ -599,6 +765,64 @@ class CommandsBurnTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("`#?`", sent_embed.description)
 
 
+class CommandsMorphTests(unittest.IsolatedAsyncioTestCase):
+    def setUp(self) -> None:
+        self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)
+        register_commands(self.bot)
+
+    async def test_morph_success_shows_cost_and_remaining_dough(self) -> None:
+        morph_command = _get_command(self.bot, "morph")
+
+        ctx = AsyncMock()
+        ctx.guild = _FakeGuild(1)
+        ctx.author = _FakeMember(100, "Caller")
+        ctx.send = AsyncMock()
+
+        result = SimpleNamespace(
+            is_error=False,
+            error_message=None,
+            instance_id=77,
+            card_id="SPG",
+            generation=321,
+            dupe_code="a",
+            morph_key="black_and_white",
+            morph_name="Black and White",
+            cost=9,
+            remaining_dough=41,
+        )
+
+        with patch("noodswap.commands.execute_morph", return_value=result):
+            await morph_command.callback(ctx, card_code="a")
+
+        ctx.send.assert_awaited_once()
+        sent_embed = ctx.send.await_args.kwargs["embed"]
+        self.assertEqual(sent_embed.title, "Morph Applied")
+        self.assertIn("Black and White", sent_embed.description)
+        self.assertIn("Morph Cost: **9**", sent_embed.description)
+        self.assertIn("Dough Remaining: **41**", sent_embed.description)
+
+    async def test_morph_error_surfaces_service_message(self) -> None:
+        morph_command = _get_command(self.bot, "morph")
+
+        ctx = AsyncMock()
+        ctx.guild = _FakeGuild(1)
+        ctx.author = _FakeMember(100, "Caller")
+        ctx.send = AsyncMock()
+
+        result = SimpleNamespace(
+            is_error=True,
+            error_message="You do not have enough dough.",
+        )
+
+        with patch("noodswap.commands.execute_morph", return_value=result):
+            await morph_command.callback(ctx, card_code="a")
+
+        ctx.send.assert_awaited_once()
+        sent_embed = ctx.send.await_args.kwargs["embed"]
+        self.assertEqual(sent_embed.title, "Morph")
+        self.assertEqual(sent_embed.description, "You do not have enough dough.")
+
+
 class DropPreviewRegressionTests(unittest.TestCase):
     def test_drop_preview_uses_placeholder_when_third_fetch_fails(self) -> None:
         try:
@@ -615,7 +839,7 @@ class DropPreviewRegressionTests(unittest.TestCase):
         raw_1 = png_bytes((255, 0, 0))
         raw_2 = png_bytes((0, 255, 0))
 
-        with patch("noodswap.commands.read_local_card_image_bytes", side_effect=[raw_1, raw_2, None]):
+        with patch("noodswap.images.read_local_card_image_bytes", side_effect=[raw_1, raw_2, None]):
             preview = _build_drop_preview_blocking([
                 ("SPG", 1),
                 ("PEN", 2),
@@ -627,16 +851,132 @@ class DropPreviewRegressionTests(unittest.TestCase):
             self.fail("Expected drop preview bytes")
         composed = Image.open(io.BytesIO(preview)).convert("RGB")
 
-        card_w = 360
+        card_w, card_h = DEFAULT_CARD_RENDER_SIZE
         gap = 16
         pad = 16
-        y = 120
+        y = pad + (card_h // 2)
         x_slot_2 = pad + card_w + gap + (card_w // 2)
         x_slot_3 = pad + (card_w + gap) * 2 + (card_w // 2)
 
         pixel_slot_2 = composed.getpixel((x_slot_2, y))
         pixel_slot_3 = composed.getpixel((x_slot_3, y))
         self.assertNotEqual(pixel_slot_2, pixel_slot_3)
+
+    def test_drop_preview_uses_normalized_card_size(self) -> None:
+        try:
+            from PIL import Image
+        except ImportError:
+            self.skipTest("Pillow is not installed")
+
+        def png_bytes(color: tuple[int, int, int]) -> bytes:
+            image = Image.new("RGB", (32, 32), color)
+            output = io.BytesIO()
+            image.save(output, format="PNG")
+            return output.getvalue()
+
+        raw = png_bytes((64, 128, 196))
+        with patch("noodswap.images.read_local_card_image_bytes", side_effect=[raw, raw, raw]):
+            preview = _build_drop_preview_blocking([
+                ("SPG", 1),
+                ("PEN", 2),
+                ("FUS", 3),
+            ])
+
+        self.assertIsNotNone(preview)
+        if preview is None:
+            self.fail("Expected drop preview bytes")
+
+        composed = Image.open(io.BytesIO(preview)).convert("RGB")
+        card_w, card_h = DEFAULT_CARD_RENDER_SIZE
+        gap = 16
+        pad = 16
+        expected_width = (card_w * 3) + (gap * 2) + (pad * 2)
+        expected_height = card_h + (pad * 2)
+        self.assertEqual(composed.size, (expected_width, expected_height))
+
+
+class CardRenderRegressionTests(unittest.TestCase):
+    def test_render_card_image_bytes_applies_common_border_color(self) -> None:
+        try:
+            from PIL import Image
+        except ImportError:
+            self.skipTest("Pillow is not installed")
+
+        def png_bytes(color: tuple[int, int, int]) -> bytes:
+            image = Image.new("RGB", (20, 20), color)
+            output = io.BytesIO()
+            image.save(output, format="PNG")
+            return output.getvalue()
+
+        with patch("noodswap.images.read_local_card_image_bytes", return_value=png_bytes((220, 30, 30))):
+            rendered = render_card_image_bytes("SPG")
+
+        self.assertIsNotNone(rendered)
+        if rendered is None:
+            self.fail("Expected rendered card image bytes")
+
+        image = Image.open(io.BytesIO(rendered)).convert("RGB")
+        self.assertEqual(image.size, DEFAULT_CARD_RENDER_SIZE)
+
+        expected_color = RARITY_BORDER_COLORS["common"]
+        sampled = image.getpixel((DEFAULT_CARD_RENDER_SIZE[0] // 2, 6))
+        channel_diffs = [abs(sampled[idx] - expected_color[idx]) for idx in range(3)]
+        self.assertLessEqual(max(channel_diffs), 3)
+
+    def test_render_card_image_bytes_applies_bottom_gradient_and_generation_text(self) -> None:
+        try:
+            from PIL import Image
+        except ImportError:
+            self.skipTest("Pillow is not installed")
+
+        def png_bytes(color: tuple[int, int, int]) -> bytes:
+            image = Image.new("RGB", (24, 24), color)
+            output = io.BytesIO()
+            image.save(output, format="PNG")
+            return output.getvalue()
+
+        with patch("noodswap.images.read_local_card_image_bytes", return_value=png_bytes((50, 50, 50))):
+            rendered_gen_1 = render_card_image_bytes("SPG", generation=1)
+            rendered_gen_2 = render_card_image_bytes("SPG", generation=2)
+
+        self.assertIsNotNone(rendered_gen_1)
+        self.assertIsNotNone(rendered_gen_2)
+        if rendered_gen_1 is None or rendered_gen_2 is None:
+            self.fail("Expected rendered card image bytes")
+
+        image = Image.open(io.BytesIO(rendered_gen_1)).convert("RGB")
+
+        bottom_sample = image.getpixel((DEFAULT_CARD_RENDER_SIZE[0] // 2, DEFAULT_CARD_RENDER_SIZE[1] - 32))
+        upper_sample = image.getpixel((DEFAULT_CARD_RENDER_SIZE[0] // 2, DEFAULT_CARD_RENDER_SIZE[1] // 2))
+        self.assertNotEqual(bottom_sample, upper_sample)
+
+        # Different generation text should produce different rendered output.
+        self.assertNotEqual(rendered_gen_1, rendered_gen_2)
+
+    def test_render_card_image_bytes_applies_black_and_white_morph(self) -> None:
+        try:
+            from PIL import Image
+        except ImportError:
+            self.skipTest("Pillow is not installed")
+
+        def png_bytes() -> bytes:
+            image = Image.new("RGB", (30, 30), (220, 40, 30))
+            output = io.BytesIO()
+            image.save(output, format="PNG")
+            return output.getvalue()
+
+        with patch("noodswap.images.read_local_card_image_bytes", return_value=png_bytes()):
+            rendered = render_card_image_bytes("SPG", generation=10, morph_key="black_and_white")
+
+        self.assertIsNotNone(rendered)
+        if rendered is None:
+            self.fail("Expected rendered card image bytes")
+
+        image = Image.open(io.BytesIO(rendered)).convert("RGB")
+        sampled = image.getpixel((DEFAULT_CARD_RENDER_SIZE[0] // 2, DEFAULT_CARD_RENDER_SIZE[1] // 2))
+        red, green, blue = sampled
+        self.assertEqual(red, green)
+        self.assertEqual(green, blue)
 
 
 class LocalImageBytesTests(unittest.TestCase):

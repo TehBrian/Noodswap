@@ -1,3 +1,5 @@
+import asyncio
+import time
 from typing import Optional
 
 import discord
@@ -10,9 +12,43 @@ from .cards import (
 )
 from .images import embed_image_payload
 from .presentation import italy_embed
-from .settings import BURN_CONFIRM_TIMEOUT_SECONDS, DROP_TIMEOUT_SECONDS, TRADE_TIMEOUT_SECONDS
-from .storage import add_card_to_player, add_dough, burn_instance, execute_trade, get_instance_by_id
+from .settings import (
+    BURN_CONFIRM_TIMEOUT_SECONDS,
+    DROP_TIMEOUT_SECONDS,
+    PAGINATION_FIRST_EMOJI,
+    PAGINATION_LAST_EMOJI,
+    PAGINATION_NEXT_EMOJI,
+    PAGINATION_PREVIOUS_EMOJI,
+    PULL_COOLDOWN_SECONDS,
+    TRADE_TIMEOUT_SECONDS,
+)
+from .storage import (
+    add_card_to_player,
+    add_dough,
+    burn_instance,
+    consume_pull_cooldown_if_ready,
+    execute_trade,
+    get_instance_by_id,
+    get_locked_tags_for_instance,
+)
 from .utils import multiline_text
+
+
+def _resolve_pagination_emoji(token: str, fallback: str) -> discord.PartialEmoji | str:
+    cleaned = token.strip()
+    if not cleaned:
+        return fallback
+
+    emoji = discord.PartialEmoji.from_str(cleaned)
+    if emoji.id is None and not emoji.name:
+        return fallback
+    return emoji
+
+
+FIRST_PAGE_EMOJI = _resolve_pagination_emoji(PAGINATION_FIRST_EMOJI, "⏮️")
+PREVIOUS_PAGE_EMOJI = _resolve_pagination_emoji(PAGINATION_PREVIOUS_EMOJI, "◀️")
+NEXT_PAGE_EMOJI = _resolve_pagination_emoji(PAGINATION_NEXT_EMOJI, "▶️")
+LAST_PAGE_EMOJI = _resolve_pagination_emoji(PAGINATION_LAST_EMOJI, "⏭️")
 
 
 class DropView(discord.ui.View):
@@ -23,25 +59,22 @@ class DropView(discord.ui.View):
         self.choices = choices
         self.finished = False
         self.message: Optional[discord.Message] = None
+        self._claim_lock = asyncio.Lock()
+        self._claimed_button_ids: set[str] = set()
 
-        for card_id, generation in choices:
+        for index, (card_id, generation) in enumerate(choices):
             card_name = CARD_CATALOG[card_id]["name"]
+            button_id = f"drop:{index}"
             button = discord.ui.Button(
                 label=f"Pull {card_name}",
                 style=discord.ButtonStyle.primary,
+                custom_id=button_id,
             )
-            button.callback = self._make_pull_callback(card_id, generation)
+            button.callback = self._make_pull_callback(card_id, generation, button_id)
             self.add_item(button)
 
-    def _make_pull_callback(self, card_id: str, generation: int):
+    def _make_pull_callback(self, card_id: str, generation: int, button_id: str):
         async def callback(interaction: discord.Interaction):
-            if interaction.user.id != self.user_id:
-                await interaction.response.send_message(
-                    embed=italy_embed("Drop", "Only the command user can pull from this drop."),
-                    ephemeral=True,
-                )
-                return
-
             if self.finished:
                 await interaction.response.send_message(
                     embed=italy_embed("Drop", "This drop is already resolved."),
@@ -49,10 +82,47 @@ class DropView(discord.ui.View):
                 )
                 return
 
-            instance_id = add_card_to_player(self.guild_id, self.user_id, card_id, generation)
-            self.finished = True
+            async with self._claim_lock:
+                if button_id in self._claimed_button_ids:
+                    await interaction.response.send_message(
+                        embed=italy_embed("Drop", "That card has already been claimed."),
+                        ephemeral=True,
+                    )
+                    return
 
-            self._disable_buttons()
+                cooldown_remaining = consume_pull_cooldown_if_ready(
+                    self.guild_id,
+                    interaction.user.id,
+                    time.time(),
+                    PULL_COOLDOWN_SECONDS,
+                )
+                if cooldown_remaining > 0:
+                    await interaction.response.send_message(
+                        embed=italy_embed(
+                            "Pull Cooldown",
+                            f"You need to wait before your next pull (**{int(cooldown_remaining)}s** remaining).",
+                        ),
+                        ephemeral=True,
+                    )
+                    return
+
+                self._claimed_button_ids.add(button_id)
+
+                claimed_button = next(
+                    (
+                        item
+                        for item in self.children
+                        if isinstance(item, discord.ui.Button) and item.custom_id == button_id
+                    ),
+                    None,
+                )
+                if claimed_button is not None:
+                    claimed_button.disabled = True
+
+                if all(isinstance(item, discord.ui.Button) and item.disabled for item in self.children):
+                    self.finished = True
+
+            instance_id = add_card_to_player(self.guild_id, interaction.user.id, card_id, generation)
 
             pulled_dupe_code: str | None = None
             persisted = get_instance_by_id(self.guild_id, instance_id)
@@ -61,9 +131,9 @@ class DropView(discord.ui.View):
 
             pulled_embed = italy_embed(
                 "Drop Complete",
-                f"You pulled {card_dupe_display(card_id, generation, dupe_code=pulled_dupe_code)}.",
+                f"<@{interaction.user.id}> pulled {card_dupe_display(card_id, generation, dupe_code=pulled_dupe_code)}.",
             )
-            image_url, image_file = embed_image_payload(card_id)
+            image_url, image_file = embed_image_payload(card_id, generation=generation)
             if image_url is not None:
                 pulled_embed.set_image(url=image_url)
 
@@ -87,14 +157,6 @@ class DropView(discord.ui.View):
 
         try:
             await self.message.edit(view=self)
-        except discord.HTTPException:
-            pass
-
-        try:
-            await self.message.reply(
-                embed=italy_embed("Drop Expired", "No card was pulled from this drop."),
-                mention_author=False,
-            )
         except discord.HTTPException:
             pass
 
@@ -184,7 +246,7 @@ class TradeView(discord.ui.View):
                     (
                         f"Buyer: <@{self.buyer_id}>\n"
                         f"Seller: <@{self.seller_id}>\n"
-                        ""
+                        "\n"
                         f"Card: {traded_card_text}\n"
                         f"Price: **{self.amount}** dough"
                     ),
@@ -258,6 +320,22 @@ class BurnConfirmView(discord.ui.View):
                 embed=italy_embed("Burn", "This burn request is already resolved."),
                 ephemeral=True,
             )
+            return
+
+        locked_tags = get_locked_tags_for_instance(self.guild_id, self.user_id, self.instance_id)
+        if locked_tags:
+            self.finished = True
+            self._disable_buttons()
+            await interaction.response.edit_message(view=self)
+            if interaction.message is not None:
+                locked_tags_text = ", ".join(f"`{tag}`" for tag in locked_tags)
+                await interaction.message.reply(
+                    embed=italy_embed(
+                        "Burn Blocked",
+                        f"This card is protected by locked tag(s): {locked_tags_text}.",
+                    ),
+                    mention_author=False,
+                )
             return
 
         burned = burn_instance(self.guild_id, self.user_id, self.instance_id)
@@ -377,11 +455,14 @@ class CardCatalogView(discord.ui.View):
 
     def _rarity_rank(self, rarity: str) -> int:
         order = {
-            "legendary": 0,
-            "epic": 1,
-            "rare": 2,
-            "uncommon": 3,
-            "common": 4,
+            "celestial": 0,
+            "divine": 1,
+            "mythic": 2,
+            "legendary": 3,
+            "epic": 4,
+            "rare": 5,
+            "uncommon": 6,
+            "common": 7,
         }
         return order.get(rarity, len(order))
 
@@ -539,7 +620,7 @@ class CardCatalogView(discord.ui.View):
         self._set_sort_select_defaults()
         await self._update_message(interaction)
 
-    @discord.ui.button(label="Gallery: Off", style=discord.ButtonStyle.secondary)
+    @discord.ui.button(label="Gallery: Off", style=discord.ButtonStyle.primary)
     async def gallery_toggle_button(self, interaction: discord.Interaction, _button: discord.ui.Button):
         if not await self._guard_user(interaction):
             return
@@ -554,28 +635,28 @@ class CardCatalogView(discord.ui.View):
         self._set_gallery_button_label()
         await self._update_message(interaction)
 
-    @discord.ui.button(label="First Page", style=discord.ButtonStyle.secondary)
+    @discord.ui.button(label="First", emoji=FIRST_PAGE_EMOJI, style=discord.ButtonStyle.secondary)
     async def first_page_button(self, interaction: discord.Interaction, _button: discord.ui.Button):
         if not await self._guard_user(interaction):
             return
         self.page_index = 0
         await self._update_message(interaction)
 
-    @discord.ui.button(label="Previous Page", style=discord.ButtonStyle.secondary)
+    @discord.ui.button(label="Prev", emoji=PREVIOUS_PAGE_EMOJI, style=discord.ButtonStyle.secondary)
     async def previous_page_button(self, interaction: discord.Interaction, _button: discord.ui.Button):
         if not await self._guard_user(interaction):
             return
         self.page_index = max(0, self.page_index - 1)
         await self._update_message(interaction)
 
-    @discord.ui.button(label="Next Page", style=discord.ButtonStyle.secondary)
+    @discord.ui.button(label="Next", emoji=NEXT_PAGE_EMOJI, style=discord.ButtonStyle.secondary)
     async def next_page_button(self, interaction: discord.Interaction, _button: discord.ui.Button):
         if not await self._guard_user(interaction):
             return
         self.page_index = min(self.total_pages - 1, self.page_index + 1)
         await self._update_message(interaction)
 
-    @discord.ui.button(label="Last Page", style=discord.ButtonStyle.secondary)
+    @discord.ui.button(label="Last", emoji=LAST_PAGE_EMOJI, style=discord.ButtonStyle.secondary)
     async def last_page_button(self, interaction: discord.Interaction, _button: discord.ui.Button):
         if not await self._guard_user(interaction):
             return
@@ -642,11 +723,14 @@ class SortableCardListView(discord.ui.View):
 
     def _rarity_rank(self, rarity: str) -> int:
         order = {
-            "legendary": 0,
-            "epic": 1,
-            "rare": 2,
-            "uncommon": 3,
-            "common": 4,
+            "celestial": 0,
+            "divine": 1,
+            "mythic": 2,
+            "legendary": 3,
+            "epic": 4,
+            "rare": 5,
+            "uncommon": 6,
+            "common": 7,
         }
         return order.get(rarity, len(order))
 
@@ -804,7 +888,7 @@ class SortableCardListView(discord.ui.View):
         self._set_sort_select_defaults()
         await self._update_message(interaction)
 
-    @discord.ui.button(label="Gallery: Off", style=discord.ButtonStyle.secondary)
+    @discord.ui.button(label="Gallery: Off", style=discord.ButtonStyle.primary)
     async def gallery_toggle_button(self, interaction: discord.Interaction, _button: discord.ui.Button):
         if not await self._guard_user(interaction):
             return
@@ -819,28 +903,304 @@ class SortableCardListView(discord.ui.View):
         self._set_gallery_button_label()
         await self._update_message(interaction)
 
-    @discord.ui.button(label="First Page", style=discord.ButtonStyle.secondary)
+    @discord.ui.button(label="First", emoji=FIRST_PAGE_EMOJI, style=discord.ButtonStyle.secondary)
     async def first_page_button(self, interaction: discord.Interaction, _button: discord.ui.Button):
         if not await self._guard_user(interaction):
             return
         self.page_index = 0
         await self._update_message(interaction)
 
-    @discord.ui.button(label="Previous Page", style=discord.ButtonStyle.secondary)
+    @discord.ui.button(label="Prev", emoji=PREVIOUS_PAGE_EMOJI, style=discord.ButtonStyle.secondary)
     async def previous_page_button(self, interaction: discord.Interaction, _button: discord.ui.Button):
         if not await self._guard_user(interaction):
             return
         self.page_index = max(0, self.page_index - 1)
         await self._update_message(interaction)
 
-    @discord.ui.button(label="Next Page", style=discord.ButtonStyle.secondary)
+    @discord.ui.button(label="Next", emoji=NEXT_PAGE_EMOJI, style=discord.ButtonStyle.secondary)
     async def next_page_button(self, interaction: discord.Interaction, _button: discord.ui.Button):
         if not await self._guard_user(interaction):
             return
         self.page_index = min(self.total_pages - 1, self.page_index + 1)
         await self._update_message(interaction)
 
-    @discord.ui.button(label="Last Page", style=discord.ButtonStyle.secondary)
+    @discord.ui.button(label="Last", emoji=LAST_PAGE_EMOJI, style=discord.ButtonStyle.secondary)
+    async def last_page_button(self, interaction: discord.Interaction, _button: discord.ui.Button):
+        if not await self._guard_user(interaction):
+            return
+        self.page_index = self.total_pages - 1
+        await self._update_message(interaction)
+
+    async def on_timeout(self) -> None:
+        if self.message is None:
+            return
+        for item in self.children:
+            if hasattr(item, "disabled"):
+                item.disabled = True
+        try:
+            embed, image_file = self._build_embed_and_file()
+            edit_kwargs: dict[str, object] = {"embed": embed, "view": self}
+            if self.gallery_mode and image_file is not None:
+                edit_kwargs["attachments"] = [image_file]
+            else:
+                edit_kwargs["attachments"] = []
+            await self.message.edit(**edit_kwargs)
+        except discord.HTTPException:
+            pass
+
+
+class SortableCollectionView(discord.ui.View):
+    def __init__(
+        self,
+        *,
+        user_id: int,
+        title: str,
+        instances: list[tuple[int, str, int, str]],
+        wish_counts: dict[str, int] | None,
+        guard_title: str,
+        page_size: int = 10,
+    ):
+        super().__init__(timeout=TRADE_TIMEOUT_SECONDS)
+        self.user_id = user_id
+        self.title = title
+        self.instances = instances
+        self.wish_counts = wish_counts or {}
+        self.guard_title = guard_title
+        self.default_page_size = max(1, page_size)
+        self.page_index = 0
+        self.sort_mode = "alphabetical"
+        self.gallery_mode = False
+        self.message: Optional[discord.Message] = None
+        self._sorted_instances = self._sorted_entries_for_mode(self.sort_mode)
+        self._set_gallery_button_label()
+        self._set_sort_select_defaults()
+        self._refresh_button_state()
+
+    def _effective_page_size(self) -> int:
+        return 1 if self.gallery_mode else self.default_page_size
+
+    def _clamp_page_index(self) -> None:
+        self.page_index = max(0, min(self.total_pages - 1, self.page_index))
+
+    def _list_page_for_gallery_index(self, gallery_index: int) -> int:
+        page_size = self.default_page_size
+        return int(gallery_index // page_size)
+
+    def _set_gallery_button_label(self) -> None:
+        self.gallery_toggle_button.label = "Gallery: On" if self.gallery_mode else "Gallery: Off"
+
+    def _rarity_rank(self, rarity: str) -> int:
+        order = {
+            "celestial": 0,
+            "divine": 1,
+            "mythic": 2,
+            "legendary": 3,
+            "epic": 4,
+            "rare": 5,
+            "uncommon": 6,
+            "common": 7,
+        }
+        return order.get(rarity, len(order))
+
+    def _sorted_entries_for_mode(self, mode: str) -> list[tuple[int, str, int, str]]:
+        if mode == "wishes":
+            return sorted(
+                self.instances,
+                key=lambda item: (
+                    -self.wish_counts.get(item[1], 0),
+                    str(CARD_CATALOG[item[1]]["name"]),
+                    item[2],
+                    item[0],
+                ),
+            )
+
+        if mode == "series":
+            return sorted(
+                self.instances,
+                key=lambda item: (
+                    str(CARD_CATALOG[item[1]]["series"]),
+                    str(CARD_CATALOG[item[1]]["name"]),
+                    item[2],
+                    item[0],
+                ),
+            )
+
+        if mode == "base_value":
+            return sorted(
+                self.instances,
+                key=lambda item: (
+                    -int(CARD_CATALOG[item[1]]["base_value"]),
+                    str(CARD_CATALOG[item[1]]["name"]),
+                    item[2],
+                    item[0],
+                ),
+            )
+
+        if mode == "rarity":
+            return sorted(
+                self.instances,
+                key=lambda item: (
+                    self._rarity_rank(str(CARD_CATALOG[item[1]]["rarity"])),
+                    str(CARD_CATALOG[item[1]]["name"]),
+                    item[2],
+                    item[0],
+                ),
+            )
+
+        return sorted(
+            self.instances,
+            key=lambda item: (
+                str(CARD_CATALOG[item[1]]["name"]),
+                item[2],
+                item[0],
+            ),
+        )
+
+    def _set_sort_select_defaults(self) -> None:
+        selected_value = self.sort_mode
+        for option in self.sort_select.options:
+            option.default = option.value == selected_value
+
+    @property
+    def total_pages(self) -> int:
+        page_size = self._effective_page_size()
+        return max(1, (len(self._sorted_instances) + page_size - 1) // page_size)
+
+    def _page_slice(self) -> tuple[int, int]:
+        page_size = self._effective_page_size()
+        start = self.page_index * page_size
+        end = start + page_size
+        return start, end
+
+    def _refresh_button_state(self) -> None:
+        is_first = self.page_index <= 0
+        is_last = self.page_index >= (self.total_pages - 1)
+        self.first_page_button.disabled = is_first
+        self.previous_page_button.disabled = is_first
+        self.next_page_button.disabled = is_last
+        self.last_page_button.disabled = is_last
+
+    def _build_embed_and_file(self) -> tuple[discord.Embed, discord.File | None]:
+        start, end = self._page_slice()
+        page_instances = self._sorted_instances[start:end]
+        image_file: discord.File | None = None
+
+        if not page_instances:
+            description = "No entries available."
+        elif self.gallery_mode:
+            _, card_id, generation, dupe_code = page_instances[0]
+            description = f"{start + 1}. {card_dupe_display(card_id, generation, dupe_code=dupe_code)}"
+        else:
+            lines = [
+                f"{idx}. {card_dupe_display(card_id, generation, dupe_code=dupe_code)}"
+                for idx, (_instance_id, card_id, generation, dupe_code) in enumerate(page_instances, start=start + 1)
+            ]
+            description = multiline_text(lines)
+
+        embed = italy_embed(self.title, description)
+        if self.gallery_mode and page_instances:
+            _, card_id, generation, _dupe_code = page_instances[0]
+            image_url, image_file = embed_image_payload(card_id, generation=generation)
+            if image_url is not None:
+                embed.set_image(url=image_url)
+
+        sort_label_map = {
+            "wishes": "Wishes",
+            "rarity": "Rarity",
+            "series": "Series",
+            "base_value": "Base Value",
+            "alphabetical": "Alphabetical",
+        }
+        embed.set_footer(
+            text=f"Page {self.page_index + 1}/{self.total_pages} • Sort: {sort_label_map.get(self.sort_mode, 'Alphabetical')}"
+        )
+        return embed, image_file
+
+    def build_embed(self) -> discord.Embed:
+        embed, _file = self._build_embed_and_file()
+        return embed
+
+    async def _update_message(self, interaction: discord.Interaction) -> None:
+        self._set_gallery_button_label()
+        self._clamp_page_index()
+        self._refresh_button_state()
+        embed, image_file = self._build_embed_and_file()
+        edit_kwargs: dict[str, object] = {"embed": embed, "view": self}
+        if self.gallery_mode and image_file is not None:
+            edit_kwargs["attachments"] = [image_file]
+        else:
+            edit_kwargs["attachments"] = []
+        await interaction.response.edit_message(**edit_kwargs)
+
+    async def _guard_user(self, interaction: discord.Interaction) -> bool:
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message(
+                embed=italy_embed(self.guard_title, "Only the command user can control this collection."),
+                ephemeral=True,
+            )
+            return False
+        return True
+
+    @discord.ui.select(
+        placeholder="Sort cards by...",
+        min_values=1,
+        max_values=1,
+        options=[
+            discord.SelectOption(label="Wishes", value="wishes", description="Highest wish count first"),
+            discord.SelectOption(label="Rarity", value="rarity", description="Rarest cards first"),
+            discord.SelectOption(label="Series", value="series", description="Group by series"),
+            discord.SelectOption(label="Base Value", value="base_value", description="Highest base value first"),
+            discord.SelectOption(label="Alphabetical", value="alphabetical", description="Sort by card name"),
+        ],
+    )
+    async def sort_select(self, interaction: discord.Interaction, select: discord.ui.Select):
+        if not await self._guard_user(interaction):
+            return
+
+        selected_mode = select.values[0]
+        self.sort_mode = selected_mode
+        self.page_index = 0
+        self._sorted_instances = self._sorted_entries_for_mode(selected_mode)
+        self._set_sort_select_defaults()
+        await self._update_message(interaction)
+
+    @discord.ui.button(label="Gallery: Off", style=discord.ButtonStyle.primary)
+    async def gallery_toggle_button(self, interaction: discord.Interaction, _button: discord.ui.Button):
+        if not await self._guard_user(interaction):
+            return
+        if self.gallery_mode:
+            current_gallery_index = self.page_index
+            self.gallery_mode = False
+            self.page_index = self._list_page_for_gallery_index(current_gallery_index)
+        else:
+            current_list_first_index = self.page_index * self.default_page_size
+            self.gallery_mode = True
+            self.page_index = current_list_first_index
+        self._set_gallery_button_label()
+        await self._update_message(interaction)
+
+    @discord.ui.button(label="First", emoji=FIRST_PAGE_EMOJI, style=discord.ButtonStyle.secondary)
+    async def first_page_button(self, interaction: discord.Interaction, _button: discord.ui.Button):
+        if not await self._guard_user(interaction):
+            return
+        self.page_index = 0
+        await self._update_message(interaction)
+
+    @discord.ui.button(label="Prev", emoji=PREVIOUS_PAGE_EMOJI, style=discord.ButtonStyle.secondary)
+    async def previous_page_button(self, interaction: discord.Interaction, _button: discord.ui.Button):
+        if not await self._guard_user(interaction):
+            return
+        self.page_index = max(0, self.page_index - 1)
+        await self._update_message(interaction)
+
+    @discord.ui.button(label="Next", emoji=NEXT_PAGE_EMOJI, style=discord.ButtonStyle.secondary)
+    async def next_page_button(self, interaction: discord.Interaction, _button: discord.ui.Button):
+        if not await self._guard_user(interaction):
+            return
+        self.page_index = min(self.total_pages - 1, self.page_index + 1)
+        await self._update_message(interaction)
+
+    @discord.ui.button(label="Last", emoji=LAST_PAGE_EMOJI, style=discord.ButtonStyle.secondary)
     async def last_page_button(self, interaction: discord.Interaction, _button: discord.ui.Button):
         if not await self._guard_user(interaction):
             return
@@ -924,28 +1284,28 @@ class PaginatedLinesView(discord.ui.View):
             return False
         return True
 
-    @discord.ui.button(label="First Page", style=discord.ButtonStyle.secondary)
+    @discord.ui.button(label="First", emoji=FIRST_PAGE_EMOJI, style=discord.ButtonStyle.secondary)
     async def first_page_button(self, interaction: discord.Interaction, _button: discord.ui.Button):
         if not await self._guard_user(interaction):
             return
         self.page_index = 0
         await self._update_message(interaction)
 
-    @discord.ui.button(label="Previous Page", style=discord.ButtonStyle.secondary)
+    @discord.ui.button(label="Prev", emoji=PREVIOUS_PAGE_EMOJI, style=discord.ButtonStyle.secondary)
     async def previous_page_button(self, interaction: discord.Interaction, _button: discord.ui.Button):
         if not await self._guard_user(interaction):
             return
         self.page_index = max(0, self.page_index - 1)
         await self._update_message(interaction)
 
-    @discord.ui.button(label="Next Page", style=discord.ButtonStyle.secondary)
+    @discord.ui.button(label="Next", emoji=NEXT_PAGE_EMOJI, style=discord.ButtonStyle.secondary)
     async def next_page_button(self, interaction: discord.Interaction, _button: discord.ui.Button):
         if not await self._guard_user(interaction):
             return
         self.page_index = min(self.total_pages - 1, self.page_index + 1)
         await self._update_message(interaction)
 
-    @discord.ui.button(label="Last Page", style=discord.ButtonStyle.secondary)
+    @discord.ui.button(label="Last", emoji=LAST_PAGE_EMOJI, style=discord.ButtonStyle.secondary)
     async def last_page_button(self, interaction: discord.Interaction, _button: discord.ui.Button):
         if not await self._guard_user(interaction):
             return

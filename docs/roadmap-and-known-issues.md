@@ -65,6 +65,14 @@ Status: Stage 1 is complete. Stages below are intentionally deferred for later.
 
 ## Decision log (recent)
 
+- Added per-player tag collections (`player_tags` + `card_instance_tags`) with commands for create/delete/list/lock/unlock/assign/unassign/cards, and enforced burn protection for instances attached to any locked tag.
+- Added `morph` / `mo` command with per-instance `morph_key` persistence, a first `black_and_white` visual morph, and a morph cost model at 20% of computed card value (rounded up) charged atomically with morph application.
+- Changed drop claiming to be contestable: any user can claim any unclaimed drop card, each card can only be claimed once, and drops remain active until timeout (or all cards are claimed).
+- Reduced pull cooldown from 6 minutes to 4 minutes and updated cooldown messaging to use pull terminology.
+- Added a shared card-render pipeline (`noodswap/images.py`) that normalizes card output to portrait `5:7`, applies rounded rarity-based borders, and routes both single-card embeds and drop-preview composites through the same renderer to support future dupe-specific visual customization.
+- Changed `cards.random_generation()` from triangular mode-at-max selection to a right-skewed beta roll, iteratively tuning parameters from initial (`betavariate(5.2, 1.8)`) through refinement steps to final (`betavariate(1.6, 1.04)`), empirically validated at n=5M to observe stable quantiles and gen-1 frequency (~105 per 5M pulls, 1 in ~48k).
+- Standardized dupe-code input parsing to accept an optional leading `#` (for example, `10` and `#10` now resolve to the same owned instance) across burn/trade/marry/lookup paths.
+- Added sortable + gallery-capable collection embeds (`collection`) using the same interaction pattern as catalog/wishlist/lookup while preserving per-instance card display.
 - Added a `Gallery` toggle to sortable card-list embeds (`cards`, `wish list`, and multi-result `lookup`) to switch between paginated list mode and one-card image mode while keeping navigation controls.
 - Applied the same sortable-card dropdown interaction pattern to `wish list` and multi-result `lookup` embeds (`Rarity`, `Series`, `Base Value`, `Alphabetical`).
 - Added a sort-mode dropdown to the `cards` catalog embed with `Rarity`, `Series`, `Base Value`, and `Alphabetical` modes, while keeping wishlist counts visible per entry.

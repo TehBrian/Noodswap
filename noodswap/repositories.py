@@ -45,12 +45,13 @@ class PlayerRepository:
                 guild_id,
                 user_id,
                 dough,
+                last_drop_at,
                 last_pull_at,
                 married_card_id,
                 married_instance_id,
                 last_dropped_instance_id
             )
-            VALUES (?, ?, ?, 0, NULL, NULL, NULL)
+            VALUES (?, ?, ?, 0, 0, NULL, NULL, NULL)
             ON CONFLICT(guild_id, user_id) DO NOTHING
             """,
             (guild_id, user_id, self.starting_dough),
@@ -71,6 +72,38 @@ class PlayerRepository:
         return int(row["dough"]), float(row["last_pull_at"]), int(married_instance_id) if married_instance_id is not None else None
 
     def set_last_drop_at(self, guild_id: int, user_id: int, timestamp: float) -> None:
+        self.conn.execute(
+            """
+            UPDATE players
+            SET last_drop_at = ?
+            WHERE guild_id = ? AND user_id = ?
+            """,
+            (timestamp, guild_id, user_id),
+        )
+
+    def get_last_drop_at(self, guild_id: int, user_id: int) -> float:
+        row = self.conn.execute(
+            """
+            SELECT last_drop_at
+            FROM players
+            WHERE guild_id = ? AND user_id = ?
+            """,
+            (guild_id, user_id),
+        ).fetchone()
+        return float(row["last_drop_at"]) if row is not None else 0.0
+
+    def get_last_pull_at(self, guild_id: int, user_id: int) -> float:
+        row = self.conn.execute(
+            """
+            SELECT last_pull_at
+            FROM players
+            WHERE guild_id = ? AND user_id = ?
+            """,
+            (guild_id, user_id),
+        ).fetchone()
+        return float(row["last_pull_at"]) if row is not None else 0.0
+
+    def set_last_pull_at(self, guild_id: int, user_id: int, timestamp: float) -> None:
         self.conn.execute(
             """
             UPDATE players
@@ -279,6 +312,141 @@ class WishlistRepository:
             (guild_id,),
         ).fetchall()
         return {str(row["card_id"]): int(row["wish_count"]) for row in rows}
+
+
+class PlayerTagRepository:
+    def __init__(self, conn: sqlite3.Connection):
+        self.conn = conn
+
+    def create(self, guild_id: int, user_id: int, tag_name: str) -> bool:
+        cursor = self.conn.execute(
+            """
+            INSERT OR IGNORE INTO player_tags (guild_id, user_id, tag_name, is_locked)
+            VALUES (?, ?, ?, 0)
+            """,
+            (guild_id, user_id, tag_name),
+        )
+        return int(cursor.rowcount) > 0
+
+    def delete(self, guild_id: int, user_id: int, tag_name: str) -> bool:
+        cursor = self.conn.execute(
+            """
+            DELETE FROM player_tags
+            WHERE guild_id = ? AND user_id = ? AND tag_name = ?
+            """,
+            (guild_id, user_id, tag_name),
+        )
+        return int(cursor.rowcount) > 0
+
+    def exists(self, guild_id: int, user_id: int, tag_name: str) -> bool:
+        row = self.conn.execute(
+            """
+            SELECT 1
+            FROM player_tags
+            WHERE guild_id = ? AND user_id = ? AND tag_name = ?
+            LIMIT 1
+            """,
+            (guild_id, user_id, tag_name),
+        ).fetchone()
+        return row is not None
+
+    def set_locked(self, guild_id: int, user_id: int, tag_name: str, locked: bool) -> bool:
+        cursor = self.conn.execute(
+            """
+            UPDATE player_tags
+            SET is_locked = ?
+            WHERE guild_id = ? AND user_id = ? AND tag_name = ?
+            """,
+            (1 if locked else 0, guild_id, user_id, tag_name),
+        )
+        return int(cursor.rowcount) > 0
+
+    def list_with_counts(self, guild_id: int, user_id: int) -> list[tuple[str, bool, int]]:
+        rows = self.conn.execute(
+            """
+            SELECT pt.tag_name, pt.is_locked, COUNT(cit.instance_id) AS card_count
+            FROM player_tags pt
+            LEFT JOIN card_instance_tags cit
+                ON cit.guild_id = pt.guild_id
+                AND cit.user_id = pt.user_id
+                AND cit.tag_name = pt.tag_name
+            WHERE pt.guild_id = ? AND pt.user_id = ?
+            GROUP BY pt.tag_name, pt.is_locked
+            ORDER BY pt.tag_name ASC
+            """,
+            (guild_id, user_id),
+        ).fetchall()
+        return [
+            (
+                str(row["tag_name"]),
+                bool(int(row["is_locked"])),
+                int(row["card_count"]),
+            )
+            for row in rows
+        ]
+
+    def list_locked_for_instance(self, guild_id: int, user_id: int, instance_id: int) -> list[str]:
+        rows = self.conn.execute(
+            """
+            SELECT pt.tag_name
+            FROM card_instance_tags cit
+            JOIN player_tags pt
+                ON pt.guild_id = cit.guild_id
+                AND pt.user_id = cit.user_id
+                AND pt.tag_name = cit.tag_name
+            WHERE cit.guild_id = ?
+                AND cit.user_id = ?
+                AND cit.instance_id = ?
+                AND pt.is_locked = 1
+            ORDER BY pt.tag_name ASC
+            """,
+            (guild_id, user_id, instance_id),
+        ).fetchall()
+        return [str(row["tag_name"]) for row in rows]
+
+
+class CardInstanceTagRepository:
+    def __init__(self, conn: sqlite3.Connection):
+        self.conn = conn
+
+    def add(self, guild_id: int, user_id: int, instance_id: int, tag_name: str) -> bool:
+        cursor = self.conn.execute(
+            """
+            INSERT OR IGNORE INTO card_instance_tags (guild_id, user_id, instance_id, tag_name)
+            VALUES (?, ?, ?, ?)
+            """,
+            (guild_id, user_id, instance_id, tag_name),
+        )
+        return int(cursor.rowcount) > 0
+
+    def remove(self, guild_id: int, user_id: int, instance_id: int, tag_name: str) -> bool:
+        cursor = self.conn.execute(
+            """
+            DELETE FROM card_instance_tags
+            WHERE guild_id = ? AND user_id = ? AND instance_id = ? AND tag_name = ?
+            """,
+            (guild_id, user_id, instance_id, tag_name),
+        )
+        return int(cursor.rowcount) > 0
+
+    def list_tagged_instances(self, guild_id: int, user_id: int, tag_name: str) -> list[tuple[int, str, int, str]]:
+        rows = self.conn.execute(
+            """
+            SELECT ci.instance_id, ci.card_id, ci.generation, ci.dupe_code
+            FROM card_instance_tags cit
+            JOIN card_instances ci
+                ON ci.instance_id = cit.instance_id
+                AND ci.guild_id = cit.guild_id
+                AND ci.user_id = cit.user_id
+            WHERE cit.guild_id = ? AND cit.user_id = ? AND cit.tag_name = ?
+            ORDER BY ci.generation ASC, ci.card_id ASC, ci.instance_id ASC
+            """,
+            (guild_id, user_id, tag_name),
+        ).fetchall()
+        return [
+            (int(row["instance_id"]), str(row["card_id"]), int(row["generation"]), str(row["dupe_code"]))
+            for row in rows
+        ]
 
 
 class CardInstanceRepository:
@@ -518,3 +686,34 @@ class CardInstanceRepository:
             """,
             (buyer_id, instance_id),
         )
+
+    def get_morph_key(self, guild_id: int, instance_id: int) -> Optional[str]:
+        try:
+            row = self.conn.execute(
+                """
+                SELECT morph_key
+                FROM card_instances
+                WHERE guild_id = ? AND instance_id = ?
+                """,
+                (guild_id, instance_id),
+            ).fetchone()
+        except sqlite3.OperationalError:
+            return None
+        if row is None:
+            return None
+        morph_key = row["morph_key"]
+        return str(morph_key) if morph_key is not None else None
+
+    def set_morph_key(self, guild_id: int, user_id: int, instance_id: int, morph_key: Optional[str]) -> bool:
+        try:
+            cursor = self.conn.execute(
+                """
+                UPDATE card_instances
+                SET morph_key = ?
+                WHERE guild_id = ? AND user_id = ? AND instance_id = ?
+                """,
+                (morph_key, guild_id, user_id, instance_id),
+            )
+        except sqlite3.OperationalError:
+            return False
+        return int(cursor.rowcount) > 0

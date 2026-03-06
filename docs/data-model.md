@@ -19,7 +19,8 @@ Columns:
 - `guild_id INTEGER NOT NULL`
 - `user_id INTEGER NOT NULL`
 - `dough INTEGER NOT NULL DEFAULT 0`
-- `last_pull_at REAL NOT NULL DEFAULT 0` (tracks last `drop` timestamp)
+- `last_drop_at REAL NOT NULL DEFAULT 0` (tracks last `drop` command usage timestamp)
+- `last_pull_at REAL NOT NULL DEFAULT 0` (tracks last successful drop-card claim timestamp)
 - `married_card_id TEXT` (legacy compatibility)
 - `married_instance_id INTEGER` (current marriage reference)
 - `last_dropped_instance_id INTEGER` (legacy column name; stores last pulled instance for arg-less `burn`/`marry`)
@@ -40,6 +41,7 @@ Columns:
 - `card_id TEXT NOT NULL`
 - `generation INTEGER NOT NULL`
 - `dupe_code TEXT` (base36 dupe identifier, globally unique)
+- `morph_key TEXT` (optional per-instance visual modifier)
 
 Purpose:
 - Tracks each owned copy as a distinct instance
@@ -81,6 +83,36 @@ Purpose:
 - Stores each player's wishlisted base card IDs in global scope
 - Supports `wish add/remove` command flows
 
+### player_tags
+
+Primary key:
+- `(guild_id, user_id, tag_name)`
+
+Columns:
+- `guild_id INTEGER NOT NULL`
+- `user_id INTEGER NOT NULL`
+- `tag_name TEXT NOT NULL`
+- `is_locked INTEGER NOT NULL DEFAULT 0` (`0` unlocked, `1` locked)
+
+Purpose:
+- Stores each player's personal tag collections in global scope
+- `is_locked = 1` marks a protected collection whose cards cannot be burned
+
+### card_instance_tags
+
+Primary key:
+- `(guild_id, user_id, instance_id, tag_name)`
+
+Columns:
+- `guild_id INTEGER NOT NULL`
+- `user_id INTEGER NOT NULL`
+- `instance_id INTEGER NOT NULL`
+- `tag_name TEXT NOT NULL`
+
+Purpose:
+- Links owned card instances to player tag collections
+- Supports many-to-many tagging (a card can have multiple tags)
+
 ## Migration behavior
 
 `init_db()` performs versioned startup migration:
@@ -109,6 +141,13 @@ Current migration set:
 - `v5`:
 	- Renames legacy `card_instances.dupe_id` to `card_instances.dupe_code` for terminology consistency.
 	- Rebuilds duplicate-code uniqueness index as `idx_card_instances_dupe_code`.
+- `v6`:
+	- Adds `players.last_drop_at` and resets `players.last_pull_at` to support split drop vs pull cooldown tracking.
+- `v7`:
+	- Adds `card_instances.morph_key` to persist per-instance visual morph state.
+- `v8`:
+	- Adds `player_tags` for per-player tag collections and lock state.
+	- Adds `card_instance_tags` for per-instance tag assignment.
 
 Notes:
 - Startup migration is in-code (`noodswap/migrations.py`) and invoked by `storage.init_db()` using incremental version checks.
@@ -121,6 +160,7 @@ Notes:
 3. Lower generation means rarer copy.
 4. Marriage points to a specific instance (`married_instance_id`).
 5. Trade/burn/marry selection policies rely on generation ordering.
+6. New generations are assigned by a right-skewed beta draw (`betavariate(1.6, 1.04)`) scaled to the configured generation bounds, making high generation values far more common than low generation values (gen-1 ≈ 1 in 48k).
 
 ## Identity terminology (critical)
 
@@ -132,13 +172,15 @@ Notes:
 
 - `marry <card_code>`: targets the exact referenced instance
 - `burn <card_code>`: targets the exact referenced instance
+	- Burn is blocked if the referenced instance belongs to any locked tag.
 - `trade <card_code>`: transfers the exact referenced instance
-- card code format is standalone base36 (`0-9a-z`) without card-id prefix
+- card code format is standalone base36 (`0-9a-z`) with optional leading `#` and without card-id prefix
 - arg-less `marry` / `burn`: default to the last pulled instance (`last_dropped_instance_id` column)
+- per-instance generation is sampled in `cards.random_generation()` using a right-skewed beta distribution and scaled to `[GENERATION_MIN, GENERATION_MAX]`
 
 ## Terminology (explicit)
 
-- DUPE CARDS have CODES (`dupe_code`, e.g. `0`, `a`, `10`).
+- DUPE CARDS have CODES (`dupe_code`, e.g. `0`, `a`, `10`, `#10`).
 - BASE CARDS have IDS (`card_id`, e.g. `SPG`, `PEN`).
 - Treat these as different concepts in commands, storage, and documentation.
 
