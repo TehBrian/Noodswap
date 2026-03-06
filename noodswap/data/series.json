@@ -1,0 +1,34 @@
+{
+  "bread": {
+    "emoji": "🥖",
+    "label": "Bread"
+  },
+  "cheese": {
+    "emoji": "🧀",
+    "label": "Cheese"
+  },
+  "dessert": {
+    "emoji": "🍰",
+    "label": "Dessert"
+  },
+  "entree": {
+    "emoji": "🍽️",
+    "label": "Entree"
+  },
+  "grain": {
+    "emoji": "🌾",
+    "label": "Grain"
+  },
+  "noodle": {
+    "emoji": "🍜",
+    "label": "Noodle"
+  },
+  "ingredient": {
+    "emoji": "🧂",
+    "label": "Ingredient"
+  },
+  "wine": {
+    "emoji": "🍷",
+    "label": "Wine"
+  }
+}

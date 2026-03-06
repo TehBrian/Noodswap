@@ -3,7 +3,7 @@
     "image": "assets/card_images/AER.img",
     "name": "Aether Truffle Relic",
     "rarity": "celestial",
-    "series": "relic"
+    "series": "ingredient"
   },
   "AFF": {
     "image": "assets/card_images/AFF.jpg",
@@ -21,7 +21,7 @@
     "image": "assets/card_images/AGN.jpg",
     "name": "Agnolotti",
     "rarity": "rare",
-    "series": "pasta"
+    "series": "noodle"
   },
   "ALF": {
     "image": "assets/card_images/ALF.png",
@@ -45,13 +45,13 @@
     "image": "assets/card_images/ANG.jpg",
     "name": "Angel Hair",
     "rarity": "common",
-    "series": "noodles"
+    "series": "noodle"
   },
   "ANO": {
     "image": "assets/card_images/ANO.jpg",
     "name": "Anolini",
     "rarity": "rare",
-    "series": "pasta"
+    "series": "noodle"
   },
   "APL": {
     "image": "assets/card_images/APL.png",
@@ -75,7 +75,7 @@
     "image": "assets/card_images/ATL.img",
     "name": "Atlas Cedar Honey",
     "rarity": "mythic",
-    "series": "relic"
+    "series": "ingredient"
   },
   "BAG": {
     "image": "assets/card_images/BAG.jpg",
@@ -111,7 +111,7 @@
     "image": "assets/card_images/BCT.jpg",
     "name": "Bucatini",
     "rarity": "common",
-    "series": "noodles"
+    "series": "noodle"
   },
   "BFL": {
     "image": "assets/card_images/BFL.jpg",
@@ -135,7 +135,7 @@
     "image": "assets/card_images/BLA.jpg",
     "name": "Black Truffle Ravioli",
     "rarity": "legendary",
-    "series": "pasta"
+    "series": "noodle"
   },
   "BLD": {
     "image": "assets/card_images/BLD.jpg",
@@ -147,19 +147,19 @@
     "image": "assets/card_images/BLM.img",
     "name": "Blue Lotus of the Nile",
     "rarity": "divine",
-    "series": "relic"
+    "series": "ingredient"
   },
   "BLN": {
     "image": "assets/card_images/BLN.jpg",
     "name": "Black Garlic Noodles",
     "rarity": "common",
-    "series": "noodles"
+    "series": "noodle"
   },
   "BLP": {
     "image": "assets/card_images/BLP.jpg",
     "name": "Black Pepper Pappardelle",
     "rarity": "epic",
-    "series": "pasta"
+    "series": "noodle"
   },
   "BNS": {
     "image": "assets/card_images/BNS.jpg",
@@ -255,19 +255,19 @@
     "image": "assets/card_images/CAN.png",
     "name": "Cannelloni",
     "rarity": "epic",
-    "series": "pasta"
+    "series": "noodle"
   },
   "CAP": {
     "image": "assets/card_images/CAP.jpg",
     "name": "Capellini",
     "rarity": "common",
-    "series": "noodles"
+    "series": "noodle"
   },
   "CAS": {
     "image": "assets/card_images/CAS.jpg",
     "name": "Casarecce",
     "rarity": "rare",
-    "series": "pasta"
+    "series": "noodle"
   },
   "CAT": {
     "image": "assets/card_images/CAT.jpg",
@@ -333,7 +333,7 @@
     "image": "assets/card_images/CHM.jpg",
     "name": "Chow Mein",
     "rarity": "uncommon",
-    "series": "noodles"
+    "series": "noodle"
   },
   "CHR": {
     "image": "assets/card_images/CHR.jpg",
@@ -375,25 +375,25 @@
     "image": "assets/card_images/CON.jpg",
     "name": "Conchiglie",
     "rarity": "common",
-    "series": "pasta"
+    "series": "noodle"
   },
   "CPL": {
     "image": "assets/card_images/CPL.jpg",
     "name": "Cappelletti",
     "rarity": "uncommon",
-    "series": "pasta"
+    "series": "noodle"
   },
   "CPN": {
     "image": "assets/card_images/CPN.jpg",
     "name": "Campanelle",
     "rarity": "uncommon",
-    "series": "pasta"
+    "series": "noodle"
   },
   "CPR": {
     "image": "assets/card_images/CPR.jpg",
     "name": "Cappellini Rustica",
     "rarity": "common",
-    "series": "noodles"
+    "series": "noodle"
   },
   "CRB": {
     "image": "assets/card_images/CRB.jpg",
@@ -417,7 +417,7 @@
     "image": "assets/card_images/CSP.jpg",
     "name": "Crown Stuffed Pasta",
     "rarity": "divine",
-    "series": "pasta"
+    "series": "noodle"
   },
   "CUP": {
     "image": "assets/card_images/CUP.jpg",
@@ -435,13 +435,13 @@
     "image": "assets/card_images/DTP.jpg",
     "name": "Ditalini",
     "rarity": "common",
-    "series": "noodles"
+    "series": "noodle"
   },
   "DTV": {
     "image": "assets/card_images/DTV.jpg",
     "name": "Ditaloni Verdi",
     "rarity": "common",
-    "series": "pasta"
+    "series": "noodle"
   },
   "DVE": {
     "image": "assets/card_images/DVE.jpg",
@@ -465,7 +465,7 @@
     "image": "assets/card_images/EGG.jpg",
     "name": "Egg Noodles",
     "rarity": "common",
-    "series": "noodles"
+    "series": "noodle"
   },
   "EMV": {
     "image": "assets/card_images/EMV.jpg",
@@ -495,7 +495,7 @@
     "image": "assets/card_images/FAR.jpg",
     "name": "Farfalle",
     "rarity": "common",
-    "series": "noodles"
+    "series": "noodle"
   },
   "FCC": {
     "image": "assets/card_images/FCC.jpg",
@@ -537,7 +537,7 @@
     "image": "assets/card_images/FUS.jpg",
     "name": "Fusilli",
     "rarity": "common",
-    "series": "noodles"
+    "series": "noodle"
   },
   "FYG": {
     "image": "assets/card_images/FYG.jpg",
@@ -561,7 +561,7 @@
     "image": "assets/card_images/GEM.jpg",
     "name": "Gemelli",
     "rarity": "uncommon",
-    "series": "pasta"
+    "series": "noodle"
   },
   "GFL": {
     "image": "assets/card_images/GFL.jpg",
@@ -591,7 +591,7 @@
     "image": "assets/card_images/GNO.jpg",
     "name": "Gnocchi",
     "rarity": "uncommon",
-    "series": "pasta"
+    "series": "noodle"
   },
   "GNP": {
     "image": "assets/card_images/GNP.jpg",
@@ -645,7 +645,7 @@
     "image": "assets/card_images/GTN.jpg",
     "name": "Golden Truffle Noodles",
     "rarity": "epic",
-    "series": "noodles"
+    "series": "noodle"
   },
   "HAV": {
     "image": "assets/card_images/HAV.jpg",
@@ -681,13 +681,13 @@
     "image": "assets/card_images/JDS.img",
     "name": "Jade Starfruit of Java",
     "rarity": "celestial",
-    "series": "relic"
+    "series": "ingredient"
   },
   "KUM": {
     "image": "assets/card_images/KUM.img",
     "name": "Kumano Sacred Umeshu",
     "rarity": "divine",
-    "series": "relic"
+    "series": "ingredient"
   },
   "KML": {
     "image": "assets/card_images/KML.jpg",
@@ -705,7 +705,7 @@
     "image": "assets/card_images/LAS.jpg",
     "name": "Lasagna",
     "rarity": "uncommon",
-    "series": "pasta"
+    "series": "noodle"
   },
   "LAV": {
     "image": "assets/card_images/LAV.jpg",
@@ -717,7 +717,7 @@
     "image": "assets/card_images/LBN.jpg",
     "name": "Lobster Bisque Noodles",
     "rarity": "epic",
-    "series": "noodles"
+    "series": "noodle"
   },
   "LGP": {
     "image": "assets/card_images/LGP.jpg",
@@ -729,7 +729,7 @@
     "image": "assets/card_images/LIN.jpg",
     "name": "Linguine",
     "rarity": "common",
-    "series": "noodles"
+    "series": "noodle"
   },
   "LMB": {
     "image": "assets/card_images/LMB.jpg",
@@ -741,13 +741,13 @@
     "image": "assets/card_images/LOM.jpg",
     "name": "Lo Mein",
     "rarity": "uncommon",
-    "series": "noodles"
+    "series": "noodle"
   },
   "LUM": {
     "image": "assets/card_images/LUM.jpg",
     "name": "Lumache",
     "rarity": "uncommon",
-    "series": "pasta"
+    "series": "noodle"
   },
   "LVC": {
     "image": "assets/card_images/LVC.jpg",
@@ -759,13 +759,13 @@
     "image": "assets/card_images/LZR.img",
     "name": "Lazarus Saffron Crown",
     "rarity": "celestial",
-    "series": "relic"
+    "series": "ingredient"
   },
   "MAC": {
     "image": "assets/card_images/MAC.jpg",
     "name": "Macaroni",
     "rarity": "common",
-    "series": "noodles"
+    "series": "noodle"
   },
   "MNC": {
     "image": "assets/card_images/MNC.jpg",
@@ -777,7 +777,7 @@
     "image": "assets/card_images/MAN.jpg",
     "name": "Manicotti",
     "rarity": "rare",
-    "series": "pasta"
+    "series": "noodle"
   },
   "MAS": {
     "image": "assets/card_images/MAS.jpg",
@@ -825,7 +825,7 @@
     "image": "assets/card_images/MFR.img",
     "name": "Maya Fire Cacao",
     "rarity": "divine",
-    "series": "relic"
+    "series": "ingredient"
   },
   "MKB": {
     "image": "assets/card_images/MKB.jpg",
@@ -837,7 +837,7 @@
     "image": "assets/card_images/MLF.jpg",
     "name": "Mafaldine",
     "rarity": "common",
-    "series": "pasta"
+    "series": "noodle"
   },
   "MLS": {
     "image": "assets/card_images/MLS.jpg",
@@ -879,7 +879,7 @@
     "image": "assets/card_images/NOO.jpg",
     "name": "Nood God",
     "rarity": "legendary",
-    "series": "noodles"
+    "series": "noodle"
   },
   "NYC": {
     "image": "assets/card_images/NYC.jpg",
@@ -897,13 +897,13 @@
     "image": "assets/card_images/ORB.img",
     "name": "Orb of Seven Orchards",
     "rarity": "celestial",
-    "series": "relic"
+    "series": "ingredient"
   },
   "ORC": {
     "image": "assets/card_images/ORC.jpg",
     "name": "Orecchiette",
     "rarity": "uncommon",
-    "series": "pasta"
+    "series": "noodle"
   },
   "OSB": {
     "image": "assets/card_images/OSB.jpg",
@@ -927,7 +927,7 @@
     "image": "assets/card_images/PAP.jpg",
     "name": "Pappardelle",
     "rarity": "rare",
-    "series": "pasta"
+    "series": "noodle"
   },
   "PAR": {
     "image": "assets/card_images/PAR.jpg",
@@ -939,7 +939,7 @@
     "image": "assets/card_images/PCH.png",
     "name": "Paccheri",
     "rarity": "uncommon",
-    "series": "pasta"
+    "series": "noodle"
   },
   "PCT": {
     "image": "assets/card_images/PCT.jpg",
@@ -963,7 +963,7 @@
     "image": "assets/card_images/PEN.jpg",
     "name": "Penne",
     "rarity": "common",
-    "series": "noodles"
+    "series": "noodle"
   },
   "PGR": {
     "image": "assets/card_images/PGR.jpg",
@@ -999,7 +999,7 @@
     "image": "assets/card_images/PRC.jpg",
     "name": "Porcini Ravioli",
     "rarity": "rare",
-    "series": "pasta"
+    "series": "noodle"
   },
   "PRE": {
     "image": "assets/card_images/PRE.jpg",
@@ -1053,19 +1053,19 @@
     "image": "assets/card_images/QSM.img",
     "name": "Qeshm Moon Salt",
     "rarity": "mythic",
-    "series": "relic"
+    "series": "ingredient"
   },
   "RAM": {
     "image": "assets/card_images/RAM.jpg",
     "name": "Ramen",
     "rarity": "common",
-    "series": "noodles"
+    "series": "noodle"
   },
   "RAV": {
     "image": "assets/card_images/RAV.jpg",
     "name": "Ravioli",
     "rarity": "uncommon",
-    "series": "pasta"
+    "series": "noodle"
   },
   "RBL": {
     "image": "assets/card_images/RBL.jpg",
@@ -1077,7 +1077,7 @@
     "image": "assets/card_images/RCA.jpg",
     "name": "Ricotta Cavatelli",
     "rarity": "uncommon",
-    "series": "pasta"
+    "series": "noodle"
   },
   "RCO": {
     "image": "assets/card_images/RCO.jpg",
@@ -1101,19 +1101,19 @@
     "image": "assets/card_images/RGN.jpg",
     "name": "Ragu Noodles",
     "rarity": "uncommon",
-    "series": "noodles"
+    "series": "noodle"
   },
   "RIC": {
     "image": "assets/card_images/RIC.jpg",
     "name": "Rice Noodles",
     "rarity": "common",
-    "series": "noodles"
+    "series": "noodle"
   },
   "RIG": {
     "image": "assets/card_images/RIG.jpg",
     "name": "Rigatoni",
     "rarity": "uncommon",
-    "series": "pasta"
+    "series": "noodle"
   },
   "RIO": {
     "image": "assets/card_images/RIO.jpg",
@@ -1155,7 +1155,7 @@
     "image": "assets/card_images/ROT.jpg",
     "name": "Rotini",
     "rarity": "common",
-    "series": "noodles"
+    "series": "noodle"
   },
   "RSF": {
     "image": "assets/card_images/RSF.jpg",
@@ -1185,7 +1185,7 @@
     "image": "assets/card_images/RYS.img",
     "name": "Reyne's Shrimp",
     "rarity": "celestial",
-    "series": "relic"
+    "series": "ingredient"
   },
   "RYE": {
     "image": "assets/card_images/RYE.jpg",
@@ -1197,7 +1197,7 @@
     "image": "assets/card_images/SBR.img",
     "name": "Siberian Pine Resin",
     "rarity": "mythic",
-    "series": "relic"
+    "series": "ingredient"
   },
   "SCA": {
     "image": "assets/card_images/SCA.jpg",
@@ -1239,13 +1239,13 @@
     "image": "assets/card_images/SFN.jpg",
     "name": "Saffron Noodles",
     "rarity": "uncommon",
-    "series": "noodles"
+    "series": "noodle"
   },
   "SFR": {
     "image": "assets/card_images/SFR.jpg",
     "name": "Saffron Ravioli",
     "rarity": "epic",
-    "series": "pasta"
+    "series": "noodle"
   },
   "SRI": {
     "image": "assets/card_images/SRI.jpg",
@@ -1292,7 +1292,7 @@
     "image": "assets/card_images/SLA.jpg",
     "name": "Sicilian Linguine Arc",
     "rarity": "common",
-    "series": "pasta"
+    "series": "noodle"
   },
   "SND": {
     "image": "assets/card_images/SND.jpg",
@@ -1304,7 +1304,7 @@
     "image": "assets/card_images/SOB.png",
     "name": "Soba",
     "rarity": "common",
-    "series": "noodles"
+    "series": "noodle"
   },
   "SOU": {
     "image": "assets/card_images/SOU.jpg",
@@ -1322,19 +1322,19 @@
     "image": "assets/card_images/SPG.jpg",
     "name": "Spaghetti",
     "rarity": "common",
-    "series": "noodles"
+    "series": "noodle"
   },
   "SPN": {
     "image": "assets/card_images/SPN.jpg",
     "name": "Spinach Noodles",
     "rarity": "common",
-    "series": "noodles"
+    "series": "noodle"
   },
   "STP": {
     "image": "assets/card_images/STP.jpg",
     "name": "Strozzapreti",
     "rarity": "rare",
-    "series": "pasta"
+    "series": "noodle"
   },
   "STR": {
     "image": "assets/card_images/STR.jpg",
@@ -1358,13 +1358,13 @@
     "image": "assets/card_images/TAG.jpg",
     "name": "Tagliatelle",
     "rarity": "uncommon",
-    "series": "pasta"
+    "series": "noodle"
   },
   "TAJ": {
     "image": "assets/card_images/TAJ.jpg",
     "name": "Tajarin",
     "rarity": "common",
-    "series": "noodles"
+    "series": "noodle"
   },
   "TAL": {
     "image": "assets/card_images/TAL.jpg",
@@ -1376,7 +1376,7 @@
     "image": "assets/card_images/TBB.jpg",
     "name": "Trofie al Burro",
     "rarity": "uncommon",
-    "series": "pasta"
+    "series": "noodle"
   },
   "TIR": {
     "image": "assets/card_images/TIR.jpg",
@@ -1388,7 +1388,7 @@
     "image": "assets/card_images/TOR.jpg",
     "name": "Tortellini",
     "rarity": "epic",
-    "series": "pasta"
+    "series": "noodle"
   },
   "TRF": {
     "image": "assets/card_images/TRF.jpg",
@@ -1412,13 +1412,13 @@
     "image": "assets/card_images/TRN.jpg",
     "name": "Truffle Noodles",
     "rarity": "epic",
-    "series": "noodles"
+    "series": "noodle"
   },
   "TRO": {
     "image": "assets/card_images/TRO.jpg",
     "name": "Trofie",
     "rarity": "rare",
-    "series": "pasta"
+    "series": "noodle"
   },
   "TRR": {
     "image": "assets/card_images/TRR.jpg",
@@ -1430,13 +1430,13 @@
     "image": "assets/card_images/UDC.jpg",
     "name": "Udon Carbonara",
     "rarity": "uncommon",
-    "series": "noodles"
+    "series": "noodle"
   },
   "UDO": {
     "image": "assets/card_images/UDO.jpg",
     "name": "Udon",
     "rarity": "common",
-    "series": "noodles"
+    "series": "noodle"
   },
   "VDT": {
     "image": "assets/card_images/VDT.jpg",
@@ -1448,7 +1448,7 @@
     "image": "assets/card_images/VER.jpg",
     "name": "Vermicelli",
     "rarity": "common",
-    "series": "noodles"
+    "series": "noodle"
   },
   "VSC": {
     "image": "assets/card_images/VSC.png",
@@ -1466,19 +1466,19 @@
     "image": "assets/card_images/WHT.jpg",
     "name": "White Truffle Tagliolini",
     "rarity": "mythic",
-    "series": "pasta"
+    "series": "noodle"
   },
   "YAK": {
     "image": "assets/card_images/YAK.jpg",
     "name": "Yakisoba",
     "rarity": "uncommon",
-    "series": "noodles"
+    "series": "noodle"
   },
   "YJA": {
     "image": "assets/card_images/YJA.img",
     "name": "Yuja Amber Preserve",
     "rarity": "mythic",
-    "series": "relic"
+    "series": "ingredient"
   },
   "ZAB": {
     "image": "assets/card_images/ZAB.jpg",
@@ -1490,12 +1490,12 @@
     "image": "assets/card_images/ZIT.png",
     "name": "Ziti",
     "rarity": "common",
-    "series": "pasta"
+    "series": "noodle"
   },
   "ZRC": {
     "image": "assets/card_images/ZRC.img",
     "name": "Zanzibar Royal Clove",
     "rarity": "divine",
-    "series": "relic"
+    "series": "ingredient"
   }
 }

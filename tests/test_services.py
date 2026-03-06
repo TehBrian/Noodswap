@@ -448,6 +448,156 @@ class ServicesTests(unittest.TestCase):
         self.assertEqual(prepared.card_id, "SPG")
         self.assertEqual(prepared.generation, 444)
 
+    def test_execute_drop_claim_returns_cooldown_error_when_pull_not_ready(self) -> None:
+        guild_id = 1
+        user_id = 600
+        now = time.time()
+
+        first_claim = services.execute_drop_claim(
+            guild_id,
+            user_id,
+            "SPG",
+            500,
+            now=now,
+            pull_cooldown_seconds=240,
+        )
+        self.assertFalse(first_claim.is_error)
+
+        second_claim = services.execute_drop_claim(
+            guild_id,
+            user_id,
+            "PEN",
+            550,
+            now=now + 1,
+            pull_cooldown_seconds=240,
+        )
+        self.assertTrue(second_claim.is_error)
+        self.assertGreater(second_claim.cooldown_remaining_seconds or 0.0, 0.0)
+
+    def test_execute_drop_claim_returns_resolved_dupe_code(self) -> None:
+        guild_id = 1
+        user_id = 601
+
+        claim = services.execute_drop_claim(
+            guild_id,
+            user_id,
+            "SPG",
+            777,
+            now=time.time(),
+            pull_cooldown_seconds=240,
+        )
+
+        self.assertFalse(claim.is_error)
+        self.assertEqual(claim.card_id, "SPG")
+        self.assertEqual(claim.generation, 777)
+        self.assertIsNotNone(claim.instance_id)
+        self.assertIsNotNone(claim.dupe_code)
+
+    def test_resolve_trade_offer_denied_returns_denied_status(self) -> None:
+        result = services.resolve_trade_offer(
+            guild_id=1,
+            seller_id=700,
+            buyer_id=701,
+            card_id="SPG",
+            dupe_code="0",
+            amount=25,
+            accepted=False,
+        )
+
+        self.assertTrue(result.is_denied)
+        self.assertEqual(result.message, "The trade was denied.")
+
+    def test_resolve_trade_offer_accepted_transfers_instance(self) -> None:
+        guild_id = 1
+        seller_id = 710
+        buyer_id = 711
+        storage.add_card_to_player(guild_id, seller_id, "SPG", 420)
+        seller_instances = storage.get_player_card_instances(guild_id, seller_id)
+        dupe_code = seller_instances[0][3]
+        storage.add_dough(guild_id, buyer_id, 100)
+
+        result = services.resolve_trade_offer(
+            guild_id=guild_id,
+            seller_id=seller_id,
+            buyer_id=buyer_id,
+            card_id="SPG",
+            dupe_code=dupe_code,
+            amount=25,
+            accepted=True,
+        )
+
+        self.assertTrue(result.is_accepted)
+        self.assertEqual(result.generation, 420)
+        buyer_instances = storage.get_player_card_instances(guild_id, buyer_id)
+        self.assertEqual(len(buyer_instances), 1)
+        self.assertEqual(buyer_instances[0][1], "SPG")
+
+    def test_resolve_morph_roll_applies_selected_morph(self) -> None:
+        guild_id = 1
+        user_id = 720
+        storage.add_dough(guild_id, user_id, 50)
+        instance_id = storage.add_card_to_player(guild_id, user_id, "SPG", 333)
+
+        with patch("noodswap.services.random.choice", return_value="black_and_white"):
+            result = services.resolve_morph_roll(
+                guild_id,
+                user_id,
+                instance_id=instance_id,
+                card_id="SPG",
+                generation=333,
+                dupe_code="0",
+                current_morph_key=None,
+                cost=1,
+            )
+
+        self.assertFalse(result.is_error)
+        self.assertEqual(result.morph_key, "black_and_white")
+        self.assertEqual(storage.get_instance_morph(guild_id, instance_id), "black_and_white")
+
+    def test_resolve_frame_roll_applies_selected_frame(self) -> None:
+        guild_id = 1
+        user_id = 721
+        storage.add_dough(guild_id, user_id, 50)
+        instance_id = storage.add_card_to_player(guild_id, user_id, "SPG", 333)
+
+        with patch("noodswap.services.random.choice", return_value="buttery"):
+            result = services.resolve_frame_roll(
+                guild_id,
+                user_id,
+                instance_id=instance_id,
+                card_id="SPG",
+                generation=333,
+                dupe_code="0",
+                current_frame_key=None,
+                cost=1,
+            )
+
+        self.assertFalse(result.is_error)
+        self.assertEqual(result.frame_key, "buttery")
+        self.assertEqual(storage.get_instance_frame(guild_id, instance_id), "buttery")
+
+    def test_resolve_font_roll_applies_selected_font(self) -> None:
+        guild_id = 1
+        user_id = 722
+        storage.add_dough(guild_id, user_id, 50)
+        instance_id = storage.add_card_to_player(guild_id, user_id, "SPG", 333)
+
+        with patch("noodswap.services.random.choice", return_value="serif"):
+            result = services.resolve_font_roll(
+                guild_id,
+                user_id,
+                instance_id=instance_id,
+                card_id="SPG",
+                generation=333,
+                dupe_code="0",
+                current_font_key=None,
+                cost=1,
+            )
+
+        self.assertFalse(result.is_error)
+        self.assertEqual(result.font_key, "serif")
+        self.assertEqual(storage.get_instance_font(guild_id, instance_id), "serif")
+
 
 if __name__ == "__main__":
     unittest.main()

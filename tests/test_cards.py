@@ -1,6 +1,6 @@
 import unittest
 
-from noodswap.cards import CARD_CATALOG, CARD_IMAGE_URLS, default_card_image
+from noodswap.cards import CARD_CATALOG, CARD_IMAGE_URLS, SERIES_CATALOG, default_card_image
 
 
 class CardsImageTests(unittest.TestCase):
@@ -22,6 +22,22 @@ class CardsImageTests(unittest.TestCase):
 
     def test_default_card_image_is_local_placeholder_path(self) -> None:
         self.assertEqual(default_card_image("SPG"), "assets/card_images/SPG.img")
+
+
+class CardsSeriesTests(unittest.TestCase):
+    def test_every_card_series_is_declared(self) -> None:
+        undeclared_series = sorted(
+            {card["series"] for card in CARD_CATALOG.values() if card["series"] not in SERIES_CATALOG}
+        )
+        self.assertEqual(undeclared_series, [])
+
+    def test_declared_series_have_non_empty_emoji(self) -> None:
+        missing_emojis = sorted(
+            series_id
+            for series_id, series_meta in SERIES_CATALOG.items()
+            if not isinstance(series_meta.get("emoji"), str) or not series_meta["emoji"].strip()
+        )
+        self.assertEqual(missing_emojis, [])
 
 
 if __name__ == "__main__":

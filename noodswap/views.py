@@ -1,6 +1,4 @@
 import asyncio
-import random
-import time
 from typing import Optional
 
 import discord
@@ -13,11 +11,18 @@ from .cards import (
     get_burn_payout,
 )
 from .images import embed_image_payload, morph_transition_image_payload
-from .fonts import AVAILABLE_FONTS, font_label
-from .frames import available_frame_keys, frame_label
-from .morphs import AVAILABLE_MORPHS, morph_label
+from .fonts import font_label
+from .frames import frame_label
+from .morphs import morph_label
 from .presentation import italy_embed
 from .presentation import help_category_content, help_category_pages, help_overview_description
+from .services import (
+    execute_drop_claim,
+    resolve_font_roll,
+    resolve_frame_roll,
+    resolve_morph_roll,
+    resolve_trade_offer,
+)
 from .settings import (
     BURN_CONFIRM_TIMEOUT_SECONDS,
     DROP_TIMEOUT_SECONDS,
@@ -29,16 +34,8 @@ from .settings import (
     TRADE_TIMEOUT_SECONDS,
 )
 from .storage import (
-    apply_morph_to_instance,
-    apply_font_to_instance,
-    apply_frame_to_instance,
-    add_card_to_player,
     add_dough,
     burn_instance,
-    consume_pull_cooldown_if_ready,
-    get_player_stats,
-    execute_trade,
-    get_instance_by_id,
     get_locked_tags_for_instance,
 )
 from .utils import multiline_text
@@ -156,13 +153,16 @@ class DropView(discord.ui.View):
                     )
                     return
 
-                cooldown_remaining = consume_pull_cooldown_if_ready(
+                claim_result = execute_drop_claim(
                     self.guild_id,
                     interaction.user.id,
-                    time.time(),
-                    PULL_COOLDOWN_SECONDS,
+                    card_id,
+                    generation,
+                    now=discord.utils.utcnow().timestamp(),
+                    pull_cooldown_seconds=PULL_COOLDOWN_SECONDS,
                 )
-                if cooldown_remaining > 0:
+                if claim_result.is_error:
+                    cooldown_remaining = claim_result.cooldown_remaining_seconds or 0.0
                     await interaction.response.send_message(
                         embed=italy_embed(
                             "Pull Cooldown",
@@ -188,12 +188,7 @@ class DropView(discord.ui.View):
                 if all(isinstance(item, discord.ui.Button) and item.disabled for item in self.children):
                     self.finished = True
 
-            instance_id = add_card_to_player(self.guild_id, interaction.user.id, card_id, generation)
-
-            pulled_dupe_code: str | None = None
-            persisted = get_instance_by_id(self.guild_id, instance_id)
-            if persisted is not None:
-                _, _, _, pulled_dupe_code = persisted
+            pulled_dupe_code = claim_result.dupe_code
 
             pulled_embed = italy_embed(
                 "Pulled Card",
@@ -268,29 +263,39 @@ class TradeView(discord.ui.View):
             return
 
         if not accepted:
+            trade_result = resolve_trade_offer(
+                guild_id=self.guild_id,
+                seller_id=self.seller_id,
+                buyer_id=self.buyer_id,
+                card_id=self.card_id,
+                dupe_code=self.dupe_code,
+                amount=self.amount,
+                accepted=False,
+            )
             self.finished = True
             self._disable_buttons()
             await interaction.response.edit_message(
                 content=None,
-                embed=italy_embed("Trade Denied", "The trade was denied."),
+                embed=italy_embed("Trade Denied", trade_result.message),
                 view=self,
             )
             return
 
-        success, message, generation, dupe_code = execute_trade(
+        trade_result = resolve_trade_offer(
             guild_id=self.guild_id,
             seller_id=self.seller_id,
             buyer_id=self.buyer_id,
             card_id=self.card_id,
             dupe_code=self.dupe_code,
             amount=self.amount,
+            accepted=True,
         )
-        if not success:
+        if trade_result.is_failed:
             self.finished = True
             self._disable_buttons()
             await interaction.response.edit_message(
                 content=None,
-                embed=italy_embed("Trade Failed", message),
+                embed=italy_embed("Trade Failed", trade_result.message),
                 view=self,
             )
             return
@@ -299,8 +304,12 @@ class TradeView(discord.ui.View):
         self._disable_buttons()
 
         traded_card_text = card_base_display(self.card_id)
-        if generation is not None:
-            traded_card_text = card_dupe_display(self.card_id, generation, dupe_code=dupe_code)
+        if trade_result.generation is not None:
+            traded_card_text = card_dupe_display(
+                self.card_id,
+                trade_result.generation,
+                dupe_code=trade_result.dupe_code,
+            )
 
         await interaction.response.edit_message(
             view=self,
@@ -539,35 +548,34 @@ class MorphConfirmView(discord.ui.View):
             )
             return
 
-        available_rolls = [morph_key for morph_key in AVAILABLE_MORPHS if morph_key != self.before_morph_key]
-        if not available_rolls:
+        result = resolve_morph_roll(
+            self.guild_id,
+            self.user_id,
+            instance_id=self.instance_id,
+            card_id=self.card_id,
+            generation=self.generation,
+            dupe_code=self.dupe_code,
+            current_morph_key=self.before_morph_key,
+            cost=self.cost,
+        )
+        if result.is_error:
             self.finished = True
             self._disable_buttons()
             await interaction.response.edit_message(view=self)
             if interaction.message is not None:
                 await interaction.message.reply(
-                    embed=italy_embed("Morph Failed", "No new morphs are currently available for this card."),
+                    embed=italy_embed("Morph Failed", result.error_message or "Morph failed."),
                     mention_author=False,
                 )
             return
 
-        rolled_morph_key = random.choice(available_rolls)
-        rolled_morph_name = morph_label(rolled_morph_key)
-
-        applied, message = apply_morph_to_instance(
-            self.guild_id,
-            self.user_id,
-            self.instance_id,
-            rolled_morph_key,
-            self.cost,
-        )
-        if not applied:
+        if result.morph_key is None or result.morph_name is None or result.remaining_dough is None:
             self.finished = True
             self._disable_buttons()
             await interaction.response.edit_message(view=self)
             if interaction.message is not None:
                 await interaction.message.reply(
-                    embed=italy_embed("Morph Failed", message or "Morph failed."),
+                    embed=italy_embed("Morph Failed", "Morph failed."),
                     mention_author=False,
                 )
             return
@@ -576,23 +584,22 @@ class MorphConfirmView(discord.ui.View):
         self._disable_buttons()
         await interaction.response.edit_message(view=self)
 
-        dough_after, _, _ = get_player_stats(self.guild_id, self.user_id)
         morph_embed = italy_embed(
             "Morph Rolled",
             (
-                f"Rolled **{rolled_morph_name}** for "
+                f"Rolled **{result.morph_name}** for "
                 f"{card_dupe_display(self.card_id, self.generation, dupe_code=self.dupe_code)}.\n\n"
                 f"Before: **{morph_label(self.before_morph_key)}**\n"
-                f"After: **{rolled_morph_name}**\n\n"
+                f"After: **{result.morph_name}**\n\n"
                 f"Morph Cost: **{self.cost}** dough\n"
-                f"Dough Remaining: **{dough_after}**"
+                f"Dough Remaining: **{result.remaining_dough}**"
             ),
         )
         image_url, image_file = morph_transition_image_payload(
             self.card_id,
             generation=self.generation,
             before_morph_key=self.before_morph_key,
-            after_morph_key=rolled_morph_key,
+            after_morph_key=result.morph_key,
             before_frame_key=self.before_frame_key,
             after_frame_key=self.before_frame_key,
             before_font_key=self.before_font_key,
@@ -699,35 +706,34 @@ class FrameConfirmView(discord.ui.View):
             )
             return
 
-        frame_choices = [frame_key for frame_key in available_frame_keys() if frame_key != self.before_frame_key]
-        if not frame_choices:
+        result = resolve_frame_roll(
+            self.guild_id,
+            self.user_id,
+            instance_id=self.instance_id,
+            card_id=self.card_id,
+            generation=self.generation,
+            dupe_code=self.dupe_code,
+            current_frame_key=self.before_frame_key,
+            cost=self.cost,
+        )
+        if result.is_error:
             self.finished = True
             self._disable_buttons()
             await interaction.response.edit_message(view=self)
             if interaction.message is not None:
                 await interaction.message.reply(
-                    embed=italy_embed("Frame Failed", "No new frames are currently available for this card."),
+                    embed=italy_embed("Frame Failed", result.error_message or "Frame failed."),
                     mention_author=False,
                 )
             return
 
-        rolled_frame_key = random.choice(frame_choices)
-        rolled_frame_name = frame_label(rolled_frame_key)
-
-        applied, message = apply_frame_to_instance(
-            self.guild_id,
-            self.user_id,
-            self.instance_id,
-            rolled_frame_key,
-            self.cost,
-        )
-        if not applied:
+        if result.frame_key is None or result.frame_name is None or result.remaining_dough is None:
             self.finished = True
             self._disable_buttons()
             await interaction.response.edit_message(view=self)
             if interaction.message is not None:
                 await interaction.message.reply(
-                    embed=italy_embed("Frame Failed", message or "Frame failed."),
+                    embed=italy_embed("Frame Failed", "Frame failed."),
                     mention_author=False,
                 )
             return
@@ -736,16 +742,15 @@ class FrameConfirmView(discord.ui.View):
         self._disable_buttons()
         await interaction.response.edit_message(view=self)
 
-        dough_after, _, _ = get_player_stats(self.guild_id, self.user_id)
         frame_embed = italy_embed(
             "Frame Rolled",
             (
-                f"Rolled **{rolled_frame_name}** for "
+                f"Rolled **{result.frame_name}** for "
                 f"{card_dupe_display(self.card_id, self.generation, dupe_code=self.dupe_code)}.\n\n"
                 f"Before: **{frame_label(self.before_frame_key)}**\n"
-                f"After: **{rolled_frame_name}**\n\n"
+                f"After: **{result.frame_name}**\n\n"
                 f"Frame Cost: **{self.cost}** dough\n"
-                f"Dough Remaining: **{dough_after}**"
+                f"Dough Remaining: **{result.remaining_dough}**"
             ),
         )
         image_url, image_file = morph_transition_image_payload(
@@ -754,7 +759,7 @@ class FrameConfirmView(discord.ui.View):
             before_morph_key=self.before_morph_key,
             after_morph_key=self.before_morph_key,
             before_frame_key=self.before_frame_key,
-            after_frame_key=rolled_frame_key,
+            after_frame_key=result.frame_key,
             before_font_key=self.before_font_key,
             after_font_key=self.before_font_key,
         )
@@ -859,35 +864,34 @@ class FontConfirmView(discord.ui.View):
             )
             return
 
-        available_rolls = [font_key for font_key in AVAILABLE_FONTS if font_key != self.before_font_key]
-        if not available_rolls:
+        result = resolve_font_roll(
+            self.guild_id,
+            self.user_id,
+            instance_id=self.instance_id,
+            card_id=self.card_id,
+            generation=self.generation,
+            dupe_code=self.dupe_code,
+            current_font_key=self.before_font_key,
+            cost=self.cost,
+        )
+        if result.is_error:
             self.finished = True
             self._disable_buttons()
             await interaction.response.edit_message(view=self)
             if interaction.message is not None:
                 await interaction.message.reply(
-                    embed=italy_embed("Font Failed", "No new fonts are currently available for this card."),
+                    embed=italy_embed("Font Failed", result.error_message or "Font failed."),
                     mention_author=False,
                 )
             return
 
-        rolled_font_key = random.choice(available_rolls)
-        rolled_font_name = font_label(rolled_font_key)
-
-        applied, message = apply_font_to_instance(
-            self.guild_id,
-            self.user_id,
-            self.instance_id,
-            rolled_font_key,
-            self.cost,
-        )
-        if not applied:
+        if result.font_key is None or result.font_name is None or result.remaining_dough is None:
             self.finished = True
             self._disable_buttons()
             await interaction.response.edit_message(view=self)
             if interaction.message is not None:
                 await interaction.message.reply(
-                    embed=italy_embed("Font Failed", message or "Font failed."),
+                    embed=italy_embed("Font Failed", "Font failed."),
                     mention_author=False,
                 )
             return
@@ -896,16 +900,15 @@ class FontConfirmView(discord.ui.View):
         self._disable_buttons()
         await interaction.response.edit_message(view=self)
 
-        dough_after, _, _ = get_player_stats(self.guild_id, self.user_id)
         font_embed = italy_embed(
             "Font Rolled",
             (
-                f"Rolled **{rolled_font_name}** for "
+                f"Rolled **{result.font_name}** for "
                 f"{card_dupe_display(self.card_id, self.generation, dupe_code=self.dupe_code)}.\n\n"
                 f"Before: **{font_label(self.before_font_key)}**\n"
-                f"After: **{rolled_font_name}**\n\n"
+                f"After: **{result.font_name}**\n\n"
                 f"Font Cost: **{self.cost}** dough\n"
-                f"Dough Remaining: **{dough_after}**"
+                f"Dough Remaining: **{result.remaining_dough}**"
             ),
         )
         image_url, image_file = morph_transition_image_payload(
@@ -916,7 +919,7 @@ class FontConfirmView(discord.ui.View):
             before_frame_key=self.before_frame_key,
             after_frame_key=self.before_frame_key,
             before_font_key=self.before_font_key,
-            after_font_key=rolled_font_key,
+            after_font_key=result.font_key,
         )
         if image_url is not None:
             font_embed.set_image(url=image_url)

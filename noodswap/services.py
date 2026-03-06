@@ -9,10 +9,14 @@ from .frames import FRAME_COST_FRACTION, available_frame_keys, frame_label
 from .morphs import AVAILABLE_MORPHS, MORPH_COST_FRACTION, morph_label
 from .settings import DROP_CHOICES_COUNT, DROP_COOLDOWN_SECONDS
 from .storage import (
+    add_card_to_player,
     apply_font_to_instance,
     apply_frame_to_instance,
     apply_morph_to_instance,
+    consume_pull_cooldown_if_ready,
     divorce_card,
+    execute_trade,
+    get_instance_by_id,
     get_instance_font,
     get_instance_frame,
     get_locked_tags_for_instance,
@@ -49,6 +53,123 @@ def prepare_drop(guild_id: int, user_id: int, now: float) -> DropPreparation:
     choices = make_drop_choices(DROP_CHOICES_COUNT)
     set_last_drop_at(guild_id, user_id, now)
     return DropPreparation(choices=choices, cooldown_remaining_seconds=0.0)
+
+
+@dataclass(frozen=True)
+class DropClaimExecution:
+    error_message: Optional[str]
+    instance_id: Optional[int]
+    card_id: Optional[str]
+    generation: Optional[int]
+    dupe_code: Optional[str]
+    cooldown_remaining_seconds: Optional[float]
+
+    @property
+    def is_error(self) -> bool:
+        return self.error_message is not None
+
+
+def execute_drop_claim(
+    guild_id: int,
+    user_id: int,
+    card_id: str,
+    generation: int,
+    *,
+    now: float,
+    pull_cooldown_seconds: float,
+) -> DropClaimExecution:
+    cooldown_remaining = consume_pull_cooldown_if_ready(
+        guild_id,
+        user_id,
+        now,
+        pull_cooldown_seconds,
+    )
+    if cooldown_remaining > 0:
+        return DropClaimExecution(
+            error_message="Pull cooldown active.",
+            instance_id=None,
+            card_id=None,
+            generation=None,
+            dupe_code=None,
+            cooldown_remaining_seconds=cooldown_remaining,
+        )
+
+    instance_id = add_card_to_player(guild_id, user_id, card_id, generation)
+    persisted = get_instance_by_id(guild_id, instance_id)
+    resolved_dupe_code: Optional[str] = None
+    if persisted is not None:
+        _, _, _, resolved_dupe_code = persisted
+
+    return DropClaimExecution(
+        error_message=None,
+        instance_id=instance_id,
+        card_id=card_id,
+        generation=generation,
+        dupe_code=resolved_dupe_code,
+        cooldown_remaining_seconds=0.0,
+    )
+
+
+@dataclass(frozen=True)
+class TradeResolution:
+    status: str
+    message: str
+    generation: Optional[int]
+    dupe_code: Optional[str]
+
+    @property
+    def is_accepted(self) -> bool:
+        return self.status == "accepted"
+
+    @property
+    def is_denied(self) -> bool:
+        return self.status == "denied"
+
+    @property
+    def is_failed(self) -> bool:
+        return self.status == "failed"
+
+
+def resolve_trade_offer(
+    guild_id: int,
+    seller_id: int,
+    buyer_id: int,
+    card_id: str,
+    dupe_code: str,
+    amount: int,
+    *,
+    accepted: bool,
+) -> TradeResolution:
+    if not accepted:
+        return TradeResolution(
+            status="denied",
+            message="The trade was denied.",
+            generation=None,
+            dupe_code=None,
+        )
+
+    success, message, generation, received_dupe_code = execute_trade(
+        guild_id=guild_id,
+        seller_id=seller_id,
+        buyer_id=buyer_id,
+        card_id=card_id,
+        dupe_code=dupe_code,
+        amount=amount,
+    )
+    if not success:
+        return TradeResolution(
+            status="failed",
+            message=message,
+            generation=None,
+            dupe_code=None,
+        )
+
+    return TradeResolution(
+        status="accepted",
+        message="",
+        generation=generation,
+        dupe_code=received_dupe_code,
+    )
 
 
 @dataclass(frozen=True)
@@ -474,6 +595,45 @@ def execute_morph(guild_id: int, user_id: int, card_code: Optional[str]) -> Morp
     )
 
 
+def resolve_morph_roll(
+    guild_id: int,
+    user_id: int,
+    *,
+    instance_id: int,
+    card_id: str,
+    generation: int,
+    dupe_code: str,
+    current_morph_key: str | None,
+    cost: int,
+) -> MorphExecution:
+    available_rolls = [morph_key for morph_key in AVAILABLE_MORPHS if morph_key != current_morph_key]
+    if not available_rolls:
+        return MorphExecution(
+            error_message="No new morphs are currently available for this card.",
+            instance_id=None,
+            card_id=None,
+            generation=None,
+            dupe_code=None,
+            morph_key=None,
+            morph_name=None,
+            cost=None,
+            remaining_dough=None,
+        )
+
+    rolled_morph = random.choice(available_rolls)
+    return confirm_morph(
+        guild_id,
+        user_id,
+        instance_id=instance_id,
+        card_id=card_id,
+        generation=generation,
+        dupe_code=dupe_code,
+        morph_key=rolled_morph,
+        morph_name=morph_label(rolled_morph),
+        cost=cost,
+    )
+
+
 @dataclass(frozen=True)
 class FrameExecution:
     error_message: Optional[str]
@@ -717,6 +877,46 @@ def execute_frame(guild_id: int, user_id: int, card_code: Optional[str]) -> Fram
     )
 
 
+def resolve_frame_roll(
+    guild_id: int,
+    user_id: int,
+    *,
+    instance_id: int,
+    card_id: str,
+    generation: int,
+    dupe_code: str,
+    current_frame_key: str | None,
+    cost: int,
+) -> FrameExecution:
+    frame_choices = available_frame_keys()
+    available_rolls = [frame_key for frame_key in frame_choices if frame_key != current_frame_key]
+    if not available_rolls:
+        return FrameExecution(
+            error_message="No new frames are currently available for this card.",
+            instance_id=None,
+            card_id=None,
+            generation=None,
+            dupe_code=None,
+            frame_key=None,
+            frame_name=None,
+            cost=None,
+            remaining_dough=None,
+        )
+
+    rolled_frame = random.choice(available_rolls)
+    return confirm_frame(
+        guild_id,
+        user_id,
+        instance_id=instance_id,
+        card_id=card_id,
+        generation=generation,
+        dupe_code=dupe_code,
+        frame_key=rolled_frame,
+        frame_name=frame_label(rolled_frame),
+        cost=cost,
+    )
+
+
 @dataclass(frozen=True)
 class FontExecution:
     error_message: Optional[str]
@@ -955,6 +1155,45 @@ def execute_font(guild_id: int, user_id: int, card_code: Optional[str]) -> FontE
         font_key=rolled_font,
         font_name=font_label(rolled_font),
         cost=prepared.cost,
+    )
+
+
+def resolve_font_roll(
+    guild_id: int,
+    user_id: int,
+    *,
+    instance_id: int,
+    card_id: str,
+    generation: int,
+    dupe_code: str,
+    current_font_key: str | None,
+    cost: int,
+) -> FontExecution:
+    available_rolls = [font_key for font_key in AVAILABLE_FONTS if font_key != current_font_key]
+    if not available_rolls:
+        return FontExecution(
+            error_message="No new fonts are currently available for this card.",
+            instance_id=None,
+            card_id=None,
+            generation=None,
+            dupe_code=None,
+            font_key=None,
+            font_name=None,
+            cost=None,
+            remaining_dough=None,
+        )
+
+    rolled_font = random.choice(available_rolls)
+    return confirm_font(
+        guild_id,
+        user_id,
+        instance_id=instance_id,
+        card_id=card_id,
+        generation=generation,
+        dupe_code=dupe_code,
+        font_key=rolled_font,
+        font_name=font_label(rolled_font),
+        cost=cost,
     )
 
 

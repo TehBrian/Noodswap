@@ -23,9 +23,15 @@ class _CardMetaData(TypedDict):
     image: NotRequired[str]
 
 
+class SeriesData(TypedDict):
+    emoji: str
+    label: NotRequired[str]
+
+
 CARD_DATA_DIR = Path(__file__).resolve().parent / "data"
 CARD_CATALOG_PATH = CARD_DATA_DIR / "cards.json"
 CARD_BASE_VALUES_PATH = CARD_DATA_DIR / "base_values.json"
+SERIES_CATALOG_PATH = CARD_DATA_DIR / "series.json"
 
 
 def _read_card_metadata() -> dict[str, _CardMetaData]:
@@ -72,6 +78,29 @@ def _read_card_base_values() -> dict[str, int]:
     return base_values
 
 
+def _read_series_catalog() -> dict[str, SeriesData]:
+    parsed = json.loads(SERIES_CATALOG_PATH.read_text(encoding="utf-8"))
+    if not isinstance(parsed, dict):
+        raise RuntimeError(f"Invalid series metadata JSON: {SERIES_CATALOG_PATH}")
+
+    metadata: dict[str, SeriesData] = {}
+    for series_id, value in parsed.items():
+        if not isinstance(series_id, str) or not isinstance(value, dict):
+            continue
+
+        emoji = value.get("emoji")
+        label = value.get("label")
+        if not isinstance(emoji, str) or not emoji.strip():
+            continue
+
+        series_meta: SeriesData = {"emoji": emoji}
+        if isinstance(label, str) and label.strip():
+            series_meta["label"] = label
+        metadata[series_id] = series_meta
+
+    return metadata
+
+
 def _load_card_catalog() -> dict[str, CardData]:
     card_metadata = _read_card_metadata()
     card_base_values = _read_card_base_values()
@@ -93,6 +122,7 @@ def _load_card_catalog() -> dict[str, CardData]:
 
 
 CARD_CATALOG: dict[str, CardData] = _load_card_catalog()
+SERIES_CATALOG: dict[str, SeriesData] = _read_series_catalog()
 
 
 def default_card_image(card_id: str) -> str:
@@ -154,7 +184,20 @@ def _validate_no_remote_image_paths() -> None:
         )
 
 
+def _validate_card_series_metadata() -> None:
+    unknown_series = sorted({card["series"] for card in CARD_CATALOG.values() if card["series"] not in SERIES_CATALOG})
+    if unknown_series:
+        raise RuntimeError(
+            "Card series must be declared in data/series.json; unknown series: " + ", ".join(unknown_series)
+        )
+
+    missing_emojis = sorted(series_id for series_id, series in SERIES_CATALOG.items() if not series["emoji"].strip())
+    if missing_emojis:
+        raise RuntimeError("Series emojis must be non-empty for: " + ", ".join(missing_emojis))
+
+
 _validate_no_remote_image_paths()
+_validate_card_series_metadata()
 
 
 RARITY_CARD_COUNTS = Counter(card["rarity"] for card in CARD_CATALOG.values())
@@ -284,6 +327,15 @@ def proper_case(value: str) -> str:
     return " ".join(word.capitalize() for word in value.split())
 
 
+def series_display(series: str) -> str:
+    series_meta = SERIES_CATALOG.get(series)
+    if series_meta is None:
+        return proper_case(series)
+
+    label = series_meta.get("label") or proper_case(series)
+    return f"{series_meta['emoji']} {label}"
+
+
 def card_base_value(card_id: str) -> int:
     return int(CARD_CATALOG[card_id]["base_value"])
 
@@ -298,7 +350,7 @@ def card_base_display(card_id: str) -> str:
     card = CARD_CATALOG[card_id]
     return (
         f"**{card['name']}** • (`{card_id}`) "
-        f"[{proper_case(card['series'])}] ({proper_case(card['rarity'])}) "
+        f"[{series_display(card['series'])}] ({proper_case(card['rarity'])}) "
         f"(Base: **{card_base_value(card_id)}** dough)"
     )
 
@@ -308,7 +360,7 @@ def card_dupe_display(card_id: str, generation: int, dupe_code: str | None = Non
     dupe_code_text = card_code(card_id, dupe_code) if dupe_code is not None else "?"
     return (
         f"`#{dupe_code_text}` **{card['name']}** • (`{card_id}`) "
-        f"[{proper_case(card['series'])}] ({proper_case(card['rarity'])}) "
+        f"[{series_display(card['series'])}] ({proper_case(card['rarity'])}) "
         f"• **{generation_label(generation)}** (Value: **{card_value(card_id, generation)}** dough)"
     )
 

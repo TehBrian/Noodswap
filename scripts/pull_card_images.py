@@ -11,7 +11,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from noodswap.cards import CARD_CATALOG, CARD_IMAGE_URLS
 
 SERIES_HINTS = {
-    "noodles": "pasta",
+    "noodle": "pasta",
     "pasta": "pasta",
     "bread": "bread",
     "cheese": "cheese",

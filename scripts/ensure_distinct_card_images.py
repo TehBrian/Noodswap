@@ -33,7 +33,7 @@ STOPWORDS = {
 }
 
 SERIES_HINTS = {
-    "noodles": "noodle dish",
+    "noodle": "noodle dish",
     "pasta": "pasta",
     "bread": "bread",
     "cheese": "cheese",

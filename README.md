@@ -163,7 +163,7 @@ Machine-readable output is available with `--json`.
 - Alias conflict in the original spec (`d` for both `drop` and `divorce`) is resolved as:
   - `d` for `drop`
   - `dv` for `divorce`
-- Card catalog is a constant dict in code for now, including `series` values (`noodles`, `pasta`, `cheese`, `wine`, `bread`, `entree`, `dessert`).
+- Card catalog is a constant dict in code for now, including `series` values (`noodle`, `grain`, `ingredient`, `cheese`, `wine`, `bread`, `entree`, `dessert`).
 - Card ownership is instance-based: each acquired card gets a generated `G-####` value (1-2000), where lower generations are rarer.
 - Generation rolls are sampled with a right-skewed beta distribution (`betavariate(1.6, 1.04)`) scaled to the 1-2000 range, making low-generation pulls ~1 in 48k while maintaining a stable median around 1270.
 - Drop buttons use card names for readability.

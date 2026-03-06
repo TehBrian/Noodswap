@@ -150,14 +150,13 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         callback = view.children[0].callback
         self.assertIsNotNone(callback)
 
-        with (
-            patch("noodswap.views.add_card_to_player", return_value=777) as add_card,
-            patch("noodswap.views.get_instance_by_id", return_value=(777, "SPG", 50, "abc")),
-            patch("noodswap.views.consume_pull_cooldown_if_ready", return_value=0.0),
-        ):
+        with patch(
+            "noodswap.views.execute_drop_claim",
+            return_value=type("Result", (), {"is_error": False, "dupe_code": "abc"})(),
+        ) as execute_claim:
             await callback(interaction)
 
-        add_card.assert_called_once_with(1, 200, "SPG", 50)
+        execute_claim.assert_called_once()
         self.assertEqual(len(interaction.response.edited_messages), 1)
         self.assertEqual(len(interaction.message.replies), 1)
         self.assertIn("<@200> pulled", interaction.message.replies[0]["embed"].description)
@@ -169,9 +168,9 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         callback = view.children[0].callback
         self.assertIsNotNone(callback)
 
-        with patch("noodswap.views.add_card_to_player") as add_card:
+        with patch("noodswap.views.execute_drop_claim") as execute_claim:
             await callback(interaction)
-            add_card.assert_not_called()
+            execute_claim.assert_not_called()
 
         self.assertEqual(len(interaction.response.sent_messages), 1)
         sent = interaction.response.sent_messages[0]
@@ -185,15 +184,14 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         callback = view.children[0].callback
         self.assertIsNotNone(callback)
 
-        with (
-            patch("noodswap.views.add_card_to_player", return_value=777) as add_card,
-            patch("noodswap.views.get_instance_by_id", return_value=(777, "SPG", 50, "abc")),
-            patch("noodswap.views.consume_pull_cooldown_if_ready", return_value=0.0),
-        ):
+        with patch(
+            "noodswap.views.execute_drop_claim",
+            return_value=type("Result", (), {"is_error": False, "dupe_code": "abc"})(),
+        ) as execute_claim:
             await callback(first_interaction)
             await callback(second_interaction)
 
-        add_card.assert_called_once_with(1, 200, "SPG", 50)
+        execute_claim.assert_called_once()
         self.assertEqual(len(second_interaction.response.sent_messages), 1)
         self.assertIn("already been claimed", second_interaction.response.sent_messages[0]["embed"].description)
 
@@ -203,10 +201,9 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         callback = view.children[0].callback
         self.assertIsNotNone(callback)
 
-        with (
-            patch("noodswap.views.add_card_to_player", return_value=777),
-            patch("noodswap.views.get_instance_by_id", return_value=(777, "SPG", 50, "abc")),
-            patch("noodswap.views.consume_pull_cooldown_if_ready", return_value=0.0),
+        with patch(
+            "noodswap.views.execute_drop_claim",
+            return_value=type("Result", (), {"is_error": False, "dupe_code": "abc"})(),
         ):
             await callback(first_interaction)
 
@@ -233,14 +230,13 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         callback = view.children[0].callback
         self.assertIsNotNone(callback)
 
-        with (
-            patch("noodswap.views.consume_pull_cooldown_if_ready", return_value=30.0) as consume,
-            patch("noodswap.views.add_card_to_player") as add_card,
-        ):
+        with patch(
+            "noodswap.views.execute_drop_claim",
+            return_value=type("Result", (), {"is_error": True, "cooldown_remaining_seconds": 30.0})(),
+        ) as execute_claim:
             await callback(interaction)
 
-        consume.assert_called_once()
-        add_card.assert_not_called()
+        execute_claim.assert_called_once()
         self.assertEqual(len(interaction.response.sent_messages), 1)
         sent = interaction.response.sent_messages[0]
         self.assertEqual(sent["embed"].title, "Pull Cooldown")
@@ -250,9 +246,9 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         view = TradeView(guild_id=1, seller_id=10, buyer_id=20, card_id="SPG", dupe_code="0", amount=25)
         interaction = _FakeInteraction(user_id=30)
 
-        with patch("noodswap.views.execute_trade") as execute_trade:
+        with patch("noodswap.views.resolve_trade_offer") as resolve_trade:
             await view._resolve(interaction, accepted=True)
-            execute_trade.assert_not_called()
+            resolve_trade.assert_not_called()
 
         self.assertEqual(len(interaction.response.sent_messages), 1)
         sent = interaction.response.sent_messages[0]
@@ -263,9 +259,12 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         view = TradeView(guild_id=1, seller_id=10, buyer_id=20, card_id="SPG", dupe_code="0", amount=25)
         interaction = _FakeInteraction(user_id=20)
 
-        with patch("noodswap.views.execute_trade", return_value=(True, "", 123, "a")) as execute_trade:
+        with patch(
+            "noodswap.views.resolve_trade_offer",
+            return_value=type("TradeResult", (), {"is_failed": False, "generation": 123, "dupe_code": "a"})(),
+        ) as resolve_trade:
             await view._resolve(interaction, accepted=True)
-            execute_trade.assert_called_once()
+            resolve_trade.assert_called_once()
 
         self.assertTrue(view.finished)
         self.assertTrue(all(getattr(item, "disabled", False) for item in view.children))
@@ -355,14 +354,22 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         )
         interaction = _FakeInteraction(user_id=10)
 
-        with (
-            patch("noodswap.views.random.choice", return_value="black_and_white"),
-            patch("noodswap.views.apply_morph_to_instance", return_value=(True, "")) as apply_morph,
-            patch("noodswap.views.get_player_stats", return_value=(41, 0.0, None)),
-        ):
+        with patch(
+            "noodswap.views.resolve_morph_roll",
+            return_value=type(
+                "MorphResult",
+                (),
+                {
+                    "is_error": False,
+                    "morph_key": "black_and_white",
+                    "morph_name": "Black and White",
+                    "remaining_dough": 41,
+                },
+            )(),
+        ) as resolve_morph:
             await view.confirm_button.callback(interaction)
 
-        apply_morph.assert_called_once_with(1, 10, 77, "black_and_white", 9)
+        resolve_morph.assert_called_once()
         self.assertTrue(view.finished)
         self.assertEqual(len(interaction.response.edited_messages), 1)
         self.assertEqual(interaction.response.edited_messages[0].get("view"), view)
@@ -387,9 +394,9 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         )
         interaction = _FakeInteraction(user_id=99)
 
-        with patch("noodswap.views.apply_morph_to_instance") as apply_morph:
+        with patch("noodswap.views.resolve_morph_roll") as resolve_morph:
             await view.confirm_button.callback(interaction)
-            apply_morph.assert_not_called()
+            resolve_morph.assert_not_called()
 
         self.assertEqual(len(interaction.response.sent_messages), 1)
         self.assertTrue(interaction.response.sent_messages[0].get("ephemeral"))
@@ -436,14 +443,22 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         )
         interaction = _FakeInteraction(user_id=10)
 
-        with (
-            patch("noodswap.views.random.choice", return_value="buttery"),
-            patch("noodswap.views.apply_frame_to_instance", return_value=(True, "")) as apply_frame,
-            patch("noodswap.views.get_player_stats", return_value=(41, 0.0, None)),
-        ):
+        with patch(
+            "noodswap.views.resolve_frame_roll",
+            return_value=type(
+                "FrameResult",
+                (),
+                {
+                    "is_error": False,
+                    "frame_key": "buttery",
+                    "frame_name": "Buttery",
+                    "remaining_dough": 41,
+                },
+            )(),
+        ) as resolve_frame:
             await view.confirm_button.callback(interaction)
 
-        apply_frame.assert_called_once_with(1, 10, 77, "buttery", 9)
+        resolve_frame.assert_called_once()
         self.assertTrue(view.finished)
         self.assertEqual(len(interaction.response.edited_messages), 1)
         self.assertEqual(interaction.response.edited_messages[0].get("view"), view)
@@ -494,14 +509,22 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         )
         interaction = _FakeInteraction(user_id=10)
 
-        with (
-            patch("noodswap.views.random.choice", return_value="serif"),
-            patch("noodswap.views.apply_font_to_instance", return_value=(True, "")) as apply_font,
-            patch("noodswap.views.get_player_stats", return_value=(41, 0.0, None)),
-        ):
+        with patch(
+            "noodswap.views.resolve_font_roll",
+            return_value=type(
+                "FontResult",
+                (),
+                {
+                    "is_error": False,
+                    "font_key": "serif",
+                    "font_name": "Serif",
+                    "remaining_dough": 41,
+                },
+            )(),
+        ) as resolve_font:
             await view.confirm_button.callback(interaction)
 
-        apply_font.assert_called_once_with(1, 10, 77, "serif", 9)
+        resolve_font.assert_called_once()
         self.assertTrue(view.finished)
         self.assertEqual(len(interaction.response.edited_messages), 1)
         self.assertEqual(interaction.response.edited_messages[0].get("view"), view)
