@@ -2,7 +2,7 @@ from collections.abc import Callable
 import sqlite3
 
 
-TARGET_SCHEMA_VERSION = 8
+TARGET_SCHEMA_VERSION = 11
 _BASE36_ALPHABET = "0123456789abcdefghijklmnopqrstuvwxyz"
 
 
@@ -430,6 +430,31 @@ def _apply_migration_v8(conn: sqlite3.Connection) -> None:
     )
 
 
+def _apply_migration_v9(conn: sqlite3.Connection) -> None:
+    if not _has_column(conn, "card_instances", "frame_key"):
+        conn.execute("ALTER TABLE card_instances ADD COLUMN frame_key TEXT")
+
+
+def _apply_migration_v10(conn: sqlite3.Connection) -> None:
+    if not _has_column(conn, "card_instances", "font_key"):
+        conn.execute("ALTER TABLE card_instances ADD COLUMN font_key TEXT")
+
+
+def _apply_migration_v11(conn: sqlite3.Connection) -> None:
+    # "classic" is now the built-in default style, not a persisted modifier.
+    if not _has_column(conn, "card_instances", "font_key"):
+        return
+
+    conn.execute(
+        """
+        UPDATE card_instances
+        SET font_key = NULL
+        WHERE font_key IS NOT NULL
+          AND LOWER(TRIM(font_key)) = 'classic'
+        """
+    )
+
+
 def run_migrations(
     conn: sqlite3.Connection,
     *,
@@ -478,6 +503,21 @@ def run_migrations(
         _apply_migration_v8(conn)
         _set_schema_version(conn, 8)
         current_version = 8
+
+    if current_version < 9:
+        _apply_migration_v9(conn)
+        _set_schema_version(conn, 9)
+        current_version = 9
+
+    if current_version < 10:
+        _apply_migration_v10(conn)
+        _set_schema_version(conn, 10)
+        current_version = 10
+
+    if current_version < 11:
+        _apply_migration_v11(conn)
+        _set_schema_version(conn, 11)
+        current_version = 11
 
     if current_version > target_schema_version:
         raise RuntimeError(

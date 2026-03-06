@@ -5,6 +5,17 @@ from pathlib import Path
 import discord
 
 from .cards import CARD_CATALOG, normalize_card_id
+from .fonts import (
+    CARD_FONTS_DIR,
+    FONT_MONO,
+    FONT_PIXEL,
+    FONT_PLAYFUL,
+    FONT_SCRIPT,
+    FONT_SERIF,
+    FONT_SPOOKY,
+    normalize_font_key,
+)
+from .frames import frame_overlay_path, normalize_frame_key
 from .morphs import MORPH_BLACK_AND_WHITE, normalize_morph_key
 from .settings import CARD_IMAGE_CACHE_MANIFEST
 
@@ -13,6 +24,9 @@ CARD_ASPECT_WIDTH = 5
 CARD_ASPECT_HEIGHT = 7
 DEFAULT_CARD_RENDER_SIZE = (300, 420)
 OVERLAY_TEXT_SCALE = 1.5
+# Draw the card body slightly smaller than the full render canvas to preserve
+# transparent space for future frame/effect compositing.
+CARD_BODY_SCALE = 0.9
 
 RARITY_BORDER_COLORS: dict[str, tuple[int, int, int]] = {
     "common": (124, 86, 48),
@@ -158,37 +172,168 @@ def _wrap_text_to_width(*, draw, text: str, font, max_width: int) -> str:
     return "\n".join(lines)
 
 
-def _load_overlay_font(size: int, *, bold: bool):
+def _load_overlay_font(size: int, *, bold: bool, font_key: str | None = None):
     from PIL import ImageFont
 
+    normalized_font_key = normalize_font_key(font_key)
+
     candidate_paths: list[Path] = []
+    custom_base = CARD_FONTS_DIR / f"{normalized_font_key}.ttf"
+    custom_bold = CARD_FONTS_DIR / f"{normalized_font_key}-bold.ttf"
+    if bold and custom_bold.exists():
+        candidate_paths.append(custom_bold)
+    if custom_base.exists():
+        candidate_paths.append(custom_base)
+
     try:
         import PIL
 
         pil_dir = Path(PIL.__file__).resolve().parent
-        if bold:
-            candidate_paths.append(pil_dir / "fonts" / "DejaVuSans-Bold.ttf")
+        if normalized_font_key == FONT_SERIF:
+            if bold:
+                candidate_paths.append(pil_dir / "fonts" / "DejaVuSerif-Bold.ttf")
+            else:
+                candidate_paths.append(pil_dir / "fonts" / "DejaVuSerif.ttf")
+        elif normalized_font_key in (FONT_MONO, FONT_PIXEL):
+            if bold:
+                candidate_paths.append(pil_dir / "fonts" / "DejaVuSansMono-Bold.ttf")
+            else:
+                candidate_paths.append(pil_dir / "fonts" / "DejaVuSansMono.ttf")
+        elif normalized_font_key in (FONT_SCRIPT, FONT_SPOOKY):
+            if bold:
+                candidate_paths.append(pil_dir / "fonts" / "DejaVuSerif-Bold.ttf")
+            else:
+                candidate_paths.append(pil_dir / "fonts" / "DejaVuSerif.ttf")
+        elif normalized_font_key == FONT_PLAYFUL:
+            if bold:
+                candidate_paths.append(pil_dir / "fonts" / "DejaVuSans-Bold.ttf")
+            else:
+                candidate_paths.append(pil_dir / "fonts" / "DejaVuSans.ttf")
         else:
-            candidate_paths.append(pil_dir / "fonts" / "DejaVuSans.ttf")
+            if bold:
+                candidate_paths.append(pil_dir / "fonts" / "DejaVuSans-Bold.ttf")
+            else:
+                candidate_paths.append(pil_dir / "fonts" / "DejaVuSans.ttf")
     except Exception:
         pass
 
-    if bold:
-        candidate_paths.extend(
-            [
-                Path("/System/Library/Fonts/Supplemental/Arial Bold.ttf"),
-                Path("/System/Library/Fonts/Supplemental/Helvetica Bold.ttf"),
-                Path("/Library/Fonts/Arial Bold.ttf"),
-            ]
-        )
+    if normalized_font_key == FONT_SERIF:
+        if bold:
+            candidate_paths.extend(
+                [
+                    Path("/System/Library/Fonts/Supplemental/Times New Roman Bold.ttf"),
+                    Path("/Library/Fonts/Times New Roman Bold.ttf"),
+                ]
+            )
+        else:
+            candidate_paths.extend(
+                [
+                    Path("/System/Library/Fonts/Supplemental/Times New Roman.ttf"),
+                    Path("/Library/Fonts/Times New Roman.ttf"),
+                ]
+            )
+    elif normalized_font_key == FONT_MONO:
+        if bold:
+            candidate_paths.extend(
+                [
+                    Path("/System/Library/Fonts/Menlo.ttc"),
+                    Path("/System/Library/Fonts/Supplemental/Courier New Bold.ttf"),
+                    Path("/Library/Fonts/Courier New Bold.ttf"),
+                ]
+            )
+        else:
+            candidate_paths.extend(
+                [
+                    Path("/System/Library/Fonts/Menlo.ttc"),
+                    Path("/System/Library/Fonts/Supplemental/Courier New.ttf"),
+                    Path("/Library/Fonts/Courier New.ttf"),
+                ]
+            )
+    elif normalized_font_key == FONT_SCRIPT:
+        if bold:
+            candidate_paths.extend(
+                [
+                    Path("/System/Library/Fonts/Supplemental/SnellRoundhand.ttc"),
+                    Path("/System/Library/Fonts/Supplemental/Brush Script.ttf"),
+                    Path("/System/Library/Fonts/Supplemental/Zapfino.ttf"),
+                ]
+            )
+        else:
+            candidate_paths.extend(
+                [
+                    Path("/System/Library/Fonts/Supplemental/SnellRoundhand.ttc"),
+                    Path("/System/Library/Fonts/Supplemental/Brush Script.ttf"),
+                    Path("/System/Library/Fonts/Supplemental/Zapfino.ttf"),
+                ]
+            )
+    elif normalized_font_key == FONT_SPOOKY:
+        if bold:
+            candidate_paths.extend(
+                [
+                    Path("/System/Library/Fonts/Supplemental/Papyrus.ttc"),
+                    Path("/System/Library/Fonts/Supplemental/Copperplate.ttc"),
+                    Path("/System/Library/Fonts/Supplemental/Impact.ttf"),
+                ]
+            )
+        else:
+            candidate_paths.extend(
+                [
+                    Path("/System/Library/Fonts/Supplemental/Papyrus.ttc"),
+                    Path("/System/Library/Fonts/Supplemental/Copperplate.ttc"),
+                    Path("/System/Library/Fonts/Supplemental/Impact.ttf"),
+                ]
+            )
+    elif normalized_font_key == FONT_PIXEL:
+        if bold:
+            candidate_paths.extend(
+                [
+                    Path("/System/Library/Fonts/Menlo.ttc"),
+                    Path("/System/Library/Fonts/Supplemental/Courier New Bold.ttf"),
+                    Path("/Library/Fonts/Courier New Bold.ttf"),
+                ]
+            )
+        else:
+            candidate_paths.extend(
+                [
+                    Path("/System/Library/Fonts/Menlo.ttc"),
+                    Path("/System/Library/Fonts/Supplemental/Courier New.ttf"),
+                    Path("/Library/Fonts/Courier New.ttf"),
+                ]
+            )
+    elif normalized_font_key == FONT_PLAYFUL:
+        if bold:
+            candidate_paths.extend(
+                [
+                    Path("/System/Library/Fonts/Supplemental/Comic Sans MS Bold.ttf"),
+                    Path("/System/Library/Fonts/Supplemental/Chalkboard.ttc"),
+                    Path("/System/Library/Fonts/Supplemental/Marker Felt.ttc"),
+                ]
+            )
+        else:
+            candidate_paths.extend(
+                [
+                    Path("/System/Library/Fonts/Supplemental/Comic Sans MS.ttf"),
+                    Path("/System/Library/Fonts/Supplemental/Chalkboard.ttc"),
+                    Path("/System/Library/Fonts/Supplemental/Marker Felt.ttc"),
+                ]
+            )
     else:
-        candidate_paths.extend(
-            [
-                Path("/System/Library/Fonts/Supplemental/Arial.ttf"),
-                Path("/System/Library/Fonts/Supplemental/Helvetica.ttf"),
-                Path("/Library/Fonts/Arial.ttf"),
-            ]
-        )
+        if bold:
+            candidate_paths.extend(
+                [
+                    Path("/System/Library/Fonts/Supplemental/Arial Bold.ttf"),
+                    Path("/System/Library/Fonts/Supplemental/Helvetica Bold.ttf"),
+                    Path("/Library/Fonts/Arial Bold.ttf"),
+                ]
+            )
+        else:
+            candidate_paths.extend(
+                [
+                    Path("/System/Library/Fonts/Supplemental/Arial.ttf"),
+                    Path("/System/Library/Fonts/Supplemental/Helvetica.ttf"),
+                    Path("/Library/Fonts/Arial.ttf"),
+                ]
+            )
 
     for candidate in candidate_paths:
         if not candidate.exists():
@@ -208,28 +353,30 @@ def _apply_text_legibility_overlay(
     card_id: str,
     generation: int | None,
     color: tuple[int, int, int],
+    font_key: str | None = None,
 ):
     from PIL import Image, ImageDraw, ImageFont
 
     width, height = image.size
-    # Start the fade a bit higher so the overlay reaches further into the art.
-    gradient_start = int(height * 0.44)
-    gradient_height = max(1, height - gradient_start)
+    # Two-stage overlay: solid base for text contrast, soft fade above for visual blend.
+    fade_start = int(height * 0.26)
+    solid_band_height = max(1, int(height * 0.22))
+    solid_start = max(fade_start, height - solid_band_height)
+    fade_height = max(1, solid_start - fade_start)
+    solid_alpha = 228
 
-    # Bottom-to-top rarity-tinted fade keeps text readable while preserving art detail.
+    # Bottom-to-top rarity-tinted overlay keeps text readable while preserving art detail.
     gradient_layer = Image.new("RGBA", (width, height), (0, 0, 0, 0))
     gradient_pixels = gradient_layer.load()
-    for y in range(gradient_start, height):
-        distance_from_start = y - gradient_start
-        progress = distance_from_start / gradient_height
-
-        # Keep a near-solid band around bottom text, then fade out faster above it.
-        solid_band_start = 0.72
-        if progress >= solid_band_start:
-            alpha = 255
+    for y in range(fade_start, height):
+        if y >= solid_start:
+            alpha = solid_alpha
         else:
-            normalized = progress / solid_band_start
-            alpha = int(round(255 * (normalized**2.5)))
+            distance_from_start = y - fade_start
+            progress = distance_from_start / max(1, fade_height - 1)
+
+            # Ease-in keeps the upper fade light and ramps density near the solid band.
+            alpha = int(round(solid_alpha * (progress**2.2)))
 
         for x in range(width):
             gradient_pixels[x, y] = (color[0], color[1], color[2], alpha)
@@ -239,8 +386,8 @@ def _apply_text_legibility_overlay(
     draw = ImageDraw.Draw(composed)
     title_size = max(11, int(round(height * (0.14 / 3) * OVERLAY_TEXT_SCALE)))
     subtitle_size = max(9, int(round(height * (0.104 / 3) * OVERLAY_TEXT_SCALE)))
-    title_font = _load_overlay_font(title_size, bold=True)
-    subtitle_font = _load_overlay_font(subtitle_size, bold=False)
+    title_font = _load_overlay_font(title_size, bold=True, font_key=font_key)
+    subtitle_font = _load_overlay_font(subtitle_size, bold=False, font_key=font_key)
 
     subtitle = _generation_overlay_text(generation).upper()
     title = _card_name_for_display(card_id).upper()
@@ -293,11 +440,198 @@ def _placeholder_card_art(card_id: str, generation: int | None, size: tuple[int,
     return image
 
 
+def _apply_buttery_frame_effect(
+    surface,
+    *,
+    body_x: int,
+    body_y: int,
+    body_width: int,
+    body_height: int,
+    outer_radius: int,
+):
+    from PIL import Image, ImageDraw, ImageFilter
+
+    frame_layer = Image.new("RGBA", surface.size, (0, 0, 0, 0))
+    draw = ImageDraw.Draw(frame_layer)
+
+    border_thickness = max(7, int(round(min(body_width, body_height) * 0.032)))
+    edge_pad = max(1, border_thickness // 4)
+    outer_box = (
+        body_x - edge_pad,
+        body_y - edge_pad,
+        body_x + body_width - 1 + edge_pad,
+        body_y + body_height - 1 + edge_pad,
+    )
+    inner_box = (
+        outer_box[0] + border_thickness,
+        outer_box[1] + border_thickness,
+        outer_box[2] - border_thickness,
+        outer_box[3] - border_thickness,
+    )
+
+    # Build a ring mask so we only paint frame pixels.
+    ring_mask = Image.new("L", surface.size, 0)
+    ring_draw = ImageDraw.Draw(ring_mask)
+    ring_draw.rounded_rectangle(outer_box, radius=outer_radius + edge_pad, fill=255)
+    if inner_box[2] > inner_box[0] and inner_box[3] > inner_box[1]:
+        ring_draw.rounded_rectangle(
+            inner_box,
+            radius=max(2, outer_radius - 1),
+            fill=0,
+        )
+
+    # Paint a warm vertical metallic gradient into the frame ring.
+    gradient_layer = Image.new("RGBA", surface.size, (0, 0, 0, 0))
+    gradient_pixels = gradient_layer.load()
+    mask_pixels = ring_mask.load()
+    top = outer_box[1]
+    bottom = outer_box[3]
+    span = max(1, bottom - top)
+    for y in range(max(0, top), min(surface.height, bottom + 1)):
+        progress = (y - top) / span
+        if progress < 0.35:
+            mix = progress / 0.35
+            r = int(round(255 + (242 - 255) * mix))
+            g = int(round(232 + (190 - 232) * mix))
+            b = int(round(142 + (68 - 142) * mix))
+        else:
+            mix = (progress - 0.35) / 0.65
+            r = int(round(242 + (171 - 242) * mix))
+            g = int(round(190 + (112 - 190) * mix))
+            b = int(round(68 + (30 - 68) * mix))
+
+        for x in range(max(0, outer_box[0]), min(surface.width, outer_box[2] + 1)):
+            mask_alpha = mask_pixels[x, y]
+            if mask_alpha > 0:
+                gradient_pixels[x, y] = (r, g, b, int(round(228 * (mask_alpha / 255))))
+
+    frame_layer = Image.alpha_composite(frame_layer, gradient_layer)
+    draw = ImageDraw.Draw(frame_layer)
+
+    draw.rounded_rectangle(
+        outer_box,
+        radius=outer_radius + edge_pad,
+        outline=(255, 236, 170, 170),
+        width=max(2, border_thickness // 3),
+    )
+    draw.rounded_rectangle(
+        (
+            outer_box[0] + 1,
+            outer_box[1] + 1,
+            outer_box[2] - 1,
+            outer_box[3] - 1,
+        ),
+        radius=max(2, outer_radius + edge_pad - 1),
+        outline=(128, 79, 22, 112),
+        width=max(1, border_thickness // 4),
+    )
+
+    # Add top specular sweep so it reads glossy rather than matte.
+    draw.arc(
+        (
+            outer_box[0] + border_thickness,
+            outer_box[1] - border_thickness,
+            outer_box[2] - border_thickness,
+            outer_box[1] + int(round(body_height * 0.24)),
+        ),
+        start=200,
+        end=338,
+        fill=(255, 247, 206, 150),
+        width=max(2, border_thickness // 3),
+    )
+
+    drip_layer = Image.new("RGBA", surface.size, (0, 0, 0, 0))
+    drip_draw = ImageDraw.Draw(drip_layer)
+
+    top_y = outer_box[1] + border_thickness - 1
+    drip_count = max(4, body_width // 52)
+    min_x = outer_box[0] + border_thickness
+    max_x = outer_box[2] - border_thickness
+    if max_x > min_x:
+        span = max_x - min_x
+        for idx in range(drip_count):
+            progress = (idx + 1) / (drip_count + 1)
+            center_x = min_x + int(round(progress * span))
+            drip_width = max(8, border_thickness + (idx % 3) * 2)
+            drip_height = max(12, int(round(body_height * (0.05 + ((idx % 4) * 0.01)))))
+            left = center_x - (drip_width // 2)
+            right = center_x + (drip_width // 2)
+            bottom = top_y + drip_height
+
+            drip_draw.rounded_rectangle(
+                (left, top_y, right, bottom),
+                radius=max(3, drip_width // 2),
+                fill=(242, 193, 70, 214),
+            )
+            drip_draw.ellipse(
+                (left - 1, bottom - drip_width // 2, right + 1, bottom + drip_width // 2),
+                fill=(118, 72, 18, 164),
+            )
+            drip_draw.ellipse(
+                (left + 1, top_y - 1, right - 1, top_y + max(3, drip_width // 3)),
+                fill=(255, 238, 170, 148),
+            )
+
+        pool_count = drip_count + 2
+        for idx in range(pool_count):
+            progress = (idx + 0.5) / pool_count
+            center_x = min_x + int(round(progress * span))
+            pool_w = max(9, border_thickness * 2 + ((idx + 1) % 3) * 2)
+            pool_h = max(6, border_thickness)
+            drip_draw.ellipse(
+                (
+                    center_x - pool_w // 2,
+                    top_y - pool_h // 2,
+                    center_x + pool_w // 2,
+                    top_y + pool_h // 2,
+                ),
+                fill=(244, 198, 77, 180),
+            )
+
+    softened_drips = drip_layer.filter(ImageFilter.GaussianBlur(radius=0.85))
+
+    glow_layer = Image.new("RGBA", surface.size, (0, 0, 0, 0))
+    glow_draw = ImageDraw.Draw(glow_layer)
+    glow_draw.rounded_rectangle(
+        outer_box,
+        radius=outer_radius + edge_pad,
+        outline=(255, 214, 110, 86),
+        width=max(3, border_thickness // 2),
+    )
+    softened_glow = glow_layer.filter(ImageFilter.GaussianBlur(radius=2.4))
+
+    composited = Image.alpha_composite(surface.convert("RGBA"), softened_glow)
+    composited = Image.alpha_composite(composited, frame_layer)
+    return Image.alpha_composite(composited, softened_drips)
+
+
+def _load_frame_overlay_image(frame_key: str, size: tuple[int, int]):
+    frame_path = frame_overlay_path(frame_key)
+    if frame_path is None:
+        return None
+
+    try:
+        from PIL import Image
+    except ImportError:
+        return None
+
+    try:
+        overlay = Image.open(frame_path).convert("RGBA")
+    except Exception:
+        return None
+
+    if overlay.size != size:
+        overlay = overlay.resize(size, resample=Image.Resampling.LANCZOS)
+    return overlay
+
+
 def render_card_surface(
     card_id: str,
     *,
     generation: int | None = None,
     morph_key: str | None = None,
+    frame_key: str | None = None,
+    font_key: str | None = None,
     size: tuple[int, int] = DEFAULT_CARD_RENDER_SIZE,
 ):
     try:
@@ -306,10 +640,15 @@ def render_card_surface(
         return None
 
     width, height = _normalized_card_size(size)
-    border_px = max(6, int(round(min(width, height) * 0.03)))
-    outer_radius = max(border_px + 4, int(round(min(width, height) * 0.055)))
-    inner_width = max(1, width - (border_px * 2))
-    inner_height = max(1, height - (border_px * 2))
+    body_width = max(40, int(round(width * CARD_BODY_SCALE)))
+    body_height = max(56, int(round(height * CARD_BODY_SCALE)))
+    body_x = (width - body_width) // 2
+    body_y = (height - body_height) // 2
+
+    border_px = max(6, int(round(min(body_width, body_height) * 0.03)))
+    outer_radius = max(border_px + 4, int(round(min(body_width, body_height) * 0.055)))
+    inner_width = max(1, body_width - (border_px * 2))
+    inner_height = max(1, body_height - (border_px * 2))
     inner_radius = max(2, outer_radius - border_px + 1)
 
     normalized_card_id = normalize_card_id(card_id)
@@ -338,12 +677,13 @@ def render_card_surface(
         card_id=normalized_card_id,
         generation=generation,
         color=rarity_border_color(normalized_card_id),
+        font_key=normalize_font_key(font_key),
     )
 
-    card_surface = Image.new("RGBA", (width, height), (0, 0, 0, 0))
-    draw = ImageDraw.Draw(card_surface)
+    card_body = Image.new("RGBA", (body_width, body_height), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(card_body)
     draw.rounded_rectangle(
-        (0, 0, width - 1, height - 1),
+        (0, 0, body_width - 1, body_height - 1),
         radius=outer_radius,
         fill=rarity_border_color(normalized_card_id),
     )
@@ -351,7 +691,17 @@ def render_card_surface(
     inner_mask = Image.new("L", (inner_width, inner_height), 0)
     inner_draw = ImageDraw.Draw(inner_mask)
     inner_draw.rounded_rectangle((0, 0, inner_width - 1, inner_height - 1), radius=inner_radius, fill=255)
-    card_surface.paste(fitted, (border_px, border_px), mask=inner_mask)
+    card_body.paste(fitted, (border_px, border_px), mask=inner_mask)
+
+    card_surface = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+    card_surface.paste(card_body, (body_x, body_y), card_body)
+
+    normalized_frame_key = normalize_frame_key(frame_key)
+    if normalized_frame_key is not None:
+        overlay = _load_frame_overlay_image(normalized_frame_key, (width, height))
+        if overlay is not None:
+            card_surface = Image.alpha_composite(card_surface, overlay)
+
     return card_surface
 
 
@@ -360,9 +710,18 @@ def render_card_image_bytes(
     *,
     generation: int | None = None,
     morph_key: str | None = None,
+    frame_key: str | None = None,
+    font_key: str | None = None,
     size: tuple[int, int] = DEFAULT_CARD_RENDER_SIZE,
 ) -> bytes | None:
-    rendered_surface = render_card_surface(card_id, generation=generation, morph_key=morph_key, size=size)
+    rendered_surface = render_card_surface(
+        card_id,
+        generation=generation,
+        morph_key=morph_key,
+        frame_key=frame_key,
+        font_key=font_key,
+        size=size,
+    )
     if rendered_surface is None:
         return None
 
@@ -376,14 +735,26 @@ def embed_image_payload(
     card_id: str,
     generation: int | None = None,
     morph_key: str | None = None,
+    frame_key: str | None = None,
+    font_key: str | None = None,
 ) -> tuple[str | None, discord.File | None]:
     normalized_card_id = normalize_card_id(card_id)
     normalized_morph_key = normalize_morph_key(morph_key)
+    normalized_frame_key = normalize_frame_key(frame_key)
+    normalized_font_key = normalize_font_key(font_key)
 
-    rendered_image = render_card_image_bytes(normalized_card_id, generation=generation, morph_key=normalized_morph_key)
+    rendered_image = render_card_image_bytes(
+        normalized_card_id,
+        generation=generation,
+        morph_key=normalized_morph_key,
+        frame_key=normalized_frame_key,
+        font_key=normalized_font_key,
+    )
     if rendered_image is not None:
         morph_suffix = normalized_morph_key or "base"
-        file_name = f"{normalized_card_id}_{morph_suffix}_card.png"
+        frame_suffix = normalized_frame_key or "base"
+        font_suffix = normalized_font_key or "base"
+        file_name = f"{normalized_card_id}_{morph_suffix}_{frame_suffix}_{font_suffix}_card.png"
         attachment_url = f"attachment://{file_name}"
         return attachment_url, discord.File(io.BytesIO(rendered_image), filename=file_name)
 
@@ -400,3 +771,127 @@ def embed_image_payload(
         return None, None
 
     return attachment_url, discord.File(io.BytesIO(image_bytes), filename=file_name)
+
+
+def render_morph_transition_image_bytes(
+    card_id: str,
+    *,
+    generation: int | None = None,
+    before_morph_key: str | None = None,
+    after_morph_key: str | None = None,
+    before_frame_key: str | None = None,
+    after_frame_key: str | None = None,
+    before_font_key: str | None = None,
+    after_font_key: str | None = None,
+    size: tuple[int, int] = DEFAULT_CARD_RENDER_SIZE,
+) -> bytes | None:
+    try:
+        from PIL import Image, ImageDraw
+    except ImportError:
+        return None
+
+    normalized_card_id = normalize_card_id(card_id)
+    normalized_before = normalize_morph_key(before_morph_key)
+    normalized_after = normalize_morph_key(after_morph_key)
+    normalized_before_frame = normalize_frame_key(before_frame_key)
+    normalized_after_frame = normalize_frame_key(after_frame_key)
+    normalized_before_font = normalize_font_key(before_font_key)
+    normalized_after_font = normalize_font_key(after_font_key)
+
+    before_surface = render_card_surface(
+        normalized_card_id,
+        generation=generation,
+        morph_key=normalized_before,
+        frame_key=normalized_before_frame,
+        font_key=normalized_before_font,
+        size=size,
+    )
+    after_surface = render_card_surface(
+        normalized_card_id,
+        generation=generation,
+        morph_key=normalized_after,
+        frame_key=normalized_after_frame,
+        font_key=normalized_after_font,
+        size=size,
+    )
+    if before_surface is None or after_surface is None:
+        return None
+
+    card_width, card_height = before_surface.size
+    pad = 16
+    gap = 18
+    arrow_width = max(56, card_width // 3)
+    canvas_width = (pad * 2) + card_width + gap + arrow_width + gap + card_width
+    canvas_height = (pad * 2) + card_height
+
+    canvas = Image.new("RGBA", (canvas_width, canvas_height), (20, 20, 20, 255))
+    left_x = pad
+    card_y = pad
+    arrow_x = left_x + card_width + gap
+    right_x = arrow_x + arrow_width + gap
+
+    canvas.paste(before_surface, (left_x, card_y), before_surface)
+    canvas.paste(after_surface, (right_x, card_y), after_surface)
+
+    draw = ImageDraw.Draw(canvas)
+    center_y = canvas_height // 2
+    line_start = arrow_x + 8
+    line_end = arrow_x + arrow_width - 12
+    draw.line(
+        (line_start, center_y, line_end, center_y),
+        fill=(245, 245, 245, 255),
+        width=max(4, card_height // 80),
+    )
+    head_half = max(10, card_height // 20)
+    draw.polygon(
+        [
+            (line_end, center_y),
+            (line_end - head_half, center_y - head_half),
+            (line_end - head_half, center_y + head_half),
+        ],
+        fill=(245, 245, 245, 255),
+    )
+
+    output = io.BytesIO()
+    canvas.save(output, format="PNG")
+    output.seek(0)
+    return output.getvalue()
+
+
+def morph_transition_image_payload(
+    card_id: str,
+    *,
+    generation: int | None = None,
+    before_morph_key: str | None = None,
+    after_morph_key: str | None = None,
+    before_frame_key: str | None = None,
+    after_frame_key: str | None = None,
+    before_font_key: str | None = None,
+    after_font_key: str | None = None,
+) -> tuple[str | None, discord.File | None]:
+    rendered_image = render_morph_transition_image_bytes(
+        card_id,
+        generation=generation,
+        before_morph_key=before_morph_key,
+        after_morph_key=after_morph_key,
+        before_frame_key=before_frame_key,
+        after_frame_key=after_frame_key,
+        before_font_key=before_font_key,
+        after_font_key=after_font_key,
+    )
+    if rendered_image is None:
+        return None, None
+
+    normalized_card_id = normalize_card_id(card_id)
+    before_suffix = normalize_morph_key(before_morph_key) or "base"
+    after_suffix = normalize_morph_key(after_morph_key) or "base"
+    before_frame_suffix = normalize_frame_key(before_frame_key) or "base"
+    after_frame_suffix = normalize_frame_key(after_frame_key) or "base"
+    before_font_suffix = normalize_font_key(before_font_key) or "base"
+    after_font_suffix = normalize_font_key(after_font_key) or "base"
+    file_name = (
+        f"{normalized_card_id}_{before_suffix}_{before_frame_suffix}"
+        f"_{before_font_suffix}_to_{after_suffix}_{after_frame_suffix}_{after_font_suffix}_morph.png"
+    )
+    attachment_url = f"attachment://{file_name}"
+    return attachment_url, discord.File(io.BytesIO(rendered_image), filename=file_name)

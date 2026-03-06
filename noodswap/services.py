@@ -4,11 +4,17 @@ import random
 from typing import Optional
 
 from .cards import card_value, get_burn_payout, make_drop_choices, split_card_code
+from .fonts import AVAILABLE_FONTS, FONT_COST_FRACTION, font_label
+from .frames import FRAME_COST_FRACTION, available_frame_keys, frame_label
 from .morphs import AVAILABLE_MORPHS, MORPH_COST_FRACTION, morph_label
 from .settings import DROP_CHOICES_COUNT, DROP_COOLDOWN_SECONDS
 from .storage import (
+    apply_font_to_instance,
+    apply_frame_to_instance,
     apply_morph_to_instance,
     divorce_card,
+    get_instance_font,
+    get_instance_frame,
     get_locked_tags_for_instance,
     get_player_cooldown_timestamps,
     get_instance_morph,
@@ -244,85 +250,141 @@ class MorphExecution:
         return self.error_message is not None
 
 
-def execute_morph(guild_id: int, user_id: int, card_code: Optional[str]) -> MorphExecution:
+@dataclass(frozen=True)
+class MorphPreparation:
+    error_message: Optional[str]
+    instance_id: Optional[int]
+    card_id: Optional[str]
+    generation: Optional[int]
+    dupe_code: Optional[str]
+    current_morph_key: Optional[str]
+    morph_key: Optional[str]
+    morph_name: Optional[str]
+    cost: Optional[int]
+
+    @property
+    def is_error(self) -> bool:
+        return self.error_message is not None
+
+
+def prepare_morph(guild_id: int, user_id: int, card_code: Optional[str]) -> MorphPreparation:
     target_instance: Optional[tuple[int, str, int, str]] = None
 
     if card_code is None:
         target_instance = get_last_pulled_instance(guild_id, user_id)
         if target_instance is None:
-            return MorphExecution(
+            return MorphPreparation(
                 error_message="No previous pulled card found. Provide a card code, e.g. `ns morph 0`.",
                 instance_id=None,
                 card_id=None,
                 generation=None,
                 dupe_code=None,
+                current_morph_key=None,
                 morph_key=None,
                 morph_name=None,
                 cost=None,
-                remaining_dough=None,
             )
     else:
         parsed = split_card_code(card_code)
         if parsed is None:
-            return MorphExecution(
+            return MorphPreparation(
                 error_message="Invalid card code. Use format like `0`, `a`, `10`, or `#10`.",
                 instance_id=None,
                 card_id=None,
                 generation=None,
                 dupe_code=None,
+                current_morph_key=None,
                 morph_key=None,
                 morph_name=None,
                 cost=None,
-                remaining_dough=None,
             )
 
         target_instance = get_instance_by_code(guild_id, user_id, card_code)
         if target_instance is None:
-            return MorphExecution(
+            return MorphPreparation(
                 error_message="You do not own that card code.",
                 instance_id=None,
                 card_id=None,
                 generation=None,
                 dupe_code=None,
+                current_morph_key=None,
                 morph_key=None,
                 morph_name=None,
                 cost=None,
-                remaining_dough=None,
             )
 
     if not AVAILABLE_MORPHS:
-        return MorphExecution(
+        return MorphPreparation(
             error_message="No morphs are currently available.",
             instance_id=None,
             card_id=None,
             generation=None,
             dupe_code=None,
+            current_morph_key=None,
             morph_key=None,
             morph_name=None,
             cost=None,
-            remaining_dough=None,
         )
 
     instance_id, morph_card_id, morph_generation, morph_dupe_code = target_instance
     rolled_morph = random.choice(AVAILABLE_MORPHS)
 
-    if get_instance_morph(guild_id, instance_id) == rolled_morph:
-        return MorphExecution(
+    current_morph_key = get_instance_morph(guild_id, instance_id)
+    if current_morph_key == rolled_morph:
+        return MorphPreparation(
             error_message=f"That card already has the {morph_label(rolled_morph)} morph.",
             instance_id=None,
             card_id=None,
             generation=None,
             dupe_code=None,
+            current_morph_key=None,
             morph_key=None,
             morph_name=None,
             cost=None,
-            remaining_dough=None,
         )
 
     value = card_value(morph_card_id, morph_generation)
     cost = max(1, int(math.ceil(value * MORPH_COST_FRACTION)))
+    dough_before, _, _ = get_player_stats(guild_id, user_id)
+    if dough_before < cost:
+        return MorphPreparation(
+            error_message="You do not have enough dough.",
+            instance_id=None,
+            card_id=None,
+            generation=None,
+            dupe_code=None,
+            current_morph_key=None,
+            morph_key=None,
+            morph_name=None,
+            cost=None,
+        )
 
-    applied, message = apply_morph_to_instance(guild_id, user_id, instance_id, rolled_morph, cost)
+    return MorphPreparation(
+        error_message=None,
+        instance_id=instance_id,
+        card_id=morph_card_id,
+        generation=morph_generation,
+        dupe_code=morph_dupe_code,
+        current_morph_key=current_morph_key,
+        morph_key=rolled_morph,
+        morph_name=morph_label(rolled_morph),
+        cost=cost,
+    )
+
+
+def confirm_morph(
+    guild_id: int,
+    user_id: int,
+    *,
+    instance_id: int,
+    card_id: str,
+    generation: int,
+    dupe_code: str,
+    morph_key: str,
+    morph_name: str,
+    cost: int,
+) -> MorphExecution:
+    applied, message = apply_morph_to_instance(guild_id, user_id, instance_id, morph_key, cost)
     if not applied:
         return MorphExecution(
             error_message=message or "Morph failed.",
@@ -340,13 +402,519 @@ def execute_morph(guild_id: int, user_id: int, card_code: Optional[str]) -> Morp
     return MorphExecution(
         error_message=None,
         instance_id=instance_id,
-        card_id=morph_card_id,
-        generation=morph_generation,
-        dupe_code=morph_dupe_code,
-        morph_key=rolled_morph,
-        morph_name=morph_label(rolled_morph),
+        card_id=card_id,
+        generation=generation,
+        dupe_code=dupe_code,
+        morph_key=morph_key,
+        morph_name=morph_name,
         cost=cost,
         remaining_dough=dough_after,
+    )
+
+
+def execute_morph(guild_id: int, user_id: int, card_code: Optional[str]) -> MorphExecution:
+    prepared = prepare_morph(guild_id, user_id, card_code)
+    if prepared.is_error:
+        return MorphExecution(
+            error_message=prepared.error_message,
+            instance_id=None,
+            card_id=None,
+            generation=None,
+            dupe_code=None,
+            morph_key=None,
+            morph_name=None,
+            cost=None,
+            remaining_dough=None,
+        )
+
+    if (
+        prepared.instance_id is None
+        or prepared.card_id is None
+        or prepared.generation is None
+        or prepared.dupe_code is None
+        or prepared.morph_key is None
+        or prepared.morph_name is None
+        or prepared.cost is None
+    ):
+        return MorphExecution(
+            error_message="Morph failed.",
+            instance_id=None,
+            card_id=None,
+            generation=None,
+            dupe_code=None,
+            morph_key=None,
+            morph_name=None,
+            cost=None,
+            remaining_dough=None,
+        )
+
+    return confirm_morph(
+        guild_id,
+        user_id,
+        instance_id=prepared.instance_id,
+        card_id=prepared.card_id,
+        generation=prepared.generation,
+        dupe_code=prepared.dupe_code,
+        morph_key=prepared.morph_key,
+        morph_name=prepared.morph_name,
+        cost=prepared.cost,
+    )
+
+
+@dataclass(frozen=True)
+class FrameExecution:
+    error_message: Optional[str]
+    instance_id: Optional[int]
+    card_id: Optional[str]
+    generation: Optional[int]
+    dupe_code: Optional[str]
+    frame_key: Optional[str]
+    frame_name: Optional[str]
+    cost: Optional[int]
+    remaining_dough: Optional[int]
+
+    @property
+    def is_error(self) -> bool:
+        return self.error_message is not None
+
+
+@dataclass(frozen=True)
+class FramePreparation:
+    error_message: Optional[str]
+    instance_id: Optional[int]
+    card_id: Optional[str]
+    generation: Optional[int]
+    dupe_code: Optional[str]
+    current_frame_key: Optional[str]
+    frame_key: Optional[str]
+    frame_name: Optional[str]
+    cost: Optional[int]
+
+    @property
+    def is_error(self) -> bool:
+        return self.error_message is not None
+
+
+def prepare_frame(guild_id: int, user_id: int, card_code: Optional[str]) -> FramePreparation:
+    target_instance: Optional[tuple[int, str, int, str]] = None
+
+    if card_code is None:
+        target_instance = get_last_pulled_instance(guild_id, user_id)
+        if target_instance is None:
+            return FramePreparation(
+                error_message="No previous pulled card found. Provide a card code, e.g. `ns frame 0`.",
+                instance_id=None,
+                card_id=None,
+                generation=None,
+                dupe_code=None,
+                current_frame_key=None,
+                frame_key=None,
+                frame_name=None,
+                cost=None,
+            )
+    else:
+        parsed = split_card_code(card_code)
+        if parsed is None:
+            return FramePreparation(
+                error_message="Invalid card code. Use format like `0`, `a`, `10`, or `#10`.",
+                instance_id=None,
+                card_id=None,
+                generation=None,
+                dupe_code=None,
+                current_frame_key=None,
+                frame_key=None,
+                frame_name=None,
+                cost=None,
+            )
+
+        target_instance = get_instance_by_code(guild_id, user_id, card_code)
+        if target_instance is None:
+            return FramePreparation(
+                error_message="You do not own that card code.",
+                instance_id=None,
+                card_id=None,
+                generation=None,
+                dupe_code=None,
+                current_frame_key=None,
+                frame_key=None,
+                frame_name=None,
+                cost=None,
+            )
+
+    frame_choices = available_frame_keys()
+    if not frame_choices:
+        return FramePreparation(
+            error_message="No frames are currently available.",
+            instance_id=None,
+            card_id=None,
+            generation=None,
+            dupe_code=None,
+            current_frame_key=None,
+            frame_key=None,
+            frame_name=None,
+            cost=None,
+        )
+
+    instance_id, frame_card_id, frame_generation, frame_dupe_code = target_instance
+    rolled_frame = random.choice(frame_choices)
+
+    current_frame_key = get_instance_frame(guild_id, instance_id)
+    if current_frame_key == rolled_frame:
+        return FramePreparation(
+            error_message=f"That card already has the {frame_label(rolled_frame)} frame.",
+            instance_id=None,
+            card_id=None,
+            generation=None,
+            dupe_code=None,
+            current_frame_key=None,
+            frame_key=None,
+            frame_name=None,
+            cost=None,
+        )
+
+    value = card_value(frame_card_id, frame_generation)
+    cost = max(1, int(math.ceil(value * FRAME_COST_FRACTION)))
+    dough_before, _, _ = get_player_stats(guild_id, user_id)
+    if dough_before < cost:
+        return FramePreparation(
+            error_message="You do not have enough dough.",
+            instance_id=None,
+            card_id=None,
+            generation=None,
+            dupe_code=None,
+            current_frame_key=None,
+            frame_key=None,
+            frame_name=None,
+            cost=None,
+        )
+
+    return FramePreparation(
+        error_message=None,
+        instance_id=instance_id,
+        card_id=frame_card_id,
+        generation=frame_generation,
+        dupe_code=frame_dupe_code,
+        current_frame_key=current_frame_key,
+        frame_key=rolled_frame,
+        frame_name=frame_label(rolled_frame),
+        cost=cost,
+    )
+
+
+def confirm_frame(
+    guild_id: int,
+    user_id: int,
+    *,
+    instance_id: int,
+    card_id: str,
+    generation: int,
+    dupe_code: str,
+    frame_key: str,
+    frame_name: str,
+    cost: int,
+) -> FrameExecution:
+    applied, message = apply_frame_to_instance(guild_id, user_id, instance_id, frame_key, cost)
+    if not applied:
+        return FrameExecution(
+            error_message=message or "Frame failed.",
+            instance_id=None,
+            card_id=None,
+            generation=None,
+            dupe_code=None,
+            frame_key=None,
+            frame_name=None,
+            cost=None,
+            remaining_dough=None,
+        )
+
+    dough_after, _, _ = get_player_stats(guild_id, user_id)
+    return FrameExecution(
+        error_message=None,
+        instance_id=instance_id,
+        card_id=card_id,
+        generation=generation,
+        dupe_code=dupe_code,
+        frame_key=frame_key,
+        frame_name=frame_name,
+        cost=cost,
+        remaining_dough=dough_after,
+    )
+
+
+def execute_frame(guild_id: int, user_id: int, card_code: Optional[str]) -> FrameExecution:
+    prepared = prepare_frame(guild_id, user_id, card_code)
+    if prepared.is_error:
+        return FrameExecution(
+            error_message=prepared.error_message,
+            instance_id=None,
+            card_id=None,
+            generation=None,
+            dupe_code=None,
+            frame_key=None,
+            frame_name=None,
+            cost=None,
+            remaining_dough=None,
+        )
+
+    if (
+        prepared.instance_id is None
+        or prepared.card_id is None
+        or prepared.generation is None
+        or prepared.dupe_code is None
+        or prepared.frame_key is None
+        or prepared.frame_name is None
+        or prepared.cost is None
+    ):
+        return FrameExecution(
+            error_message="Frame failed.",
+            instance_id=None,
+            card_id=None,
+            generation=None,
+            dupe_code=None,
+            frame_key=None,
+            frame_name=None,
+            cost=None,
+            remaining_dough=None,
+        )
+
+    return confirm_frame(
+        guild_id,
+        user_id,
+        instance_id=prepared.instance_id,
+        card_id=prepared.card_id,
+        generation=prepared.generation,
+        dupe_code=prepared.dupe_code,
+        frame_key=prepared.frame_key,
+        frame_name=prepared.frame_name,
+        cost=prepared.cost,
+    )
+
+
+@dataclass(frozen=True)
+class FontExecution:
+    error_message: Optional[str]
+    instance_id: Optional[int]
+    card_id: Optional[str]
+    generation: Optional[int]
+    dupe_code: Optional[str]
+    font_key: Optional[str]
+    font_name: Optional[str]
+    cost: Optional[int]
+    remaining_dough: Optional[int]
+
+    @property
+    def is_error(self) -> bool:
+        return self.error_message is not None
+
+
+@dataclass(frozen=True)
+class FontPreparation:
+    error_message: Optional[str]
+    instance_id: Optional[int]
+    card_id: Optional[str]
+    generation: Optional[int]
+    dupe_code: Optional[str]
+    current_font_key: Optional[str]
+    font_key: Optional[str]
+    font_name: Optional[str]
+    cost: Optional[int]
+
+    @property
+    def is_error(self) -> bool:
+        return self.error_message is not None
+
+
+def prepare_font(guild_id: int, user_id: int, card_code: Optional[str]) -> FontPreparation:
+    target_instance: Optional[tuple[int, str, int, str]] = None
+
+    if card_code is None:
+        target_instance = get_last_pulled_instance(guild_id, user_id)
+        if target_instance is None:
+            return FontPreparation(
+                error_message="No previous pulled card found. Provide a card code, e.g. `ns font 0`.",
+                instance_id=None,
+                card_id=None,
+                generation=None,
+                dupe_code=None,
+                current_font_key=None,
+                font_key=None,
+                font_name=None,
+                cost=None,
+            )
+    else:
+        parsed = split_card_code(card_code)
+        if parsed is None:
+            return FontPreparation(
+                error_message="Invalid card code. Use format like `0`, `a`, `10`, or `#10`.",
+                instance_id=None,
+                card_id=None,
+                generation=None,
+                dupe_code=None,
+                current_font_key=None,
+                font_key=None,
+                font_name=None,
+                cost=None,
+            )
+
+        target_instance = get_instance_by_code(guild_id, user_id, card_code)
+        if target_instance is None:
+            return FontPreparation(
+                error_message="You do not own that card code.",
+                instance_id=None,
+                card_id=None,
+                generation=None,
+                dupe_code=None,
+                current_font_key=None,
+                font_key=None,
+                font_name=None,
+                cost=None,
+            )
+
+    if not AVAILABLE_FONTS:
+        return FontPreparation(
+            error_message="No fonts are currently available.",
+            instance_id=None,
+            card_id=None,
+            generation=None,
+            dupe_code=None,
+            current_font_key=None,
+            font_key=None,
+            font_name=None,
+            cost=None,
+        )
+
+    instance_id, font_card_id, font_generation, font_dupe_code = target_instance
+    rolled_font = random.choice(AVAILABLE_FONTS)
+
+    current_font_key = get_instance_font(guild_id, instance_id)
+    if current_font_key == rolled_font:
+        return FontPreparation(
+            error_message=f"That card already has the {font_label(rolled_font)} font.",
+            instance_id=None,
+            card_id=None,
+            generation=None,
+            dupe_code=None,
+            current_font_key=None,
+            font_key=None,
+            font_name=None,
+            cost=None,
+        )
+
+    value = card_value(font_card_id, font_generation)
+    cost = max(1, int(math.ceil(value * FONT_COST_FRACTION)))
+    dough_before, _, _ = get_player_stats(guild_id, user_id)
+    if dough_before < cost:
+        return FontPreparation(
+            error_message="You do not have enough dough.",
+            instance_id=None,
+            card_id=None,
+            generation=None,
+            dupe_code=None,
+            current_font_key=None,
+            font_key=None,
+            font_name=None,
+            cost=None,
+        )
+
+    return FontPreparation(
+        error_message=None,
+        instance_id=instance_id,
+        card_id=font_card_id,
+        generation=font_generation,
+        dupe_code=font_dupe_code,
+        current_font_key=current_font_key,
+        font_key=rolled_font,
+        font_name=font_label(rolled_font),
+        cost=cost,
+    )
+
+
+def confirm_font(
+    guild_id: int,
+    user_id: int,
+    *,
+    instance_id: int,
+    card_id: str,
+    generation: int,
+    dupe_code: str,
+    font_key: str,
+    font_name: str,
+    cost: int,
+) -> FontExecution:
+    applied, message = apply_font_to_instance(guild_id, user_id, instance_id, font_key, cost)
+    if not applied:
+        return FontExecution(
+            error_message=message or "Font failed.",
+            instance_id=None,
+            card_id=None,
+            generation=None,
+            dupe_code=None,
+            font_key=None,
+            font_name=None,
+            cost=None,
+            remaining_dough=None,
+        )
+
+    dough_after, _, _ = get_player_stats(guild_id, user_id)
+    return FontExecution(
+        error_message=None,
+        instance_id=instance_id,
+        card_id=card_id,
+        generation=generation,
+        dupe_code=dupe_code,
+        font_key=font_key,
+        font_name=font_name,
+        cost=cost,
+        remaining_dough=dough_after,
+    )
+
+
+def execute_font(guild_id: int, user_id: int, card_code: Optional[str]) -> FontExecution:
+    prepared = prepare_font(guild_id, user_id, card_code)
+    if prepared.is_error:
+        return FontExecution(
+            error_message=prepared.error_message,
+            instance_id=None,
+            card_id=None,
+            generation=None,
+            dupe_code=None,
+            font_key=None,
+            font_name=None,
+            cost=None,
+            remaining_dough=None,
+        )
+
+    if (
+        prepared.instance_id is None
+        or prepared.card_id is None
+        or prepared.generation is None
+        or prepared.dupe_code is None
+        or prepared.font_key is None
+        or prepared.font_name is None
+        or prepared.cost is None
+    ):
+        return FontExecution(
+            error_message="Font failed.",
+            instance_id=None,
+            card_id=None,
+            generation=None,
+            dupe_code=None,
+            font_key=None,
+            font_name=None,
+            cost=None,
+            remaining_dough=None,
+        )
+
+    return confirm_font(
+        guild_id,
+        user_id,
+        instance_id=prepared.instance_id,
+        card_id=prepared.card_id,
+        generation=prepared.generation,
+        dupe_code=prepared.dupe_code,
+        font_key=prepared.font_key,
+        font_name=prepared.font_name,
+        cost=prepared.cost,
     )
 
 

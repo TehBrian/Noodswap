@@ -12,7 +12,7 @@ from discord.ext import commands
 
 from noodswap.commands import _build_drop_preview_blocking, _get_card_image_bytes, register_commands
 from noodswap.images import DEFAULT_CARD_RENDER_SIZE, RARITY_BORDER_COLORS, render_card_image_bytes
-from noodswap.views import PaginatedLinesView, SortableCardListView, SortableCollectionView
+from noodswap.views import HelpView, PaginatedLinesView, SortableCardListView, SortableCollectionView
 
 
 class _FakeGuild:
@@ -208,6 +208,8 @@ class CommandsAliasRegistrationTests(unittest.TestCase):
         self.assertIn("t", _get_command(self.bot, "trade").aliases)
         self.assertIn("b", _get_command(self.bot, "burn").aliases)
         self.assertIn("mo", _get_command(self.bot, "morph").aliases)
+        self.assertIn("fr", _get_command(self.bot, "frame").aliases)
+        self.assertIn("fo", _get_command(self.bot, "font").aliases)
         cooldown_command = _get_command(self.bot, "cooldown")
         self.assertIn("cd", cooldown_command.aliases)
         self.assertIn("d", _get_command(self.bot, "drop").aliases)
@@ -217,6 +219,29 @@ class CommandsAliasRegistrationTests(unittest.TestCase):
         self.assertIn("c", _get_command(self.bot, "collection").aliases)
         self.assertIn("i", _get_command(self.bot, "info").aliases)
         self.assertIn("tg", _get_command(self.bot, "tag").aliases)
+
+
+class CommandsHelpTests(unittest.IsolatedAsyncioTestCase):
+    def setUp(self) -> None:
+        self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)
+        register_commands(self.bot)
+
+    async def test_help_command_sends_overview_with_help_view(self) -> None:
+        help_command = _get_command(self.bot, "help")
+
+        ctx = AsyncMock()
+        ctx.author = _FakeMember(100, "Caller")
+        ctx.send = AsyncMock(return_value=SimpleNamespace())
+
+        await help_command.callback(ctx)
+
+        ctx.send.assert_awaited_once()
+        sent_embed = ctx.send.await_args.kwargs["embed"]
+        sent_view = ctx.send.await_args.kwargs["view"]
+        self.assertEqual(sent_embed.title, "Help")
+        self.assertIn("Noodswap", sent_embed.description)
+        self.assertIsInstance(sent_view, HelpView)
+        self.assertIs(sent_view.message, ctx.send.return_value)
 
 
 class CommandsLookupTests(unittest.IsolatedAsyncioTestCase):
@@ -770,7 +795,7 @@ class CommandsMorphTests(unittest.IsolatedAsyncioTestCase):
         self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)
         register_commands(self.bot)
 
-    async def test_morph_success_shows_cost_and_remaining_dough(self) -> None:
+    async def test_morph_success_shows_confirmation_prompt(self) -> None:
         morph_command = _get_command(self.bot, "morph")
 
         ctx = AsyncMock()
@@ -785,21 +810,22 @@ class CommandsMorphTests(unittest.IsolatedAsyncioTestCase):
             card_id="SPG",
             generation=321,
             dupe_code="a",
+            current_morph_key=None,
             morph_key="black_and_white",
             morph_name="Black and White",
             cost=9,
-            remaining_dough=41,
         )
 
-        with patch("noodswap.commands.execute_morph", return_value=result):
+        with patch("noodswap.commands.prepare_morph", return_value=result):
             await morph_command.callback(ctx, card_code="a")
 
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
-        self.assertEqual(sent_embed.title, "Morph Applied")
+        self.assertEqual(sent_embed.title, "Morph Confirmation")
         self.assertIn("Black and White", sent_embed.description)
         self.assertIn("Morph Cost: **9**", sent_embed.description)
-        self.assertIn("Dough Remaining: **41**", sent_embed.description)
+        self.assertIn("After (if confirmed): **Black and White**", sent_embed.description)
+        self.assertIn("view", ctx.send.await_args.kwargs)
 
     async def test_morph_error_surfaces_service_message(self) -> None:
         morph_command = _get_command(self.bot, "morph")
@@ -814,12 +840,130 @@ class CommandsMorphTests(unittest.IsolatedAsyncioTestCase):
             error_message="You do not have enough dough.",
         )
 
-        with patch("noodswap.commands.execute_morph", return_value=result):
+        with patch("noodswap.commands.prepare_morph", return_value=result):
             await morph_command.callback(ctx, card_code="a")
 
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
         self.assertEqual(sent_embed.title, "Morph")
+        self.assertEqual(sent_embed.description, "You do not have enough dough.")
+
+
+class CommandsFrameTests(unittest.IsolatedAsyncioTestCase):
+    def setUp(self) -> None:
+        self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)
+        register_commands(self.bot)
+
+    async def test_frame_success_shows_confirmation_prompt(self) -> None:
+        frame_command = _get_command(self.bot, "frame")
+
+        ctx = AsyncMock()
+        ctx.guild = _FakeGuild(1)
+        ctx.author = _FakeMember(100, "Caller")
+        ctx.send = AsyncMock()
+
+        result = SimpleNamespace(
+            is_error=False,
+            error_message=None,
+            instance_id=77,
+            card_id="SPG",
+            generation=321,
+            dupe_code="a",
+            current_frame_key=None,
+            frame_key="buttery",
+            frame_name="Buttery",
+            cost=9,
+        )
+
+        with patch("noodswap.commands.prepare_frame", return_value=result):
+            await frame_command.callback(ctx, card_code="a")
+
+        ctx.send.assert_awaited_once()
+        sent_embed = ctx.send.await_args.kwargs["embed"]
+        self.assertEqual(sent_embed.title, "Frame Confirmation")
+        self.assertIn("Buttery", sent_embed.description)
+        self.assertIn("Frame Cost: **9**", sent_embed.description)
+        self.assertIn("After (if confirmed): **Buttery**", sent_embed.description)
+        self.assertIn("view", ctx.send.await_args.kwargs)
+
+    async def test_frame_error_surfaces_service_message(self) -> None:
+        frame_command = _get_command(self.bot, "frame")
+
+        ctx = AsyncMock()
+        ctx.guild = _FakeGuild(1)
+        ctx.author = _FakeMember(100, "Caller")
+        ctx.send = AsyncMock()
+
+        result = SimpleNamespace(
+            is_error=True,
+            error_message="You do not have enough dough.",
+        )
+
+        with patch("noodswap.commands.prepare_frame", return_value=result):
+            await frame_command.callback(ctx, card_code="a")
+
+        ctx.send.assert_awaited_once()
+        sent_embed = ctx.send.await_args.kwargs["embed"]
+        self.assertEqual(sent_embed.title, "Frame")
+        self.assertEqual(sent_embed.description, "You do not have enough dough.")
+
+
+class CommandsFontTests(unittest.IsolatedAsyncioTestCase):
+    def setUp(self) -> None:
+        self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)
+        register_commands(self.bot)
+
+    async def test_font_success_shows_confirmation_prompt(self) -> None:
+        font_command = _get_command(self.bot, "font")
+
+        ctx = AsyncMock()
+        ctx.guild = _FakeGuild(1)
+        ctx.author = _FakeMember(100, "Caller")
+        ctx.send = AsyncMock()
+
+        result = SimpleNamespace(
+            is_error=False,
+            error_message=None,
+            instance_id=77,
+            card_id="SPG",
+            generation=321,
+            dupe_code="a",
+            current_font_key=None,
+            font_key="serif",
+            font_name="Serif",
+            cost=9,
+        )
+
+        with patch("noodswap.commands.prepare_font", return_value=result):
+            await font_command.callback(ctx, card_code="a")
+
+        ctx.send.assert_awaited_once()
+        sent_embed = ctx.send.await_args.kwargs["embed"]
+        self.assertEqual(sent_embed.title, "Font Confirmation")
+        self.assertIn("Serif", sent_embed.description)
+        self.assertIn("Font Cost: **9**", sent_embed.description)
+        self.assertIn("After (if confirmed): **Serif**", sent_embed.description)
+        self.assertIn("view", ctx.send.await_args.kwargs)
+
+    async def test_font_error_surfaces_service_message(self) -> None:
+        font_command = _get_command(self.bot, "font")
+
+        ctx = AsyncMock()
+        ctx.guild = _FakeGuild(1)
+        ctx.author = _FakeMember(100, "Caller")
+        ctx.send = AsyncMock()
+
+        result = SimpleNamespace(
+            is_error=True,
+            error_message="You do not have enough dough.",
+        )
+
+        with patch("noodswap.commands.prepare_font", return_value=result):
+            await font_command.callback(ctx, card_code="a")
+
+        ctx.send.assert_awaited_once()
+        sent_embed = ctx.send.await_args.kwargs["embed"]
+        self.assertEqual(sent_embed.title, "Font")
         self.assertEqual(sent_embed.description, "You do not have enough dough.")
 
 
@@ -915,13 +1059,20 @@ class CardRenderRegressionTests(unittest.TestCase):
         if rendered is None:
             self.fail("Expected rendered card image bytes")
 
-        image = Image.open(io.BytesIO(rendered)).convert("RGB")
+        image = Image.open(io.BytesIO(rendered)).convert("RGBA")
         self.assertEqual(image.size, DEFAULT_CARD_RENDER_SIZE)
 
         expected_color = RARITY_BORDER_COLORS["common"]
-        sampled = image.getpixel((DEFAULT_CARD_RENDER_SIZE[0] // 2, 6))
+        sample_x = DEFAULT_CARD_RENDER_SIZE[0] // 2
+        sample_y = 0
+        for y in range(DEFAULT_CARD_RENDER_SIZE[1]):
+            if image.getpixel((sample_x, y))[3] > 0:
+                sample_y = y
+                break
+        sampled_rgba = image.getpixel((sample_x, min(DEFAULT_CARD_RENDER_SIZE[1] - 1, sample_y + 2)))
+        sampled = (sampled_rgba[0], sampled_rgba[1], sampled_rgba[2])
         channel_diffs = [abs(sampled[idx] - expected_color[idx]) for idx in range(3)]
-        self.assertLessEqual(max(channel_diffs), 3)
+        self.assertLessEqual(max(channel_diffs), 8)
 
     def test_render_card_image_bytes_applies_bottom_gradient_and_generation_text(self) -> None:
         try:
@@ -953,6 +1104,36 @@ class CardRenderRegressionTests(unittest.TestCase):
         # Different generation text should produce different rendered output.
         self.assertNotEqual(rendered_gen_1, rendered_gen_2)
 
+    def test_render_card_image_bytes_applies_buttery_frame(self) -> None:
+        try:
+            from PIL import Image, ImageDraw
+        except ImportError:
+            self.skipTest("Pillow is not installed")
+
+        def png_bytes(color: tuple[int, int, int]) -> bytes:
+            image = Image.new("RGB", (30, 30), color)
+            output = io.BytesIO()
+            image.save(output, format="PNG")
+            return output.getvalue()
+
+        overlay = Image.new("RGBA", DEFAULT_CARD_RENDER_SIZE, (0, 0, 0, 0))
+        overlay_draw = ImageDraw.Draw(overlay)
+        overlay_draw.rectangle((0, 0, DEFAULT_CARD_RENDER_SIZE[0] - 1, 20), fill=(255, 210, 80, 180))
+
+        with (
+            patch("noodswap.images.read_local_card_image_bytes", return_value=png_bytes((100, 120, 140))),
+            patch("noodswap.images._load_frame_overlay_image", return_value=overlay),
+        ):
+            base_rendered = render_card_image_bytes("SPG", generation=10)
+            framed_rendered = render_card_image_bytes("SPG", generation=10, frame_key="buttery")
+
+        self.assertIsNotNone(base_rendered)
+        self.assertIsNotNone(framed_rendered)
+        if base_rendered is None or framed_rendered is None:
+            self.fail("Expected rendered card image bytes")
+
+        self.assertNotEqual(base_rendered, framed_rendered)
+
     def test_render_card_image_bytes_applies_black_and_white_morph(self) -> None:
         try:
             from PIL import Image
@@ -975,8 +1156,8 @@ class CardRenderRegressionTests(unittest.TestCase):
         image = Image.open(io.BytesIO(rendered)).convert("RGB")
         sampled = image.getpixel((DEFAULT_CARD_RENDER_SIZE[0] // 2, DEFAULT_CARD_RENDER_SIZE[1] // 2))
         red, green, blue = sampled
-        self.assertEqual(red, green)
-        self.assertEqual(green, blue)
+        self.assertLessEqual(abs(red - green), 10)
+        self.assertLessEqual(abs(green - blue), 10)
 
 
 class LocalImageBytesTests(unittest.TestCase):

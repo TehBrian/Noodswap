@@ -65,8 +65,11 @@ Status: Stage 1 is complete. Stages below are intentionally deferred for later.
 
 ## Decision log (recent)
 
+- Changed `help` to send a brief bot overview plus an invoker-scoped category dropdown (`Overview`, `Economy`, `Cosmetics`, `Wishlist`, `Tags`, `Relationship`, `Owner-only`) that edits the same embed to the selected command page.
+- Added `frame` / `fr` confirmation flow with before/after transition previews and per-instance frame persistence (`card_instances.frame_key`), initially shipping a `buttery` golden dripping-border frame.
+- Expanded frame cosmetics to support multiple overlay-backed frame keys (`buttery`, `gilded`, `drizzled`) and added a parallel `font` / `fo` confirmation flow with per-instance font persistence (`card_instances.font_key`).
 - Added per-player tag collections (`player_tags` + `card_instance_tags`) with commands for create/delete/list/lock/unlock/assign/unassign/cards, and enforced burn protection for instances attached to any locked tag.
-- Added `morph` / `mo` command with per-instance `morph_key` persistence, a first `black_and_white` visual morph, and a morph cost model at 20% of computed card value (rounded up) charged atomically with morph application.
+- Added `morph` / `mo` confirmation flow with before/after transition previews (`before -> after`), and ensured morph persistence + dough charge happen only on explicit confirmation.
 - Changed drop claiming to be contestable: any user can claim any unclaimed drop card, each card can only be claimed once, and drops remain active until timeout (or all cards are claimed).
 - Reduced pull cooldown from 6 minutes to 4 minutes and updated cooldown messaging to use pull terminology.
 - Added a shared card-render pipeline (`noodswap/images.py`) that normalizes card output to portrait `5:7`, applies rounded rarity-based borders, and routes both single-card embeds and drop-preview composites through the same renderer to support future dupe-specific visual customization.

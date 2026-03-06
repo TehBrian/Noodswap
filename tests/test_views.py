@@ -5,6 +5,10 @@ from noodswap.views import (
     BurnConfirmView,
     CardCatalogView,
     DropView,
+    FrameConfirmView,
+    FontConfirmView,
+    HelpView,
+    MorphConfirmView,
     PaginatedLinesView,
     SortableCardListView,
     SortableCollectionView,
@@ -66,6 +70,37 @@ class _FakeMessage:
 
 
 class ViewTests(unittest.IsolatedAsyncioTestCase):
+    async def test_help_view_shows_overview_by_default(self) -> None:
+        view = HelpView(user_id=10)
+        embed = view.build_overview_embed()
+
+        self.assertEqual(embed.title, "Help")
+        self.assertIn("Noodswap", embed.description)
+
+    async def test_help_view_select_swaps_to_category_page(self) -> None:
+        view = HelpView(user_id=10)
+        interaction = _FakeInteraction(user_id=10)
+
+        view.category_select._values = ["economy"]
+        await view.category_select.callback(interaction)
+
+        self.assertEqual(len(interaction.response.edited_messages), 1)
+        edited_embed = interaction.response.edited_messages[0]["embed"]
+        self.assertEqual(edited_embed.title, "Help: Economy")
+        self.assertIn("ns drop", edited_embed.description)
+
+    async def test_help_view_select_rejects_unauthorized_user(self) -> None:
+        view = HelpView(user_id=10)
+        interaction = _FakeInteraction(user_id=99)
+
+        view.category_select._values = ["overview"]
+        await view.category_select.callback(interaction)
+
+        self.assertEqual(len(interaction.response.sent_messages), 1)
+        sent = interaction.response.sent_messages[0]
+        self.assertTrue(sent.get("ephemeral"))
+        self.assertIn("Only the command user", sent["embed"].description)
+
     async def test_drop_allows_any_user_to_claim(self) -> None:
         view = DropView(guild_id=1, user_id=100, choices=[("SPG", 50)])
         interaction = _FakeInteraction(user_id=200)
@@ -261,6 +296,214 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("embed", interaction.response.edited_messages[0])
         self.assertEqual(len(interaction.message.replies), 1)
         self.assertEqual(interaction.message.replies[0]["embed"].title, "Burn Cancelled")
+
+    async def test_morph_confirm_applies_and_replies_with_summary(self) -> None:
+        view = MorphConfirmView(
+            guild_id=1,
+            user_id=10,
+            instance_id=77,
+            card_id="SPG",
+            generation=321,
+            dupe_code="a",
+            before_morph_key=None,
+            before_frame_key=None,
+            before_font_key=None,
+            after_morph_key="black_and_white",
+            after_morph_name="Black and White",
+            cost=9,
+        )
+        interaction = _FakeInteraction(user_id=10)
+
+        with (
+            patch("noodswap.views.apply_morph_to_instance", return_value=(True, "")) as apply_morph,
+            patch("noodswap.views.get_player_stats", return_value=(41, 0.0, None)),
+        ):
+            await view.confirm_button.callback(interaction)
+
+        apply_morph.assert_called_once_with(1, 10, 77, "black_and_white", 9)
+        self.assertTrue(view.finished)
+        self.assertEqual(len(interaction.response.edited_messages), 1)
+        self.assertEqual(interaction.response.edited_messages[0].get("view"), view)
+        self.assertEqual(len(interaction.message.replies), 1)
+        sent_embed = interaction.message.replies[0]["embed"]
+        self.assertEqual(sent_embed.title, "Morph Applied")
+        self.assertIn("Morph Cost: **9**", sent_embed.description)
+        self.assertIn("Dough Remaining: **41**", sent_embed.description)
+
+    async def test_morph_confirm_rejects_unauthorized_user(self) -> None:
+        view = MorphConfirmView(
+            guild_id=1,
+            user_id=10,
+            instance_id=77,
+            card_id="SPG",
+            generation=321,
+            dupe_code="a",
+            before_morph_key=None,
+            before_frame_key=None,
+            before_font_key=None,
+            after_morph_key="black_and_white",
+            after_morph_name="Black and White",
+            cost=9,
+        )
+        interaction = _FakeInteraction(user_id=99)
+
+        with patch("noodswap.views.apply_morph_to_instance") as apply_morph:
+            await view.confirm_button.callback(interaction)
+            apply_morph.assert_not_called()
+
+        self.assertEqual(len(interaction.response.sent_messages), 1)
+        self.assertTrue(interaction.response.sent_messages[0].get("ephemeral"))
+        self.assertIn("Only the command user", interaction.response.sent_messages[0]["embed"].description)
+
+    async def test_morph_timeout_clears_attachments_and_edits_embed(self) -> None:
+        view = MorphConfirmView(
+            guild_id=1,
+            user_id=10,
+            instance_id=77,
+            card_id="SPG",
+            generation=321,
+            dupe_code="a",
+            before_morph_key=None,
+            before_frame_key=None,
+            before_font_key=None,
+            after_morph_key="black_and_white",
+            after_morph_name="Black and White",
+            cost=9,
+        )
+        fake_message = _FakeMessage()
+        view.message = fake_message
+
+        await view.on_timeout()
+
+        self.assertTrue(view.confirm_button.disabled)
+        self.assertTrue(view.cancel_button.disabled)
+        self.assertEqual(len(fake_message.edits), 1)
+        edit_kwargs = fake_message.edits[0]
+        self.assertEqual(edit_kwargs["embed"].title, "Morph Expired")
+        self.assertEqual(edit_kwargs["attachments"], [])
+        self.assertEqual(edit_kwargs["view"], view)
+
+    async def test_frame_confirm_applies_and_replies_with_summary(self) -> None:
+        view = FrameConfirmView(
+            guild_id=1,
+            user_id=10,
+            instance_id=77,
+            card_id="SPG",
+            generation=321,
+            dupe_code="a",
+            before_morph_key=None,
+            before_frame_key=None,
+            before_font_key=None,
+            after_frame_key="buttery",
+            after_frame_name="Buttery",
+            cost=9,
+        )
+        interaction = _FakeInteraction(user_id=10)
+
+        with (
+            patch("noodswap.views.apply_frame_to_instance", return_value=(True, "")) as apply_frame,
+            patch("noodswap.views.get_player_stats", return_value=(41, 0.0, None)),
+        ):
+            await view.confirm_button.callback(interaction)
+
+        apply_frame.assert_called_once_with(1, 10, 77, "buttery", 9)
+        self.assertTrue(view.finished)
+        self.assertEqual(len(interaction.response.edited_messages), 1)
+        self.assertEqual(interaction.response.edited_messages[0].get("view"), view)
+        self.assertEqual(len(interaction.message.replies), 1)
+        sent_embed = interaction.message.replies[0]["embed"]
+        self.assertEqual(sent_embed.title, "Frame Applied")
+        self.assertIn("Frame Cost: **9**", sent_embed.description)
+        self.assertIn("Dough Remaining: **41**", sent_embed.description)
+
+    async def test_frame_timeout_clears_attachments_and_edits_embed(self) -> None:
+        view = FrameConfirmView(
+            guild_id=1,
+            user_id=10,
+            instance_id=77,
+            card_id="SPG",
+            generation=321,
+            dupe_code="a",
+            before_morph_key=None,
+            before_frame_key=None,
+            before_font_key=None,
+            after_frame_key="buttery",
+            after_frame_name="Buttery",
+            cost=9,
+        )
+        fake_message = _FakeMessage()
+        view.message = fake_message
+
+        await view.on_timeout()
+
+        self.assertTrue(view.confirm_button.disabled)
+        self.assertTrue(view.cancel_button.disabled)
+        self.assertEqual(len(fake_message.edits), 1)
+        edit_kwargs = fake_message.edits[0]
+        self.assertEqual(edit_kwargs["embed"].title, "Frame Expired")
+        self.assertEqual(edit_kwargs["attachments"], [])
+        self.assertEqual(edit_kwargs["view"], view)
+
+    async def test_font_confirm_applies_and_replies_with_summary(self) -> None:
+        view = FontConfirmView(
+            guild_id=1,
+            user_id=10,
+            instance_id=77,
+            card_id="SPG",
+            generation=321,
+            dupe_code="a",
+            before_morph_key=None,
+            before_frame_key=None,
+            before_font_key=None,
+            after_font_key="serif",
+            after_font_name="Serif",
+            cost=9,
+        )
+        interaction = _FakeInteraction(user_id=10)
+
+        with (
+            patch("noodswap.views.apply_font_to_instance", return_value=(True, "")) as apply_font,
+            patch("noodswap.views.get_player_stats", return_value=(41, 0.0, None)),
+        ):
+            await view.confirm_button.callback(interaction)
+
+        apply_font.assert_called_once_with(1, 10, 77, "serif", 9)
+        self.assertTrue(view.finished)
+        self.assertEqual(len(interaction.response.edited_messages), 1)
+        self.assertEqual(interaction.response.edited_messages[0].get("view"), view)
+        self.assertEqual(len(interaction.message.replies), 1)
+        sent_embed = interaction.message.replies[0]["embed"]
+        self.assertEqual(sent_embed.title, "Font Applied")
+        self.assertIn("Font Cost: **9**", sent_embed.description)
+        self.assertIn("Dough Remaining: **41**", sent_embed.description)
+
+    async def test_font_timeout_clears_attachments_and_edits_embed(self) -> None:
+        view = FontConfirmView(
+            guild_id=1,
+            user_id=10,
+            instance_id=77,
+            card_id="SPG",
+            generation=321,
+            dupe_code="a",
+            before_morph_key=None,
+            before_frame_key=None,
+            before_font_key=None,
+            after_font_key="serif",
+            after_font_name="Serif",
+            cost=9,
+        )
+        fake_message = _FakeMessage()
+        view.message = fake_message
+
+        await view.on_timeout()
+
+        self.assertTrue(view.confirm_button.disabled)
+        self.assertTrue(view.cancel_button.disabled)
+        self.assertEqual(len(fake_message.edits), 1)
+        edit_kwargs = fake_message.edits[0]
+        self.assertEqual(edit_kwargs["embed"].title, "Font Expired")
+        self.assertEqual(edit_kwargs["attachments"], [])
+        self.assertEqual(edit_kwargs["view"], view)
 
     async def test_card_catalog_pagination_buttons_update_page(self) -> None:
         entries = [
@@ -588,6 +831,7 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
             title="Caller's Collection",
             instances=instances,
             wish_counts={"SPG": 2, "BLA": 3, "BAR": 1},
+            instance_styles={},
             guard_title="Collection",
             page_size=1,
         )
@@ -607,6 +851,7 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
             title="Caller's Collection",
             instances=instances,
             wish_counts={"SPG": 2, "BLA": 3, "BAR": 1},
+            instance_styles={},
             guard_title="Collection",
             page_size=1,
         )
@@ -631,6 +876,7 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
             title="Caller's Collection",
             instances=instances,
             wish_counts={"SPG": 2, "BLA": 3, "BAR": 1},
+            instance_styles={},
             guard_title="Collection",
             page_size=10,
         )
@@ -652,6 +898,7 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
             title="Caller's Collection",
             instances=instances,
             wish_counts={"SPG": 2, "BLA": 3},
+            instance_styles={},
             guard_title="Collection",
             page_size=1,
         )

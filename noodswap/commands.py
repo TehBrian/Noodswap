@@ -16,16 +16,33 @@ from .cards import (
     search_card_ids,
     search_card_ids_by_name,
 )
-from .images import DEFAULT_CARD_RENDER_SIZE, embed_image_payload, read_local_card_image_bytes, render_card_surface
+from .images import (
+    DEFAULT_CARD_RENDER_SIZE,
+    embed_image_payload,
+    morph_transition_image_payload,
+    read_local_card_image_bytes,
+    render_card_surface,
+)
+from .fonts import font_label
+from .frames import frame_label
+from .morphs import morph_label
 from .presentation import (
     burn_confirmation_description,
     drop_choices_description,
-    help_description,
     italy_embed,
     italy_marry_embed,
     trade_offer_description,
 )
-from .services import execute_divorce, execute_marry, execute_morph, prepare_burn, prepare_drop, prepare_trade_offer
+from .services import (
+    execute_divorce,
+    execute_marry,
+    prepare_burn,
+    prepare_drop,
+    prepare_font,
+    prepare_frame,
+    prepare_morph,
+    prepare_trade_offer,
+)
 from .settings import DB_PATH, DROP_COOLDOWN_SECONDS, DROP_TIMEOUT_SECONDS, PULL_COOLDOWN_SECONDS
 from .storage import (
     assign_tag_to_instance,
@@ -34,6 +51,8 @@ from .storage import (
     get_instance_by_code,
     get_instance_by_id,
     get_instance_by_dupe_code,
+    get_instance_font,
+    get_instance_frame,
     get_instance_morph,
     get_instances_by_tag,
     get_player_cooldown_timestamps,
@@ -54,6 +73,10 @@ from .views import (
     BurnConfirmView,
     CardCatalogView,
     DropView,
+    FontConfirmView,
+    HelpView,
+    FrameConfirmView,
+    MorphConfirmView,
     PaginatedLinesView,
     SortableCardListView,
     SortableCollectionView,
@@ -198,20 +221,11 @@ async def build_drop_preview_file(choices: list[tuple[str, int]]) -> discord.Fil
     return discord.File(io.BytesIO(image_bytes), filename="drop_choices.png")
 
 
-def _cooldown_progress_bar(elapsed_seconds: float, total_seconds: float, size: int = 8) -> str:
-    if total_seconds <= 0:
-        return "🟩" * size
-    normalized = max(0.0, min(1.0, elapsed_seconds / total_seconds))
-    filled = int(round(normalized * size))
-    return ("🟩" * filled) + ("⬜" * (size - filled))
-
-
 def _cooldown_status_line(label: str, elapsed_seconds: float, cooldown_seconds: float) -> str:
     remaining = max(0.0, cooldown_seconds - elapsed_seconds)
-    progress = _cooldown_progress_bar(elapsed_seconds, cooldown_seconds)
     if remaining > 0:
-        return f"{label}: {progress} **Cooling Down** (ready in **{format_cooldown(remaining)}**)"
-    return f"{label}: {progress} **Ready** (can use now)"
+        return f"{label}: **Cooling Down** (ready in **{format_cooldown(remaining)}**)"
+    return f"{label}: **Ready** (can use now)"
 
 
 async def _wish_add(ctx: commands.Context, card_id: str) -> None:
@@ -560,6 +574,8 @@ def register_commands(bot: commands.Bot) -> None:
                     matched_card_id,
                     generation=matched_generation,
                     morph_key=get_instance_morph(ctx.guild.id, matched_instance_id),
+                    frame_key=get_instance_frame(ctx.guild.id, matched_instance_id),
+                    font_key=get_instance_font(ctx.guild.id, matched_instance_id),
                 )
                 if image_url is not None:
                     lookup_embed.set_image(url=image_url)
@@ -666,13 +682,23 @@ def register_commands(bot: commands.Bot) -> None:
             f"You are now married to {card_dupe_display(result.card_id, result.generation, dupe_code=result.dupe_code)}.",
         )
         morph_key = None
+        frame_key = None
+        font_key = None
         if result.dupe_code is not None:
             married_instance = get_instance_by_code(ctx.guild.id, ctx.author.id, result.dupe_code)
             if married_instance is not None:
                 married_instance_id, _, _, _ = married_instance
                 morph_key = get_instance_morph(ctx.guild.id, married_instance_id)
+                frame_key = get_instance_frame(ctx.guild.id, married_instance_id)
+            font_key = get_instance_font(ctx.guild.id, married_instance_id)
 
-        image_url, image_file = embed_image_payload(result.card_id, generation=result.generation, morph_key=morph_key)
+        image_url, image_file = embed_image_payload(
+            result.card_id,
+            generation=result.generation,
+            morph_key=morph_key,
+            frame_key=frame_key,
+            font_key=font_key,
+        )
         if image_url is not None:
             marry_embed.set_image(url=image_url)
         send_kwargs: dict[str, object] = {"embed": marry_embed}
@@ -700,13 +726,23 @@ def register_commands(bot: commands.Bot) -> None:
             f"You divorced {card_dupe_display(result.card_id, result.generation, dupe_code=result.dupe_code)}.",
         )
         morph_key = None
+        frame_key = None
+        font_key = None
         if result.dupe_code is not None:
             divorced_instance = get_instance_by_code(ctx.guild.id, ctx.author.id, result.dupe_code)
             if divorced_instance is not None:
                 divorced_instance_id, _, _, _ = divorced_instance
                 morph_key = get_instance_morph(ctx.guild.id, divorced_instance_id)
+                frame_key = get_instance_frame(ctx.guild.id, divorced_instance_id)
+            font_key = get_instance_font(ctx.guild.id, divorced_instance_id)
 
-        image_url, image_file = embed_image_payload(result.card_id, generation=result.generation, morph_key=morph_key)
+        image_url, image_file = embed_image_payload(
+            result.card_id,
+            generation=result.generation,
+            morph_key=morph_key,
+            frame_key=frame_key,
+            font_key=font_key,
+        )
         if image_url is not None:
             divorce_embed.set_image(url=image_url)
         send_kwargs: dict[str, object] = {"embed": divorce_embed}
@@ -742,6 +778,14 @@ def register_commands(bot: commands.Bot) -> None:
             title=title,
             instances=instances,
             wish_counts=get_card_wish_counts(ctx.guild.id),
+            instance_styles={
+                instance_id: (
+                    get_instance_morph(ctx.guild.id, instance_id),
+                    get_instance_frame(ctx.guild.id, instance_id),
+                    get_instance_font(ctx.guild.id, instance_id),
+                )
+                for instance_id, _card_id, _generation, _dupe_code in instances
+            },
             guard_title="Collection",
         )
         message = await ctx.send(embed=view.build_embed(), view=view)
@@ -797,6 +841,8 @@ def register_commands(bot: commands.Bot) -> None:
             burn_card_id,
             generation=burn_generation,
             morph_key=get_instance_morph(ctx.guild.id, instance_id),
+            frame_key=get_instance_frame(ctx.guild.id, instance_id),
+            font_key=get_instance_font(ctx.guild.id, instance_id),
         )
         if image_url is not None:
             confirm_embed.set_image(url=image_url)
@@ -821,44 +867,203 @@ def register_commands(bot: commands.Bot) -> None:
             await ctx.send(embed=italy_embed("Morph", "Use this command in a server."))
             return
 
-        result = execute_morph(ctx.guild.id, ctx.author.id, card_code)
-        if result.is_error:
-            await ctx.send(embed=italy_embed("Morph", result.error_message or "Morph failed."))
+        prepared = prepare_morph(ctx.guild.id, ctx.author.id, card_code)
+        if prepared.is_error:
+            await ctx.send(embed=italy_embed("Morph", prepared.error_message or "Morph failed."))
             return
 
         if (
-            result.card_id is None
-            or result.generation is None
-            or result.dupe_code is None
-            or result.morph_key is None
-            or result.morph_name is None
-            or result.cost is None
-            or result.remaining_dough is None
+            prepared.instance_id is None
+            or prepared.card_id is None
+            or prepared.generation is None
+            or prepared.dupe_code is None
+            or prepared.morph_key is None
+            or prepared.morph_name is None
+            or prepared.cost is None
         ):
             await ctx.send(embed=italy_embed("Morph", "Morph failed."))
             return
 
-        morph_embed = italy_embed(
-            "Morph Applied",
+        confirm_embed = italy_embed(
+            "Morph Confirmation",
             (
-                f"Applied **{result.morph_name}** to "
-                f"{card_dupe_display(result.card_id, result.generation, dupe_code=result.dupe_code)}.\n\n"
-                f"Morph Cost: **{result.cost}** dough\n"
-                f"Dough Remaining: **{result.remaining_dough}**"
+                f"{card_dupe_display(prepared.card_id, prepared.generation, dupe_code=prepared.dupe_code)}\n\n"
+                f"Before: **{morph_label(prepared.current_morph_key)}**\n"
+                f"After (if confirmed): **{prepared.morph_name}**\n\n"
+                f"Morph Cost: **{prepared.cost}** dough"
             ),
         )
-        image_url, image_file = embed_image_payload(
-            result.card_id,
-            generation=result.generation,
-            morph_key=result.morph_key,
+        before_frame_key = get_instance_frame(ctx.guild.id, prepared.instance_id)
+        before_font_key = get_instance_font(ctx.guild.id, prepared.instance_id)
+        image_url, image_file = morph_transition_image_payload(
+            prepared.card_id,
+            generation=prepared.generation,
+            before_morph_key=prepared.current_morph_key,
+            after_morph_key=prepared.morph_key,
+            before_frame_key=before_frame_key,
+            after_frame_key=before_frame_key,
+            before_font_key=before_font_key,
+            after_font_key=before_font_key,
         )
         if image_url is not None:
-            morph_embed.set_image(url=image_url)
+            confirm_embed.set_image(url=image_url)
 
-        send_kwargs: dict[str, object] = {"embed": morph_embed}
+        view = MorphConfirmView(
+            guild_id=ctx.guild.id,
+            user_id=ctx.author.id,
+            instance_id=prepared.instance_id,
+            card_id=prepared.card_id,
+            generation=prepared.generation,
+            dupe_code=prepared.dupe_code,
+            before_morph_key=prepared.current_morph_key,
+            after_morph_key=prepared.morph_key,
+            after_morph_name=prepared.morph_name,
+            before_frame_key=before_frame_key,
+            before_font_key=before_font_key,
+            cost=prepared.cost,
+        )
+
+        send_kwargs: dict[str, object] = {"embed": confirm_embed, "view": view}
         if image_file is not None:
             send_kwargs["file"] = image_file
-        await ctx.send(**send_kwargs)
+        message = await ctx.send(**send_kwargs)
+        view.message = message
+
+    @bot.command(name="frame", aliases=["fr"])
+    async def frame(ctx: commands.Context, card_code: str | None = None):
+        if ctx.guild is None:
+            await ctx.send(embed=italy_embed("Frame", "Use this command in a server."))
+            return
+
+        prepared = prepare_frame(ctx.guild.id, ctx.author.id, card_code)
+        if prepared.is_error:
+            await ctx.send(embed=italy_embed("Frame", prepared.error_message or "Frame failed."))
+            return
+
+        if (
+            prepared.instance_id is None
+            or prepared.card_id is None
+            or prepared.generation is None
+            or prepared.dupe_code is None
+            or prepared.frame_key is None
+            or prepared.frame_name is None
+            or prepared.cost is None
+        ):
+            await ctx.send(embed=italy_embed("Frame", "Frame failed."))
+            return
+
+        confirm_embed = italy_embed(
+            "Frame Confirmation",
+            (
+                f"{card_dupe_display(prepared.card_id, prepared.generation, dupe_code=prepared.dupe_code)}\n\n"
+                f"Before: **{frame_label(prepared.current_frame_key)}**\n"
+                f"After (if confirmed): **{prepared.frame_name}**\n\n"
+                f"Frame Cost: **{prepared.cost}** dough"
+            ),
+        )
+        current_morph_key = get_instance_morph(ctx.guild.id, prepared.instance_id)
+        current_font_key = get_instance_font(ctx.guild.id, prepared.instance_id)
+        image_url, image_file = morph_transition_image_payload(
+            prepared.card_id,
+            generation=prepared.generation,
+            before_morph_key=current_morph_key,
+            after_morph_key=current_morph_key,
+            before_frame_key=prepared.current_frame_key,
+            after_frame_key=prepared.frame_key,
+            before_font_key=current_font_key,
+            after_font_key=current_font_key,
+        )
+        if image_url is not None:
+            confirm_embed.set_image(url=image_url)
+
+        view = FrameConfirmView(
+            guild_id=ctx.guild.id,
+            user_id=ctx.author.id,
+            instance_id=prepared.instance_id,
+            card_id=prepared.card_id,
+            generation=prepared.generation,
+            dupe_code=prepared.dupe_code,
+            before_morph_key=current_morph_key,
+            before_frame_key=prepared.current_frame_key,
+            before_font_key=current_font_key,
+            after_frame_key=prepared.frame_key,
+            after_frame_name=prepared.frame_name,
+            cost=prepared.cost,
+        )
+
+        send_kwargs: dict[str, object] = {"embed": confirm_embed, "view": view}
+        if image_file is not None:
+            send_kwargs["file"] = image_file
+        message = await ctx.send(**send_kwargs)
+        view.message = message
+
+    @bot.command(name="font", aliases=["fo"])
+    async def font(ctx: commands.Context, card_code: str | None = None):
+        if ctx.guild is None:
+            await ctx.send(embed=italy_embed("Font", "Use this command in a server."))
+            return
+
+        prepared = prepare_font(ctx.guild.id, ctx.author.id, card_code)
+        if prepared.is_error:
+            await ctx.send(embed=italy_embed("Font", prepared.error_message or "Font failed."))
+            return
+
+        if (
+            prepared.instance_id is None
+            or prepared.card_id is None
+            or prepared.generation is None
+            or prepared.dupe_code is None
+            or prepared.font_key is None
+            or prepared.font_name is None
+            or prepared.cost is None
+        ):
+            await ctx.send(embed=italy_embed("Font", "Font failed."))
+            return
+
+        confirm_embed = italy_embed(
+            "Font Confirmation",
+            (
+                f"{card_dupe_display(prepared.card_id, prepared.generation, dupe_code=prepared.dupe_code)}\n\n"
+                f"Before: **{font_label(prepared.current_font_key)}**\n"
+                f"After (if confirmed): **{prepared.font_name}**\n\n"
+                f"Font Cost: **{prepared.cost}** dough"
+            ),
+        )
+        current_morph_key = get_instance_morph(ctx.guild.id, prepared.instance_id)
+        current_frame_key = get_instance_frame(ctx.guild.id, prepared.instance_id)
+        image_url, image_file = morph_transition_image_payload(
+            prepared.card_id,
+            generation=prepared.generation,
+            before_morph_key=current_morph_key,
+            after_morph_key=current_morph_key,
+            before_frame_key=current_frame_key,
+            after_frame_key=current_frame_key,
+            before_font_key=prepared.current_font_key,
+            after_font_key=prepared.font_key,
+        )
+        if image_url is not None:
+            confirm_embed.set_image(url=image_url)
+
+        view = FontConfirmView(
+            guild_id=ctx.guild.id,
+            user_id=ctx.author.id,
+            instance_id=prepared.instance_id,
+            card_id=prepared.card_id,
+            generation=prepared.generation,
+            dupe_code=prepared.dupe_code,
+            before_morph_key=current_morph_key,
+            before_frame_key=current_frame_key,
+            before_font_key=prepared.current_font_key,
+            after_font_key=prepared.font_key,
+            after_font_name=prepared.font_name,
+            cost=prepared.cost,
+        )
+
+        send_kwargs: dict[str, object] = {"embed": confirm_embed, "view": view}
+        if image_file is not None:
+            send_kwargs["file"] = image_file
+        message = await ctx.send(**send_kwargs)
+        view.message = message
 
     @bot.command(name="cooldown", aliases=["cd"])
     async def cooldown(ctx: commands.Context, player: str | None = None):
@@ -913,6 +1118,8 @@ def register_commands(bot: commands.Bot) -> None:
                     married_card_id,
                     generation=married_generation,
                     morph_key=get_instance_morph(ctx.guild.id, married_instance_id),
+                    frame_key=get_instance_frame(ctx.guild.id, married_instance_id),
+                    font_key=get_instance_font(ctx.guild.id, married_instance_id),
                 )
 
         embed = italy_embed(f"{target_member.display_name}'s Stats")
@@ -985,12 +1192,9 @@ def register_commands(bot: commands.Bot) -> None:
 
     @bot.command(name="help", aliases=["h"])
     async def help_command(ctx: commands.Context):
-        await ctx.send(
-            embed=italy_embed(
-                "Help",
-                help_description(),
-            )
-        )
+        view = HelpView(user_id=ctx.author.id)
+        message = await ctx.send(embed=view.build_overview_embed(), view=view)
+        view.message = message
 
     @bot.command(name="dbexport")
     @commands.is_owner()

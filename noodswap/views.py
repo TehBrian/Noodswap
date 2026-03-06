@@ -10,8 +10,12 @@ from .cards import (
     card_dupe_display,
     get_burn_payout,
 )
-from .images import embed_image_payload
+from .images import embed_image_payload, morph_transition_image_payload
+from .fonts import font_label
+from .frames import frame_label
+from .morphs import morph_label
 from .presentation import italy_embed
+from .presentation import help_category_content, help_category_pages, help_overview_description
 from .settings import (
     BURN_CONFIRM_TIMEOUT_SECONDS,
     DROP_TIMEOUT_SECONDS,
@@ -23,10 +27,14 @@ from .settings import (
     TRADE_TIMEOUT_SECONDS,
 )
 from .storage import (
+    apply_morph_to_instance,
+    apply_font_to_instance,
+    apply_frame_to_instance,
     add_card_to_player,
     add_dough,
     burn_instance,
     consume_pull_cooldown_if_ready,
+    get_player_stats,
     execute_trade,
     get_instance_by_id,
     get_locked_tags_for_instance,
@@ -49,6 +57,62 @@ FIRST_PAGE_EMOJI = _resolve_pagination_emoji(PAGINATION_FIRST_EMOJI, "⏮️")
 PREVIOUS_PAGE_EMOJI = _resolve_pagination_emoji(PAGINATION_PREVIOUS_EMOJI, "◀️")
 NEXT_PAGE_EMOJI = _resolve_pagination_emoji(PAGINATION_NEXT_EMOJI, "▶️")
 LAST_PAGE_EMOJI = _resolve_pagination_emoji(PAGINATION_LAST_EMOJI, "⏭️")
+
+
+class HelpCategorySelect(discord.ui.Select):
+    def __init__(self, parent_view: "HelpView"):
+        self.parent_view = parent_view
+        options = [
+            discord.SelectOption(
+                label=label,
+                value=key,
+                description=f"Show {label.lower()} commands.",
+            )
+            for key, label, _description in help_category_pages()
+        ]
+        super().__init__(placeholder="Select a command category...", min_values=1, max_values=1, options=options)
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        if interaction.user.id != self.parent_view.user_id:
+            await interaction.response.send_message(
+                embed=italy_embed("Help", "Only the command user can switch help categories."),
+                ephemeral=True,
+            )
+            return
+
+        selected_key = self.values[0]
+        self.parent_view.selected_category = selected_key
+        await interaction.response.edit_message(embed=self.parent_view.build_category_embed(selected_key), view=self.parent_view)
+
+
+class HelpView(discord.ui.View):
+    def __init__(self, user_id: int):
+        super().__init__(timeout=300)
+        self.user_id = user_id
+        self.selected_category: str | None = None
+        self.message: Optional[discord.Message] = None
+        self.category_select = HelpCategorySelect(self)
+        self.add_item(self.category_select)
+
+    def build_overview_embed(self) -> discord.Embed:
+        return italy_embed("Help", help_overview_description())
+
+    def build_category_embed(self, category_key: str) -> discord.Embed:
+        page = help_category_content(category_key)
+        if page is None:
+            return italy_embed("Help", "Unknown help category.")
+        label, description = page
+        return italy_embed(f"Help: {label}", description)
+
+    async def on_timeout(self) -> None:
+        if self.message is None:
+            return
+
+        self.category_select.disabled = True
+        try:
+            await self.message.edit(view=self)
+        except discord.HTTPException:
+            pass
 
 
 class DropView(discord.ui.View):
@@ -130,7 +194,7 @@ class DropView(discord.ui.View):
                 _, _, _, pulled_dupe_code = persisted
 
             pulled_embed = italy_embed(
-                "Drop Complete",
+                "Pulled Card",
                 f"<@{interaction.user.id}> pulled {card_dupe_display(card_id, generation, dupe_code=pulled_dupe_code)}.",
             )
             image_url, image_file = embed_image_payload(card_id, generation=generation)
@@ -414,6 +478,468 @@ Payout: **{payout} dough**
             await self.message.edit(
                 content=None,
                 embed=italy_embed("Burn Expired", "Burn confirmation timed out."),
+                view=self,
+            )
+        except discord.HTTPException:
+            pass
+
+    def _disable_buttons(self) -> None:
+        for item in self.children:
+            if isinstance(item, discord.ui.Button):
+                item.disabled = True
+
+
+class MorphConfirmView(discord.ui.View):
+    def __init__(
+        self,
+        *,
+        guild_id: int,
+        user_id: int,
+        instance_id: int,
+        card_id: str,
+        generation: int,
+        dupe_code: str,
+        before_morph_key: str | None,
+        before_frame_key: str | None,
+        before_font_key: str | None,
+        after_morph_key: str,
+        after_morph_name: str,
+        cost: int,
+    ):
+        super().__init__(timeout=BURN_CONFIRM_TIMEOUT_SECONDS)
+        self.guild_id = guild_id
+        self.user_id = user_id
+        self.instance_id = instance_id
+        self.card_id = card_id
+        self.generation = generation
+        self.dupe_code = dupe_code
+        self.before_morph_key = before_morph_key
+        self.before_frame_key = before_frame_key
+        self.before_font_key = before_font_key
+        self.after_morph_key = after_morph_key
+        self.after_morph_name = after_morph_name
+        self.cost = cost
+        self.finished = False
+        self.message: Optional[discord.Message] = None
+
+    @discord.ui.button(label="Confirm Morph", style=discord.ButtonStyle.success)
+    async def confirm_button(
+        self,
+        interaction: discord.Interaction,
+        _button: discord.ui.Button,
+    ):
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message(
+                embed=italy_embed("Morph", "Only the command user can confirm this morph."),
+                ephemeral=True,
+            )
+            return
+        if self.finished:
+            await interaction.response.send_message(
+                embed=italy_embed("Morph", "This morph request is already resolved."),
+                ephemeral=True,
+            )
+            return
+
+        applied, message = apply_morph_to_instance(
+            self.guild_id,
+            self.user_id,
+            self.instance_id,
+            self.after_morph_key,
+            self.cost,
+        )
+        if not applied:
+            self.finished = True
+            self._disable_buttons()
+            await interaction.response.edit_message(view=self)
+            if interaction.message is not None:
+                await interaction.message.reply(
+                    embed=italy_embed("Morph Failed", message or "Morph failed."),
+                    mention_author=False,
+                )
+            return
+
+        self.finished = True
+        self._disable_buttons()
+        await interaction.response.edit_message(view=self)
+
+        dough_after, _, _ = get_player_stats(self.guild_id, self.user_id)
+        morph_embed = italy_embed(
+            "Morph Applied",
+            (
+                f"Applied **{self.after_morph_name}** to "
+                f"{card_dupe_display(self.card_id, self.generation, dupe_code=self.dupe_code)}.\n\n"
+                f"Before: **{morph_label(self.before_morph_key)}**\n"
+                f"After: **{self.after_morph_name}**\n\n"
+                f"Morph Cost: **{self.cost}** dough\n"
+                f"Dough Remaining: **{dough_after}**"
+            ),
+        )
+        image_url, image_file = morph_transition_image_payload(
+            self.card_id,
+            generation=self.generation,
+            before_morph_key=self.before_morph_key,
+            after_morph_key=self.after_morph_key,
+            before_frame_key=self.before_frame_key,
+            after_frame_key=self.before_frame_key,
+            before_font_key=self.before_font_key,
+            after_font_key=self.before_font_key,
+        )
+        if image_url is not None:
+            morph_embed.set_image(url=image_url)
+
+        if interaction.message is not None:
+            send_kwargs: dict[str, object] = {"embed": morph_embed, "mention_author": False}
+            if image_file is not None:
+                send_kwargs["file"] = image_file
+            await interaction.message.reply(**send_kwargs)
+
+    @discord.ui.button(label="Cancel", style=discord.ButtonStyle.secondary)
+    async def cancel_button(
+        self,
+        interaction: discord.Interaction,
+        _button: discord.ui.Button,
+    ):
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message(
+                embed=italy_embed("Morph", "Only the command user can cancel this morph."),
+                ephemeral=True,
+            )
+            return
+        if self.finished:
+            await interaction.response.send_message(
+                embed=italy_embed("Morph", "This morph request is already resolved."),
+                ephemeral=True,
+            )
+            return
+
+        self.finished = True
+        self._disable_buttons()
+        await interaction.response.edit_message(view=self)
+        if interaction.message is not None:
+            await interaction.message.reply(
+                embed=italy_embed("Morph Cancelled", "No morph was applied."),
+                mention_author=False,
+            )
+
+    async def on_timeout(self) -> None:
+        if self.finished or self.message is None:
+            return
+
+        self._disable_buttons()
+        try:
+            await self.message.edit(
+                content=None,
+                embed=italy_embed("Morph Expired", "Morph confirmation timed out."),
+                attachments=[],
+                view=self,
+            )
+        except discord.HTTPException:
+            pass
+
+    def _disable_buttons(self) -> None:
+        for item in self.children:
+            if isinstance(item, discord.ui.Button):
+                item.disabled = True
+
+
+class FrameConfirmView(discord.ui.View):
+    def __init__(
+        self,
+        *,
+        guild_id: int,
+        user_id: int,
+        instance_id: int,
+        card_id: str,
+        generation: int,
+        dupe_code: str,
+        before_morph_key: str | None,
+        before_frame_key: str | None,
+        before_font_key: str | None,
+        after_frame_key: str,
+        after_frame_name: str,
+        cost: int,
+    ):
+        super().__init__(timeout=BURN_CONFIRM_TIMEOUT_SECONDS)
+        self.guild_id = guild_id
+        self.user_id = user_id
+        self.instance_id = instance_id
+        self.card_id = card_id
+        self.generation = generation
+        self.dupe_code = dupe_code
+        self.before_morph_key = before_morph_key
+        self.before_frame_key = before_frame_key
+        self.before_font_key = before_font_key
+        self.after_frame_key = after_frame_key
+        self.after_frame_name = after_frame_name
+        self.cost = cost
+        self.finished = False
+        self.message: Optional[discord.Message] = None
+
+    @discord.ui.button(label="Confirm Frame", style=discord.ButtonStyle.success)
+    async def confirm_button(
+        self,
+        interaction: discord.Interaction,
+        _button: discord.ui.Button,
+    ):
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message(
+                embed=italy_embed("Frame", "Only the command user can confirm this frame."),
+                ephemeral=True,
+            )
+            return
+        if self.finished:
+            await interaction.response.send_message(
+                embed=italy_embed("Frame", "This frame request is already resolved."),
+                ephemeral=True,
+            )
+            return
+
+        applied, message = apply_frame_to_instance(
+            self.guild_id,
+            self.user_id,
+            self.instance_id,
+            self.after_frame_key,
+            self.cost,
+        )
+        if not applied:
+            self.finished = True
+            self._disable_buttons()
+            await interaction.response.edit_message(view=self)
+            if interaction.message is not None:
+                await interaction.message.reply(
+                    embed=italy_embed("Frame Failed", message or "Frame failed."),
+                    mention_author=False,
+                )
+            return
+
+        self.finished = True
+        self._disable_buttons()
+        await interaction.response.edit_message(view=self)
+
+        dough_after, _, _ = get_player_stats(self.guild_id, self.user_id)
+        frame_embed = italy_embed(
+            "Frame Applied",
+            (
+                f"Applied **{self.after_frame_name}** to "
+                f"{card_dupe_display(self.card_id, self.generation, dupe_code=self.dupe_code)}.\n\n"
+                f"Before: **{frame_label(self.before_frame_key)}**\n"
+                f"After: **{self.after_frame_name}**\n\n"
+                f"Frame Cost: **{self.cost}** dough\n"
+                f"Dough Remaining: **{dough_after}**"
+            ),
+        )
+        image_url, image_file = morph_transition_image_payload(
+            self.card_id,
+            generation=self.generation,
+            before_morph_key=self.before_morph_key,
+            after_morph_key=self.before_morph_key,
+            before_frame_key=self.before_frame_key,
+            after_frame_key=self.after_frame_key,
+            before_font_key=self.before_font_key,
+            after_font_key=self.before_font_key,
+        )
+        if image_url is not None:
+            frame_embed.set_image(url=image_url)
+
+        if interaction.message is not None:
+            send_kwargs: dict[str, object] = {"embed": frame_embed, "mention_author": False}
+            if image_file is not None:
+                send_kwargs["file"] = image_file
+            await interaction.message.reply(**send_kwargs)
+
+    @discord.ui.button(label="Cancel", style=discord.ButtonStyle.secondary)
+    async def cancel_button(
+        self,
+        interaction: discord.Interaction,
+        _button: discord.ui.Button,
+    ):
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message(
+                embed=italy_embed("Frame", "Only the command user can cancel this frame."),
+                ephemeral=True,
+            )
+            return
+        if self.finished:
+            await interaction.response.send_message(
+                embed=italy_embed("Frame", "This frame request is already resolved."),
+                ephemeral=True,
+            )
+            return
+
+        self.finished = True
+        self._disable_buttons()
+        await interaction.response.edit_message(view=self)
+        if interaction.message is not None:
+            await interaction.message.reply(
+                embed=italy_embed("Frame Cancelled", "No frame was applied."),
+                mention_author=False,
+            )
+
+    async def on_timeout(self) -> None:
+        if self.finished or self.message is None:
+            return
+
+        self._disable_buttons()
+        try:
+            await self.message.edit(
+                content=None,
+                embed=italy_embed("Frame Expired", "Frame confirmation timed out."),
+                attachments=[],
+                view=self,
+            )
+        except discord.HTTPException:
+            pass
+
+    def _disable_buttons(self) -> None:
+        for item in self.children:
+            if isinstance(item, discord.ui.Button):
+                item.disabled = True
+
+
+class FontConfirmView(discord.ui.View):
+    def __init__(
+        self,
+        *,
+        guild_id: int,
+        user_id: int,
+        instance_id: int,
+        card_id: str,
+        generation: int,
+        dupe_code: str,
+        before_morph_key: str | None,
+        before_frame_key: str | None,
+        before_font_key: str | None,
+        after_font_key: str,
+        after_font_name: str,
+        cost: int,
+    ):
+        super().__init__(timeout=BURN_CONFIRM_TIMEOUT_SECONDS)
+        self.guild_id = guild_id
+        self.user_id = user_id
+        self.instance_id = instance_id
+        self.card_id = card_id
+        self.generation = generation
+        self.dupe_code = dupe_code
+        self.before_morph_key = before_morph_key
+        self.before_frame_key = before_frame_key
+        self.before_font_key = before_font_key
+        self.after_font_key = after_font_key
+        self.after_font_name = after_font_name
+        self.cost = cost
+        self.finished = False
+        self.message: Optional[discord.Message] = None
+
+    @discord.ui.button(label="Confirm Font", style=discord.ButtonStyle.success)
+    async def confirm_button(
+        self,
+        interaction: discord.Interaction,
+        _button: discord.ui.Button,
+    ):
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message(
+                embed=italy_embed("Font", "Only the command user can confirm this font."),
+                ephemeral=True,
+            )
+            return
+        if self.finished:
+            await interaction.response.send_message(
+                embed=italy_embed("Font", "This font request is already resolved."),
+                ephemeral=True,
+            )
+            return
+
+        applied, message = apply_font_to_instance(
+            self.guild_id,
+            self.user_id,
+            self.instance_id,
+            self.after_font_key,
+            self.cost,
+        )
+        if not applied:
+            self.finished = True
+            self._disable_buttons()
+            await interaction.response.edit_message(view=self)
+            if interaction.message is not None:
+                await interaction.message.reply(
+                    embed=italy_embed("Font Failed", message or "Font failed."),
+                    mention_author=False,
+                )
+            return
+
+        self.finished = True
+        self._disable_buttons()
+        await interaction.response.edit_message(view=self)
+
+        dough_after, _, _ = get_player_stats(self.guild_id, self.user_id)
+        font_embed = italy_embed(
+            "Font Applied",
+            (
+                f"Applied **{self.after_font_name}** to "
+                f"{card_dupe_display(self.card_id, self.generation, dupe_code=self.dupe_code)}.\n\n"
+                f"Before: **{font_label(self.before_font_key)}**\n"
+                f"After: **{self.after_font_name}**\n\n"
+                f"Font Cost: **{self.cost}** dough\n"
+                f"Dough Remaining: **{dough_after}**"
+            ),
+        )
+        image_url, image_file = morph_transition_image_payload(
+            self.card_id,
+            generation=self.generation,
+            before_morph_key=self.before_morph_key,
+            after_morph_key=self.before_morph_key,
+            before_frame_key=self.before_frame_key,
+            after_frame_key=self.before_frame_key,
+            before_font_key=self.before_font_key,
+            after_font_key=self.after_font_key,
+        )
+        if image_url is not None:
+            font_embed.set_image(url=image_url)
+
+        if interaction.message is not None:
+            send_kwargs: dict[str, object] = {"embed": font_embed, "mention_author": False}
+            if image_file is not None:
+                send_kwargs["file"] = image_file
+            await interaction.message.reply(**send_kwargs)
+
+    @discord.ui.button(label="Cancel", style=discord.ButtonStyle.secondary)
+    async def cancel_button(
+        self,
+        interaction: discord.Interaction,
+        _button: discord.ui.Button,
+    ):
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message(
+                embed=italy_embed("Font", "Only the command user can cancel this font."),
+                ephemeral=True,
+            )
+            return
+        if self.finished:
+            await interaction.response.send_message(
+                embed=italy_embed("Font", "This font request is already resolved."),
+                ephemeral=True,
+            )
+            return
+
+        self.finished = True
+        self._disable_buttons()
+        await interaction.response.edit_message(view=self)
+        if interaction.message is not None:
+            await interaction.message.reply(
+                embed=italy_embed("Font Cancelled", "No font was applied."),
+                mention_author=False,
+            )
+
+    async def on_timeout(self) -> None:
+        if self.finished or self.message is None:
+            return
+
+        self._disable_buttons()
+        try:
+            await self.message.edit(
+                content=None,
+                embed=italy_embed("Font Expired", "Font confirmation timed out."),
+                attachments=[],
                 view=self,
             )
         except discord.HTTPException:
@@ -957,6 +1483,7 @@ class SortableCollectionView(discord.ui.View):
         title: str,
         instances: list[tuple[int, str, int, str]],
         wish_counts: dict[str, int] | None,
+        instance_styles: dict[int, tuple[str | None, str | None, str | None]] | None,
         guard_title: str,
         page_size: int = 10,
     ):
@@ -965,6 +1492,7 @@ class SortableCollectionView(discord.ui.View):
         self.title = title
         self.instances = instances
         self.wish_counts = wish_counts or {}
+        self.instance_styles = instance_styles or {}
         self.guard_title = guard_title
         self.default_page_size = max(1, page_size)
         self.page_index = 0
@@ -1099,8 +1627,15 @@ class SortableCollectionView(discord.ui.View):
 
         embed = italy_embed(self.title, description)
         if self.gallery_mode and page_instances:
-            _, card_id, generation, _dupe_code = page_instances[0]
-            image_url, image_file = embed_image_payload(card_id, generation=generation)
+            instance_id, card_id, generation, _dupe_code = page_instances[0]
+            morph_key, frame_key, font_key = self.instance_styles.get(instance_id, (None, None, None))
+            image_url, image_file = embed_image_payload(
+                card_id,
+                generation=generation,
+                morph_key=morph_key,
+                frame_key=frame_key,
+                font_key=font_key,
+            )
             if image_url is not None:
                 embed.set_image(url=image_url)
 

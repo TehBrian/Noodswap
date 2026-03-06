@@ -42,6 +42,8 @@ Columns:
 - `generation INTEGER NOT NULL`
 - `dupe_code TEXT` (base36 dupe identifier, globally unique)
 - `morph_key TEXT` (optional per-instance visual modifier)
+- `frame_key TEXT` (optional per-instance frame modifier)
+- `font_key TEXT` (optional per-instance font modifier)
 
 Purpose:
 - Tracks each owned copy as a distinct instance
@@ -148,6 +150,12 @@ Current migration set:
 - `v8`:
 	- Adds `player_tags` for per-player tag collections and lock state.
 	- Adds `card_instance_tags` for per-instance tag assignment.
+- `v9`:
+	- Adds `card_instances.frame_key` to persist per-instance visual frame state.
+- `v10`:
+	- Adds `card_instances.font_key` to persist per-instance visual font state.
+- `v11`:
+	- Normalizes legacy `card_instances.font_key = 'classic'` records to `NULL` because `Classic` is now the default non-modifier style.
 
 Notes:
 - Startup migration is in-code (`noodswap/migrations.py`) and invoked by `storage.init_db()` using incremental version checks.

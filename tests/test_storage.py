@@ -33,6 +33,8 @@ class StorageTests(unittest.TestCase):
             instance_columns = conn.execute("PRAGMA table_info(card_instances)").fetchall()
             instance_column_names = {str(column[1]) for column in instance_columns}
             self.assertIn("morph_key", instance_column_names)
+            self.assertIn("frame_key", instance_column_names)
+            self.assertIn("font_key", instance_column_names)
 
             wishlist_row = conn.execute(
                 "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'wishlist_cards'"
@@ -536,6 +538,86 @@ class StorageTests(unittest.TestCase):
         self.assertFalse(applied)
         self.assertEqual(message, "You do not have enough dough.")
         self.assertIsNone(storage.get_instance_morph(guild_id, instance_id))
+
+    def test_apply_frame_to_instance_persists_and_charges_dough(self) -> None:
+        guild_id = 1
+        user_id = 942
+
+        storage.init_db()
+        instance_id = storage.add_card_to_player(guild_id, user_id, "SPG", 123)
+        storage.add_dough(guild_id, user_id, 50)
+
+        applied, message = storage.apply_frame_to_instance(
+            guild_id,
+            user_id,
+            instance_id,
+            "buttery",
+            9,
+        )
+        self.assertTrue(applied)
+        self.assertEqual(message, "")
+        self.assertEqual(storage.get_instance_frame(guild_id, instance_id), "buttery")
+
+        dough, _, _ = storage.get_player_stats(guild_id, user_id)
+        self.assertEqual(dough, 41)
+
+    def test_apply_frame_to_instance_rejects_insufficient_dough(self) -> None:
+        guild_id = 1
+        user_id = 943
+
+        storage.init_db()
+        instance_id = storage.add_card_to_player(guild_id, user_id, "SPG", 123)
+
+        applied, message = storage.apply_frame_to_instance(
+            guild_id,
+            user_id,
+            instance_id,
+            "buttery",
+            99,
+        )
+        self.assertFalse(applied)
+        self.assertEqual(message, "You do not have enough dough.")
+        self.assertIsNone(storage.get_instance_frame(guild_id, instance_id))
+
+    def test_apply_font_to_instance_persists_and_charges_dough(self) -> None:
+        guild_id = 1
+        user_id = 944
+
+        storage.init_db()
+        instance_id = storage.add_card_to_player(guild_id, user_id, "SPG", 123)
+        storage.add_dough(guild_id, user_id, 50)
+
+        applied, message = storage.apply_font_to_instance(
+            guild_id,
+            user_id,
+            instance_id,
+            "serif",
+            9,
+        )
+        self.assertTrue(applied)
+        self.assertEqual(message, "")
+        self.assertEqual(storage.get_instance_font(guild_id, instance_id), "serif")
+
+        dough, _, _ = storage.get_player_stats(guild_id, user_id)
+        self.assertEqual(dough, 41)
+
+    def test_apply_font_to_instance_rejects_insufficient_dough(self) -> None:
+        guild_id = 1
+        user_id = 945
+
+        storage.init_db()
+        instance_id = storage.add_card_to_player(guild_id, user_id, "SPG", 123)
+
+        applied, message = storage.apply_font_to_instance(
+            guild_id,
+            user_id,
+            instance_id,
+            "mono",
+            99,
+        )
+        self.assertFalse(applied)
+        self.assertEqual(message, "You do not have enough dough.")
+        self.assertIsNone(storage.get_instance_font(guild_id, instance_id))
 
     def test_wishlist_is_global_across_guilds(self) -> None:
         user_id = 930

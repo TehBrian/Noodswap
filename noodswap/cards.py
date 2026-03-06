@@ -18,6 +18,7 @@ class CardData(TypedDict):
 
 CARD_CATALOG: dict[str, CardData] = {
     "BGL": {"name": "Bagel", "series": "bread", "rarity": "common", "base_value": 11},
+    "EBG": {"name": "Everything Bagel", "series": "bread", "rarity": "common", "base_value": 12},
     "BAG": {"name": "Baguette", "series": "bread", "rarity": "common", "base_value": 9},
     "BOL": {"name": "Bolillo", "series": "bread", "rarity": "common", "base_value": 10},
     "BRI2": {"name": "Brioche", "series": "bread", "rarity": "common", "base_value": 11},
@@ -243,6 +244,18 @@ CARD_CATALOG: dict[str, CardData] = {
     "MCB": {"name": "Metodo Classico Brut", "series": "wine", "rarity": "epic", "base_value": 47},
     "EMV": {"name": "Emperor's Vineyard", "series": "wine", "rarity": "celestial", "base_value": 240},
     "EXB": {"name": "Exotic Butters", "series": "dessert", "rarity": "celestial", "base_value": 241},
+    "ATL": {"name": "Atlas Cedar Honey", "series": "relic", "rarity": "mythic", "base_value": 232},
+    "QSM": {"name": "Qeshm Moon Salt", "series": "relic", "rarity": "mythic", "base_value": 233},
+    "SBR": {"name": "Siberian Pine Resin", "series": "relic", "rarity": "mythic", "base_value": 234},
+    "YJA": {"name": "Yuja Amber Preserve", "series": "relic", "rarity": "mythic", "base_value": 235},
+    "BLM": {"name": "Blue Lotus of the Nile", "series": "relic", "rarity": "divine", "base_value": 236},
+    "KUM": {"name": "Kumano Sacred Umeshu", "series": "relic", "rarity": "divine", "base_value": 237},
+    "MFR": {"name": "Maya Fire Cacao", "series": "relic", "rarity": "divine", "base_value": 238},
+    "ZRC": {"name": "Zanzibar Royal Clove", "series": "relic", "rarity": "divine", "base_value": 239},
+    "AER": {"name": "Aether Truffle Relic", "series": "relic", "rarity": "celestial", "base_value": 242},
+    "JDS": {"name": "Jade Starfruit of Java", "series": "relic", "rarity": "celestial", "base_value": 243},
+    "LZR": {"name": "Lazarus Saffron Crown", "series": "relic", "rarity": "celestial", "base_value": 244},
+    "ORB": {"name": "Orb of Seven Orchards", "series": "relic", "rarity": "celestial", "base_value": 245},
 }
 
 

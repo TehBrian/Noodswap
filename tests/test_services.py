@@ -122,24 +122,47 @@ class ServicesTests(unittest.TestCase):
             "That card is protected by locked tag(s): `safe`.",
         )
 
-    def test_execute_morph_applies_black_and_white_and_charges_dough(self) -> None:
+    def test_prepare_morph_returns_preview_without_applying(self) -> None:
         guild_id = 1
         user_id = 24
         storage.add_dough(guild_id, user_id, 200)
         instance_id = storage.add_card_to_player(guild_id, user_id, "SPG", 333)
 
         with patch("noodswap.services.random.choice", return_value="black_and_white"):
-            result = services.execute_morph(guild_id=guild_id, user_id=user_id, card_code=None)
+            result = services.prepare_morph(guild_id=guild_id, user_id=user_id, card_code=None)
 
         self.assertFalse(result.is_error)
         self.assertEqual(result.instance_id, instance_id)
         self.assertEqual(result.card_id, "SPG")
         self.assertEqual(result.morph_key, "black_and_white")
         self.assertIsNotNone(result.cost)
+        self.assertEqual(storage.get_instance_morph(guild_id, instance_id), None)
+
+    def test_confirm_morph_applies_black_and_white_and_charges_dough(self) -> None:
+        guild_id = 1
+        user_id = 240
+        storage.add_dough(guild_id, user_id, 200)
+        instance_id = storage.add_card_to_player(guild_id, user_id, "SPG", 333)
+
+        result = services.confirm_morph(
+            guild_id,
+            user_id,
+            instance_id=instance_id,
+            card_id="SPG",
+            generation=333,
+            dupe_code="0",
+            morph_key="black_and_white",
+            morph_name="Black and White",
+            cost=1,
+        )
+
+        self.assertFalse(result.is_error)
+        self.assertEqual(result.instance_id, instance_id)
+        self.assertEqual(result.morph_key, "black_and_white")
         self.assertIsNotNone(result.remaining_dough)
         self.assertEqual(storage.get_instance_morph(guild_id, instance_id), "black_and_white")
 
-    def test_execute_morph_rejects_duplicate_morph(self) -> None:
+    def test_prepare_morph_rejects_duplicate_morph(self) -> None:
         guild_id = 1
         user_id = 25
         storage.add_dough(guild_id, user_id, 200)
@@ -147,10 +170,116 @@ class ServicesTests(unittest.TestCase):
         storage.apply_morph_to_instance(guild_id, user_id, instance_id, "black_and_white", 1)
 
         with patch("noodswap.services.random.choice", return_value="black_and_white"):
-            result = services.execute_morph(guild_id=guild_id, user_id=user_id, card_code=None)
+            result = services.prepare_morph(guild_id=guild_id, user_id=user_id, card_code=None)
 
         self.assertTrue(result.is_error)
         self.assertEqual(result.error_message, "That card already has the Black and White morph.")
+
+    def test_prepare_frame_returns_preview_without_applying(self) -> None:
+        guild_id = 1
+        user_id = 26
+        storage.add_dough(guild_id, user_id, 200)
+        instance_id = storage.add_card_to_player(guild_id, user_id, "SPG", 333)
+
+        with patch("noodswap.services.random.choice", return_value="buttery"):
+            result = services.prepare_frame(guild_id=guild_id, user_id=user_id, card_code=None)
+
+        self.assertFalse(result.is_error)
+        self.assertEqual(result.instance_id, instance_id)
+        self.assertEqual(result.card_id, "SPG")
+        self.assertEqual(result.frame_key, "buttery")
+        self.assertIsNotNone(result.cost)
+        self.assertEqual(storage.get_instance_frame(guild_id, instance_id), None)
+
+    def test_confirm_frame_applies_buttery_and_charges_dough(self) -> None:
+        guild_id = 1
+        user_id = 260
+        storage.add_dough(guild_id, user_id, 200)
+        instance_id = storage.add_card_to_player(guild_id, user_id, "SPG", 333)
+
+        result = services.confirm_frame(
+            guild_id,
+            user_id,
+            instance_id=instance_id,
+            card_id="SPG",
+            generation=333,
+            dupe_code="0",
+            frame_key="buttery",
+            frame_name="Buttery",
+            cost=1,
+        )
+
+        self.assertFalse(result.is_error)
+        self.assertEqual(result.instance_id, instance_id)
+        self.assertEqual(result.frame_key, "buttery")
+        self.assertIsNotNone(result.remaining_dough)
+        self.assertEqual(storage.get_instance_frame(guild_id, instance_id), "buttery")
+
+    def test_prepare_frame_rejects_duplicate_frame(self) -> None:
+        guild_id = 1
+        user_id = 27
+        storage.add_dough(guild_id, user_id, 200)
+        instance_id = storage.add_card_to_player(guild_id, user_id, "SPG", 333)
+        storage.apply_frame_to_instance(guild_id, user_id, instance_id, "buttery", 1)
+
+        with patch("noodswap.services.random.choice", return_value="buttery"):
+            result = services.prepare_frame(guild_id=guild_id, user_id=user_id, card_code=None)
+
+        self.assertTrue(result.is_error)
+        self.assertEqual(result.error_message, "That card already has the Buttery frame.")
+
+    def test_prepare_font_returns_preview_without_applying(self) -> None:
+        guild_id = 1
+        user_id = 28
+        storage.add_dough(guild_id, user_id, 200)
+        instance_id = storage.add_card_to_player(guild_id, user_id, "SPG", 333)
+
+        with patch("noodswap.services.random.choice", return_value="serif"):
+            result = services.prepare_font(guild_id=guild_id, user_id=user_id, card_code=None)
+
+        self.assertFalse(result.is_error)
+        self.assertEqual(result.instance_id, instance_id)
+        self.assertEqual(result.card_id, "SPG")
+        self.assertEqual(result.font_key, "serif")
+        self.assertIsNotNone(result.cost)
+        self.assertEqual(storage.get_instance_font(guild_id, instance_id), None)
+
+    def test_confirm_font_applies_serif_and_charges_dough(self) -> None:
+        guild_id = 1
+        user_id = 280
+        storage.add_dough(guild_id, user_id, 200)
+        instance_id = storage.add_card_to_player(guild_id, user_id, "SPG", 333)
+
+        result = services.confirm_font(
+            guild_id,
+            user_id,
+            instance_id=instance_id,
+            card_id="SPG",
+            generation=333,
+            dupe_code="0",
+            font_key="serif",
+            font_name="Serif",
+            cost=1,
+        )
+
+        self.assertFalse(result.is_error)
+        self.assertEqual(result.instance_id, instance_id)
+        self.assertEqual(result.font_key, "serif")
+        self.assertIsNotNone(result.remaining_dough)
+        self.assertEqual(storage.get_instance_font(guild_id, instance_id), "serif")
+
+    def test_prepare_font_rejects_duplicate_font(self) -> None:
+        guild_id = 1
+        user_id = 29
+        storage.add_dough(guild_id, user_id, 200)
+        instance_id = storage.add_card_to_player(guild_id, user_id, "SPG", 333)
+        storage.apply_font_to_instance(guild_id, user_id, instance_id, "serif", 1)
+
+        with patch("noodswap.services.random.choice", return_value="serif"):
+            result = services.prepare_font(guild_id=guild_id, user_id=user_id, card_code=None)
+
+        self.assertTrue(result.is_error)
+        self.assertEqual(result.error_message, "That card already has the Serif font.")
 
     def test_execute_marry_errors_without_last_pulled(self) -> None:
         result = services.execute_marry(guild_id=1, user_id=30, card_code=None)

@@ -17,6 +17,8 @@ This document defines behavior and presentation for commands and interaction flo
 - `cooldown [player]` / `cd [player]`
 - `burn [card_code]` / `b [card_code]`
 - `morph [card_code]` / `mo [card_code]`
+- `frame [card_code]` / `fr [card_code]`
+- `font [card_code]` / `fo [card_code]`
 - `trade <player> <card_code> <amount>` / `t ...`
 - `wish` / `w`
 - `wish add <card_id>` / `wish a <card_id>` / `w add <card_id>` / `w a <card_id>` / `wa <card_id>`
@@ -25,6 +27,14 @@ This document defines behavior and presentation for commands and interaction flo
 - `marry [card_code]` / `m [card_code]`
 - `divorce` / `dv`
 - owner-only: `dbexport`, `dbreset`
+
+## Help UX
+
+- `help` / `h` opens a brief bot overview embed instead of a full command dump
+- Help embed includes a category dropdown for command pages
+- Categories are: `Overview`, `Economy`, `Cosmetics`, `Wishlist`, `Tags`, `Relationship`, `Owner-only`
+- Selecting a category edits the same message to show that category's commands
+- Help dropdown interactions are restricted to the command invoker
 
 ## Embed style contract
 
@@ -45,7 +55,15 @@ This includes:
 
 - Wherever a card image is shown (single-card embeds and drop previews), render through the shared card-image pipeline in `noodswap/images.py`.
 - Per-instance morph state (`card_instances.morph_key`) must be applied when rendering owned-instance images.
+- Per-instance frame state (`card_instances.frame_key`) must be applied when rendering owned-instance images.
+- Per-instance font state (`card_instances.font_key`) must be applied when rendering owned-instance images.
 - Initial morph behavior: `black_and_white` converts card art to grayscale while preserving existing overlay text and rarity border treatment.
+- Supported frame keys are `buttery`, `gilded`, and `drizzled`.
+- All three frame overlays are currently bundled.
+- `gilded` and `drizzled` are temporary placeholders until distinct overlay art is added.
+- `Classic` is the default baseline style and is not a cosmetic modifier.
+- Initial selectable font set includes `serif`, `mono`, `storybook`, `spooky`, `pixel`, and `playful`.
+- Frame overlays are loaded from `assets/frame_overlays/<frame_key>.png` (or `.webp`) and composited over the rendered card.
 - Rendered card frame is normalized to a portrait `2.5:3.5` aspect ratio (`5:7`).
 - Cards use a rounded outer frame and rounded inner art window.
 - Border color is rarity-driven:
@@ -104,7 +122,30 @@ Burn result format should remain:
 - morph selection is random from available morphs
 - morph cost is `20%` of the target card's computed value (`card_value`), rounded up to the nearest whole dough
 - if a card already has the rolled morph, the command returns an error and does not charge dough
-- successful morph responses display the morphed card image and show cost + remaining dough
+- morph now uses a confirmation step: initial response shows `before -> after` preview and cost, and only `Confirm Morph` applies the change
+- successful morph confirmations display the same `before -> after` image and show cost + remaining dough
+
+## Frame UX
+
+- `frame` with no argument targets the player's most recently pulled card instance
+- `frame <card_code>` targets that exact owned dupe code
+- card code format is standalone base36 with optional leading `#` (examples: `0`, `a`, `10`, `#10`)
+- frame selection is random from available frames
+- frame cost is `20%` of the target card's computed value (`card_value`), rounded up to the nearest whole dough
+- if a card already has the rolled frame, the command returns an error and does not charge dough
+- frame uses a confirmation step: initial response shows `before -> after` preview and cost, and only `Confirm Frame` applies the change
+- successful frame confirmations display the same `before -> after` image and show cost + remaining dough
+
+## Font UX
+
+- `font` with no argument targets the player's most recently pulled card instance
+- `font <card_code>` targets that exact owned dupe code
+- card code format is standalone base36 with optional leading `#` (examples: `0`, `a`, `10`, `#10`)
+- font selection is random from available fonts
+- font cost is `20%` of the target card's computed value (`card_value`), rounded up to the nearest whole dough
+- if a card already has the rolled font, the command returns an error and does not charge dough
+- font uses a confirmation step: initial response shows `before -> after` preview and cost, and only `Confirm Font` applies the change
+- successful font confirmations display the same `before -> after` image and show cost + remaining dough
 
 Card identity terms:
 

@@ -717,3 +717,65 @@ class CardInstanceRepository:
         except sqlite3.OperationalError:
             return False
         return int(cursor.rowcount) > 0
+
+    def get_frame_key(self, guild_id: int, instance_id: int) -> Optional[str]:
+        try:
+            row = self.conn.execute(
+                """
+                SELECT frame_key
+                FROM card_instances
+                WHERE guild_id = ? AND instance_id = ?
+                """,
+                (guild_id, instance_id),
+            ).fetchone()
+        except sqlite3.OperationalError:
+            return None
+        if row is None:
+            return None
+        frame_key = row["frame_key"]
+        return str(frame_key) if frame_key is not None else None
+
+    def set_frame_key(self, guild_id: int, user_id: int, instance_id: int, frame_key: Optional[str]) -> bool:
+        try:
+            cursor = self.conn.execute(
+                """
+                UPDATE card_instances
+                SET frame_key = ?
+                WHERE guild_id = ? AND user_id = ? AND instance_id = ?
+                """,
+                (frame_key, guild_id, user_id, instance_id),
+            )
+        except sqlite3.OperationalError:
+            return False
+        return int(cursor.rowcount) > 0
+
+    def get_font_key(self, guild_id: int, instance_id: int) -> Optional[str]:
+        try:
+            row = self.conn.execute(
+                """
+                SELECT font_key
+                FROM card_instances
+                WHERE guild_id = ? AND instance_id = ?
+                """,
+                (guild_id, instance_id),
+            ).fetchone()
+        except sqlite3.OperationalError:
+            return None
+        if row is None:
+            return None
+        font_key = row["font_key"]
+        return str(font_key) if font_key is not None else None
+
+    def set_font_key(self, guild_id: int, user_id: int, instance_id: int, font_key: Optional[str]) -> bool:
+        try:
+            cursor = self.conn.execute(
+                """
+                UPDATE card_instances
+                SET font_key = ?
+                WHERE guild_id = ? AND user_id = ? AND instance_id = ?
+                """,
+                (font_key, guild_id, user_id, instance_id),
+            )
+        except sqlite3.OperationalError:
+            return False
+        return int(cursor.rowcount) > 0
