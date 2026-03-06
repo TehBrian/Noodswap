@@ -10,6 +10,7 @@ from noodswap.views import (
     HelpView,
     MorphConfirmView,
     PaginatedLinesView,
+    PlayerLeaderboardView,
     SortableCardListView,
     SortableCollectionView,
     TradeView,
@@ -70,6 +71,48 @@ class _FakeMessage:
 
 
 class ViewTests(unittest.IsolatedAsyncioTestCase):
+    async def test_player_leaderboard_view_ranks_by_selected_criteria(self) -> None:
+        view = PlayerLeaderboardView(
+            user_id=10,
+            title="Leaderboard",
+            entries=[
+                (1, 3, 8, 12, 2, 120),
+                (2, 9, 1, 30, 1, 300),
+                (3, 1, 5, 100, 0, 20),
+            ],
+            guard_title="Leaderboard",
+            page_size=10,
+        )
+
+        cards_embed = view.build_embed()
+        self.assertIn("<@2>", cards_embed.description)
+        self.assertIn("Cards: **9**", cards_embed.description)
+
+        interaction = _FakeInteraction(user_id=10)
+        view.criteria_select._values = ["wishes"]
+        await view.criteria_select.callback(interaction)
+
+        edited_embed = interaction.response.edited_messages[0]["embed"]
+        self.assertIn("<@1>", edited_embed.description)
+        self.assertIn("Wishes: **8**", edited_embed.description)
+
+    async def test_player_leaderboard_view_rejects_unauthorized_user(self) -> None:
+        view = PlayerLeaderboardView(
+            user_id=10,
+            title="Leaderboard",
+            entries=[(1, 3, 2, 10, 1, 50)],
+            guard_title="Leaderboard",
+        )
+
+        interaction = _FakeInteraction(user_id=99)
+        view.criteria_select._values = ["dough"]
+        await view.criteria_select.callback(interaction)
+
+        self.assertEqual(len(interaction.response.sent_messages), 1)
+        sent = interaction.response.sent_messages[0]
+        self.assertTrue(sent.get("ephemeral"))
+        self.assertIn("Only the command user", sent["embed"].description)
+
     async def test_help_view_shows_overview_by_default(self) -> None:
         view = HelpView(user_id=10)
         embed = view.build_overview_embed()
@@ -864,6 +907,33 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         edited_embed = interaction.response.edited_messages[0]["embed"]
         self.assertIn("Black Truffle Ravioli", edited_embed.description)
         self.assertIn("Sort: Wishes", edited_embed.footer.text)
+
+    async def test_sortable_collection_view_actual_value_sort_prioritizes_computed_value(self) -> None:
+        instances = [
+            (1, "SPG", 2000, "0"),
+            (2, "SPG", 1, "1"),
+            (3, "SPG", 1500, "2"),
+        ]
+        view = SortableCollectionView(
+            user_id=10,
+            title="Caller's Collection",
+            instances=instances,
+            wish_counts={"SPG": 2},
+            instance_styles={},
+            guard_title="Collection",
+            page_size=1,
+        )
+
+        interaction = _FakeInteraction(user_id=10)
+        view.sort_select._values = ["actual_value"]
+        await view.sort_select.callback(interaction)
+
+        self.assertEqual(view.sort_mode, "actual_value")
+        self.assertEqual(view._sorted_instances[0][0], 2)
+        self.assertEqual(view._sorted_instances[1][0], 3)
+        self.assertEqual(view._sorted_instances[2][0], 1)
+        edited_embed = interaction.response.edited_messages[0]["embed"]
+        self.assertIn("Sort: Actual Value", edited_embed.footer.text)
 
     async def test_sortable_collection_view_gallery_toggle(self) -> None:
         instances = [

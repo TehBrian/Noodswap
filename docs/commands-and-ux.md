@@ -9,11 +9,14 @@ This document defines behavior and presentation for commands and interaction flo
 ## Command list
 
 - `info [player]` / `i [player]`
+- `leaderboard` / `le`
 - `collection [player]` / `c [player]`
 - `cards` / `ca`
 - `lookup <card_id|card_code|query>` / `l <card_id|card_code|query>`
+- `lookuphd <card_id|card_code|query>` / `lhd <card_id|card_code|query>`
 - `help` / `h`
 - `drop` / `d`
+- `vote` / `v`
 - `cooldown [player]` / `cd [player]`
 - `burn [card_code]` / `b [card_code]`
 - `morph [card_code]` / `mo [card_code]`
@@ -57,7 +60,8 @@ This includes:
 - Per-instance morph state (`card_instances.morph_key`) must be applied when rendering owned-instance images.
 - Per-instance frame state (`card_instances.frame_key`) must be applied when rendering owned-instance images.
 - Per-instance font state (`card_instances.font_key`) must be applied when rendering owned-instance images.
-- Initial morph behavior: `black_and_white` converts card art to grayscale while preserving existing overlay text and rarity border treatment.
+- Current morph set includes `black_and_white`, `inverse`, `tint_rose`, `tint_aqua`, `tint_lime`, `tint_warm`, `tint_cool`, `tint_violet`, and `upside_down`.
+- Tint morphs blend the card art toward a target color, while `upside_down` rotates the rendered card art by 180 degrees.
 - Supported frame keys are `buttery`, `gilded`, and `drizzled`.
 - All three frame overlays are currently bundled.
 - `gilded` and `drizzled` are temporary placeholders until distinct overlay art is added.
@@ -65,6 +69,9 @@ This includes:
 - Initial selectable font set includes `serif`, `mono`, `storybook`, `spooky`, `pixel`, and `playful`.
 - Frame overlays are loaded from `assets/frame_overlays/<frame_key>.png` (or `.webp`) and composited over the rendered card.
 - Rendered card frame is normalized to a portrait `2.5:3.5` aspect ratio (`5:7`).
+- Default rendered card canvas is `350x490` (`5:7`) for lower processing cost.
+- `lookuphd` renders at `1000x1400` (`5:7`) for high-detail output on demand.
+- The in-canvas card body is rendered at `5:7` to match standard trading-card proportions while preserving frame margin.
 - Cards use a rounded outer frame and rounded inner art window.
 - Border color is rarity-driven:
   - `common`: brown
@@ -205,17 +212,36 @@ Card identity terms:
 Shows:
 - total cards
 - dough
+- starter
 - total wishes
 - married card instance display
 - if married, show the married card image
 - Optional player argument supports mention (e.g. `@Friend`) or exact username
 
+## Leaderboard UX
+
+- `leaderboard` / `le` shows a paginated leaderboard of players
+- Includes criteria dropdown options: `Cards`, `Wishes`, `Dough`, `Starter`, `Collection Value`
+- Each leaderboard row shows the selected criterion value for the ranked player
+- Footer format: `Page X/Y • Ranked by <Criterion>`
+- Leaderboard interactions are restricted to the command invoker
+
 ## Cooldown UX
 
-- `cooldown [player]` / `cd [player]` shows both drop and pull cooldown status for yourself or another player
+- `cooldown [player]` / `cd [player]` shows drop, pull, and vote cooldown status for yourself or another player
 - Drop cooldown is 6 minutes and applies to `ns drop`
 - Pull cooldown is 4 minutes and applies to claiming cards from drops
+- Vote cooldown is 24 hours and applies to claiming top.gg vote rewards
 - Embed title format is `{Player}'s Cooldowns`
+
+## Vote UX
+
+- `vote` / `v` sends an embed with top.gg voting info and a link button
+- if top.gg API v1 verification is configured, running `vote` after voting attempts to claim `starter` immediately
+- successful claim grants `starter` and sets the vote cooldown
+- if no recent vote is detected by top.gg, command should instruct user to vote and retry
+- if top.gg API config is missing (`TOPGG_API_TOKEN`), command still sends vote link plus setup hint
+- `TOPGG_BOT_ID` is optional and only used as a vote-link fallback
 
 ## Marriage UX
 
@@ -230,9 +256,15 @@ Shows:
 - Render one line per owned card instance (no grouping)
 - Keep duplicate copies visible as separate entries
 - Include each dupe's `Code` (e.g. `0`, `a`, `10`, `#10`)
-- Includes a sort dropdown with modes: `Wishes`, `Rarity`, `Series`, `Base Value`, `Alphabetical`
+- Includes a sort dropdown with modes: `Wishes`, `Rarity`, `Series`, `Base Value`, `Actual Value`, `Alphabetical`
 - Default sort mode is `Alphabetical`
 - Includes a `Gallery` toggle that switches to one-card-per-page image mode while keeping page navigation
+
+## Tags UX
+
+- `tag cards <tag_name>` shows tagged card instances in a sortable, paginated embed
+- Sort modes are: `Wishes`, `Rarity`, `Series`, `Base Value`, `Actual Value`, `Alphabetical`
+- `Actual Value` uses per-instance computed card value (`card_value`), so generation differences affect order
 
 ## Interaction constraints
 

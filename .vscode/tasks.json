@@ -27,6 +27,19 @@
 			"type": "shell",
 			"command": "${workspaceFolder}/.venv/bin/python -m py_compile bot.py noodswap/*.py scripts/*.py tests/*.py && ${workspaceFolder}/.venv/bin/python scripts/migration_smoke.py && ${workspaceFolder}/.venv/bin/python -m unittest discover -s tests -p 'test_*.py'",
 			"group": "test"
+		},
+		{
+			"label": "check:economy",
+			"type": "shell",
+			"command": "${workspaceFolder}/.venv/bin/python",
+			"args": [
+				"scripts/generation_economy_report.py",
+				"--tau",
+				"1.0",
+				"--active-days",
+				"7"
+			],
+			"group": "test"
 		}
 	]
 }

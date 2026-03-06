@@ -2,7 +2,7 @@ from collections.abc import Callable
 import sqlite3
 
 
-TARGET_SCHEMA_VERSION = 11
+TARGET_SCHEMA_VERSION = 12
 _BASE36_ALPHABET = "0123456789abcdefghijklmnopqrstuvwxyz"
 
 
@@ -455,6 +455,25 @@ def _apply_migration_v11(conn: sqlite3.Connection) -> None:
     )
 
 
+def _apply_migration_v12(conn: sqlite3.Connection) -> None:
+    players_table_exists = conn.execute(
+        """
+        SELECT 1
+        FROM sqlite_master
+        WHERE type = 'table' AND name = 'players'
+        LIMIT 1
+        """
+    ).fetchone() is not None
+    if not players_table_exists:
+        return
+
+    if not _has_column(conn, "players", "starter"):
+        conn.execute("ALTER TABLE players ADD COLUMN starter INTEGER NOT NULL DEFAULT 0")
+
+    if not _has_column(conn, "players", "last_vote_reward_at"):
+        conn.execute("ALTER TABLE players ADD COLUMN last_vote_reward_at REAL NOT NULL DEFAULT 0")
+
+
 def run_migrations(
     conn: sqlite3.Connection,
     *,
@@ -518,6 +537,11 @@ def run_migrations(
         _apply_migration_v11(conn)
         _set_schema_version(conn, 11)
         current_version = 11
+
+    if current_version < 12:
+        _apply_migration_v12(conn)
+        _set_schema_version(conn, 12)
+        current_version = 12
 
     if current_version > target_schema_version:
         raise RuntimeError(

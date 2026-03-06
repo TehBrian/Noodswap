@@ -2,7 +2,10 @@ from pathlib import Path
 
 DROP_COOLDOWN_SECONDS = 6 * 60
 PULL_COOLDOWN_SECONDS = 4 * 60
+VOTE_COOLDOWN_SECONDS = 24 * 60 * 60
 STARTING_DOUGH = 0
+STARTING_STARTER = 0
+VOTE_STARTER_REWARD = 1
 COMMAND_PREFIX = "ns "
 SHORT_COMMAND_PREFIX = "n"
 DROP_CHOICES_COUNT = 3
@@ -15,6 +18,10 @@ DB_PATH = Path(__file__).resolve().parent.parent / "noodswap.db"
 DB_LOCK_TIMEOUT_SECONDS = 5.0
 CARD_IMAGE_CACHE_DIR = Path(__file__).resolve().parent.parent / "assets" / "card_images"
 CARD_IMAGE_CACHE_MANIFEST = CARD_IMAGE_CACHE_DIR / "manifest.json"
+
+# Card body height / width ratio used by the in-canvas renderer.
+# 1.4 corresponds to a standard 5:7 (width:height) card body ratio.
+CARD_BODY_ASPECT_RATIO = 1.4
 
 PAGINATION_FIRST_EMOJI = "<:ns_left_double:1479310540554768485>"
 PAGINATION_PREVIOUS_EMOJI = "<:ns_left_arrow:1479310649270997152>"

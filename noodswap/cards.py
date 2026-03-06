@@ -16,288 +16,83 @@ class CardData(TypedDict):
     image: NotRequired[str]
 
 
-CARD_CATALOG: dict[str, CardData] = {
-    "BGL": {"name": "Bagel", "series": "bread", "rarity": "common", "base_value": 11},
-    "EBG": {"name": "Everything Bagel", "series": "bread", "rarity": "common", "base_value": 12},
-    "BAG": {"name": "Baguette", "series": "bread", "rarity": "common", "base_value": 9},
-    "BOL": {"name": "Bolillo", "series": "bread", "rarity": "common", "base_value": 10},
-    "BRI2": {"name": "Brioche", "series": "bread", "rarity": "common", "base_value": 11},
-    "PIT": {"name": "Pita", "series": "bread", "rarity": "common", "base_value": 10},
-    "RYE": {"name": "Rye", "series": "bread", "rarity": "common", "base_value": 10},
-    "SOU": {"name": "Sourdough", "series": "bread", "rarity": "common", "base_value": 10},
-    "BRE": {"name": "Breadsticks", "series": "bread", "rarity": "uncommon", "base_value": 15},
-    "CHI": {"name": "Ciabatta", "series": "bread", "rarity": "uncommon", "base_value": 15},
-    "FOC": {"name": "Focaccia", "series": "bread", "rarity": "uncommon", "base_value": 16},
-    "GAR": {"name": "Garlic Bread", "series": "bread", "rarity": "uncommon", "base_value": 17},
-    "PRE": {"name": "Pretzel", "series": "bread", "rarity": "uncommon", "base_value": 16},
-    "PUM": {"name": "Pumpernickel", "series": "bread", "rarity": "uncommon", "base_value": 16},
-    "SCI": {"name": "Schiacciata", "series": "bread", "rarity": "uncommon", "base_value": 17},
-    "BAT": {"name": "Batard", "series": "bread", "rarity": "rare", "base_value": 28},
-    "GKN": {"name": "Garlic Knot", "series": "bread", "rarity": "rare", "base_value": 29},
-    "PAN": {"name": "Panettone", "series": "bread", "rarity": "epic", "base_value": 45},
-    "TRG": {"name": "Truffle Garlic Bread", "series": "bread", "rarity": "epic", "base_value": 47},
-    "GRA": {"name": "Golden Grain Loaf", "series": "bread", "rarity": "legendary", "base_value": 220},
-    "IMM": {"name": "Immortal Garlic Loaf", "series": "bread", "rarity": "mythic", "base_value": 230},
-    "SDM": {"name": "Semolina Bread", "series": "bread", "rarity": "common", "base_value": 10},
-    "MKB": {"name": "Milk Bread", "series": "bread", "rarity": "common", "base_value": 9},
-    "CRB": {"name": "Crusty Roll", "series": "bread", "rarity": "common", "base_value": 9},
-    "BUN": {"name": "Brioche Bun", "series": "bread", "rarity": "common", "base_value": 10},
-    "CRO": {"name": "Crostini", "series": "bread", "rarity": "uncommon", "base_value": 15},
-    "GRI": {"name": "Grissini", "series": "bread", "rarity": "uncommon", "base_value": 16},
-    "PTS": {"name": "Pane Toscano", "series": "bread", "rarity": "uncommon", "base_value": 17},
-    "FCC": {"name": "Focaccia al Formaggio", "series": "bread", "rarity": "rare", "base_value": 29},
-    "RSF": {"name": "Rosemary Sea-Salt Focaccia", "series": "bread", "rarity": "rare", "base_value": 30},
-    "RDB": {"name": "Rustic Durum Boule", "series": "bread", "rarity": "epic", "base_value": 44},
-    "CHD": {"name": "Cheddar", "series": "cheese", "rarity": "common", "base_value": 10},
-    "COL": {"name": "Colby", "series": "cheese", "rarity": "common", "base_value": 10},
-    "MON": {"name": "Monterey Jack", "series": "cheese", "rarity": "common", "base_value": 10},
-    "MOZ": {"name": "Mozzerella", "series": "cheese", "rarity": "common", "base_value": 9},
-    "PRV": {"name": "Provolone", "series": "cheese", "rarity": "common", "base_value": 10},
-    "ASI": {"name": "Asiago", "series": "cheese", "rarity": "uncommon", "base_value": 16},
-    "BRI": {"name": "Brie", "series": "cheese", "rarity": "uncommon", "base_value": 17},
-    "CHJ": {"name": "Cheddar Jack", "series": "cheese", "rarity": "uncommon", "base_value": 16},
-    "FON": {"name": "Fontina", "series": "cheese", "rarity": "uncommon", "base_value": 16},
-    "GOU": {"name": "Gouda", "series": "cheese", "rarity": "uncommon", "base_value": 17},
-    "HAV": {"name": "Havarti", "series": "cheese", "rarity": "uncommon", "base_value": 15},
-    "MAS": {"name": "Mascarpone", "series": "cheese", "rarity": "uncommon", "base_value": 17},
-    "SWS": {"name": "Swiss", "series": "cheese", "rarity": "uncommon", "base_value": 14},
-    "GOR": {"name": "Gorgonzola", "series": "cheese", "rarity": "rare", "base_value": 30},
-    "GRN": {"name": "Grana Padano", "series": "cheese", "rarity": "rare", "base_value": 31},
-    "PEC": {"name": "Pecorino", "series": "cheese", "rarity": "rare", "base_value": 29},
-    "ROM": {"name": "Romano", "series": "cheese", "rarity": "rare", "base_value": 28},
-    "SHC": {"name": "Sharp Cheddar", "series": "cheese", "rarity": "rare", "base_value": 27},
-    "TAL": {"name": "Taleggio", "series": "cheese", "rarity": "rare", "base_value": 29},
-    "BRC": {"name": "Burrata", "series": "cheese", "rarity": "epic", "base_value": 44},
-    "ESC": {"name": "Extra Sharp Cheddar", "series": "cheese", "rarity": "epic", "base_value": 43},
-    "PAR": {"name": "Parmigiano Reggiano", "series": "cheese", "rarity": "epic", "base_value": 45},
-    "RCT": {"name": "Ricotta Salata", "series": "cheese", "rarity": "epic", "base_value": 45},
-    "TRF": {"name": "Truffle Pecorino", "series": "cheese", "rarity": "epic", "base_value": 46},
-    "GOL": {"name": "Golden Parm Wheel", "series": "cheese", "rarity": "legendary", "base_value": 225},
-    "RCO": {"name": "Ricotta", "series": "cheese", "rarity": "common", "base_value": 9},
-    "SCA": {"name": "Scamorza", "series": "cheese", "rarity": "common", "base_value": 10},
-    "CAC": {"name": "Caciocavallo", "series": "cheese", "rarity": "common", "base_value": 10},
-    "STR": {"name": "Stracciatella", "series": "cheese", "rarity": "uncommon", "base_value": 16},
-    "PDM": {"name": "Provola del Monaco", "series": "cheese", "rarity": "rare", "base_value": 17},
-    "MFL": {"name": "Mozzarella Fior di Latte", "series": "cheese", "rarity": "uncommon", "base_value": 17},
-    "CAT": {"name": "Caciotta al Tartufo", "series": "cheese", "rarity": "epic", "base_value": 29},
-    "RBL": {"name": "Robiola", "series": "cheese", "rarity": "rare", "base_value": 30},
-    "GPR": {"name": "Grana Riserva", "series": "cheese", "rarity": "epic", "base_value": 45},
-    "IMB": {"name": "Imperial Burrata", "series": "cheese", "rarity": "mythic", "base_value": 236},
-    "BIS": {"name": "Biscotti", "series": "dessert", "rarity": "common", "base_value": 10},
-    "AFF": {"name": "Affogato", "series": "dessert", "rarity": "rare", "base_value": 18},
-    "CNO": {"name": "Cannoli", "series": "dessert", "rarity": "uncommon", "base_value": 17},
-    "GEL": {"name": "Gelato", "series": "dessert", "rarity": "uncommon", "base_value": 16},
-    "PCT": {"name": "Panna Cotta", "series": "dessert", "rarity": "uncommon", "base_value": 17},
-    "TIR": {"name": "Tiramisu", "series": "dessert", "rarity": "rare", "base_value": 30},
-    "CHL": {"name": "Chocolate Lasagna", "series": "dessert", "rarity": "rare", "base_value": 43},
-    "SFL": {"name": "Sfogliatella", "series": "dessert", "rarity": "epic", "base_value": 44},
-    "ZAB": {"name": "Zabaglione", "series": "dessert", "rarity": "epic", "base_value": 45},
-    "AMB": {"name": "Ambrosia Tiramisu", "series": "dessert", "rarity": "mythic", "base_value": 236},
-    "BRW": {"name": "Brownie", "series": "dessert", "rarity": "common", "base_value": 9},
-    "CHK": {"name": "Chocolate Chip Cookie", "series": "dessert", "rarity": "common", "base_value": 10},
-    "SCK": {"name": "Sugar Cookie", "series": "dessert", "rarity": "common", "base_value": 8},
-    "OMC": {"name": "Oatmeal Cookie", "series": "dessert", "rarity": "common", "base_value": 8},
-    "LMB": {"name": "Lemon Bar", "series": "dessert", "rarity": "common", "base_value": 9},
-    "RKT": {"name": "Rice Krispie Treat", "series": "dessert", "rarity": "common", "base_value": 9},
-    "APL": {"name": "Apple Pie", "series": "dessert", "rarity": "common", "base_value": 10},
-    "CRP": {"name": "Cherry Pie", "series": "dessert", "rarity": "common", "base_value": 10},
-    "BPD": {"name": "Banana Pudding", "series": "dessert", "rarity": "common", "base_value": 9},
-    "DNT": {"name": "Donut", "series": "dessert", "rarity": "common", "base_value": 8},
-    "FDG": {"name": "Fudge", "series": "dessert", "rarity": "common", "base_value": 9},
-    "BCP": {"name": "Banana Cream Pie", "series": "dessert", "rarity": "common", "base_value": 10},
-    "CUP": {"name": "Cupcake", "series": "dessert", "rarity": "common", "base_value": 9},
-    "CHR": {"name": "Churro", "series": "dessert", "rarity": "common", "base_value": 10},
-    "BLD": {"name": "Blondie", "series": "dessert", "rarity": "uncommon", "base_value": 15},
-    "MCR": {"name": "Macaron", "series": "dessert", "rarity": "rare", "base_value": 17},
-    "ECL": {"name": "Eclair", "series": "dessert", "rarity": "uncommon", "base_value": 16},
-    "PRL": {"name": "Profiterole", "series": "dessert", "rarity": "uncommon", "base_value": 17},
-    "CBB": {"name": "Berry Cobbler", "series": "dessert", "rarity": "uncommon", "base_value": 15},
-    "BNS": {"name": "Bread Pudding", "series": "dessert", "rarity": "uncommon", "base_value": 16},
-    "FYG": {"name": "Frozen Yogurt", "series": "dessert", "rarity": "common", "base_value": 16},
-    "PSC": {"name": "Popsicle", "series": "dessert", "rarity": "common", "base_value": 14},
-    "ICS": {"name": "Ice Cream Sandwich", "series": "dessert", "rarity": "uncommon", "base_value": 17},
-    "SND": {"name": "Sundae", "series": "dessert", "rarity": "uncommon", "base_value": 17},
-    "MLS": {"name": "Milkshake", "series": "dessert", "rarity": "uncommon", "base_value": 16},
-    "CHS": {"name": "Cheesecake", "series": "dessert", "rarity": "rare", "base_value": 27},
-    "NYC": {"name": "New York Cheesecake", "series": "dessert", "rarity": "rare", "base_value": 30},
-    "RVC": {"name": "Red Velvet Cake", "series": "dessert", "rarity": "rare", "base_value": 29},
-    "BAK": {"name": "Baklava", "series": "dessert", "rarity": "rare", "base_value": 28},
-    "MCI": {"name": "Mochi Ice Cream", "series": "dessert", "rarity": "rare", "base_value": 29},
-    "TRM": {"name": "Tres Leches Cake", "series": "dessert", "rarity": "rare", "base_value": 30},
-    "CBR": {"name": "Creme Brulee", "series": "dessert", "rarity": "rare", "base_value": 31},
-    "GLS": {"name": "Gelato Sundae", "series": "dessert", "rarity": "rare", "base_value": 32},
-    "BSC": {"name": "Basque Cheesecake", "series": "dessert", "rarity": "epic", "base_value": 43},
-    "BTA": {"name": "Baked Alaska", "series": "dessert", "rarity": "epic", "base_value": 46},
-    "GFL": {"name": "Gelato Flight", "series": "dessert", "rarity": "epic", "base_value": 45},
-    "MTC": {"name": "Matcha Cheesecake", "series": "dessert", "rarity": "epic", "base_value": 44},
-    "LVC": {"name": "Lava Cake", "series": "dessert", "rarity": "epic", "base_value": 45},
-    "GLC": {"name": "Golden Cheesecake", "series": "dessert", "rarity": "mythic", "base_value": 234},
-    "NIT": {"name": "Nitrogen Gelato", "series": "dessert", "rarity": "divine", "base_value": 238},
-    "MBS": {"name": "Meatball Sub", "series": "entree", "rarity": "common", "base_value": 18},
-    "PNI": {"name": "Panini", "series": "entree", "rarity": "common", "base_value": 19},
-    "PZA": {"name": "Pizza", "series": "entree", "rarity": "common", "base_value": 18},
-    "ARB": {"name": "Arancini", "series": "entree", "rarity": "rare", "base_value": 31},
-    "ALF": {"name": "Chicken Alfredo", "series": "entree", "rarity": "rare", "base_value": 30},
-    "CKP": {"name": "Chicken Parmesan", "series": "entree", "rarity": "rare", "base_value": 31},
-    "RIS": {"name": "Risotto", "series": "entree", "rarity": "rare", "base_value": 30},
-    "OSB": {"name": "Osso Buco", "series": "entree", "rarity": "epic", "base_value": 47},
-    "OXT": {"name": "Oxtail Ragu", "series": "entree", "rarity": "epic", "base_value": 46},
-    "CAG": {"name": "Chicken Alfredo Garlic Bread", "series": "entree", "rarity": "legendary", "base_value": 224},
-    "GNP": {"name": "Gnocchi al Pesto", "series": "entree", "rarity": "common", "base_value": 11},
-    "EPA": {"name": "Eggplant Parmigiana", "series": "entree", "rarity": "uncommon", "base_value": 18},
-    "VSL": {"name": "Veal Saltimbocca", "series": "entree", "rarity": "uncommon", "base_value": 19},
-    "PLF": {"name": "Polenta ai Funghi", "series": "entree", "rarity": "uncommon", "base_value": 17},
-    "BFL": {"name": "Bistecca Fiorentina", "series": "entree", "rarity": "rare", "base_value": 30},
-    "LAV": {"name": "Linguine alle Vongole", "series": "entree", "rarity": "rare", "base_value": 31},
-    "SCP": {"name": "Seafood Cioppino", "series": "entree", "rarity": "rare", "base_value": 32},
-    "TRR": {"name": "Truffle Risotto", "series": "entree", "rarity": "epic", "base_value": 46},
-    "LGP": {"name": "Lobster Gnocchi Piccata", "series": "entree", "rarity": "epic", "base_value": 47},
-    "RMF": {"name": "Royal Milanese Feast", "series": "entree", "rarity": "divine", "base_value": 238},
-    "ANG": {"name": "Angel Hair", "series": "noodles", "rarity": "common", "base_value": 10},
-    "BCT": {"name": "Bucatini", "series": "noodles", "rarity": "common", "base_value": 10},
-    "CAP": {"name": "Capellini", "series": "noodles", "rarity": "common", "base_value": 9},
-    "DTP": {"name": "Ditalini", "series": "noodles", "rarity": "common", "base_value": 9},
-    "EGG": {"name": "Egg Noodles", "series": "noodles", "rarity": "common", "base_value": 11},
-    "FAR": {"name": "Farfalle", "series": "noodles", "rarity": "common", "base_value": 10},
-    "FUS": {"name": "Fusilli", "series": "noodles", "rarity": "common", "base_value": 8},
-    "LIN": {"name": "Linguine", "series": "noodles", "rarity": "common", "base_value": 9},
-    "MAC": {"name": "Macaroni", "series": "noodles", "rarity": "common", "base_value": 9},
-    "PEN": {"name": "Penne", "series": "noodles", "rarity": "common", "base_value": 8},
-    "RAM": {"name": "Ramen", "series": "noodles", "rarity": "common", "base_value": 11},
-    "RIC": {"name": "Rice Noodles", "series": "noodles", "rarity": "common", "base_value": 11},
-    "ROT": {"name": "Rotini", "series": "noodles", "rarity": "common", "base_value": 9},
-    "SOB": {"name": "Soba", "series": "noodles", "rarity": "common", "base_value": 10},
-    "SPG": {"name": "Spaghetti", "series": "noodles", "rarity": "common", "base_value": 8},
-    "UDO": {"name": "Udon", "series": "noodles", "rarity": "common", "base_value": 10},
-    "VER": {"name": "Vermicelli", "series": "noodles", "rarity": "common", "base_value": 9},
-    "CHM": {"name": "Chow Mein", "series": "noodles", "rarity": "uncommon", "base_value": 17},
-    "LOM": {"name": "Lo Mein", "series": "noodles", "rarity": "uncommon", "base_value": 16},
-    "YAK": {"name": "Yakisoba", "series": "noodles", "rarity": "uncommon", "base_value": 16},
-    "NOO": {"name": "Nood God", "series": "noodles", "rarity": "legendary", "base_value": 215},
-    "SPN": {"name": "Spinach Noodles", "series": "noodles", "rarity": "common", "base_value": 9},
-    "BLN": {"name": "Black Garlic Noodles", "series": "noodles", "rarity": "common", "base_value": 10},
-    "TAJ": {"name": "Tajarin", "series": "noodles", "rarity": "common", "base_value": 11},
-    "CPR": {"name": "Cappellini Rustica", "series": "noodles", "rarity": "common", "base_value": 9},
-    "UDC": {"name": "Udon Carbonara", "series": "noodles", "rarity": "uncommon", "base_value": 17},
-    "RGN": {"name": "Ragu Noodles", "series": "noodles", "rarity": "uncommon", "base_value": 16},
-    "SFN": {"name": "Saffron Noodles", "series": "noodles", "rarity": "uncommon", "base_value": 17},
-    "LBN": {"name": "Lobster Bisque Noodles", "series": "noodles", "rarity": "epic", "base_value": 30},
-    "TRN": {"name": "Truffle Noodles", "series": "noodles", "rarity": "epic", "base_value": 31},
-    "GTN": {"name": "Golden Truffle Noodles", "series": "noodles", "rarity": "epic", "base_value": 45},
-    "CON": {"name": "Conchiglie", "series": "pasta", "rarity": "common", "base_value": 11},
-    "ZIT": {"name": "Ziti", "series": "pasta", "rarity": "common", "base_value": 10},
-    "CPL": {"name": "Cappelletti", "series": "pasta", "rarity": "uncommon", "base_value": 16},
-    "GEM": {"name": "Gemelli", "series": "pasta", "rarity": "uncommon", "base_value": 16},
-    "ORC": {"name": "Orecchiette", "series": "pasta", "rarity": "uncommon", "base_value": 15},
-    "PCH": {"name": "Paccheri", "series": "pasta", "rarity": "uncommon", "base_value": 17},
-    "RAV": {"name": "Ravioli", "series": "pasta", "rarity": "uncommon", "base_value": 14},
-    "RCA": {"name": "Ricotta Cavatelli", "series": "pasta", "rarity": "uncommon", "base_value": 17},
-    "RIG": {"name": "Rigatoni", "series": "pasta", "rarity": "uncommon", "base_value": 17},
-    "TAG": {"name": "Tagliatelle", "series": "pasta", "rarity": "uncommon", "base_value": 15},
-    "AGN": {"name": "Agnolotti", "series": "pasta", "rarity": "rare", "base_value": 30},
-    "ANO": {"name": "Anolini", "series": "pasta", "rarity": "rare", "base_value": 31},
-    "CAS": {"name": "Casarecce", "series": "pasta", "rarity": "rare", "base_value": 29},
-    "GNO": {"name": "Gnocchi", "series": "pasta", "rarity": "uncommon", "base_value": 26},
-    "LAS": {"name": "Lasagna", "series": "pasta", "rarity": "uncommon", "base_value": 25},
-    "MAN": {"name": "Manicotti", "series": "pasta", "rarity": "rare", "base_value": 27},
-    "PAP": {"name": "Pappardelle", "series": "pasta", "rarity": "rare", "base_value": 28},
-    "STP": {"name": "Strozzapreti", "series": "pasta", "rarity": "rare", "base_value": 29},
-    "TRO": {"name": "Trofie", "series": "pasta", "rarity": "rare", "base_value": 30},
-    "CAN": {"name": "Cannelloni", "series": "pasta", "rarity": "epic", "base_value": 42},
-    "TOR": {"name": "Tortellini", "series": "pasta", "rarity": "epic", "base_value": 40},
-    "BLA": {"name": "Black Truffle Ravioli", "series": "pasta", "rarity": "legendary", "base_value": 218},
-    "WHT": {"name": "White Truffle Tagliolini", "series": "pasta", "rarity": "mythic", "base_value": 235},
-    "MLF": {"name": "Mafaldine", "series": "pasta", "rarity": "common", "base_value": 10},
-    "DTV": {"name": "Ditaloni Verdi", "series": "pasta", "rarity": "common", "base_value": 9},
-    "SLA": {"name": "Sicilian Linguine Arc", "series": "pasta", "rarity": "common", "base_value": 10},
-    "CPN": {"name": "Campanelle", "series": "pasta", "rarity": "uncommon", "base_value": 16},
-    "LUM": {"name": "Lumache", "series": "pasta", "rarity": "uncommon", "base_value": 15},
-    "TBB": {"name": "Trofie al Burro", "series": "pasta", "rarity": "uncommon", "base_value": 17},
-    "SFR": {"name": "Saffron Ravioli", "series": "pasta", "rarity": "epic", "base_value": 30},
-    "PRC": {"name": "Porcini Ravioli", "series": "pasta", "rarity": "rare", "base_value": 31},
-    "BLP": {"name": "Black Pepper Pappardelle", "series": "pasta", "rarity": "epic", "base_value": 46},
-    "CSP": {"name": "Crown Stuffed Pasta", "series": "pasta", "rarity": "divine", "base_value": 239},
-    "CHB": {"name": "Chardonnay", "series": "wine", "rarity": "common", "base_value": 11},
-    "CNT": {"name": "Chianti", "series": "wine", "rarity": "common", "base_value": 11},
-    "LAM": {"name": "Lambrusco", "series": "wine", "rarity": "common", "base_value": 11},
-    "MER": {"name": "Merlot", "series": "wine", "rarity": "common", "base_value": 11},
-    "PIN": {"name": "Pinot Noir", "series": "wine", "rarity": "common", "base_value": 10},
-    "PRO": {"name": "Prosecco", "series": "wine", "rarity": "common", "base_value": 10},
-    "RIO": {"name": "Rioja", "series": "wine", "rarity": "uncommon", "base_value": 17},
-    "SOV": {"name": "Sauvignon Blanc", "series": "wine", "rarity": "uncommon", "base_value": 16},
-    "BAR": {"name": "Barolo", "series": "wine", "rarity": "epic", "base_value": 30},
-    "NEB": {"name": "Nebbiolo", "series": "wine", "rarity": "rare", "base_value": 31},
-    "BRU": {"name": "Brunello", "series": "wine", "rarity": "epic", "base_value": 47},
-    "CHA": {"name": "Champagne", "series": "wine", "rarity": "epic", "base_value": 47},
-    "FRC": {"name": "Franciacorta", "series": "wine", "rarity": "epic", "base_value": 46},
-    "ICE": {"name": "Icewine", "series": "wine", "rarity": "epic", "base_value": 48},
-    "AMS": {"name": "Amarone Riserva", "series": "wine", "rarity": "legendary", "base_value": 228},
-    "RWB": {"name": "Royal Wine Barrique", "series": "wine", "rarity": "mythic", "base_value": 237},
-    "VDT": {"name": "Vino da Tavola", "series": "wine", "rarity": "common", "base_value": 10},
-    "FRZ": {"name": "Frizzante Bianco", "series": "wine", "rarity": "common", "base_value": 11},
-    "RSR": {"name": "Rosso Riserva", "series": "wine", "rarity": "rare", "base_value": 17},
-    "PGR": {"name": "Pinot Grigio Riserva", "series": "wine", "rarity": "uncommon", "base_value": 16},
-    "VSC": {"name": "Vin Santo Classico", "series": "wine", "rarity": "uncommon", "base_value": 18},
-    "BRS": {"name": "Barbaresco", "series": "wine", "rarity": "rare", "base_value": 30},
-    "SUT": {"name": "Super Tuscan", "series": "wine", "rarity": "epic", "base_value": 31},
-    "AGL": {"name": "Aglianico", "series": "wine", "rarity": "rare", "base_value": 29},
-    "MCB": {"name": "Metodo Classico Brut", "series": "wine", "rarity": "epic", "base_value": 47},
-    "EMV": {"name": "Emperor's Vineyard", "series": "wine", "rarity": "celestial", "base_value": 240},
-    "EXB": {"name": "Exotic Butters", "series": "dessert", "rarity": "celestial", "base_value": 241},
-    "ATL": {"name": "Atlas Cedar Honey", "series": "relic", "rarity": "mythic", "base_value": 232},
-    "QSM": {"name": "Qeshm Moon Salt", "series": "relic", "rarity": "mythic", "base_value": 233},
-    "SBR": {"name": "Siberian Pine Resin", "series": "relic", "rarity": "mythic", "base_value": 234},
-    "YJA": {"name": "Yuja Amber Preserve", "series": "relic", "rarity": "mythic", "base_value": 235},
-    "BLM": {"name": "Blue Lotus of the Nile", "series": "relic", "rarity": "divine", "base_value": 236},
-    "KUM": {"name": "Kumano Sacred Umeshu", "series": "relic", "rarity": "divine", "base_value": 237},
-    "MFR": {"name": "Maya Fire Cacao", "series": "relic", "rarity": "divine", "base_value": 238},
-    "ZRC": {"name": "Zanzibar Royal Clove", "series": "relic", "rarity": "divine", "base_value": 239},
-    "AER": {"name": "Aether Truffle Relic", "series": "relic", "rarity": "celestial", "base_value": 242},
-    "JDS": {"name": "Jade Starfruit of Java", "series": "relic", "rarity": "celestial", "base_value": 243},
-    "LZR": {"name": "Lazarus Saffron Crown", "series": "relic", "rarity": "celestial", "base_value": 244},
-    "ORB": {"name": "Orb of Seven Orchards", "series": "relic", "rarity": "celestial", "base_value": 245},
-}
+class _CardMetaData(TypedDict):
+    name: str
+    series: str
+    rarity: str
+    image: NotRequired[str]
 
 
-RARITY_VALUE_BANDS: dict[str, tuple[int, int]] = {
-    "common": (0, 30),
-    "uncommon": (45, 90),
-    "rare": (120, 180),
-    "epic": (220, 260),
-    "legendary": (280, 320),
-    "mythic": (340, 390),
-    "divine": (420, 470),
-    "celestial": (520, 560),
-}
+CARD_DATA_DIR = Path(__file__).resolve().parent / "data"
+CARD_CATALOG_PATH = CARD_DATA_DIR / "cards.json"
+CARD_BASE_VALUES_PATH = CARD_DATA_DIR / "base_values.json"
 
 
-def _rebalance_card_values() -> None:
-    for rarity, (low, high) in RARITY_VALUE_BANDS.items():
-        rarity_card_ids = [
-            card_id
-            for card_id, card in CARD_CATALOG.items()
-            if card["rarity"] == rarity
-        ]
-        if not rarity_card_ids:
+def _read_card_metadata() -> dict[str, _CardMetaData]:
+    parsed = json.loads(CARD_CATALOG_PATH.read_text(encoding="utf-8"))
+    if not isinstance(parsed, dict):
+        raise RuntimeError(f"Invalid card metadata JSON: {CARD_CATALOG_PATH}")
+
+    metadata: dict[str, _CardMetaData] = {}
+    for card_id, value in parsed.items():
+        if not isinstance(card_id, str) or not isinstance(value, dict):
             continue
 
-        ranked_card_ids = sorted(
-            rarity_card_ids,
-            key=lambda card_id: (int(CARD_CATALOG[card_id]["base_value"]), card_id),
-        )
-
-        if len(ranked_card_ids) == 1:
-            CARD_CATALOG[ranked_card_ids[0]]["base_value"] = low
+        name = value.get("name")
+        series = value.get("series")
+        rarity = value.get("rarity")
+        image = value.get("image")
+        if not isinstance(name, str) or not isinstance(series, str) or not isinstance(rarity, str):
             continue
 
-        span = high - low
-        last_idx = len(ranked_card_ids) - 1
-        for idx, card_id in enumerate(ranked_card_ids):
-            base_value = int(round(low + (span * idx / last_idx)))
-            CARD_CATALOG[card_id]["base_value"] = base_value
+        card_meta: _CardMetaData = {
+            "name": name,
+            "series": series,
+            "rarity": rarity,
+        }
+        if isinstance(image, str):
+            card_meta["image"] = image
+        metadata[card_id] = card_meta
+
+    return metadata
 
 
-_rebalance_card_values()
+def _read_card_base_values() -> dict[str, int]:
+    if not CARD_BASE_VALUES_PATH.exists():
+        return {}
+
+    parsed = json.loads(CARD_BASE_VALUES_PATH.read_text(encoding="utf-8"))
+    if not isinstance(parsed, dict):
+        raise RuntimeError(f"Invalid card base values JSON: {CARD_BASE_VALUES_PATH}")
+
+    base_values: dict[str, int] = {}
+    for card_id, value in parsed.items():
+        if isinstance(card_id, str) and isinstance(value, int):
+            base_values[card_id] = value
+    return base_values
+
+
+def _load_card_catalog() -> dict[str, CardData]:
+    card_metadata = _read_card_metadata()
+    card_base_values = _read_card_base_values()
+
+    catalog: dict[str, CardData] = {}
+    for card_id, metadata in card_metadata.items():
+        card: CardData = {
+            "name": metadata["name"],
+            "series": metadata["series"],
+            "rarity": metadata["rarity"],
+            "base_value": int(card_base_values.get(card_id, 0)),
+        }
+        image = metadata.get("image")
+        if isinstance(image, str):
+            card["image"] = image
+        catalog[card_id] = card
+
+    return catalog
+
+
+CARD_CATALOG: dict[str, CardData] = _load_card_catalog()
 
 
 def default_card_image(card_id: str) -> str:

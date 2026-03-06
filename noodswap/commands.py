@@ -1,10 +1,12 @@
 import asyncio
 import io
 import inspect
+import os
 import time
 
 asyncio.iscoroutinefunction = inspect.iscoroutinefunction  # type: ignore[assignment]
 
+import aiohttp
 import discord
 from discord.ext import commands
 
@@ -18,6 +20,7 @@ from .cards import (
 )
 from .images import (
     DEFAULT_CARD_RENDER_SIZE,
+    HD_CARD_RENDER_SIZE,
     embed_image_payload,
     morph_transition_image_payload,
     read_local_card_image_bytes,
@@ -43,9 +46,17 @@ from .services import (
     prepare_morph,
     prepare_trade_offer,
 )
-from .settings import DB_PATH, DROP_COOLDOWN_SECONDS, DROP_TIMEOUT_SECONDS, PULL_COOLDOWN_SECONDS
+from .settings import (
+    DB_PATH,
+    DROP_COOLDOWN_SECONDS,
+    DROP_TIMEOUT_SECONDS,
+    PULL_COOLDOWN_SECONDS,
+    VOTE_COOLDOWN_SECONDS,
+    VOTE_STARTER_REWARD,
+)
 from .storage import (
     assign_tag_to_instance,
+    claim_vote_reward_if_ready,
     create_player_tag,
     delete_player_tag,
     get_instance_by_code,
@@ -57,8 +68,11 @@ from .storage import (
     get_instances_by_tag,
     get_player_cooldown_timestamps,
     get_player_card_instances,
+    get_player_leaderboard_stats,
     list_player_tags,
+    get_player_starter,
     get_player_stats,
+    get_player_vote_reward_timestamp,
     get_total_cards,
     set_player_tag_locked,
     unassign_tag_from_instance,
@@ -78,6 +92,7 @@ from .views import (
     FrameConfirmView,
     MorphConfirmView,
     PaginatedLinesView,
+    PlayerLeaderboardView,
     SortableCardListView,
     SortableCollectionView,
     TradeView,
@@ -226,6 +241,49 @@ def _cooldown_status_line(label: str, elapsed_seconds: float, cooldown_seconds: 
     if remaining > 0:
         return f"{label}: **Cooling Down** (ready in **{format_cooldown(remaining)}**)"
     return f"{label}: **Ready** (can use now)"
+
+
+def _vote_link_view(vote_url: str) -> discord.ui.View:
+    view = discord.ui.View(timeout=None)
+    view.add_item(discord.ui.Button(label="Vote on top.gg", style=discord.ButtonStyle.link, url=vote_url))
+    return view
+
+
+def _topgg_auth_header(api_token: str) -> str:
+    token = api_token.strip()
+    if token.lower().startswith("bearer "):
+        return token
+    return f"Bearer {token}"
+
+
+async def _topgg_recent_vote_status(user_id: int, api_token: str) -> tuple[bool | None, str | None]:
+    # top.gg v1 endpoint for checking a single user's vote status on the authenticated project.
+    check_url = f"https://top.gg/api/v1/projects/@me/votes/{user_id}?source=discord"
+    headers = {"Authorization": _topgg_auth_header(api_token)}
+    timeout = aiohttp.ClientTimeout(total=8)
+
+    try:
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            async with session.get(check_url, headers=headers) as response:
+                if response.status == 404:
+                    return False, None
+
+                if response.status != 200:
+                    return None, f"top.gg API responded with status {response.status}."
+
+                payload = await response.json(content_type=None)
+    except aiohttp.ClientError as exc:
+        return None, f"top.gg request failed: {exc}"
+    except asyncio.TimeoutError:
+        return None, "top.gg request timed out."
+    except ValueError:
+        return None, "top.gg response was not valid JSON."
+
+    created_at = payload.get("created_at")
+    expires_at = payload.get("expires_at")
+    if created_at is None and expires_at is None:
+        return None, "top.gg response did not include vote status fields."
+    return True, None
 
 
 async def _wish_add(ctx: commands.Context, card_id: str) -> None:
@@ -446,11 +504,23 @@ async def _tag_cards(ctx: commands.Context, tag_name: str) -> None:
         await ctx.send(embed=italy_embed("Tags", f"No cards found for tag `{normalized}`."))
         return
 
-    lines = [
-        card_dupe_display(card_id, generation, dupe_code=dupe_code)
-        for _instance_id, card_id, generation, dupe_code in tagged_instances
-    ]
-    await ctx.send(embed=italy_embed(f"Tag: `{normalized}`", multiline_text(lines)))
+    view = SortableCollectionView(
+        user_id=ctx.author.id,
+        title=f"Tag: `{normalized}`",
+        instances=tagged_instances,
+        wish_counts=get_card_wish_counts(ctx.guild.id),
+        instance_styles={
+            instance_id: (
+                get_instance_morph(ctx.guild.id, instance_id),
+                get_instance_frame(ctx.guild.id, instance_id),
+                get_instance_font(ctx.guild.id, instance_id),
+            )
+            for instance_id, _card_id, _generation, _dupe_code in tagged_instances
+        },
+        guard_title="Tags",
+    )
+    message = await ctx.send(embed=view.build_embed(), view=view)
+    view.message = message
 
 
 def register_commands(bot: commands.Bot) -> None:
@@ -556,10 +626,16 @@ def register_commands(bot: commands.Bot) -> None:
         message = await ctx.send(embed=view.build_embed(), view=view)
         view.message = message
 
-    @bot.command(name="lookup", aliases=["l"])
-    async def lookup(ctx: commands.Context, *, card_id: str | None = None):
+    async def _run_lookup(
+        ctx: commands.Context,
+        *,
+        card_id: str | None,
+        image_size: tuple[int, int],
+        embed_title: str,
+        usage_name: str,
+    ) -> None:
         if card_id is None:
-            await ctx.send(embed=italy_embed("Lookup", "Usage: `ns lookup <card_id|card_code|query>`."))
+            await ctx.send(embed=italy_embed("Lookup", f"Usage: `ns {usage_name} <card_id|card_code|query>`."))
             return
 
         if ctx.guild is not None:
@@ -567,7 +643,7 @@ def register_commands(bot: commands.Bot) -> None:
             if matched_instance is not None:
                 matched_instance_id, matched_card_id, matched_generation, matched_dupe_code = matched_instance
                 lookup_embed = italy_embed(
-                    "Card Lookup",
+                    embed_title,
                     card_dupe_display(matched_card_id, matched_generation, dupe_code=matched_dupe_code),
                 )
                 image_url, image_file = embed_image_payload(
@@ -576,6 +652,7 @@ def register_commands(bot: commands.Bot) -> None:
                     morph_key=get_instance_morph(ctx.guild.id, matched_instance_id),
                     frame_key=get_instance_frame(ctx.guild.id, matched_instance_id),
                     font_key=get_instance_font(ctx.guild.id, matched_instance_id),
+                    size=image_size,
                 )
                 if image_url is not None:
                     lookup_embed.set_image(url=image_url)
@@ -587,8 +664,8 @@ def register_commands(bot: commands.Bot) -> None:
 
         normalized_card_id = normalize_card_id(card_id)
         if normalized_card_id in CARD_CATALOG:
-            lookup_embed = italy_embed("Card Lookup", card_base_display(normalized_card_id))
-            image_url, image_file = embed_image_payload(normalized_card_id)
+            lookup_embed = italy_embed(embed_title, card_base_display(normalized_card_id))
+            image_url, image_file = embed_image_payload(normalized_card_id, size=image_size)
             if image_url is not None:
                 lookup_embed.set_image(url=image_url)
             send_kwargs: dict[str, object] = {"embed": lookup_embed}
@@ -604,8 +681,8 @@ def register_commands(bot: commands.Bot) -> None:
 
         if len(name_matches) == 1:
             matched_card_id = name_matches[0]
-            lookup_embed = italy_embed("Card Lookup", card_base_display(matched_card_id))
-            image_url, image_file = embed_image_payload(matched_card_id)
+            lookup_embed = italy_embed(embed_title, card_base_display(matched_card_id))
+            image_url, image_file = embed_image_payload(matched_card_id, size=image_size)
             if image_url is not None:
                 lookup_embed.set_image(url=image_url)
             send_kwargs: dict[str, object] = {"embed": lookup_embed}
@@ -624,6 +701,26 @@ def register_commands(bot: commands.Bot) -> None:
         )
         message = await ctx.send(embed=view.build_embed(), view=view)
         view.message = message
+
+    @bot.command(name="lookup", aliases=["l"])
+    async def lookup(ctx: commands.Context, *, card_id: str | None = None):
+        await _run_lookup(
+            ctx,
+            card_id=card_id,
+            image_size=DEFAULT_CARD_RENDER_SIZE,
+            embed_title="Card Lookup",
+            usage_name="lookup",
+        )
+
+    @bot.command(name="lookuphd", aliases=["lhd"])
+    async def lookup_hd(ctx: commands.Context, *, card_id: str | None = None):
+        await _run_lookup(
+            ctx,
+            card_id=card_id,
+            image_size=HD_CARD_RENDER_SIZE,
+            embed_title="Card Lookup (HD)",
+            usage_name="lookuphd",
+        )
         return
 
     @bot.command(name="drop", aliases=["d"])
@@ -655,7 +752,6 @@ def register_commands(bot: commands.Bot) -> None:
         preview_file = await build_drop_preview_file(choices)
         send_kwargs: dict[str, object] = {"embed": embed}
         if preview_file is not None:
-            embed.set_image(url="attachment://drop_choices.png")
             send_kwargs["file"] = preview_file
 
         view = DropView(ctx.guild.id, ctx.author.id, choices)
@@ -1065,6 +1161,82 @@ def register_commands(bot: commands.Bot) -> None:
         message = await ctx.send(**send_kwargs)
         view.message = message
 
+    @bot.command(name="vote", aliases=["v"])
+    async def vote(ctx: commands.Context):
+        if ctx.guild is None:
+            await ctx.send(embed=italy_embed("Vote", "Use this command in a server."))
+            return
+
+        bot_user = bot.user
+        bot_id = bot_user.id if bot_user is not None else None
+        if bot_id is None:
+            env_bot_id = os.getenv("TOPGG_BOT_ID", "").strip()
+            if env_bot_id.isdigit():
+                bot_id = int(env_bot_id)
+
+        vote_url = "https://top.gg/"
+        if bot_id is not None:
+            vote_url = f"https://top.gg/bot/{bot_id}/vote"
+
+        lines: list[str] = [
+            "Support Noodswap by voting on top.gg.",
+            f"Reward: **{VOTE_STARTER_REWARD} starter** per successful vote claim.",
+            f"Vote Reward Cooldown: **{format_cooldown(VOTE_COOLDOWN_SECONDS)}**",
+            "",
+            "After voting, run `ns vote` again to claim your reward.",
+        ]
+
+        api_token = os.getenv("TOPGG_API_TOKEN", "").strip()
+        if not api_token:
+            lines.extend(
+                [
+                    "",
+                    "Automatic vote verification is not configured yet.",
+                    "Set `TOPGG_API_TOKEN` to enable reward claims.",
+                    "`TOPGG_BOT_ID` is optional and only used as a vote-link fallback.",
+                ]
+            )
+            await ctx.send(embed=italy_embed("Vote", multiline_text(lines)), view=_vote_link_view(vote_url))
+            return
+
+        voted, vote_error = await _topgg_recent_vote_status(ctx.author.id, api_token)
+        if voted:
+            claimed, remaining_seconds, starter_total = claim_vote_reward_if_ready(
+                guild_id=ctx.guild.id,
+                user_id=ctx.author.id,
+                now=time.time(),
+                cooldown_seconds=VOTE_COOLDOWN_SECONDS,
+                reward_amount=VOTE_STARTER_REWARD,
+            )
+            if claimed:
+                lines.extend(
+                    [
+                        "",
+                        f"Claimed: **+{VOTE_STARTER_REWARD} starter**",
+                        f"Starter Balance: **{starter_total}**",
+                    ]
+                )
+            else:
+                lines.extend(
+                    [
+                        "",
+                        "Vote detected, but your vote reward cooldown is still active.",
+                        f"Time remaining: **{format_cooldown(remaining_seconds)}**",
+                    ]
+                )
+        elif voted is False:
+            lines.extend(
+                [
+                    "",
+                    "No recent top.gg vote detected for your account yet.",
+                    "Cast your vote using the button, then try `ns vote` again.",
+                ]
+            )
+        else:
+            lines.extend(["", f"Could not verify your top.gg vote right now: {vote_error or 'unknown error'}"])
+
+        await ctx.send(embed=italy_embed("Vote", multiline_text(lines)), view=_vote_link_view(vote_url))
+
     @bot.command(name="cooldown", aliases=["cd"])
     async def cooldown(ctx: commands.Context, player: str | None = None):
         if ctx.guild is None:
@@ -1078,18 +1250,41 @@ def register_commands(bot: commands.Bot) -> None:
         target_member = resolved_member
 
         last_drop_at, last_pull_at = get_player_cooldown_timestamps(ctx.guild.id, target_member.id)
+        last_vote_reward_at = get_player_vote_reward_timestamp(ctx.guild.id, target_member.id)
         now = time.time()
         drop_elapsed = now - last_drop_at
         pull_elapsed = now - last_pull_at
+        vote_elapsed = now - last_vote_reward_at
 
         description = multiline_text(
             [
                 _cooldown_status_line("Drop", drop_elapsed, DROP_COOLDOWN_SECONDS),
                 _cooldown_status_line("Pull", pull_elapsed, PULL_COOLDOWN_SECONDS),
+                _cooldown_status_line("Vote", vote_elapsed, VOTE_COOLDOWN_SECONDS),
             ]
         )
 
         await ctx.send(embed=italy_embed(f"{target_member.display_name}'s Cooldowns", description))
+
+    @bot.command(name="leaderboard", aliases=["le"])
+    async def leaderboard(ctx: commands.Context):
+        if ctx.guild is None:
+            await ctx.send(embed=italy_embed("Leaderboard", "Use this command in a server."))
+            return
+
+        leaderboard_rows = get_player_leaderboard_stats(ctx.guild.id)
+        if not leaderboard_rows:
+            await ctx.send(embed=italy_embed("Leaderboard", "No players found yet. Try `ns drop` first."))
+            return
+
+        view = PlayerLeaderboardView(
+            user_id=ctx.author.id,
+            title="Leaderboard",
+            entries=leaderboard_rows,
+            guard_title="Leaderboard",
+        )
+        message = await ctx.send(embed=view.build_embed(), view=view)
+        view.message = message
 
     @bot.command(name="info", aliases=["i"])
     async def info(ctx: commands.Context, player: str | None = None):
@@ -1104,6 +1299,7 @@ def register_commands(bot: commands.Bot) -> None:
         target_member = resolved_member
 
         dough, _, married_instance_id = get_player_stats(ctx.guild.id, target_member.id)
+        starter = get_player_starter(ctx.guild.id, target_member.id)
         wishes_count = len(get_wishlist_cards(ctx.guild.id, target_member.id))
         married = "None"
         married_image_url: str | None = None
@@ -1125,6 +1321,7 @@ def register_commands(bot: commands.Bot) -> None:
         embed = italy_embed(f"{target_member.display_name}'s Stats")
         embed.add_field(name="Cards", value=str(get_total_cards(ctx.guild.id, target_member.id)), inline=True)
         embed.add_field(name="Dough", value=str(dough), inline=True)
+        embed.add_field(name="Starter", value=str(starter), inline=True)
         embed.add_field(name="Wishes", value=str(wishes_count), inline=True)
         embed.add_field(name="Married Card", value=married, inline=False)
         if married_image_url is not None:

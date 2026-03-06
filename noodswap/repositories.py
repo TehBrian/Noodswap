@@ -45,16 +45,18 @@ class PlayerRepository:
                 guild_id,
                 user_id,
                 dough,
+                starter,
                 last_drop_at,
                 last_pull_at,
+                last_vote_reward_at,
                 married_card_id,
                 married_instance_id,
                 last_dropped_instance_id
             )
-            VALUES (?, ?, ?, 0, 0, NULL, NULL, NULL)
+            VALUES (?, ?, ?, ?, 0, 0, 0, NULL, NULL, NULL)
             ON CONFLICT(guild_id, user_id) DO NOTHING
             """,
-            (guild_id, user_id, self.starting_dough),
+            (guild_id, user_id, self.starting_dough, 0),
         )
 
     def get_stats(self, guild_id: int, user_id: int) -> tuple[int, float, Optional[int]]:
@@ -264,6 +266,67 @@ class PlayerRepository:
         ).fetchone()
         return int(row["dough"]) if row is not None else self.starting_dough
 
+    def get_starter(self, guild_id: int, user_id: int) -> int:
+        row = self.conn.execute(
+            """
+            SELECT starter
+            FROM players
+            WHERE guild_id = ? AND user_id = ?
+            """,
+            (guild_id, user_id),
+        ).fetchone()
+        return int(row["starter"]) if row is not None else 0
+
+    def add_starter(self, guild_id: int, user_id: int, amount: int) -> None:
+        self.conn.execute(
+            """
+            UPDATE players
+            SET starter = starter + ?
+            WHERE guild_id = ? AND user_id = ?
+            """,
+            (amount, guild_id, user_id),
+        )
+
+    def list_balances(self, guild_id: int) -> list[tuple[int, int, int]]:
+        rows = self.conn.execute(
+            """
+            SELECT user_id, dough, starter
+            FROM players
+            WHERE guild_id = ?
+            ORDER BY user_id ASC
+            """,
+            (guild_id,),
+        ).fetchall()
+        return [
+            (
+                int(row["user_id"]),
+                int(row["dough"]),
+                int(row["starter"]),
+            )
+            for row in rows
+        ]
+
+    def get_last_vote_reward_at(self, guild_id: int, user_id: int) -> float:
+        row = self.conn.execute(
+            """
+            SELECT last_vote_reward_at
+            FROM players
+            WHERE guild_id = ? AND user_id = ?
+            """,
+            (guild_id, user_id),
+        ).fetchone()
+        return float(row["last_vote_reward_at"]) if row is not None else 0.0
+
+    def set_last_vote_reward_at(self, guild_id: int, user_id: int, timestamp: float) -> None:
+        self.conn.execute(
+            """
+            UPDATE players
+            SET last_vote_reward_at = ?
+            WHERE guild_id = ? AND user_id = ?
+            """,
+            (timestamp, guild_id, user_id),
+        )
+
 
 class WishlistRepository:
     def __init__(self, conn: sqlite3.Connection):
@@ -312,6 +375,18 @@ class WishlistRepository:
             (guild_id,),
         ).fetchall()
         return {str(row["card_id"]): int(row["wish_count"]) for row in rows}
+
+    def get_wish_counts_by_user(self, guild_id: int) -> dict[int, int]:
+        rows = self.conn.execute(
+            """
+            SELECT user_id, COUNT(*) AS wish_count
+            FROM wishlist_cards
+            WHERE guild_id = ?
+            GROUP BY user_id
+            """,
+            (guild_id,),
+        ).fetchall()
+        return {int(row["user_id"]): int(row["wish_count"]) for row in rows}
 
 
 class PlayerTagRepository:
@@ -583,6 +658,25 @@ class CardInstanceRepository:
             (guild_id, user_id),
         ).fetchone()
         return int(row["total_cards"]) if row else 0
+
+    def list_owner_cards_for_guild(self, guild_id: int) -> list[tuple[int, str, int]]:
+        rows = self.conn.execute(
+            """
+            SELECT user_id, card_id, generation
+            FROM card_instances
+            WHERE guild_id = ?
+            ORDER BY user_id ASC, instance_id ASC
+            """,
+            (guild_id,),
+        ).fetchall()
+        return [
+            (
+                int(row["user_id"]),
+                str(row["card_id"]),
+                int(row["generation"]),
+            )
+            for row in rows
+        ]
 
     def pop_highest_generation_by_card(self, guild_id: int, user_id: int, card_id: str) -> Optional[tuple[int, int]]:
         row = self.conn.execute(

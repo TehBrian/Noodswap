@@ -14,11 +14,77 @@ Early prototype Discord trading-card style bot using `discord.py`.
    ```bash
    export DISCORD_TOKEN=your-token
    ```
+   - Optional top.gg vote verification and rewards:
+   ```bash
+   export TOPGG_API_TOKEN=your-topgg-api-token
+   export TOPGG_BOT_ID=your-discord-bot-id
+   ```
+   `TOPGG_API_TOKEN` is required for vote verification (`top.gg` API v1). `TOPGG_BOT_ID` is optional and only used if the bot id cannot be resolved at runtime for the vote-link URL.
    - Production (recommended): inject secret from your platform secret manager as either `DISCORD_TOKEN` or a mounted file path in `DISCORD_TOKEN_FILE`.
 4. Run:
    ```bash
    python bot.py
    ```
+
+## CI/CD and Docker deployment
+
+This repo now includes:
+
+- CI: `.github/workflows/ci.yml`
+   - runs compile checks, migration smoke checks, and `unittest` on push/PR
+- CD: `.github/workflows/cd.yml`
+   - after CI succeeds on `main`, builds/pushes Docker image to GHCR
+- Jenkins deploy: `Jenkinsfile`
+   - on `main` pushes, Jenkins runs local host deploy via `deploy/update.sh`
+
+### Build and run locally with Docker
+
+```bash
+docker build -t noodswap:local .
+docker run --rm -e DISCORD_TOKEN=your-token noodswap:local
+```
+
+### Ubuntu server layout (recommended)
+
+On your Ubuntu server, clone this repo to a deployment path (for example `/opt/noodswap`) and set up deploy config:
+
+```bash
+cd /opt/noodswap/deploy
+cp .env.example .env
+cp runtime.env.example runtime.env
+mkdir -p data/card_images
+```
+
+Edit files:
+
+- `deploy/.env`
+   - `IMAGE_REPOSITORY=ghcr.io/<your-github-user-or-org>/noodswap`
+- `deploy/runtime.env`
+   - set `DISCORD_TOKEN`
+   - optional: `TOPGG_API_TOKEN`, `TOPGG_BOT_ID`
+
+Manual deploy/update on server:
+
+```bash
+cd /opt/noodswap
+./deploy/update.sh
+```
+
+### Jenkins setup for CD
+
+See `docs/deploy-jenkins.md` for full setup.
+
+At minimum:
+
+- create Jenkins credential `ghcr-readonly` (username/password where password is PAT with `read:packages`)
+- configure `DEPLOY_PATH` and `IMAGE_REPOSITORY` in Jenkins job
+- add GitHub webhook to trigger Jenkins on pushes
+
+Notes:
+
+- GitHub Actions no longer SSHes into your host; Jenkins performs deploy locally on Ubuntu.
+- SQLite data persists via bind mount at `deploy/data/noodswap.db`.
+- Cached card images persist at `deploy/data/card_images`.
 
 ### Discord developer portal requirements
 
@@ -30,12 +96,15 @@ This bot uses privileged intents. Enable these for your application in Discord D
 ## Commands (prefixes: `ns ` and short `n`, both case-insensitive)
 
 - `ns info [player]` / `ns i [player]` — show your stats or another player's stats (mention/username).
+- `ns leaderboard` / `ns le` — show a paginated player leaderboard with criteria dropdown (`cards`, `wishes`, `dough`, `starter`, `collection value`).
 - `ns collection [player]` / `ns c [player]` — show your collection or another player's collection with interactive sorting and gallery toggle (defaults to yourself).
 - `ns cards` / `ns ca` — show all available cards with interactive sorting (wishes, rarity, series, base value, alphabetical; default alphabetical), plus a gallery toggle for one-card image mode.
 - `ns lookup <card_id|card_code|query>` / `ns l <card_id|card_code|query>` — show base card details, or exact dupe details when a card code is provided.
+- `ns lookuphd <card_id|card_code|query>` / `ns lhd <card_id|card_code|query>` — same as lookup, but renders the card image at `1000x1400`.
 - `ns help` / `ns h` — show command help.
 - `ns drop` / `ns d` — open a drop with 3 random cards; anyone can claim unclaimed cards via buttons.
-- `ns cooldown [player]` / `ns cd [player]` — show both drop (6m) and pull (4m) cooldowns for yourself or another player.
+- `ns vote` / `ns v` — open the top.gg vote page and claim `starter` reward when your vote is detected.
+- `ns cooldown [player]` / `ns cd [player]` — show drop (6m), pull (4m), and vote reward (24h) cooldowns for yourself or another player.
 - `ns burn [card_code]` / `ns b [card_code]` — burn a specific dupe for dough (randomized around base). If omitted, defaults to your most recently pulled card. Burn is blocked for cards in locked tags.
 - `ns morph [card_code]` / `ns mo [card_code]` — pay 20% of card value (rounded up) to apply a random visual morph; currently supports `black_and_white`.
 - `ns frame [card_code]` / `ns fr [card_code]` — pay 20% of card value (rounded up) to apply a random cosmetic frame from available overlays (`buttery`, `gilded`, `drizzled`) in `assets/frame_overlays/`.
@@ -76,6 +145,16 @@ You can also pre-warm the full cache in advance to avoid first-hit fetches:
 
 This writes files into `assets/card_images/` and a manifest at `assets/card_images/manifest.json`.
 
+### Optional: generation economy report
+
+To compare your target inverse-value generation odds (`tau`) against the live inventory snapshot:
+
+```bash
+.venv/bin/python scripts/generation_economy_report.py --tau 1.0 --active-days 7
+```
+
+Machine-readable output is available with `--json`.
+
 ## Notes / prototype limitations
 
 - Data is persisted in local SQLite (`noodswap.db`) in the project directory.
@@ -94,6 +173,7 @@ This writes files into `assets/card_images/` and a manifest at `assets/card_imag
 - Catalog `ID` (e.g. `SPG`) is internal/base-card identity used in storage/catalog logic.
 - **DUPE CARDS have CODES. BASE CARDS have IDS.**
 - Player state is global across all guilds: inventories, dough, marriages, and wishlist are shared across every server where the bot is installed.
+- `starter` is a higher-tier currency earned from verified top.gg votes.
 - `burn` includes an explicit confirm/cancel interaction before destruction.
 
 ## Architecture

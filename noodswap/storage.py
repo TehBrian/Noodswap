@@ -3,7 +3,7 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from typing import Optional
 
-from .cards import random_generation, split_card_code
+from .cards import card_value, random_generation, split_card_code
 from .migrations import TARGET_SCHEMA_VERSION, run_migrations
 from .repositories import CardInstanceRepository, CardInstanceTagRepository, PlayerRepository, PlayerTagRepository, WishlistRepository
 from .settings import (
@@ -237,6 +237,14 @@ def get_player_stats(guild_id: int, user_id: int) -> tuple[int, float, Optional[
         return players.get_stats(guild_id, user_id)
 
 
+def get_player_starter(guild_id: int, user_id: int) -> int:
+    guild_id = _scope_guild_id(guild_id)
+    with get_db_connection() as conn:
+        players = PlayerRepository(conn, STARTING_DOUGH)
+        players.ensure_player(guild_id, user_id)
+        return players.get_starter(guild_id, user_id)
+
+
 def get_instance_by_id(guild_id: int, instance_id: int) -> Optional[tuple[int, str, int, str]]:
     guild_id = _scope_guild_id(guild_id)
     with get_db_connection() as conn:
@@ -409,6 +417,37 @@ def get_player_cooldown_timestamps(guild_id: int, user_id: int) -> tuple[float, 
         return players.get_last_drop_at(guild_id, user_id), players.get_last_pull_at(guild_id, user_id)
 
 
+def get_player_vote_reward_timestamp(guild_id: int, user_id: int) -> float:
+    guild_id = _scope_guild_id(guild_id)
+    with get_db_connection() as conn:
+        players = PlayerRepository(conn, STARTING_DOUGH)
+        players.ensure_player(guild_id, user_id)
+        return players.get_last_vote_reward_at(guild_id, user_id)
+
+
+def claim_vote_reward_if_ready(
+    guild_id: int,
+    user_id: int,
+    now: float,
+    cooldown_seconds: float,
+    reward_amount: int,
+) -> tuple[bool, float, int]:
+    guild_id = _scope_guild_id(guild_id)
+    with get_db_connection() as conn:
+        _begin_immediate(conn)
+        players = PlayerRepository(conn, STARTING_DOUGH)
+        players.ensure_player(guild_id, user_id)
+
+        last_vote_reward_at = players.get_last_vote_reward_at(guild_id, user_id)
+        elapsed = now - last_vote_reward_at
+        if elapsed < cooldown_seconds:
+            return False, cooldown_seconds - elapsed, players.get_starter(guild_id, user_id)
+
+        players.set_last_vote_reward_at(guild_id, user_id, now)
+        players.add_starter(guild_id, user_id, reward_amount)
+        return True, 0.0, players.get_starter(guild_id, user_id)
+
+
 def consume_pull_cooldown_if_ready(
     guild_id: int,
     user_id: int,
@@ -487,6 +526,46 @@ def get_total_cards(guild_id: int, user_id: int) -> int:
         instances = CardInstanceRepository(conn)
         players.ensure_player(guild_id, user_id)
         return instances.count_by_owner(guild_id, user_id)
+
+
+def get_player_leaderboard_stats(guild_id: int) -> list[tuple[int, int, int, int, int, int]]:
+    guild_id = _scope_guild_id(guild_id)
+    with get_db_connection() as conn:
+        players = PlayerRepository(conn, STARTING_DOUGH)
+        instances = CardInstanceRepository(conn)
+        wishlist = WishlistRepository(conn)
+
+        balances = players.list_balances(guild_id)
+        wish_counts = wishlist.get_wish_counts_by_user(guild_id)
+        all_instances = instances.list_owner_cards_for_guild(guild_id)
+
+    cards_count_by_user: dict[int, int] = {}
+    total_value_by_user: dict[int, int] = {}
+    for owner_id, card_id, generation in all_instances:
+        cards_count_by_user[owner_id] = cards_count_by_user.get(owner_id, 0) + 1
+        total_value_by_user[owner_id] = total_value_by_user.get(owner_id, 0) + card_value(card_id, generation)
+
+    users: dict[int, tuple[int, int]] = {
+        user_id: (dough, starter)
+        for user_id, dough, starter in balances
+    }
+    all_user_ids = set(users.keys()) | set(wish_counts.keys()) | set(cards_count_by_user.keys())
+
+    rows: list[tuple[int, int, int, int, int, int]] = []
+    for user_id in sorted(all_user_ids):
+        dough, starter = users.get(user_id, (STARTING_DOUGH, 0))
+        rows.append(
+            (
+                user_id,
+                cards_count_by_user.get(user_id, 0),
+                wish_counts.get(user_id, 0),
+                dough,
+                starter,
+                total_value_by_user.get(user_id, 0),
+            )
+        )
+
+    return rows
 
 
 def add_dough(guild_id: int, user_id: int, amount: int) -> None:

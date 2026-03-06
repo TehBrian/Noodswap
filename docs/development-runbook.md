@@ -16,6 +16,36 @@ This runbook is for contributors and coding agents.
 - Start bot:
   - `python bot.py`
 
+## Docker runtime
+
+- Build image:
+  - `docker build -t noodswap:local .`
+- Run image:
+  - `docker run --rm -e DISCORD_TOKEN=... noodswap:local`
+
+## CI/CD overview
+
+- CI workflow: `.github/workflows/ci.yml`
+  - compile check, migration smoke check, unit tests
+- CD workflow: `.github/workflows/cd.yml`
+  - triggered only after CI succeeds on `main`
+  - builds/pushes GHCR image (`latest` + commit SHA)
+- Jenkins pipeline: `Jenkinsfile`
+  - deploys on Ubuntu via `deploy/update.sh`
+  - intended trigger: GitHub push webhook or polling
+
+## Ubuntu deploy flow
+
+- Compose file: `deploy/docker-compose.prod.yml`
+- Deploy script: `deploy/update.sh`
+- Required server files:
+  - `deploy/.env` (image repository config)
+  - `deploy/runtime.env` (runtime secrets)
+- Manual rollout command:
+  - `./deploy/update.sh`
+- Jenkins setup guide:
+  - `docs/deploy-jenkins.md`
+
 ## Validate after changes
 
 - Compile check:

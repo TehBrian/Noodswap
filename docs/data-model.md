@@ -19,14 +19,17 @@ Columns:
 - `guild_id INTEGER NOT NULL`
 - `user_id INTEGER NOT NULL`
 - `dough INTEGER NOT NULL DEFAULT 0`
+- `starter INTEGER NOT NULL DEFAULT 0`
 - `last_drop_at REAL NOT NULL DEFAULT 0` (tracks last `drop` command usage timestamp)
 - `last_pull_at REAL NOT NULL DEFAULT 0` (tracks last successful drop-card claim timestamp)
+- `last_vote_reward_at REAL NOT NULL DEFAULT 0` (tracks last successful starter claim from top.gg vote)
 - `married_card_id TEXT` (legacy compatibility)
 - `married_instance_id INTEGER` (current marriage reference)
 - `last_dropped_instance_id INTEGER` (legacy column name; stores last pulled instance for arg-less `burn`/`marry`)
 
 Purpose:
 - Player economy and cooldown state in the global Noodswap scope
+- Includes both standard (`dough`) and higher-tier (`starter`) currencies
 - Marriage linkage to a specific owned card instance
 
 ### card_instances
@@ -156,6 +159,9 @@ Current migration set:
 	- Adds `card_instances.font_key` to persist per-instance visual font state.
 - `v11`:
 	- Normalizes legacy `card_instances.font_key = 'classic'` records to `NULL` because `Classic` is now the default non-modifier style.
+- `v12`:
+	- Adds `players.starter` for top.gg vote rewards.
+	- Adds `players.last_vote_reward_at` for vote reward cooldown tracking.
 
 Notes:
 - Startup migration is in-code (`noodswap/migrations.py`) and invoked by `storage.init_db()` using incremental version checks.

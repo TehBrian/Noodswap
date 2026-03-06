@@ -16,21 +16,33 @@ from .fonts import (
     normalize_font_key,
 )
 from .frames import frame_overlay_path, normalize_frame_key
-from .morphs import MORPH_BLACK_AND_WHITE, normalize_morph_key
-from .settings import CARD_IMAGE_CACHE_MANIFEST
+from .morphs import (
+    MORPH_BLACK_AND_WHITE,
+    MORPH_INVERSE,
+    MORPH_TINT_AQUA,
+    MORPH_TINT_COOL,
+    MORPH_TINT_LIME,
+    MORPH_TINT_ROSE,
+    MORPH_TINT_VIOLET,
+    MORPH_TINT_WARM,
+    MORPH_UPSIDE_DOWN,
+    normalize_morph_key,
+)
+from .settings import CARD_BODY_ASPECT_RATIO, CARD_IMAGE_CACHE_MANIFEST
 
 
 CARD_ASPECT_WIDTH = 5
 CARD_ASPECT_HEIGHT = 7
-DEFAULT_CARD_RENDER_SIZE = (300, 420)
+DEFAULT_CARD_RENDER_SIZE = (350, 490)
+HD_CARD_RENDER_SIZE = (1000, 1400)
 OVERLAY_TEXT_SCALE = 1.5
-# Draw the card body slightly smaller than the full render canvas to preserve
-# transparent space for future frame/effect compositing.
-CARD_BODY_SCALE = 0.9
+# Draw the card body smaller than the full render canvas to preserve
+# transparent space for richer frame/effect compositing.
+CARD_BODY_SCALE = 0.72
 
 RARITY_BORDER_COLORS: dict[str, tuple[int, int, int]] = {
-    "common": (124, 86, 48),
-    "uncommon": (132, 132, 132),
+    "common": (132, 132, 132),
+    "uncommon": (124, 86, 48),
     "rare": (186, 154, 255),
     "epic": (238, 141, 42),
     "legendary": (128, 205, 255),
@@ -128,7 +140,7 @@ def _card_name_for_display(card_id: str) -> str:
 def _generation_overlay_text(generation: int | None) -> str:
     if generation is None:
         return "G-????"
-    return f"G-{generation:04d}"
+    return f"G-{generation}"
 
 
 def _wrap_text_to_width(*, draw, text: str, font, max_width: int) -> str:
@@ -434,7 +446,7 @@ def _placeholder_card_art(card_id: str, generation: int | None, size: tuple[int,
     image = Image.new("RGB", (width, height), (28, 28, 28))
     draw = ImageDraw.Draw(image)
     code_line = normalize_card_id(card_id)
-    generation_line = f"G-{generation:04d}" if generation is not None else "G-????"
+    generation_line = f"G-{generation}" if generation is not None else "G-????"
     draw.multiline_text((14, 14), f"{code_line}\n{generation_line}", fill=(230, 230, 230), spacing=4)
     draw.text((14, height - 30), "Image unavailable", fill=(188, 188, 188))
     return image
@@ -625,6 +637,38 @@ def _load_frame_overlay_image(frame_key: str, size: tuple[int, int]):
     return overlay
 
 
+def _antialiased_rounded_mask(size: tuple[int, int], radius: int, *, scale: int = 4):
+    try:
+        from PIL import Image, ImageDraw
+    except ImportError:
+        return None
+
+    width, height = size
+    if width <= 0 or height <= 0:
+        return None
+
+    clamped_radius = max(0, min(radius, min(width, height) // 2))
+    hi_size = (max(1, width * scale), max(1, height * scale))
+    hi_radius = max(0, clamped_radius * scale)
+
+    hi_mask = Image.new("L", hi_size, 0)
+    hi_draw = ImageDraw.Draw(hi_mask)
+    hi_draw.rounded_rectangle(
+        (0, 0, hi_size[0] - 1, hi_size[1] - 1),
+        radius=hi_radius,
+        fill=255,
+    )
+    return hi_mask.resize((width, height), resample=Image.Resampling.LANCZOS)
+
+
+def _apply_color_tint(image, *, color: tuple[int, int, int], strength: float = 0.26):
+    from PIL import Image
+
+    base = image.convert("RGB")
+    overlay = Image.new("RGB", base.size, color)
+    return Image.blend(base, overlay, strength)
+
+
 def render_card_surface(
     card_id: str,
     *,
@@ -640,8 +684,15 @@ def render_card_surface(
         return None
 
     width, height = _normalized_card_size(size)
-    body_width = max(40, int(round(width * CARD_BODY_SCALE)))
-    body_height = max(56, int(round(height * CARD_BODY_SCALE)))
+    max_body_width = max(40, int(round(width * CARD_BODY_SCALE)))
+    max_body_height = max(56, int(round(height * CARD_BODY_SCALE)))
+    body_target_ratio = 1.0 / CARD_BODY_ASPECT_RATIO if CARD_BODY_ASPECT_RATIO > 0 else (1.0 / 1.6)
+    if (max_body_width / max_body_height) > body_target_ratio:
+        body_height = max_body_height
+        body_width = max(1, int(round(body_height * body_target_ratio)))
+    else:
+        body_width = max_body_width
+        body_height = max(1, int(round(body_width / body_target_ratio)))
     body_x = (width - body_width) // 2
     body_y = (height - body_height) // 2
 
@@ -671,6 +722,20 @@ def render_card_surface(
     normalized_morph_key = normalize_morph_key(morph_key)
     if normalized_morph_key == MORPH_BLACK_AND_WHITE:
         fitted = ImageOps.grayscale(fitted).convert("RGB")
+    elif normalized_morph_key == MORPH_INVERSE:
+        fitted = ImageOps.invert(fitted.convert("RGB"))
+    elif normalized_morph_key == MORPH_TINT_ROSE:
+        fitted = _apply_color_tint(fitted, color=(255, 92, 140), strength=0.24)
+    elif normalized_morph_key == MORPH_TINT_AQUA:
+        fitted = _apply_color_tint(fitted, color=(74, 214, 228), strength=0.22)
+    elif normalized_morph_key == MORPH_TINT_LIME:
+        fitted = _apply_color_tint(fitted, color=(162, 232, 80), strength=0.20)
+    elif normalized_morph_key == MORPH_TINT_WARM:
+        fitted = _apply_color_tint(fitted, color=(255, 170, 88), strength=0.30)
+    elif normalized_morph_key == MORPH_TINT_COOL:
+        fitted = _apply_color_tint(fitted, color=(98, 170, 255), strength=0.28)
+    elif normalized_morph_key == MORPH_TINT_VIOLET:
+        fitted = _apply_color_tint(fitted, color=(176, 112, 255), strength=0.32)
 
     fitted = _apply_text_legibility_overlay(
         fitted,
@@ -679,19 +744,24 @@ def render_card_surface(
         color=rarity_border_color(normalized_card_id),
         font_key=normalize_font_key(font_key),
     )
+    if normalized_morph_key == MORPH_UPSIDE_DOWN:
+        fitted = fitted.transpose(Image.Transpose.ROTATE_180)
 
     card_body = Image.new("RGBA", (body_width, body_height), (0, 0, 0, 0))
-    draw = ImageDraw.Draw(card_body)
-    draw.rounded_rectangle(
-        (0, 0, body_width - 1, body_height - 1),
-        radius=outer_radius,
-        fill=rarity_border_color(normalized_card_id),
-    )
 
-    inner_mask = Image.new("L", (inner_width, inner_height), 0)
-    inner_draw = ImageDraw.Draw(inner_mask)
-    inner_draw.rounded_rectangle((0, 0, inner_width - 1, inner_height - 1), radius=inner_radius, fill=255)
-    card_body.paste(fitted, (border_px, border_px), mask=inner_mask)
+    # Build border using an anti-aliased rounded alpha mask for smoother edges.
+    border_layer = Image.new("RGBA", (body_width, body_height), rarity_border_color(normalized_card_id) + (255,))
+    outer_mask = _antialiased_rounded_mask((body_width, body_height), outer_radius)
+    if outer_mask is not None:
+        border_layer.putalpha(outer_mask)
+
+    art_layer = Image.new("RGBA", (body_width, body_height), (0, 0, 0, 0))
+    inner_mask = _antialiased_rounded_mask((inner_width, inner_height), inner_radius)
+    if inner_mask is None:
+        inner_mask = Image.new("L", (inner_width, inner_height), 255)
+    art_layer.paste(fitted, (border_px, border_px), mask=inner_mask)
+
+    card_body = Image.alpha_composite(border_layer, art_layer)
 
     card_surface = Image.new("RGBA", (width, height), (0, 0, 0, 0))
     card_surface.paste(card_body, (body_x, body_y), card_body)
@@ -737,6 +807,7 @@ def embed_image_payload(
     morph_key: str | None = None,
     frame_key: str | None = None,
     font_key: str | None = None,
+    size: tuple[int, int] = DEFAULT_CARD_RENDER_SIZE,
 ) -> tuple[str | None, discord.File | None]:
     normalized_card_id = normalize_card_id(card_id)
     normalized_morph_key = normalize_morph_key(morph_key)
@@ -749,6 +820,7 @@ def embed_image_payload(
         morph_key=normalized_morph_key,
         frame_key=normalized_frame_key,
         font_key=normalized_font_key,
+        size=size,
     )
     if rendered_image is not None:
         morph_suffix = normalized_morph_key or "base"

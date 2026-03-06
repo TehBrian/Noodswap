@@ -29,6 +29,8 @@ class StorageTests(unittest.TestCase):
             column_names = {str(column[1]) for column in columns}
             self.assertIn("married_instance_id", column_names)
             self.assertIn("last_dropped_instance_id", column_names)
+            self.assertIn("starter", column_names)
+            self.assertIn("last_vote_reward_at", column_names)
 
             instance_columns = conn.execute("PRAGMA table_info(card_instances)").fetchall()
             instance_column_names = {str(column[1]) for column in instance_columns}
@@ -114,6 +116,34 @@ class StorageTests(unittest.TestCase):
         self.assertEqual(married_generation, 50)
         self.assertEqual(married_instance_id, instance_b)
         self.assertNotEqual(married_instance_id, instance_a)
+
+    def test_claim_vote_reward_enforces_cooldown_and_adds_starter(self) -> None:
+        guild_id = 1
+        user_id = 1234
+
+        storage.init_db()
+
+        claimed, remaining, starter_total = storage.claim_vote_reward_if_ready(
+            guild_id=guild_id,
+            user_id=user_id,
+            now=100_000.0,
+            cooldown_seconds=86_400.0,
+            reward_amount=1,
+        )
+        self.assertTrue(claimed)
+        self.assertEqual(remaining, 0.0)
+        self.assertEqual(starter_total, 1)
+
+        claimed, remaining, starter_total = storage.claim_vote_reward_if_ready(
+            guild_id=guild_id,
+            user_id=user_id,
+            now=100_001.0,
+            cooldown_seconds=86_400.0,
+            reward_amount=1,
+        )
+        self.assertFalse(claimed)
+        self.assertGreater(remaining, 0.0)
+        self.assertEqual(starter_total, 1)
 
     def test_burn_candidate_selects_highest_generation_copy(self) -> None:
         guild_id = 1
@@ -240,6 +270,42 @@ class StorageTests(unittest.TestCase):
         buyer_dough, _, _ = storage.get_player_stats(guild_id, buyer_id)
         self.assertEqual(seller_dough, 0)
         self.assertEqual(buyer_dough, 5)
+
+    def test_player_leaderboard_stats_aggregates_cards_wishes_and_value(self) -> None:
+        guild_id = 1
+        first_user = 1100
+        second_user = 1200
+
+        storage.init_db()
+        storage.add_card_to_player(guild_id, first_user, "SPG", 100)
+        storage.add_card_to_player(guild_id, first_user, "PEN", 300)
+        storage.add_card_to_player(guild_id, second_user, "SPG", 900)
+
+        storage.add_dough(guild_id, first_user, 25)
+        storage.add_dough(guild_id, second_user, 80)
+        storage.claim_vote_reward_if_ready(guild_id, first_user, now=1000.0, cooldown_seconds=1.0, reward_amount=2)
+
+        storage.add_card_to_wishlist(guild_id, first_user, "SPG")
+        storage.add_card_to_wishlist(guild_id, first_user, "PEN")
+        storage.add_card_to_wishlist(guild_id, second_user, "BAR")
+
+        rows = storage.get_player_leaderboard_stats(guild_id)
+        by_user = {row[0]: row for row in rows}
+
+        first = by_user[first_user]
+        second = by_user[second_user]
+
+        self.assertEqual(first[1], 2)
+        self.assertEqual(first[2], 2)
+        self.assertEqual(first[3], 25)
+        self.assertEqual(first[4], 2)
+        self.assertGreater(first[5], 0)
+
+        self.assertEqual(second[1], 1)
+        self.assertEqual(second[2], 1)
+        self.assertEqual(second[3], 80)
+        self.assertEqual(second[4], 0)
+        self.assertGreater(second[5], 0)
 
     def test_marry_fails_if_card_already_married_by_another_player(self) -> None:
         guild_id = 1

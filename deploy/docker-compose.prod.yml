@@ -1,0 +1,10 @@
+services:
+  bot:
+    image: ${IMAGE_REPOSITORY:?set IMAGE_REPOSITORY}:${IMAGE_TAG:-latest}
+    container_name: noodswap-bot
+    restart: unless-stopped
+    env_file:
+      - ./runtime.env
+    volumes:
+      - ./data/noodswap.db:/app/noodswap.db
+      - ./data/card_images:/app/assets/card_images

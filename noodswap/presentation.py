@@ -65,9 +65,11 @@ HELP_CATEGORY_PAGES: tuple[tuple[str, str, str], ...] = (
         "overview",
         "Overview",
         """- `ns info [player]` (`ns i`, `ni`) — View a player's stats; defaults to yourself or the replied user.
+    - `ns leaderboard` (`ns le`, `nle`) — View ranked players with selectable leaderboard criteria.
 - `ns collection [player]` (`ns c`, `nc`) — View a player's cards; defaults to yourself or the replied user.
 - `ns cards` (`ns ca`, `nca`) — View all cards, ranked by wish count.
 - `ns lookup <card_id|card_code|query>` (`ns l`, `nl`) — Look up a base card or exact dupe code.
+- `ns lookuphd <card_id|card_code|query>` (`ns lhd`, `nlhd`) — Look up a card with high-detail `1000x1400` rendering.
 - `ns help` (`ns h`, `nh`) — Open this help menu.""",
     ),
     (
@@ -75,6 +77,7 @@ HELP_CATEGORY_PAGES: tuple[tuple[str, str, str], ...] = (
         "Economy",
         """- `ns drop` (`ns d`, `nd`) — Open a drop with 3 cards and pull 1.
 - `ns cooldown [player]` (`ns cd`) — Check a player's cooldowns; defaults to yourself or the replied user.
+- `ns vote` (`ns v`, `nv`) — Open top.gg vote link and claim starter reward if your vote is detected.
 - `ns burn [card_code]` (`ns b`, `nb`) — Burn a card for dough; defaults to last pulled card.
 - `ns trade <player> <card_code> <amount>` (`ns t`, `nt`) — Offer a card-for-dough trade.""",
     ),
@@ -82,8 +85,8 @@ HELP_CATEGORY_PAGES: tuple[tuple[str, str, str], ...] = (
         "cosmetics",
         "Cosmetics",
         """- `ns morph [card_code]` (`ns mo`, `nmo`) — Spend dough to apply a random visual morph; defaults to last pulled card.
-    - `ns frame [card_code]` (`ns fr`, `nfr`) — Spend dough to apply a random cosmetic frame; defaults to last pulled card.
-    - `ns font [card_code]` (`ns fo`, `nfo`) — Spend dough to apply a random card font; defaults to last pulled card.""",
+- `ns frame [card_code]` (`ns fr`, `nfr`) — Spend dough to apply a random cosmetic frame; defaults to last pulled card.
+- `ns font [card_code]` (`ns fo`, `nfo`) — Spend dough to apply a random card font; defaults to last pulled card.""",
     ),
     (
         "wishlist",
