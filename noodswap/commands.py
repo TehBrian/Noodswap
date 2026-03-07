@@ -267,14 +267,17 @@ SLOTS_MAX_REWARD = 3
 
 
 def _slots_reel_line(symbols: list[str]) -> str:
-    return "  |  ".join(symbols)
+    return "".join(symbols)
+
+
+def _slots_match_emoji(symbols: list[str]) -> str:
+    return "✅" if len(set(symbols)) == 1 else "❌"
 
 
 def _slots_reel_content(symbols: list[str], result_emoji: str | None = None) -> str:
     line = _slots_reel_line(symbols)
-    if result_emoji is not None:
-        return f"{line} {result_emoji}"
-    return line
+    status_emoji = result_emoji if result_emoji is not None else _slots_match_emoji(symbols)
+    return f"{line}{status_emoji}"
 
 
 def _slots_embed(status_lines: list[str]) -> discord.Embed:
