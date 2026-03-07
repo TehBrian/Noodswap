@@ -20,7 +20,11 @@ pipeline {
       steps {
         checkout scm
         script {
-          env.DEPLOY_IMAGE_TAG = sh(script: 'git rev-parse HEAD', returnStdout: true).trim()
+          String resolvedTag = (env.GIT_COMMIT ?: sh(script: 'git rev-parse HEAD', returnStdout: true)).trim()
+          if (!resolvedTag) {
+            error('Failed to resolve DEPLOY_IMAGE_TAG from checkout (GIT_COMMIT and git rev-parse were empty).')
+          }
+          env.DEPLOY_IMAGE_TAG = resolvedTag
           echo "Resolved deploy image tag: ${env.DEPLOY_IMAGE_TAG}"
         }
       }
@@ -41,6 +45,11 @@ pipeline {
         ]) {
           sh '''#!/usr/bin/env bash
             set -euo pipefail
+
+            if [ -z "${DEPLOY_IMAGE_TAG:-}" ]; then
+              echo "DEPLOY_IMAGE_TAG is empty or unset after Checkout; aborting deploy wait." >&2
+              exit 1
+            fi
 
             image_ref="${IMAGE_REPOSITORY}:${DEPLOY_IMAGE_TAG}"
             echo "Waiting for image to become available: ${image_ref}"
@@ -82,6 +91,11 @@ pipeline {
           sh '''#!/usr/bin/env bash
             set -euo pipefail
 
+            if [ -z "${DEPLOY_IMAGE_TAG:-}" ]; then
+              echo "DEPLOY_IMAGE_TAG is empty or unset after Checkout; aborting deploy." >&2
+              exit 1
+            fi
+
             cd "${DEPLOY_PATH}"
             echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USERNAME" --password-stdin
             IMAGE_REPOSITORY="${IMAGE_REPOSITORY}" IMAGE_TAG="${DEPLOY_IMAGE_TAG}" ./deploy/update.sh
@@ -99,6 +113,11 @@ pipeline {
       steps {
         sh '''#!/usr/bin/env bash
           set -euo pipefail
+
+          if [ -z "${DEPLOY_IMAGE_TAG:-}" ]; then
+            echo "DEPLOY_IMAGE_TAG is empty or unset after Checkout; cannot verify running image." >&2
+            exit 1
+          fi
 
           expected_image="${IMAGE_REPOSITORY}:${DEPLOY_IMAGE_TAG}"
           container_name="noodswap-bot"
