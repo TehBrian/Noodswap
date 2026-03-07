@@ -6,11 +6,5 @@ services:
     restart: unless-stopped
     env_file:
       - ./runtime.env
-    environment:
-      - NOODSWAP_ASSETS_DIR=/app/deploy/assets
-      - NOODSWAP_DB_PATH=/app/deploy/assets/noodswap.db
-      - NOODSWAP_CARD_FONTS_DIR=/app/deploy/assets/fonts
-      - NOODSWAP_CARD_IMAGES_DIR=/app/deploy/assets/card_images
-      - NOODSWAP_FRAME_OVERLAYS_DIR=/app/deploy/assets/frame_overlays
     volumes:
-      - ./assets:/app/deploy/assets
+      - ../runtime:/app/runtime

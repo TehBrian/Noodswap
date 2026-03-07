@@ -8,7 +8,7 @@ This file is the primary handoff guide for AI coding agents working on Noodswap.
 - **Runtime:** Python 3.14+ (currently validated on 3.14.3)
 - **Entrypoint:** `bot.py` (thin launcher)
 - **Main package:** `noodswap/`
-- **State storage:** Local SQLite database (`noodswap.db` at repo root)
+- **State storage:** Local SQLite database (`runtime/db/noodswap.db` by default)
 - **Command prefix:** `ns `
 
 ## 2) Fast Onboarding Checklist
@@ -59,17 +59,16 @@ This file is the primary handoff guide for AI coding agents working on Noodswap.
 Primary tables (see `docs/data-model.md` for details):
 - `players(guild_id, user_id, dough, last_pull_at, married_instance_id, married_card_id, last_dropped_instance_id)` (`last_dropped_instance_id` stores the last pulled instance)
 - `card_instances(instance_id, guild_id, user_id, card_id, generation)`
-- legacy `player_cards` may still exist for migration compatibility.
 
 Migration behavior in `init_db()`:
 - Uses `schema_migrations` table to track current schema version.
 - Applies ordered migration steps up to `TARGET_SCHEMA_VERSION`.
-- Current `v1` ensures required columns and backfills `card_instances` from legacy `player_cards` if instances table is empty.
+- Current `v1` ensures required columns and required core tables.
 
 ## 6) High-Risk Change Areas
 
 - `noodswap/storage.py`: ownership, marriage integrity, and trade safety.
-- `noodswap/migrations.py`: migration safety/versioning and legacy backfill behavior.
+- `noodswap/migrations.py`: migration safety/versioning and schema transition behavior.
 - `noodswap/repositories.py`: SQL behavior changes affecting ownership/trade/marriage semantics.
 - `noodswap/views.py`: interaction race conditions and timeout behavior.
 - `noodswap/commands.py`: UX consistency, embeds, and argument handling.
@@ -87,7 +86,7 @@ When making non-trivial changes:
 ## 8) Common Tasks
 
 - **Add card:** add metadata in `noodswap/data/cards.json`, then run `.venv/bin/python scripts/rebalance_base_values.py --mode missing` to fill only absent base values.
-   - No need to add default/local image assets up front; fallback image behavior is acceptable and card images can be pulled later.
+   - Keep image paths under `runtime/card_images`; image files can be populated later.
    - General flow: add card metadata -> run missing-only rebalance -> skip image creation for now.
 - **Tune pull odds:** edit `RARITY_WEIGHTS` in `noodswap/rarities.py`.
 - **Change cooldown:** edit `PULL_COOLDOWN_SECONDS` in `noodswap/settings.py`.

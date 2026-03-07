@@ -5,7 +5,7 @@ This document describes persistent storage for Noodswap.
 ## Database
 
 - Engine: SQLite
-- File location: `deploy/assets/noodswap.db` by default (overridable via `NOODSWAP_DB_PATH`)
+- File location: `runtime/db/noodswap.db`
 - Access: through functions in `noodswap/storage.py`
 
 ## Tables
@@ -23,9 +23,9 @@ Columns:
 - `last_drop_at REAL NOT NULL DEFAULT 0` (tracks last `drop` command usage timestamp)
 - `last_pull_at REAL NOT NULL DEFAULT 0` (tracks last successful drop-card claim timestamp)
 - `last_vote_reward_at REAL NOT NULL DEFAULT 0` (tracks last successful starter claim from top.gg vote)
-- `married_card_id TEXT` (legacy compatibility)
+- `married_card_id TEXT`
 - `married_instance_id INTEGER` (current marriage reference)
-- `last_dropped_instance_id INTEGER` (legacy column name; stores last pulled instance for arg-less `burn`/`marry`)
+- `last_dropped_instance_id INTEGER` (stores last pulled instance for arg-less `burn`/`marry`)
 
 Purpose:
 - Player economy and cooldown state in the global Noodswap scope
@@ -55,15 +55,6 @@ Purpose:
 Indexes:
 - `idx_card_instances_owner(guild_id, user_id, card_id, generation)`
 - `idx_card_instances_dupe_code(dupe_code)` (unique where `dupe_code` is not null)
-
-### player_cards (legacy)
-
-This table may still exist and is used for migration compatibility.
-
-Columns:
-- `guild_id, user_id, card_id, quantity`
-
-Current logic uses `card_instances` for gameplay.
 
 ### schema_migrations
 
@@ -129,9 +120,8 @@ Purpose:
 
 Current migration set:
 - `v1`:
-	- Ensures core tables and indexes exist (`players`, `player_cards`, `card_instances`).
+	- Ensures core tables and indexes exist (`players`, `card_instances`).
 	- Ensures `players.married_instance_id` and `players.last_dropped_instance_id` exist.
-	- If `card_instances` is empty, backfills from legacy `player_cards` by creating one generated instance per quantity.
 - `v2`:
 	- Adds `wishlist_cards` table and owner index.
 - `v3`:
@@ -144,7 +134,7 @@ Current migration set:
 	- Reassigns `dupe_code` globally across all instances using ascending base36.
 	- Enforces global `dupe_code` uniqueness.
 - `v5`:
-	- Renames legacy `card_instances.dupe_id` to `card_instances.dupe_code` for terminology consistency.
+	- Ensures `card_instances.dupe_code` exists and is indexed.
 	- Rebuilds duplicate-code uniqueness index as `idx_card_instances_dupe_code`.
 - `v6`:
 	- Adds `players.last_drop_at` and resets `players.last_pull_at` to support split drop vs pull cooldown tracking.
@@ -158,7 +148,7 @@ Current migration set:
 - `v10`:
 	- Adds `card_instances.font_key` to persist per-instance visual font state.
 - `v11`:
-	- Normalizes legacy `card_instances.font_key = 'classic'` records to `NULL` because `Classic` is now the default non-modifier style.
+	- Reserved migration step (no schema changes).
 - `v12`:
 	- Adds `players.starter` for top.gg vote rewards.
 	- Adds `players.last_vote_reward_at` for vote reward cooldown tracking.

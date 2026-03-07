@@ -8,7 +8,7 @@ class CardsImageTests(unittest.TestCase):
         missing_local_path_ids = [
             card_id
             for card_id, card in CARD_CATALOG.items()
-            if not isinstance(card.get("image"), str) or not card["image"].startswith("assets/card_images/")
+            if not isinstance(card.get("image"), str) or not card["image"].startswith("runtime/card_images/")
         ]
         self.assertEqual(missing_local_path_ids, [])
 
@@ -21,7 +21,7 @@ class CardsImageTests(unittest.TestCase):
         self.assertEqual(remote_ids, [])
 
     def test_default_card_image_is_local_placeholder_path(self) -> None:
-        self.assertEqual(default_card_image("SPG"), "assets/card_images/SPG.img")
+        self.assertEqual(default_card_image("SPG"), "runtime/card_images/SPG.img")
 
 
 class CardsSeriesTests(unittest.TestCase):

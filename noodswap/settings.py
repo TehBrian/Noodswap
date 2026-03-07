@@ -17,37 +17,19 @@ GENERATION_MIN = 1
 GENERATION_MAX = 2000
 DB_LOCK_TIMEOUT_SECONDS = 5.0
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-ASSETS_DIR = Path(
-	os.getenv(
-		"NOODSWAP_ASSETS_DIR",
-		str(PROJECT_ROOT / "deploy" / "assets"),
-	)
-)
-DB_PATH = Path(
-	os.getenv(
-		"NOODSWAP_DB_PATH",
-		str(ASSETS_DIR / "noodswap.db"),
-	)
-)
-CARD_IMAGE_DIR = Path(
-	os.getenv(
-		"NOODSWAP_CARD_IMAGES_DIR",
-		str(ASSETS_DIR / "card_images"),
-	)
-)
+APP_ASSETS_DIR = PROJECT_ROOT / "assets"
+
+
+def _resolve_path(value: str) -> Path:
+	return Path(value).expanduser().resolve()
+
+
+RUNTIME_DIR = _resolve_path(os.getenv("DATA_DIR", str(PROJECT_ROOT / "runtime")))
+DB_PATH = _resolve_path(os.getenv("SQLITE_PATH", str(RUNTIME_DIR / "db" / "noodswap.db")))
+CARD_IMAGE_DIR = _resolve_path(os.getenv("IMAGE_DIR", str(RUNTIME_DIR / "card_images")))
 CARD_IMAGE_MANIFEST = CARD_IMAGE_DIR / "manifest.json"
-CARD_FONTS_DIR = Path(
-	os.getenv(
-		"NOODSWAP_CARD_FONTS_DIR",
-		str(ASSETS_DIR / "fonts"),
-	)
-)
-FRAME_OVERLAYS_DIR = Path(
-	os.getenv(
-		"NOODSWAP_FRAME_OVERLAYS_DIR",
-		str(ASSETS_DIR / "frame_overlays"),
-	)
-)
+CARD_FONTS_DIR = APP_ASSETS_DIR / "fonts"
+FRAME_OVERLAYS_DIR = APP_ASSETS_DIR / "frame_overlays"
 
 # Card body height / width ratio used by the in-canvas renderer.
 # 1.4 corresponds to a standard 5:7 (width:height) card body ratio.

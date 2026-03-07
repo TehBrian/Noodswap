@@ -32,6 +32,7 @@ done
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 if [ ! -f "$SCRIPT_DIR/.env" ]; then
   echo "Missing $SCRIPT_DIR/.env (copy from .env.example and set IMAGE_REPOSITORY)." >&2
@@ -51,57 +52,34 @@ if [ -n "$IMAGE_TAG_OVERRIDE" ]; then
   export IMAGE_TAG="$IMAGE_TAG_OVERRIDE"
 fi
 
-mkdir -p "$SCRIPT_DIR/assets/card_images"
-mkdir -p "$SCRIPT_DIR/assets/fonts"
-mkdir -p "$SCRIPT_DIR/assets/frame_overlays"
-DB_PATH="$SCRIPT_DIR/assets/noodswap.db"
-CARD_IMAGE_DATA_DIR="$SCRIPT_DIR/assets/card_images"
-REPO_CARD_IMAGE_DIR="$SCRIPT_DIR/../assets/card_images"
-CARD_FONT_DATA_DIR="$SCRIPT_DIR/assets/fonts"
-FRAME_OVERLAY_DATA_DIR="$SCRIPT_DIR/assets/frame_overlays"
+RUNTIME_DIR="$REPO_ROOT/runtime"
+RUNTIME_DB_DIR="$RUNTIME_DIR/db"
+RUNTIME_IMAGE_DIR="$RUNTIME_DIR/card_images"
+RUNTIME_LOG_DIR="$RUNTIME_DIR/logs"
+RUNTIME_CACHE_DIR="$RUNTIME_DIR/cache"
+SEED_DB_PATH="$REPO_ROOT/data/seeds/noodswap.seed.db"
+SEED_IMAGE_DIR="$REPO_ROOT/data/seeds/card_images"
 
-target_manifest="$CARD_IMAGE_DATA_DIR/manifest.json"
-source_manifest="$REPO_CARD_IMAGE_DIR/manifest.json"
-target_entries_count=$(find "$CARD_IMAGE_DATA_DIR" -mindepth 1 -maxdepth 1 | wc -l | tr -d ' ')
+mkdir -p "$RUNTIME_DB_DIR"
+mkdir -p "$RUNTIME_IMAGE_DIR"
+mkdir -p "$RUNTIME_LOG_DIR"
+mkdir -p "$RUNTIME_CACHE_DIR"
 
-if [ -f "$source_manifest" ] && {
-  [ ! -s "$target_manifest" ] || [ "$target_entries_count" -lt 2 ];
-}; then
-  echo "Seeding card image cache into $CARD_IMAGE_DATA_DIR"
-  cp -a "$REPO_CARD_IMAGE_DIR/." "$CARD_IMAGE_DATA_DIR/"
-fi
+DB_PATH="$RUNTIME_DB_DIR/noodswap.db"
 
 if [ ! -f "$DB_PATH" ]; then
-  LEGACY_DB_PATHS=(
-    "$SCRIPT_DIR/data/noodswap.db"
-    "$SCRIPT_DIR/noodswap.db"
-    "$SCRIPT_DIR/../noodswap.db"
-  )
-  for legacy in "${LEGACY_DB_PATHS[@]}"; do
-    if [ -s "$legacy" ]; then
-      cp "$legacy" "$DB_PATH"
-      echo "Migrated existing DB from $legacy to $DB_PATH"
-      break
-    fi
-  done
-fi
-
-if [ ! -f "$DB_PATH" ]; then
-  touch "$DB_PATH"
-  echo "No existing DB found; created new empty DB at $DB_PATH"
-fi
-
-if [ -d "$SCRIPT_DIR/assets/card_fonts" ] && [ -z "$(find "$CARD_FONT_DATA_DIR" -mindepth 1 -maxdepth 1 2>/dev/null)" ]; then
-  cp -a "$SCRIPT_DIR/assets/card_fonts/." "$CARD_FONT_DATA_DIR/"
-  echo "Migrated legacy card fonts from $SCRIPT_DIR/assets/card_fonts to $CARD_FONT_DATA_DIR"
-fi
-
-if [ -d "$SCRIPT_DIR/data" ] && [ ! -e "$SCRIPT_DIR/assets/.migrated-from-data" ]; then
-  if [ -d "$SCRIPT_DIR/data/card_fonts" ] && [ -z "$(find "$CARD_FONT_DATA_DIR" -mindepth 1 -maxdepth 1 2>/dev/null)" ]; then
-    cp -a "$SCRIPT_DIR/data/card_fonts/." "$CARD_FONT_DATA_DIR/"
-    echo "Migrated legacy card fonts from $SCRIPT_DIR/data/card_fonts to $CARD_FONT_DATA_DIR"
+  if [ -s "$SEED_DB_PATH" ]; then
+    cp "$SEED_DB_PATH" "$DB_PATH"
+    echo "No existing DB found; seeded runtime DB from $SEED_DB_PATH"
+  else
+    touch "$DB_PATH"
+    echo "No existing DB found; created new empty DB at $DB_PATH"
   fi
-  touch "$SCRIPT_DIR/assets/.migrated-from-data"
+fi
+
+if [ -d "$SEED_IMAGE_DIR" ] && ! find "$RUNTIME_IMAGE_DIR" -mindepth 1 -not -name '.gitkeep' -print -quit | grep -q .; then
+  cp -R "$SEED_IMAGE_DIR"/. "$RUNTIME_IMAGE_DIR"/
+  echo "Runtime card image cache initialized from $SEED_IMAGE_DIR"
 fi
 
 if [ ! -s "$DB_PATH" ]; then
@@ -111,15 +89,15 @@ fi
 # Run container using the same UID/GID as the deploy user so bind-mounted data stays writable.
 export BOT_UID="${BOT_UID:-$(id -u)}"
 export BOT_GID="${BOT_GID:-$(id -g)}"
-if ! chown -R "$BOT_UID:$BOT_GID" "$SCRIPT_DIR/assets" 2>/dev/null; then
-  echo "Warning: could not chown $SCRIPT_DIR/assets to $BOT_UID:$BOT_GID (insufficient privileges)." >&2
+if ! chown -R "$BOT_UID:$BOT_GID" "$RUNTIME_DIR" 2>/dev/null; then
+  echo "Warning: could not chown $RUNTIME_DIR to $BOT_UID:$BOT_GID (insufficient privileges)." >&2
   echo "If the bot still fails with readonly SQLite errors, run:" >&2
-  echo "  sudo chown -R $BOT_UID:$BOT_GID $SCRIPT_DIR/assets" >&2
+  echo "  sudo chown -R $BOT_UID:$BOT_GID $RUNTIME_DIR" >&2
 fi
 chmod 664 "$DB_PATH" || true
-chmod 775 "$SCRIPT_DIR/assets/card_images" || true
-chmod 775 "$CARD_FONT_DATA_DIR" || true
-chmod 775 "$FRAME_OVERLAY_DATA_DIR" || true
+chmod 775 "$RUNTIME_IMAGE_DIR" || true
+chmod 775 "$RUNTIME_LOG_DIR" || true
+chmod 775 "$RUNTIME_CACHE_DIR" || true
 
 docker compose -f "$SCRIPT_DIR/docker-compose.prod.yml" pull
 

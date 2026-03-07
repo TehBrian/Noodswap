@@ -7,5 +7,7 @@ tests
 docs
 .VSCodeCounter
 noodswap.db
-assets
+runtime
+data/seeds
+data/testdata
 *.DS_Store

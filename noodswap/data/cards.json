@@ -1,1284 +1,1284 @@
 {
   "AER": {
-    "image": "assets/card_images/AER.img",
+    "image": "runtime/card_images/AER.img",
     "name": "Aether Truffle Relic",
     "rarity": "celestial",
     "series": "ingredient"
   },
   "AFF": {
-    "image": "assets/card_images/AFF.jpg",
+    "image": "runtime/card_images/AFF.jpg",
     "name": "Affogato",
     "rarity": "rare",
     "series": "dessert"
   },
   "AGL": {
-    "image": "assets/card_images/AGL.jpg",
+    "image": "runtime/card_images/AGL.jpg",
     "name": "Aglianico",
     "rarity": "rare",
     "series": "wine"
   },
   "AGN": {
-    "image": "assets/card_images/AGN.jpg",
+    "image": "runtime/card_images/AGN.jpg",
     "name": "Agnolotti",
     "rarity": "rare",
     "series": "noodle"
   },
   "ALF": {
-    "image": "assets/card_images/ALF.png",
+    "image": "runtime/card_images/ALF.png",
     "name": "Chicken Alfredo",
     "rarity": "rare",
     "series": "entree"
   },
   "AMB": {
-    "image": "assets/card_images/AMB.jpg",
+    "image": "runtime/card_images/AMB.jpg",
     "name": "Ambrosia Tiramisu",
     "rarity": "mythic",
     "series": "dessert"
   },
   "AMS": {
-    "image": "assets/card_images/AMS.jpg",
+    "image": "runtime/card_images/AMS.jpg",
     "name": "Amarone Riserva",
     "rarity": "legendary",
     "series": "wine"
   },
   "ANG": {
-    "image": "assets/card_images/ANG.jpg",
+    "image": "runtime/card_images/ANG.jpg",
     "name": "Angel Hair",
     "rarity": "common",
     "series": "noodle"
   },
   "ANO": {
-    "image": "assets/card_images/ANO.jpg",
+    "image": "runtime/card_images/ANO.jpg",
     "name": "Anolini",
     "rarity": "rare",
     "series": "noodle"
   },
   "APL": {
-    "image": "assets/card_images/APL.png",
+    "image": "runtime/card_images/APL.png",
     "name": "Apple Pie",
     "rarity": "common",
     "series": "dessert"
   },
   "ARB": {
-    "image": "assets/card_images/ARB.jpg",
+    "image": "runtime/card_images/ARB.jpg",
     "name": "Arancini",
     "rarity": "rare",
     "series": "entree"
   },
   "ASI": {
-    "image": "assets/card_images/ASI.jpg",
+    "image": "runtime/card_images/ASI.jpg",
     "name": "Asiago",
     "rarity": "uncommon",
     "series": "cheese"
   },
   "ATL": {
-    "image": "assets/card_images/ATL.img",
+    "image": "runtime/card_images/ATL.img",
     "name": "Atlas Cedar Honey",
     "rarity": "mythic",
     "series": "ingredient"
   },
   "BAG": {
-    "image": "assets/card_images/BAG.jpg",
+    "image": "runtime/card_images/BAG.jpg",
     "name": "Baguette",
     "rarity": "common",
     "series": "bread"
   },
   "BAK": {
-    "image": "assets/card_images/BAK.jpg",
+    "image": "runtime/card_images/BAK.jpg",
     "name": "Baklava",
     "rarity": "rare",
     "series": "dessert"
   },
   "BAR": {
-    "image": "assets/card_images/BAR.jpg",
+    "image": "runtime/card_images/BAR.jpg",
     "name": "Barolo",
     "rarity": "epic",
     "series": "wine"
   },
   "BAT": {
-    "image": "assets/card_images/BAT.jpg",
+    "image": "runtime/card_images/BAT.jpg",
     "name": "Batard",
     "rarity": "rare",
     "series": "bread"
   },
   "BCP": {
-    "image": "assets/card_images/BCP.jpg",
+    "image": "runtime/card_images/BCP.jpg",
     "name": "Banana Cream Pie",
     "rarity": "common",
     "series": "dessert"
   },
   "BCT": {
-    "image": "assets/card_images/BCT.jpg",
+    "image": "runtime/card_images/BCT.jpg",
     "name": "Bucatini",
     "rarity": "common",
     "series": "noodle"
   },
   "BFL": {
-    "image": "assets/card_images/BFL.jpg",
+    "image": "runtime/card_images/BFL.jpg",
     "name": "Bistecca Fiorentina",
     "rarity": "rare",
     "series": "entree"
   },
   "BGL": {
-    "image": "assets/card_images/BGL.jpg",
+    "image": "runtime/card_images/BGL.jpg",
     "name": "Bagel",
     "rarity": "common",
     "series": "bread"
   },
   "BIS": {
-    "image": "assets/card_images/BIS.jpg",
+    "image": "runtime/card_images/BIS.jpg",
     "name": "Biscotti",
     "rarity": "common",
     "series": "dessert"
   },
   "BLA": {
-    "image": "assets/card_images/BLA.jpg",
+    "image": "runtime/card_images/BLA.jpg",
     "name": "Black Truffle Ravioli",
     "rarity": "legendary",
     "series": "noodle"
   },
   "BLD": {
-    "image": "assets/card_images/BLD.jpg",
+    "image": "runtime/card_images/BLD.jpg",
     "name": "Blondie",
     "rarity": "uncommon",
     "series": "dessert"
   },
   "BLM": {
-    "image": "assets/card_images/BLM.img",
+    "image": "runtime/card_images/BLM.img",
     "name": "Blue Lotus of the Nile",
     "rarity": "divine",
     "series": "ingredient"
   },
   "BLN": {
-    "image": "assets/card_images/BLN.jpg",
+    "image": "runtime/card_images/BLN.jpg",
     "name": "Black Garlic Noodles",
     "rarity": "common",
     "series": "noodle"
   },
   "BLP": {
-    "image": "assets/card_images/BLP.jpg",
+    "image": "runtime/card_images/BLP.jpg",
     "name": "Black Pepper Pappardelle",
     "rarity": "epic",
     "series": "noodle"
   },
   "BNS": {
-    "image": "assets/card_images/BNS.jpg",
+    "image": "runtime/card_images/BNS.jpg",
     "name": "Bread Pudding",
     "rarity": "uncommon",
     "series": "dessert"
   },
   "BOL": {
-    "image": "assets/card_images/BOL.jpg",
+    "image": "runtime/card_images/BOL.jpg",
     "name": "Bolillo",
     "rarity": "common",
     "series": "bread"
   },
   "BPD": {
-    "image": "assets/card_images/BPD.jpg",
+    "image": "runtime/card_images/BPD.jpg",
     "name": "Banana Pudding",
     "rarity": "common",
     "series": "dessert"
   },
   "BRC": {
-    "image": "assets/card_images/BRC.jpg",
+    "image": "runtime/card_images/BRC.jpg",
     "name": "Burrata",
     "rarity": "epic",
     "series": "cheese"
   },
   "BRE": {
-    "image": "assets/card_images/BRE.jpg",
+    "image": "runtime/card_images/BRE.jpg",
     "name": "Breadsticks",
     "rarity": "uncommon",
     "series": "bread"
   },
   "BRI": {
-    "image": "assets/card_images/BRI.jpg",
+    "image": "runtime/card_images/BRI.jpg",
     "name": "Brie",
     "rarity": "uncommon",
     "series": "cheese"
   },
   "BRI2": {
-    "image": "assets/card_images/BRI2.jpg",
+    "image": "runtime/card_images/BRI2.jpg",
     "name": "Brioche",
     "rarity": "common",
     "series": "bread"
   },
   "BRS": {
-    "image": "assets/card_images/BRS.jpg",
+    "image": "runtime/card_images/BRS.jpg",
     "name": "Barbaresco",
     "rarity": "rare",
     "series": "wine"
   },
   "BRU": {
-    "image": "assets/card_images/BRU.jpg",
+    "image": "runtime/card_images/BRU.jpg",
     "name": "Brunello",
     "rarity": "epic",
     "series": "wine"
   },
   "BRW": {
-    "image": "assets/card_images/BRW.jpg",
+    "image": "runtime/card_images/BRW.jpg",
     "name": "Brownie",
     "rarity": "common",
     "series": "dessert"
   },
   "BSC": {
-    "image": "assets/card_images/BSC.jpg",
+    "image": "runtime/card_images/BSC.jpg",
     "name": "Basque Cheesecake",
     "rarity": "epic",
     "series": "dessert"
   },
   "BTA": {
-    "image": "assets/card_images/BTA.jpg",
+    "image": "runtime/card_images/BTA.jpg",
     "name": "Baked Alaska",
     "rarity": "epic",
     "series": "dessert"
   },
   "BUN": {
-    "image": "assets/card_images/BUN.jpg",
+    "image": "runtime/card_images/BUN.jpg",
     "name": "Brioche Bun",
     "rarity": "common",
     "series": "bread"
   },
   "CAC": {
-    "image": "assets/card_images/CAC.jpg",
+    "image": "runtime/card_images/CAC.jpg",
     "name": "Caciocavallo",
     "rarity": "common",
     "series": "cheese"
   },
   "CAG": {
-    "image": "assets/card_images/CAG.jpg",
+    "image": "runtime/card_images/CAG.jpg",
     "name": "Chicken Alfredo Garlic Bread",
     "rarity": "legendary",
     "series": "entree"
   },
   "CAN": {
-    "image": "assets/card_images/CAN.png",
+    "image": "runtime/card_images/CAN.png",
     "name": "Cannelloni",
     "rarity": "epic",
     "series": "noodle"
   },
   "CAP": {
-    "image": "assets/card_images/CAP.jpg",
+    "image": "runtime/card_images/CAP.jpg",
     "name": "Capellini",
     "rarity": "common",
     "series": "noodle"
   },
   "CAS": {
-    "image": "assets/card_images/CAS.jpg",
+    "image": "runtime/card_images/CAS.jpg",
     "name": "Casarecce",
     "rarity": "rare",
     "series": "noodle"
   },
   "CAT": {
-    "image": "assets/card_images/CAT.jpg",
+    "image": "runtime/card_images/CAT.jpg",
     "name": "Caciotta al Tartufo",
     "rarity": "epic",
     "series": "cheese"
   },
   "CBB": {
-    "image": "assets/card_images/CBB.jpg",
+    "image": "runtime/card_images/CBB.jpg",
     "name": "Berry Cobbler",
     "rarity": "uncommon",
     "series": "dessert"
   },
   "CBR": {
-    "image": "assets/card_images/CBR.jpg",
+    "image": "runtime/card_images/CBR.jpg",
     "name": "Creme Brulee",
     "rarity": "rare",
     "series": "dessert"
   },
   "CHA": {
-    "image": "assets/card_images/CHA.jpg",
+    "image": "runtime/card_images/CHA.jpg",
     "name": "Champagne",
     "rarity": "epic",
     "series": "wine"
   },
   "CHB": {
-    "image": "assets/card_images/CHB.jpg",
+    "image": "runtime/card_images/CHB.jpg",
     "name": "Chardonnay",
     "rarity": "common",
     "series": "wine"
   },
   "CHD": {
-    "image": "assets/card_images/CHD.jpg",
+    "image": "runtime/card_images/CHD.jpg",
     "name": "Cheddar",
     "rarity": "common",
     "series": "cheese"
   },
   "CHI": {
-    "image": "assets/card_images/CHI.jpg",
+    "image": "runtime/card_images/CHI.jpg",
     "name": "Ciabatta",
     "rarity": "uncommon",
     "series": "bread"
   },
   "CHJ": {
-    "image": "assets/card_images/CHJ.jpg",
+    "image": "runtime/card_images/CHJ.jpg",
     "name": "Cheddar Jack",
     "rarity": "uncommon",
     "series": "cheese"
   },
   "CHK": {
-    "image": "assets/card_images/CHK.jpg",
+    "image": "runtime/card_images/CHK.jpg",
     "name": "Chocolate Chip Cookie",
     "rarity": "common",
     "series": "dessert"
   },
   "CHL": {
-    "image": "assets/card_images/CHL.jpg",
+    "image": "runtime/card_images/CHL.jpg",
     "name": "Chocolate Lasagna",
     "rarity": "rare",
     "series": "dessert"
   },
   "CHM": {
-    "image": "assets/card_images/CHM.jpg",
+    "image": "runtime/card_images/CHM.jpg",
     "name": "Chow Mein",
     "rarity": "uncommon",
     "series": "noodle"
   },
   "CHR": {
-    "image": "assets/card_images/CHR.jpg",
+    "image": "runtime/card_images/CHR.jpg",
     "name": "Churro",
     "rarity": "common",
     "series": "dessert"
   },
   "CHS": {
-    "image": "assets/card_images/CHS.jpg",
+    "image": "runtime/card_images/CHS.jpg",
     "name": "Cheesecake",
     "rarity": "rare",
     "series": "dessert"
   },
   "CKP": {
-    "image": "assets/card_images/CKP.jpg",
+    "image": "runtime/card_images/CKP.jpg",
     "name": "Chicken Parmesan",
     "rarity": "rare",
     "series": "entree"
   },
   "CNO": {
-    "image": "assets/card_images/CNO.jpg",
+    "image": "runtime/card_images/CNO.jpg",
     "name": "Cannoli",
     "rarity": "uncommon",
     "series": "dessert"
   },
   "CNT": {
-    "image": "assets/card_images/CNT.jpg",
+    "image": "runtime/card_images/CNT.jpg",
     "name": "Chianti",
     "rarity": "common",
     "series": "wine"
   },
   "COL": {
-    "image": "assets/card_images/COL.jpg",
+    "image": "runtime/card_images/COL.jpg",
     "name": "Colby",
     "rarity": "common",
     "series": "cheese"
   },
   "CON": {
-    "image": "assets/card_images/CON.jpg",
+    "image": "runtime/card_images/CON.jpg",
     "name": "Conchiglie",
     "rarity": "common",
     "series": "noodle"
   },
   "CPL": {
-    "image": "assets/card_images/CPL.jpg",
+    "image": "runtime/card_images/CPL.jpg",
     "name": "Cappelletti",
     "rarity": "uncommon",
     "series": "noodle"
   },
   "CPN": {
-    "image": "assets/card_images/CPN.jpg",
+    "image": "runtime/card_images/CPN.jpg",
     "name": "Campanelle",
     "rarity": "uncommon",
     "series": "noodle"
   },
   "CPR": {
-    "image": "assets/card_images/CPR.jpg",
+    "image": "runtime/card_images/CPR.jpg",
     "name": "Cappellini Rustica",
     "rarity": "common",
     "series": "noodle"
   },
   "CRB": {
-    "image": "assets/card_images/CRB.jpg",
+    "image": "runtime/card_images/CRB.jpg",
     "name": "Crusty Roll",
     "rarity": "common",
     "series": "bread"
   },
   "CRO": {
-    "image": "assets/card_images/CRO.jpg",
+    "image": "runtime/card_images/CRO.jpg",
     "name": "Crostini",
     "rarity": "uncommon",
     "series": "bread"
   },
   "CRP": {
-    "image": "assets/card_images/CRP.jpg",
+    "image": "runtime/card_images/CRP.jpg",
     "name": "Cherry Pie",
     "rarity": "common",
     "series": "dessert"
   },
   "CSP": {
-    "image": "assets/card_images/CSP.jpg",
+    "image": "runtime/card_images/CSP.jpg",
     "name": "Crown Stuffed Pasta",
     "rarity": "divine",
     "series": "noodle"
   },
   "CUP": {
-    "image": "assets/card_images/CUP.jpg",
+    "image": "runtime/card_images/CUP.jpg",
     "name": "Cupcake",
     "rarity": "common",
     "series": "dessert"
   },
   "DNT": {
-    "image": "assets/card_images/DNT.jpg",
+    "image": "runtime/card_images/DNT.jpg",
     "name": "Donut",
     "rarity": "common",
     "series": "dessert"
   },
   "DTP": {
-    "image": "assets/card_images/DTP.jpg",
+    "image": "runtime/card_images/DTP.jpg",
     "name": "Ditalini",
     "rarity": "common",
     "series": "noodle"
   },
   "DTV": {
-    "image": "assets/card_images/DTV.jpg",
+    "image": "runtime/card_images/DTV.jpg",
     "name": "Ditaloni Verdi",
     "rarity": "common",
     "series": "noodle"
   },
   "DVE": {
-    "image": "assets/card_images/DVE.jpg",
+    "image": "runtime/card_images/DVE.jpg",
     "name": "Deviled Egg",
     "rarity": "uncommon",
     "series": "entree"
   },
   "EBG": {
-    "image": "assets/card_images/EBG.jpg",
+    "image": "runtime/card_images/EBG.jpg",
     "name": "Everything Bagel",
     "rarity": "common",
     "series": "bread"
   },
   "ECL": {
-    "image": "assets/card_images/ECL.jpg",
+    "image": "runtime/card_images/ECL.jpg",
     "name": "Eclair",
     "rarity": "uncommon",
     "series": "dessert"
   },
   "EGG": {
-    "image": "assets/card_images/EGG.jpg",
+    "image": "runtime/card_images/EGG.jpg",
     "name": "Egg Noodles",
     "rarity": "common",
     "series": "noodle"
   },
   "EMV": {
-    "image": "assets/card_images/EMV.jpg",
+    "image": "runtime/card_images/EMV.jpg",
     "name": "Emperor's Vineyard",
     "rarity": "celestial",
     "series": "wine"
   },
   "EPA": {
-    "image": "assets/card_images/EPA.jpg",
+    "image": "runtime/card_images/EPA.jpg",
     "name": "Eggplant Parmigiana",
     "rarity": "uncommon",
     "series": "entree"
   },
   "ESC": {
-    "image": "assets/card_images/ESC.jpg",
+    "image": "runtime/card_images/ESC.jpg",
     "name": "Extra Sharp Cheddar",
     "rarity": "epic",
     "series": "cheese"
   },
   "EXB": {
-    "image": "assets/card_images/EXB.jpg",
+    "image": "runtime/card_images/EXB.jpg",
     "name": "Exotic Butters",
     "rarity": "celestial",
     "series": "dessert"
   },
   "FAR": {
-    "image": "assets/card_images/FAR.jpg",
+    "image": "runtime/card_images/FAR.jpg",
     "name": "Farfalle",
     "rarity": "common",
     "series": "noodle"
   },
   "FCC": {
-    "image": "assets/card_images/FCC.jpg",
+    "image": "runtime/card_images/FCC.jpg",
     "name": "Focaccia al Formaggio",
     "rarity": "rare",
     "series": "bread"
   },
   "FDG": {
-    "image": "assets/card_images/FDG.jpg",
+    "image": "runtime/card_images/FDG.jpg",
     "name": "Fudge",
     "rarity": "common",
     "series": "dessert"
   },
   "FOC": {
-    "image": "assets/card_images/FOC.jpg",
+    "image": "runtime/card_images/FOC.jpg",
     "name": "Focaccia",
     "rarity": "uncommon",
     "series": "bread"
   },
   "FON": {
-    "image": "assets/card_images/FON.jpg",
+    "image": "runtime/card_images/FON.jpg",
     "name": "Fontina",
     "rarity": "uncommon",
     "series": "cheese"
   },
   "FRC": {
-    "image": "assets/card_images/FRC.jpg",
+    "image": "runtime/card_images/FRC.jpg",
     "name": "Franciacorta",
     "rarity": "epic",
     "series": "wine"
   },
   "FRZ": {
-    "image": "assets/card_images/FRZ.jpg",
+    "image": "runtime/card_images/FRZ.jpg",
     "name": "Frizzante Bianco",
     "rarity": "common",
     "series": "wine"
   },
   "FUS": {
-    "image": "assets/card_images/FUS.jpg",
+    "image": "runtime/card_images/FUS.jpg",
     "name": "Fusilli",
     "rarity": "common",
     "series": "noodle"
   },
   "FYG": {
-    "image": "assets/card_images/FYG.jpg",
+    "image": "runtime/card_images/FYG.jpg",
     "name": "Frozen Yogurt",
     "rarity": "common",
     "series": "dessert"
   },
   "GAR": {
-    "image": "assets/card_images/GAR.jpg",
+    "image": "runtime/card_images/GAR.jpg",
     "name": "Garlic Bread",
     "rarity": "uncommon",
     "series": "bread"
   },
   "GEL": {
-    "image": "assets/card_images/GEL.jpg",
+    "image": "runtime/card_images/GEL.jpg",
     "name": "Gelato",
     "rarity": "uncommon",
     "series": "dessert"
   },
   "GEM": {
-    "image": "assets/card_images/GEM.jpg",
+    "image": "runtime/card_images/GEM.jpg",
     "name": "Gemelli",
     "rarity": "uncommon",
     "series": "noodle"
   },
   "GFL": {
-    "image": "assets/card_images/GFL.jpg",
+    "image": "runtime/card_images/GFL.jpg",
     "name": "Gelato Flight",
     "rarity": "epic",
     "series": "dessert"
   },
   "GKN": {
-    "image": "assets/card_images/GKN.jpg",
+    "image": "runtime/card_images/GKN.jpg",
     "name": "Garlic Knot",
     "rarity": "rare",
     "series": "bread"
   },
   "GLC": {
-    "image": "assets/card_images/GLC.jpg",
+    "image": "runtime/card_images/GLC.jpg",
     "name": "Golden Cheesecake",
     "rarity": "mythic",
     "series": "dessert"
   },
   "GLS": {
-    "image": "assets/card_images/GLS.jpg",
+    "image": "runtime/card_images/GLS.jpg",
     "name": "Gelato Sundae",
     "rarity": "rare",
     "series": "dessert"
   },
   "GNO": {
-    "image": "assets/card_images/GNO.jpg",
+    "image": "runtime/card_images/GNO.jpg",
     "name": "Gnocchi",
     "rarity": "uncommon",
     "series": "noodle"
   },
   "GNP": {
-    "image": "assets/card_images/GNP.jpg",
+    "image": "runtime/card_images/GNP.jpg",
     "name": "Gnocchi al Pesto",
     "rarity": "common",
     "series": "entree"
   },
   "GOL": {
-    "image": "assets/card_images/GOL.jpg",
+    "image": "runtime/card_images/GOL.jpg",
     "name": "Golden Parm Wheel",
     "rarity": "legendary",
     "series": "cheese"
   },
   "GOR": {
-    "image": "assets/card_images/GOR.jpg",
+    "image": "runtime/card_images/GOR.jpg",
     "name": "Gorgonzola",
     "rarity": "rare",
     "series": "cheese"
   },
   "GOU": {
-    "image": "assets/card_images/GOU.jpg",
+    "image": "runtime/card_images/GOU.jpg",
     "name": "Gouda",
     "rarity": "uncommon",
     "series": "cheese"
   },
   "GPR": {
-    "image": "assets/card_images/GPR.jpg",
+    "image": "runtime/card_images/GPR.jpg",
     "name": "Grana Riserva",
     "rarity": "epic",
     "series": "cheese"
   },
   "GRA": {
-    "image": "assets/card_images/GRA.jpg",
+    "image": "runtime/card_images/GRA.jpg",
     "name": "Golden Grain Loaf",
     "rarity": "legendary",
     "series": "bread"
   },
   "GRI": {
-    "image": "assets/card_images/GRI.jpg",
+    "image": "runtime/card_images/GRI.jpg",
     "name": "Grissini",
     "rarity": "uncommon",
     "series": "bread"
   },
   "GRN": {
-    "image": "assets/card_images/GRN.jpg",
+    "image": "runtime/card_images/GRN.jpg",
     "name": "Grana Padano",
     "rarity": "rare",
     "series": "cheese"
   },
   "GTN": {
-    "image": "assets/card_images/GTN.jpg",
+    "image": "runtime/card_images/GTN.jpg",
     "name": "Golden Truffle Noodles",
     "rarity": "epic",
     "series": "noodle"
   },
   "HAV": {
-    "image": "assets/card_images/HAV.jpg",
+    "image": "runtime/card_images/HAV.jpg",
     "name": "Havarti",
     "rarity": "uncommon",
     "series": "cheese"
   },
   "ICE": {
-    "image": "assets/card_images/ICE.jpg",
+    "image": "runtime/card_images/ICE.jpg",
     "name": "Icewine",
     "rarity": "epic",
     "series": "wine"
   },
   "ICS": {
-    "image": "assets/card_images/ICS.png",
+    "image": "runtime/card_images/ICS.png",
     "name": "Ice Cream Sandwich",
     "rarity": "uncommon",
     "series": "dessert"
   },
   "IMB": {
-    "image": "assets/card_images/IMB.jpg",
+    "image": "runtime/card_images/IMB.jpg",
     "name": "Imperial Burrata",
     "rarity": "mythic",
     "series": "cheese"
   },
   "IMM": {
-    "image": "assets/card_images/IMM.jpg",
+    "image": "runtime/card_images/IMM.jpg",
     "name": "Immortal Garlic Loaf",
     "rarity": "mythic",
     "series": "bread"
   },
   "JDS": {
-    "image": "assets/card_images/JDS.img",
+    "image": "runtime/card_images/JDS.img",
     "name": "Jade Starfruit of Java",
     "rarity": "celestial",
     "series": "ingredient"
   },
   "KUM": {
-    "image": "assets/card_images/KUM.img",
+    "image": "runtime/card_images/KUM.img",
     "name": "Kumano Sacred Umeshu",
     "rarity": "divine",
     "series": "ingredient"
   },
   "KML": {
-    "image": "assets/card_images/KML.jpg",
+    "image": "runtime/card_images/KML.jpg",
     "name": "Kee's Meatloaf",
     "rarity": "divine",
     "series": "entree"
   },
   "LAM": {
-    "image": "assets/card_images/LAM.jpg",
+    "image": "runtime/card_images/LAM.jpg",
     "name": "Lambrusco",
     "rarity": "common",
     "series": "wine"
   },
   "LAS": {
-    "image": "assets/card_images/LAS.jpg",
+    "image": "runtime/card_images/LAS.jpg",
     "name": "Lasagna",
     "rarity": "uncommon",
     "series": "noodle"
   },
   "LAV": {
-    "image": "assets/card_images/LAV.jpg",
+    "image": "runtime/card_images/LAV.jpg",
     "name": "Linguine alle Vongole",
     "rarity": "rare",
     "series": "entree"
   },
   "LBN": {
-    "image": "assets/card_images/LBN.jpg",
+    "image": "runtime/card_images/LBN.jpg",
     "name": "Lobster Bisque Noodles",
     "rarity": "epic",
     "series": "noodle"
   },
   "LGP": {
-    "image": "assets/card_images/LGP.jpg",
+    "image": "runtime/card_images/LGP.jpg",
     "name": "Lobster Gnocchi Piccata",
     "rarity": "epic",
     "series": "entree"
   },
   "LIN": {
-    "image": "assets/card_images/LIN.jpg",
+    "image": "runtime/card_images/LIN.jpg",
     "name": "Linguine",
     "rarity": "common",
     "series": "noodle"
   },
   "LMB": {
-    "image": "assets/card_images/LMB.jpg",
+    "image": "runtime/card_images/LMB.jpg",
     "name": "Lemon Bar",
     "rarity": "common",
     "series": "dessert"
   },
   "LOM": {
-    "image": "assets/card_images/LOM.jpg",
+    "image": "runtime/card_images/LOM.jpg",
     "name": "Lo Mein",
     "rarity": "uncommon",
     "series": "noodle"
   },
   "LUM": {
-    "image": "assets/card_images/LUM.jpg",
+    "image": "runtime/card_images/LUM.jpg",
     "name": "Lumache",
     "rarity": "uncommon",
     "series": "noodle"
   },
   "LVC": {
-    "image": "assets/card_images/LVC.jpg",
+    "image": "runtime/card_images/LVC.jpg",
     "name": "Lava Cake",
     "rarity": "epic",
     "series": "dessert"
   },
   "LZR": {
-    "image": "assets/card_images/LZR.img",
+    "image": "runtime/card_images/LZR.img",
     "name": "Lazarus Saffron Crown",
     "rarity": "celestial",
     "series": "ingredient"
   },
   "MAC": {
-    "image": "assets/card_images/MAC.jpg",
+    "image": "runtime/card_images/MAC.jpg",
     "name": "Macaroni",
     "rarity": "common",
     "series": "noodle"
   },
   "MNC": {
-    "image": "assets/card_images/MNC.jpg",
+    "image": "runtime/card_images/MNC.jpg",
     "name": "Macaroni and Cheese",
     "rarity": "uncommon",
     "series": "entree"
   },
   "MAN": {
-    "image": "assets/card_images/MAN.jpg",
+    "image": "runtime/card_images/MAN.jpg",
     "name": "Manicotti",
     "rarity": "rare",
     "series": "noodle"
   },
   "MAS": {
-    "image": "assets/card_images/MAS.jpg",
+    "image": "runtime/card_images/MAS.jpg",
     "name": "Mascarpone",
     "rarity": "uncommon",
     "series": "cheese"
   },
   "MBS": {
-    "image": "assets/card_images/MBS.jpg",
+    "image": "runtime/card_images/MBS.jpg",
     "name": "Meatball Sub",
     "rarity": "common",
     "series": "entree"
   },
   "MCB": {
-    "image": "assets/card_images/MCB.jpg",
+    "image": "runtime/card_images/MCB.jpg",
     "name": "Metodo Classico Brut",
     "rarity": "epic",
     "series": "wine"
   },
   "MCI": {
-    "image": "assets/card_images/MCI.jpg",
+    "image": "runtime/card_images/MCI.jpg",
     "name": "Mochi Ice Cream",
     "rarity": "rare",
     "series": "dessert"
   },
   "MCR": {
-    "image": "assets/card_images/MCR.jpg",
+    "image": "runtime/card_images/MCR.jpg",
     "name": "Macaron",
     "rarity": "rare",
     "series": "dessert"
   },
   "MER": {
-    "image": "assets/card_images/MER.jpg",
+    "image": "runtime/card_images/MER.jpg",
     "name": "Merlot",
     "rarity": "common",
     "series": "wine"
   },
   "MFL": {
-    "image": "assets/card_images/MFL.jpg",
+    "image": "runtime/card_images/MFL.jpg",
     "name": "Mozzarella Fior di Latte",
     "rarity": "uncommon",
     "series": "cheese"
   },
   "MFR": {
-    "image": "assets/card_images/MFR.img",
+    "image": "runtime/card_images/MFR.img",
     "name": "Maya Fire Cacao",
     "rarity": "divine",
     "series": "ingredient"
   },
   "MKB": {
-    "image": "assets/card_images/MKB.jpg",
+    "image": "runtime/card_images/MKB.jpg",
     "name": "Milk Bread",
     "rarity": "common",
     "series": "bread"
   },
   "MLF": {
-    "image": "assets/card_images/MLF.jpg",
+    "image": "runtime/card_images/MLF.jpg",
     "name": "Mafaldine",
     "rarity": "common",
     "series": "noodle"
   },
   "MLS": {
-    "image": "assets/card_images/MLS.jpg",
+    "image": "runtime/card_images/MLS.jpg",
     "name": "Milkshake",
     "rarity": "uncommon",
     "series": "dessert"
   },
   "MON": {
-    "image": "assets/card_images/MON.jpg",
+    "image": "runtime/card_images/MON.jpg",
     "name": "Monterey Jack",
     "rarity": "common",
     "series": "cheese"
   },
   "MOZ": {
-    "image": "assets/card_images/MOZ.jpg",
+    "image": "runtime/card_images/MOZ.jpg",
     "name": "Mozzerella",
     "rarity": "common",
     "series": "cheese"
   },
   "MTC": {
-    "image": "assets/card_images/MTC.jpg",
+    "image": "runtime/card_images/MTC.jpg",
     "name": "Matcha Cheesecake",
     "rarity": "epic",
     "series": "dessert"
   },
   "NEB": {
-    "image": "assets/card_images/NEB.jpg",
+    "image": "runtime/card_images/NEB.jpg",
     "name": "Nebbiolo",
     "rarity": "rare",
     "series": "wine"
   },
   "NIT": {
-    "image": "assets/card_images/NIT.jpg",
+    "image": "runtime/card_images/NIT.jpg",
     "name": "Nitrogen Gelato",
     "rarity": "divine",
     "series": "dessert"
   },
   "NOO": {
-    "image": "assets/card_images/NOO.jpg",
+    "image": "runtime/card_images/NOO.jpg",
     "name": "Nood God",
     "rarity": "legendary",
     "series": "noodle"
   },
   "NYC": {
-    "image": "assets/card_images/NYC.jpg",
+    "image": "runtime/card_images/NYC.jpg",
     "name": "New York Cheesecake",
     "rarity": "rare",
     "series": "dessert"
   },
   "OMC": {
-    "image": "assets/card_images/OMC.jpg",
+    "image": "runtime/card_images/OMC.jpg",
     "name": "Oatmeal Cookie",
     "rarity": "common",
     "series": "dessert"
   },
   "ORB": {
-    "image": "assets/card_images/ORB.img",
+    "image": "runtime/card_images/ORB.img",
     "name": "Orb of Seven Orchards",
     "rarity": "celestial",
     "series": "ingredient"
   },
   "ORC": {
-    "image": "assets/card_images/ORC.jpg",
+    "image": "runtime/card_images/ORC.jpg",
     "name": "Orecchiette",
     "rarity": "uncommon",
     "series": "noodle"
   },
   "OSB": {
-    "image": "assets/card_images/OSB.jpg",
+    "image": "runtime/card_images/OSB.jpg",
     "name": "Osso Buco",
     "rarity": "epic",
     "series": "entree"
   },
   "OXT": {
-    "image": "assets/card_images/OXT.jpg",
+    "image": "runtime/card_images/OXT.jpg",
     "name": "Oxtail Ragu",
     "rarity": "epic",
     "series": "entree"
   },
   "PAN": {
-    "image": "assets/card_images/PAN.jpg",
+    "image": "runtime/card_images/PAN.jpg",
     "name": "Panettone",
     "rarity": "epic",
     "series": "bread"
   },
   "PAP": {
-    "image": "assets/card_images/PAP.jpg",
+    "image": "runtime/card_images/PAP.jpg",
     "name": "Pappardelle",
     "rarity": "rare",
     "series": "noodle"
   },
   "PAR": {
-    "image": "assets/card_images/PAR.jpg",
+    "image": "runtime/card_images/PAR.jpg",
     "name": "Parmigiano Reggiano",
     "rarity": "epic",
     "series": "cheese"
   },
   "PCH": {
-    "image": "assets/card_images/PCH.png",
+    "image": "runtime/card_images/PCH.png",
     "name": "Paccheri",
     "rarity": "uncommon",
     "series": "noodle"
   },
   "PCT": {
-    "image": "assets/card_images/PCT.jpg",
+    "image": "runtime/card_images/PCT.jpg",
     "name": "Panna Cotta",
     "rarity": "uncommon",
     "series": "dessert"
   },
   "PDM": {
-    "image": "assets/card_images/PDM.jpg",
+    "image": "runtime/card_images/PDM.jpg",
     "name": "Provola del Monaco",
     "rarity": "rare",
     "series": "cheese"
   },
   "PEC": {
-    "image": "assets/card_images/PEC.jpg",
+    "image": "runtime/card_images/PEC.jpg",
     "name": "Pecorino",
     "rarity": "rare",
     "series": "cheese"
   },
   "PEN": {
-    "image": "assets/card_images/PEN.jpg",
+    "image": "runtime/card_images/PEN.jpg",
     "name": "Penne",
     "rarity": "common",
     "series": "noodle"
   },
   "PGR": {
-    "image": "assets/card_images/PGR.jpg",
+    "image": "runtime/card_images/PGR.jpg",
     "name": "Pinot Grigio Riserva",
     "rarity": "uncommon",
     "series": "wine"
   },
   "PIN": {
-    "image": "assets/card_images/PIN.jpg",
+    "image": "runtime/card_images/PIN.jpg",
     "name": "Pinot Noir",
     "rarity": "common",
     "series": "wine"
   },
   "PIT": {
-    "image": "assets/card_images/PIT.jpg",
+    "image": "runtime/card_images/PIT.jpg",
     "name": "Pita",
     "rarity": "common",
     "series": "bread"
   },
   "PLF": {
-    "image": "assets/card_images/PLF.jpg",
+    "image": "runtime/card_images/PLF.jpg",
     "name": "Polenta ai Funghi",
     "rarity": "uncommon",
     "series": "entree"
   },
   "PNI": {
-    "image": "assets/card_images/PNI.jpeg",
+    "image": "runtime/card_images/PNI.jpeg",
     "name": "Panini",
     "rarity": "common",
     "series": "entree"
   },
   "PRC": {
-    "image": "assets/card_images/PRC.jpg",
+    "image": "runtime/card_images/PRC.jpg",
     "name": "Porcini Ravioli",
     "rarity": "rare",
     "series": "noodle"
   },
   "PRE": {
-    "image": "assets/card_images/PRE.jpg",
+    "image": "runtime/card_images/PRE.jpg",
     "name": "Pretzel",
     "rarity": "uncommon",
     "series": "bread"
   },
   "PRL": {
-    "image": "assets/card_images/PRL.jpg",
+    "image": "runtime/card_images/PRL.jpg",
     "name": "Profiterole",
     "rarity": "uncommon",
     "series": "dessert"
   },
   "PRO": {
-    "image": "assets/card_images/PRO.jpeg",
+    "image": "runtime/card_images/PRO.jpeg",
     "name": "Prosecco",
     "rarity": "common",
     "series": "wine"
   },
   "PRV": {
-    "image": "assets/card_images/PRV.jpg",
+    "image": "runtime/card_images/PRV.jpg",
     "name": "Provolone",
     "rarity": "common",
     "series": "cheese"
   },
   "PSC": {
-    "image": "assets/card_images/PSC.png",
+    "image": "runtime/card_images/PSC.png",
     "name": "Popsicle",
     "rarity": "common",
     "series": "dessert"
   },
   "PTS": {
-    "image": "assets/card_images/PTS.jpg",
+    "image": "runtime/card_images/PTS.jpg",
     "name": "Pane Toscano",
     "rarity": "uncommon",
     "series": "bread"
   },
   "PUM": {
-    "image": "assets/card_images/PUM.jpg",
+    "image": "runtime/card_images/PUM.jpg",
     "name": "Pumpernickel",
     "rarity": "uncommon",
     "series": "bread"
   },
   "PZA": {
-    "image": "assets/card_images/PZA.jpg",
+    "image": "runtime/card_images/PZA.jpg",
     "name": "Pizza",
     "rarity": "common",
     "series": "entree"
   },
   "QSM": {
-    "image": "assets/card_images/QSM.img",
+    "image": "runtime/card_images/QSM.img",
     "name": "Qeshm Moon Salt",
     "rarity": "mythic",
     "series": "ingredient"
   },
   "RAM": {
-    "image": "assets/card_images/RAM.jpg",
+    "image": "runtime/card_images/RAM.jpg",
     "name": "Ramen",
     "rarity": "common",
     "series": "noodle"
   },
   "RAV": {
-    "image": "assets/card_images/RAV.jpg",
+    "image": "runtime/card_images/RAV.jpg",
     "name": "Ravioli",
     "rarity": "uncommon",
     "series": "noodle"
   },
   "RBL": {
-    "image": "assets/card_images/RBL.jpg",
+    "image": "runtime/card_images/RBL.jpg",
     "name": "Robiola",
     "rarity": "rare",
     "series": "cheese"
   },
   "RCA": {
-    "image": "assets/card_images/RCA.jpg",
+    "image": "runtime/card_images/RCA.jpg",
     "name": "Ricotta Cavatelli",
     "rarity": "uncommon",
     "series": "noodle"
   },
   "RCO": {
-    "image": "assets/card_images/RCO.jpg",
+    "image": "runtime/card_images/RCO.jpg",
     "name": "Ricotta",
     "rarity": "common",
     "series": "cheese"
   },
   "RCT": {
-    "image": "assets/card_images/RCT.jpg",
+    "image": "runtime/card_images/RCT.jpg",
     "name": "Ricotta Salata",
     "rarity": "epic",
     "series": "cheese"
   },
   "RDB": {
-    "image": "assets/card_images/RDB.jpg",
+    "image": "runtime/card_images/RDB.jpg",
     "name": "Rustic Durum Boule",
     "rarity": "epic",
     "series": "bread"
   },
   "RGN": {
-    "image": "assets/card_images/RGN.jpg",
+    "image": "runtime/card_images/RGN.jpg",
     "name": "Ragu Noodles",
     "rarity": "uncommon",
     "series": "noodle"
   },
   "RIC": {
-    "image": "assets/card_images/RIC.jpg",
+    "image": "runtime/card_images/RIC.jpg",
     "name": "Rice Noodles",
     "rarity": "common",
     "series": "noodle"
   },
   "RIG": {
-    "image": "assets/card_images/RIG.jpg",
+    "image": "runtime/card_images/RIG.jpg",
     "name": "Rigatoni",
     "rarity": "uncommon",
     "series": "noodle"
   },
   "RIO": {
-    "image": "assets/card_images/RIO.jpg",
+    "image": "runtime/card_images/RIO.jpg",
     "name": "Rioja",
     "rarity": "uncommon",
     "series": "wine"
   },
   "RIS": {
-    "image": "assets/card_images/RIS.jpg",
+    "image": "runtime/card_images/RIS.jpg",
     "name": "Risotto",
     "rarity": "rare",
     "series": "entree"
   },
   "RKT": {
-    "image": "assets/card_images/RKT.png",
+    "image": "runtime/card_images/RKT.png",
     "name": "Rice Krispie Treat",
     "rarity": "common",
     "series": "dessert"
   },
   "RMF": {
-    "image": "assets/card_images/RMF.jpg",
+    "image": "runtime/card_images/RMF.jpg",
     "name": "Royal Milanese Feast",
     "rarity": "divine",
     "series": "entree"
   },
   "ROM": {
-    "image": "assets/card_images/ROM.jpg",
+    "image": "runtime/card_images/ROM.jpg",
     "name": "Romano",
     "rarity": "rare",
     "series": "cheese"
   },
   "RPS": {
-    "image": "assets/card_images/PSC.png",
+    "image": "runtime/card_images/PSC.png",
     "name": "Rainbow Popsicle",
     "rarity": "legendary",
     "series": "dessert"
   },
   "ROT": {
-    "image": "assets/card_images/ROT.jpg",
+    "image": "runtime/card_images/ROT.jpg",
     "name": "Rotini",
     "rarity": "common",
     "series": "noodle"
   },
   "RSF": {
-    "image": "assets/card_images/RSF.jpg",
+    "image": "runtime/card_images/RSF.jpg",
     "name": "Rosemary Sea-Salt Focaccia",
     "rarity": "rare",
     "series": "bread"
   },
   "RSR": {
-    "image": "assets/card_images/RSR.jpg",
+    "image": "runtime/card_images/RSR.jpg",
     "name": "Rosso Riserva",
     "rarity": "rare",
     "series": "wine"
   },
   "RVC": {
-    "image": "assets/card_images/RVC.jpg",
+    "image": "runtime/card_images/RVC.jpg",
     "name": "Red Velvet Cake",
     "rarity": "rare",
     "series": "dessert"
   },
   "RWB": {
-    "image": "assets/card_images/RWB.jpg",
+    "image": "runtime/card_images/RWB.jpg",
     "name": "Royal Wine Barrique",
     "rarity": "mythic",
     "series": "wine"
   },
   "RYS": {
-    "image": "assets/card_images/RYS.img",
+    "image": "runtime/card_images/RYS.img",
     "name": "Reyne's Shrimp",
     "rarity": "celestial",
     "series": "ingredient"
   },
   "RYE": {
-    "image": "assets/card_images/RYE.jpg",
+    "image": "runtime/card_images/RYE.jpg",
     "name": "Rye Bread",
     "rarity": "common",
     "series": "bread"
   },
   "SBR": {
-    "image": "assets/card_images/SBR.img",
+    "image": "runtime/card_images/SBR.img",
     "name": "Siberian Pine Resin",
     "rarity": "mythic",
     "series": "ingredient"
   },
   "SCA": {
-    "image": "assets/card_images/SCA.jpg",
+    "image": "runtime/card_images/SCA.jpg",
     "name": "Scamorza",
     "rarity": "common",
     "series": "cheese"
   },
   "SCI": {
-    "image": "assets/card_images/SCI.jpg",
+    "image": "runtime/card_images/SCI.jpg",
     "name": "Schiacciata",
     "rarity": "uncommon",
     "series": "bread"
   },
   "SCK": {
-    "image": "assets/card_images/SCK.png",
+    "image": "runtime/card_images/SCK.png",
     "name": "Sugar Cookie",
     "rarity": "common",
     "series": "dessert"
   },
   "SCP": {
-    "image": "assets/card_images/SCP.jpg",
+    "image": "runtime/card_images/SCP.jpg",
     "name": "Seafood Cioppino",
     "rarity": "rare",
     "series": "entree"
   },
   "SDM": {
-    "image": "assets/card_images/SDM.jpg",
+    "image": "runtime/card_images/SDM.jpg",
     "name": "Semolina Bread",
     "rarity": "common",
     "series": "bread"
   },
   "SFL": {
-    "image": "assets/card_images/SFL.jpg",
+    "image": "runtime/card_images/SFL.jpg",
     "name": "Sfogliatella",
     "rarity": "epic",
     "series": "dessert"
   },
   "SFN": {
-    "image": "assets/card_images/SFN.jpg",
+    "image": "runtime/card_images/SFN.jpg",
     "name": "Saffron Noodles",
     "rarity": "uncommon",
     "series": "noodle"
   },
   "SFR": {
-    "image": "assets/card_images/SFR.jpg",
+    "image": "runtime/card_images/SFR.jpg",
     "name": "Saffron Ravioli",
     "rarity": "epic",
     "series": "noodle"
   },
   "SRI": {
-    "image": "assets/card_images/SRI.jpg",
+    "image": "runtime/card_images/SRI.jpg",
     "name": "Shrimp Fried Rice",
     "rarity": "uncommon",
     "series": "entree"
   },
   "SHC": {
-    "image": "assets/card_images/SHC.jpg",
+    "image": "runtime/card_images/SHC.jpg",
     "name": "Sharp Cheddar",
     "rarity": "rare",
     "series": "cheese"
   },
   "SHA": {
-    "image": "assets/card_images/ALF.png",
+    "image": "runtime/card_images/ALF.png",
     "name": "Shrimp Alfredo",
     "rarity": "rare",
     "series": "entree"
   },
   "SHK": {
-    "image": "assets/card_images/SHK.img",
+    "image": "runtime/card_images/SHK.img",
     "name": "Shrimp Cocktail",
     "rarity": "legendary",
     "series": "entree"
   },
   "SHR": {
-    "image": "assets/card_images/SHR.img",
+    "image": "runtime/card_images/SHR.img",
     "name": "Shrimp",
     "rarity": "common",
     "series": "entree"
   },
   "SHT": {
-    "image": "assets/card_images/SHT.img",
+    "image": "runtime/card_images/SHT.img",
     "name": "Shrimp Tempura",
     "rarity": "rare",
     "series": "entree"
@@ -1289,211 +1289,211 @@
     "series": "entree"
   },
   "SLA": {
-    "image": "assets/card_images/SLA.jpg",
+    "image": "runtime/card_images/SLA.jpg",
     "name": "Sicilian Linguine Arc",
     "rarity": "common",
     "series": "noodle"
   },
   "SND": {
-    "image": "assets/card_images/SND.jpg",
+    "image": "runtime/card_images/SND.jpg",
     "name": "Sundae",
     "rarity": "uncommon",
     "series": "dessert"
   },
   "SOB": {
-    "image": "assets/card_images/SOB.png",
+    "image": "runtime/card_images/SOB.png",
     "name": "Soba",
     "rarity": "common",
     "series": "noodle"
   },
   "SOU": {
-    "image": "assets/card_images/SOU.jpg",
+    "image": "runtime/card_images/SOU.jpg",
     "name": "Sourdough",
     "rarity": "common",
     "series": "bread"
   },
   "SOV": {
-    "image": "assets/card_images/SOV.jpg",
+    "image": "runtime/card_images/SOV.jpg",
     "name": "Sauvignon Blanc",
     "rarity": "uncommon",
     "series": "wine"
   },
   "SPG": {
-    "image": "assets/card_images/SPG.jpg",
+    "image": "runtime/card_images/SPG.jpg",
     "name": "Spaghetti",
     "rarity": "common",
     "series": "noodle"
   },
   "SPN": {
-    "image": "assets/card_images/SPN.jpg",
+    "image": "runtime/card_images/SPN.jpg",
     "name": "Spinach Noodles",
     "rarity": "common",
     "series": "noodle"
   },
   "STP": {
-    "image": "assets/card_images/STP.jpg",
+    "image": "runtime/card_images/STP.jpg",
     "name": "Strozzapreti",
     "rarity": "rare",
     "series": "noodle"
   },
   "STR": {
-    "image": "assets/card_images/STR.jpg",
+    "image": "runtime/card_images/STR.jpg",
     "name": "Stracciatella",
     "rarity": "uncommon",
     "series": "cheese"
   },
   "SUT": {
-    "image": "assets/card_images/SUT.jpg",
+    "image": "runtime/card_images/SUT.jpg",
     "name": "Super Tuscan",
     "rarity": "epic",
     "series": "wine"
   },
   "SWS": {
-    "image": "assets/card_images/SWS.jpg",
+    "image": "runtime/card_images/SWS.jpg",
     "name": "Swiss",
     "rarity": "uncommon",
     "series": "cheese"
   },
   "TAG": {
-    "image": "assets/card_images/TAG.jpg",
+    "image": "runtime/card_images/TAG.jpg",
     "name": "Tagliatelle",
     "rarity": "uncommon",
     "series": "noodle"
   },
   "TAJ": {
-    "image": "assets/card_images/TAJ.jpg",
+    "image": "runtime/card_images/TAJ.jpg",
     "name": "Tajarin",
     "rarity": "common",
     "series": "noodle"
   },
   "TAL": {
-    "image": "assets/card_images/TAL.jpg",
+    "image": "runtime/card_images/TAL.jpg",
     "name": "Taleggio",
     "rarity": "rare",
     "series": "cheese"
   },
   "TBB": {
-    "image": "assets/card_images/TBB.jpg",
+    "image": "runtime/card_images/TBB.jpg",
     "name": "Trofie al Burro",
     "rarity": "uncommon",
     "series": "noodle"
   },
   "TIR": {
-    "image": "assets/card_images/TIR.jpg",
+    "image": "runtime/card_images/TIR.jpg",
     "name": "Tiramisu",
     "rarity": "rare",
     "series": "dessert"
   },
   "TOR": {
-    "image": "assets/card_images/TOR.jpg",
+    "image": "runtime/card_images/TOR.jpg",
     "name": "Tortellini",
     "rarity": "epic",
     "series": "noodle"
   },
   "TRF": {
-    "image": "assets/card_images/TRF.jpg",
+    "image": "runtime/card_images/TRF.jpg",
     "name": "Truffle Pecorino",
     "rarity": "epic",
     "series": "cheese"
   },
   "TRG": {
-    "image": "assets/card_images/TRG.jpg",
+    "image": "runtime/card_images/TRG.jpg",
     "name": "Truffle Garlic Bread",
     "rarity": "epic",
     "series": "bread"
   },
   "TRM": {
-    "image": "assets/card_images/TRM.png",
+    "image": "runtime/card_images/TRM.png",
     "name": "Tres Leches Cake",
     "rarity": "rare",
     "series": "dessert"
   },
   "TRN": {
-    "image": "assets/card_images/TRN.jpg",
+    "image": "runtime/card_images/TRN.jpg",
     "name": "Truffle Noodles",
     "rarity": "epic",
     "series": "noodle"
   },
   "TRO": {
-    "image": "assets/card_images/TRO.jpg",
+    "image": "runtime/card_images/TRO.jpg",
     "name": "Trofie",
     "rarity": "rare",
     "series": "noodle"
   },
   "TRR": {
-    "image": "assets/card_images/TRR.jpg",
+    "image": "runtime/card_images/TRR.jpg",
     "name": "Truffle Risotto",
     "rarity": "epic",
     "series": "entree"
   },
   "UDC": {
-    "image": "assets/card_images/UDC.jpg",
+    "image": "runtime/card_images/UDC.jpg",
     "name": "Udon Carbonara",
     "rarity": "uncommon",
     "series": "noodle"
   },
   "UDO": {
-    "image": "assets/card_images/UDO.jpg",
+    "image": "runtime/card_images/UDO.jpg",
     "name": "Udon",
     "rarity": "common",
     "series": "noodle"
   },
   "VDT": {
-    "image": "assets/card_images/VDT.jpg",
+    "image": "runtime/card_images/VDT.jpg",
     "name": "Vino da Tavola",
     "rarity": "common",
     "series": "wine"
   },
   "VER": {
-    "image": "assets/card_images/VER.jpg",
+    "image": "runtime/card_images/VER.jpg",
     "name": "Vermicelli",
     "rarity": "common",
     "series": "noodle"
   },
   "VSC": {
-    "image": "assets/card_images/VSC.png",
+    "image": "runtime/card_images/VSC.png",
     "name": "Vin Santo Classico",
     "rarity": "uncommon",
     "series": "wine"
   },
   "VSL": {
-    "image": "assets/card_images/VSL.jpg",
+    "image": "runtime/card_images/VSL.jpg",
     "name": "Veal Saltimbocca",
     "rarity": "uncommon",
     "series": "entree"
   },
   "WHT": {
-    "image": "assets/card_images/WHT.jpg",
+    "image": "runtime/card_images/WHT.jpg",
     "name": "White Truffle Tagliolini",
     "rarity": "mythic",
     "series": "noodle"
   },
   "YAK": {
-    "image": "assets/card_images/YAK.jpg",
+    "image": "runtime/card_images/YAK.jpg",
     "name": "Yakisoba",
     "rarity": "uncommon",
     "series": "noodle"
   },
   "YJA": {
-    "image": "assets/card_images/YJA.img",
+    "image": "runtime/card_images/YJA.img",
     "name": "Yuja Amber Preserve",
     "rarity": "mythic",
     "series": "ingredient"
   },
   "ZAB": {
-    "image": "assets/card_images/ZAB.jpg",
+    "image": "runtime/card_images/ZAB.jpg",
     "name": "Zabaglione",
     "rarity": "epic",
     "series": "dessert"
   },
   "ZIT": {
-    "image": "assets/card_images/ZIT.png",
+    "image": "runtime/card_images/ZIT.png",
     "name": "Ziti",
     "rarity": "common",
     "series": "noodle"
   },
   "ZRC": {
-    "image": "assets/card_images/ZRC.img",
+    "image": "runtime/card_images/ZRC.img",
     "name": "Zanzibar Royal Clove",
     "rarity": "divine",
     "series": "ingredient"

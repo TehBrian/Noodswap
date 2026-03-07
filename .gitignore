@@ -13,5 +13,15 @@ card_image_pull_report_desserts.json
 
 # Runtime/persistent SQLite data
 noodswap.db
-deploy/assets/noodswap.db
-deploy/data/noodswap.db
+
+# Mutable runtime state (host-mounted; never committed)
+runtime/db/*.db
+runtime/logs/*
+runtime/cache/*
+
+# Keep runtime structure placeholders
+!runtime/.gitignore
+!runtime/db/.gitkeep
+!runtime/card_images/.gitkeep
+!runtime/logs/.gitkeep
+!runtime/cache/.gitkeep

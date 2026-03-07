@@ -1,0 +1,10 @@
+*
+!.gitignore
+!db/
+!card_images/
+!logs/
+!cache/
+!db/.gitkeep
+!card_images/.gitkeep
+!logs/.gitkeep
+!cache/.gitkeep

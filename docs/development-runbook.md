@@ -13,6 +13,8 @@ This runbook is for contributors and coding agents.
 
 ## Run
 
+- Initialize runtime state from seed data:
+  - `.venv/bin/python scripts/init_runtime.py`
 - Start bot:
   - `python bot.py`
 
@@ -72,7 +74,7 @@ Use this default process unless there is a specific reason to do otherwise:
 
 1. Add the card metadata entry in `noodswap/data/cards.json`.
 2. Run `.venv/bin/python scripts/rebalance_base_values.py --mode missing` to fill only absent base values.
-3. Do not add default image files during card creation; fallback image behavior is acceptable and images can be pulled later as needed.
+3. Keep card image paths under `runtime/card_images`; image files can be populated later as needed.
 
 1. Add the new card entry to `noodswap/data/cards.json` with:
   - unique `card_id`
@@ -89,7 +91,7 @@ Use this default process unless there is a specific reason to do otherwise:
 Notes:
 - `--mode missing` preserves existing values and only fills absent IDs.
 - Use `--mode all` only when intentionally rebalancing the full catalog.
-- No need to add default image assets for new cards immediately. Fallback image behavior is acceptable, and images can be pulled/populated later as needed.
+- No need to add image files for new cards immediately; keep the metadata path under `runtime/card_images` and populate files later.
 
 ## Card image sync helper
 
@@ -107,7 +109,7 @@ Notes:
 
 ## Migration validation helper
 
-- Run migration smoke checks (fresh init + legacy backfill path):
+- Run migration smoke checks (fresh init path):
   - `.venv/bin/python scripts/migration_smoke.py`
 - VS Code task shortcut:
   - `check:migrations`

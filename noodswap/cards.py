@@ -126,7 +126,7 @@ SERIES_CATALOG: dict[str, SeriesData] = _read_series_catalog()
 
 
 def default_card_image(card_id: str) -> str:
-    return f"assets/card_images/{card_id}.img"
+    return f"runtime/card_images/{card_id}.img"
 
 
 def _read_local_image_manifest() -> dict[str, dict[str, str | int]]:
@@ -147,7 +147,7 @@ def _read_local_image_manifest() -> dict[str, dict[str, str | int]]:
 
 def _build_local_card_image_map() -> dict[str, str]:
     manifest_data = _read_local_image_manifest()
-    relative_base = Path("assets") / "card_images"
+    relative_base = Path("runtime") / "card_images"
     mapped: dict[str, str] = {}
 
     for card_id in CARD_CATALOG:
@@ -184,6 +184,19 @@ def _validate_no_remote_image_paths() -> None:
         )
 
 
+def _validate_image_paths_use_runtime_card_images() -> None:
+    invalid_ids = [
+        card_id
+        for card_id, card in CARD_CATALOG.items()
+        if not isinstance(card.get("image"), str)
+        or not str(card["image"]).startswith("runtime/card_images/")
+    ]
+    if invalid_ids:
+        raise RuntimeError(
+            "Card image paths must use runtime/card_images/: " + ", ".join(sorted(invalid_ids))
+        )
+
+
 def _validate_card_series_metadata() -> None:
     unknown_series = sorted({card["series"] for card in CARD_CATALOG.values() if card["series"] not in SERIES_CATALOG})
     if unknown_series:
@@ -197,6 +210,7 @@ def _validate_card_series_metadata() -> None:
 
 
 _validate_no_remote_image_paths()
+_validate_image_paths_use_runtime_card_images()
 _validate_card_series_metadata()
 
 

@@ -23,7 +23,7 @@ Create deploy user and checkout:
 sudo useradd --system --create-home --home-dir /home/noodswap-user --shell /usr/sbin/nologin noodswap-user
 sudo usermod -aG docker noodswap-user
 sudo -u noodswap-user mkdir -p /home/noodswap-user/noodswap
-sudo -u noodswap-user bash -lc 'cd /home/noodswap-user/noodswap && git clone https://github.com/TehBrian/Noodswap.git . && cd deploy && cp .env.example .env && cp runtime.env.example runtime.env && mkdir -p assets/card_images assets/fonts'
+sudo -u noodswap-user bash -lc 'cd /home/noodswap-user/noodswap && git clone https://github.com/TehBrian/Noodswap.git . && cd deploy && cp .env.example .env && cp runtime.env.example runtime.env && mkdir -p ../runtime/db ../runtime/card_images ../runtime/logs ../runtime/cache'
 sudo chown noodswap-user:noodswap-user /home/noodswap-user/noodswap/deploy/update.sh
 sudo chmod 750 /home/noodswap-user/noodswap/deploy/update.sh
 ```
@@ -88,7 +88,7 @@ After deploy workflow completes:
 
 1. `docker ps` shows `noodswap-bot` running.
 2. Workflow deploy step confirms container image equals `IMAGE_REPOSITORY:<sha>`.
-3. `deploy/assets/noodswap.db` persists across restarts.
+3. `runtime/db/noodswap.db` persists across restarts.
 
 ## Notes
 

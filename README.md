@@ -21,7 +21,11 @@ Discord trading-card style bot using `discord.py`.
    ```
    `TOPGG_API_TOKEN` is required for vote verification (`top.gg` API v1). `TOPGG_BOT_ID` is optional and only used if the bot id cannot be resolved at runtime for the vote-link URL.
    - Production (recommended): inject secret from your platform secret manager as either `DISCORD_TOKEN` or a mounted file path in `DISCORD_TOKEN_FILE`.
-4. Run:
+4. Initialize local runtime state:
+   ```bash
+   .venv/bin/python scripts/init_runtime.py
+   ```
+5. Run:
    ```bash
    python bot.py
    ```
@@ -48,7 +52,7 @@ Use a deploy path such as `/home/noodswap-user/noodswap` owned by a dedicated Li
 ```bash
 sudo useradd --system --create-home --home-dir /home/noodswap-user --shell /usr/sbin/nologin noodswap-user
 sudo -u noodswap-user mkdir -p /home/noodswap-user/noodswap
-sudo -u noodswap-user bash -lc 'cd /home/noodswap-user/noodswap/deploy && cp .env.example .env && cp runtime.env.example runtime.env && mkdir -p assets/card_images assets/fonts'
+sudo -u noodswap-user bash -lc 'cd /home/noodswap-user/noodswap/deploy && cp .env.example .env && cp runtime.env.example runtime.env && mkdir -p ../runtime/db ../runtime/card_images ../runtime/logs ../runtime/cache'
 ```
 
 Set required values:
@@ -95,25 +99,12 @@ Full Actions deploy instructions: `docs/deploy-github-actions.md`.
 
 ### Persistence notes
 
-- SQLite DB: `deploy/assets/noodswap.db`
-- Cached card images: `deploy/assets/card_images`
+- SQLite DB: `runtime/db/noodswap.db`
+- Cached card images: `runtime/card_images`
+- Seed fixtures live under `data/seeds/` and can initialize fresh runtime directories.
+- Immutable render assets (fonts, frame overlays) live under `assets/` and are baked into the image.
 - Deploys run from GitHub-hosted runners to Ubuntu via SSH
-- Deploy/update does not transfer DB contents between machines/paths; it reuses whatever already exists at `deploy/assets/noodswap.db` on the target host.
-
-### Upgrade note: legacy `deploy/data` installs
-
-If your host still has runtime state in `deploy/data`, run this once before deploy:
-
-```bash
-cd deploy
-mkdir -p assets
-if [ -d data ] && [ ! -e assets/.migrated-from-data ]; then
-   cp -an data/. assets/
-   touch assets/.migrated-from-data
-fi
-```
-
-`deploy/update.sh` also includes a legacy fallback migration path for older layouts.
+- Deploy/update does not transfer DB contents between machines/paths; it reuses whatever already exists under `runtime/` on the target host.
 
 ### Discord developer portal requirements
 
@@ -136,7 +127,7 @@ This bot uses privileged intents. Enable these for your application in Discord D
 - `ns cooldown [player]` / `ns cd [player]` — show drop (6m), pull (4m), and vote reward (24h) cooldowns for yourself or another player.
 - `ns burn [card_code]` / `ns b [card_code]` — burn a specific dupe for dough (randomized around base). If omitted, defaults to your most recently pulled card. Burn is blocked for cards in locked tags.
 - `ns morph [card_code]` / `ns mo [card_code]` — pay 20% of card value (rounded up) to apply a random visual morph; currently supports `black_and_white`.
-- `ns frame [card_code]` / `ns fr [card_code]` — pay 20% of card value (rounded up) to apply a random cosmetic frame from available overlays (`buttery`, `gilded`, `drizzled`) in `deploy/assets/frame_overlays/`.
+- `ns frame [card_code]` / `ns fr [card_code]` — pay 20% of card value (rounded up) to apply a random cosmetic frame from available overlays (`buttery`, `gilded`, `drizzled`) in `assets/frame_overlays/`.
 - `ns font [card_code]` / `ns fo [card_code]` — pay 20% of card value (rounded up) to apply a random cosmetic font (`serif`, `mono`, `storybook`, `spooky`, `pixel`, `playful`). `Classic` is now the default baseline style (not a modifier).
 - `ns trade <player> <card_code> <amount>` / `ns t ...` — offer a specific dupe-for-dough trade.
 - `ns wish` / `ns w` — wishlist command group.
@@ -163,8 +154,8 @@ This bot uses privileged intents. Enable these for your application in Discord D
 
 Drop preview image composition uses a lazy cache at runtime:
 
-- If an image exists in `deploy/assets/card_images/manifest.json`, it uses local bytes.
-- If missing, it fetches once from the source URL, saves it to `deploy/assets/card_images/`, updates the manifest, and reuses local cache on later drops.
+- If an image exists in `runtime/card_images/manifest.json`, it uses local bytes.
+- If missing, it fetches once from the source URL, saves it to `runtime/card_images/`, updates the manifest, and reuses local cache on later drops.
 
 You can also pre-warm the full cache in advance to avoid first-hit fetches:
 
@@ -172,7 +163,7 @@ You can also pre-warm the full cache in advance to avoid first-hit fetches:
 .venv/bin/python scripts/cache_card_images.py
 ```
 
-This writes files into `deploy/assets/card_images/` and a manifest at `deploy/assets/card_images/manifest.json`.
+This writes files into `runtime/card_images/` and a manifest at `runtime/card_images/manifest.json`.
 
 ### Optional: generation economy report
 
@@ -186,7 +177,7 @@ Machine-readable output is available with `--json`.
 
 ## Notes / current limitations
 
-- Data is persisted in local SQLite (`deploy/assets/noodswap.db`) by default.
+- Data is persisted in local SQLite (`runtime/db/noodswap.db`) by default.
 - `.env` files are gitignored; keep real tokens only in untracked local env files or deployment secret managers.
 - No anti-abuse logging or sharding yet.
 - Alias conflict in the original spec (`d` for both `drop` and `divorce`) is resolved as:
@@ -225,4 +216,4 @@ Machine-readable output is available with `--json`.
 - Migrate to slash commands/app commands while keeping prefix aliases if desired.
 - Add anti-abuse checks (alt farming, suspicious transfer patterns).
 - Add paginated collection views and richer card metadata/assets.
-- Automate runtime state operations for production deploys: scheduled SQLite backups to remote storage, restore-on-empty bootstrap for `deploy/assets/noodswap.db`, and first-run card-image cache bootstrap from a published artifact.
+- Automate runtime state operations for production deploys: scheduled SQLite backups to remote storage, restore-on-empty bootstrap for `runtime/db/noodswap.db`, and first-run card-image cache bootstrap from a published artifact.
