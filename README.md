@@ -136,7 +136,7 @@ This bot uses privileged intents. Enable these for your application in Discord D
 - `ns cooldown [player]` / `ns cd [player]` — show drop (6m), pull (4m), and vote reward (24h) cooldowns for yourself or another player.
 - `ns burn [card_code]` / `ns b [card_code]` — burn a specific dupe for dough (randomized around base). If omitted, defaults to your most recently pulled card. Burn is blocked for cards in locked tags.
 - `ns morph [card_code]` / `ns mo [card_code]` — pay 20% of card value (rounded up) to apply a random visual morph; currently supports `black_and_white`.
-- `ns frame [card_code]` / `ns fr [card_code]` — pay 20% of card value (rounded up) to apply a random cosmetic frame from available overlays (`buttery`, `gilded`, `drizzled`) in `assets/frame_overlays/`.
+- `ns frame [card_code]` / `ns fr [card_code]` — pay 20% of card value (rounded up) to apply a random cosmetic frame from available overlays (`buttery`, `gilded`, `drizzled`) in `deploy/assets/frame_overlays/`.
 - `ns font [card_code]` / `ns fo [card_code]` — pay 20% of card value (rounded up) to apply a random cosmetic font (`serif`, `mono`, `storybook`, `spooky`, `pixel`, `playful`). `Classic` is now the default baseline style (not a modifier).
 - `ns trade <player> <card_code> <amount>` / `ns t ...` — offer a specific dupe-for-dough trade.
 - `ns wish` / `ns w` — wishlist command group.
@@ -163,8 +163,8 @@ This bot uses privileged intents. Enable these for your application in Discord D
 
 Drop preview image composition uses a lazy cache at runtime:
 
-- If an image exists in `assets/card_images/manifest.json`, it uses local bytes.
-- If missing, it fetches once from the source URL, saves it to `assets/card_images/`, updates the manifest, and reuses local cache on later drops.
+- If an image exists in `deploy/assets/card_images/manifest.json`, it uses local bytes.
+- If missing, it fetches once from the source URL, saves it to `deploy/assets/card_images/`, updates the manifest, and reuses local cache on later drops.
 
 You can also pre-warm the full cache in advance to avoid first-hit fetches:
 
@@ -172,7 +172,7 @@ You can also pre-warm the full cache in advance to avoid first-hit fetches:
 .venv/bin/python scripts/cache_card_images.py
 ```
 
-This writes files into `assets/card_images/` and a manifest at `assets/card_images/manifest.json`.
+This writes files into `deploy/assets/card_images/` and a manifest at `deploy/assets/card_images/manifest.json`.
 
 ### Optional: generation economy report
 
@@ -186,7 +186,7 @@ Machine-readable output is available with `--json`.
 
 ## Notes / current limitations
 
-- Data is persisted in local SQLite (`noodswap.db`) in the project directory.
+- Data is persisted in local SQLite (`deploy/assets/noodswap.db`) by default.
 - `.env` files are gitignored; keep real tokens only in untracked local env files or deployment secret managers.
 - No anti-abuse logging or sharding yet.
 - Alias conflict in the original spec (`d` for both `drop` and `divorce`) is resolved as:

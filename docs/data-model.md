@@ -5,7 +5,7 @@ This document describes persistent storage for Noodswap.
 ## Database
 
 - Engine: SQLite
-- File location: repository root as `noodswap.db`
+- File location: `deploy/assets/noodswap.db` by default (overridable via `NOODSWAP_DB_PATH`)
 - Access: through functions in `noodswap/storage.py`
 
 ## Tables

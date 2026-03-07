@@ -67,7 +67,7 @@ This includes:
 - `gilded` and `drizzled` are temporary placeholders until distinct overlay art is added.
 - `Classic` is the default baseline style and is not a cosmetic modifier.
 - Initial selectable font set includes `serif`, `mono`, `storybook`, `spooky`, `pixel`, and `playful`.
-- Frame overlays are loaded from `assets/frame_overlays/<frame_key>.png` (or `.webp`) and composited over the rendered card.
+- Frame overlays are loaded from `deploy/assets/frame_overlays/<frame_key>.png` (or `.webp`) by default and composited over the rendered card.
 - Rendered card frame is normalized to a portrait `2.5:3.5` aspect ratio (`5:7`).
 - Default rendered card canvas is `350x490` (`5:7`) for lower processing cost.
 - `lookuphd` renders at `1000x1400` (`5:7`) for high-detail output on demand.

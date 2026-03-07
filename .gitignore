@@ -13,4 +13,5 @@ card_image_pull_report_desserts.json
 
 # Runtime/persistent SQLite data
 noodswap.db
+deploy/assets/noodswap.db
 deploy/data/noodswap.db

@@ -15,17 +15,18 @@ TRADE_TIMEOUT_SECONDS = 90
 BURN_CONFIRM_TIMEOUT_SECONDS = 30
 GENERATION_MIN = 1
 GENERATION_MAX = 2000
-DB_PATH = Path(
-	os.getenv(
-		"NOODSWAP_DB_PATH",
-		str(Path(__file__).resolve().parent.parent / "noodswap.db"),
-	)
-)
 DB_LOCK_TIMEOUT_SECONDS = 5.0
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
 ASSETS_DIR = Path(
 	os.getenv(
 		"NOODSWAP_ASSETS_DIR",
-		str(Path(__file__).resolve().parent.parent / "assets"),
+		str(PROJECT_ROOT / "deploy" / "assets"),
+	)
+)
+DB_PATH = Path(
+	os.getenv(
+		"NOODSWAP_DB_PATH",
+		str(ASSETS_DIR / "noodswap.db"),
 	)
 )
 CARD_IMAGE_DIR = Path(
