@@ -4,6 +4,7 @@ pipeline {
   parameters {
     string(name: 'DEPLOY_PATH', defaultValue: '/home/noodswap-user/noodswap', description: 'Absolute path to the deployment checkout on Ubuntu')
     string(name: 'IMAGE_REPOSITORY', defaultValue: 'ghcr.io/tehbrian/noodswap', description: 'GHCR image repository without tag')
+    string(name: 'DEPLOY_AS_USER', defaultValue: 'noodswap-user', description: 'Linux user to execute deploy/update.sh as (blank = current Jenkins user)')
   }
 
   options {
@@ -47,13 +48,20 @@ pipeline {
               exit 1
             fi
 
+            docker_config_dir="$(mktemp -d)"
+            cleanup() {
+              docker --config "${docker_config_dir}" logout ghcr.io >/dev/null 2>&1 || true
+              rm -rf "${docker_config_dir}"
+            }
+            trap cleanup EXIT
+
             image_ref="${IMAGE_REPOSITORY}:${deploy_image_tag}"
             echo "Waiting for image to become available: ${image_ref}"
-            echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USERNAME" --password-stdin
+            echo "$GHCR_TOKEN" | docker --config "${docker_config_dir}" login ghcr.io -u "$GHCR_USERNAME" --password-stdin
 
             max_attempts=30
             attempt=1
-            until docker manifest inspect "$image_ref" >/dev/null 2>&1; do
+            until docker --config "${docker_config_dir}" manifest inspect "$image_ref" >/dev/null 2>&1; do
               if [ "$attempt" -ge "$max_attempts" ]; then
                 echo "Timed out waiting for ${image_ref}" >&2
                 docker logout ghcr.io >/dev/null 2>&1 || true
@@ -65,7 +73,6 @@ pipeline {
             done
 
             echo "Image available: ${image_ref}"
-            docker logout ghcr.io
           '''
         }
       }
@@ -93,10 +100,37 @@ pipeline {
               exit 1
             fi
 
-            cd "${DEPLOY_PATH}"
-            echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USERNAME" --password-stdin
-            IMAGE_REPOSITORY="${IMAGE_REPOSITORY}" IMAGE_TAG="${deploy_image_tag}" ./deploy/update.sh
-            docker logout ghcr.io
+            deploy_script="${DEPLOY_PATH}/deploy/update.sh"
+            if [ ! -x "${deploy_script}" ]; then
+              echo "Deploy script missing or not executable: ${deploy_script}" >&2
+              exit 1
+            fi
+
+            deploy_user="${DEPLOY_AS_USER:-}"
+            current_user="$(id -un)"
+            if [ -n "${deploy_user}" ] && [ "${deploy_user}" != "${current_user}" ]; then
+              if ! command -v sudo >/dev/null 2>&1; then
+                echo "sudo is required to run deploy as ${deploy_user}, but sudo is not installed." >&2
+                exit 1
+              fi
+
+              # Run the exact deploy script command permitted by sudoers.
+              if ! sudo -n -u "${deploy_user}" IMAGE_REPOSITORY="${IMAGE_REPOSITORY}" IMAGE_TAG="${deploy_image_tag}" "${deploy_script}"; then
+                echo "Deploy via sudo failed. Ensure Jenkins has NOPASSWD sudo for ${deploy_script} as ${deploy_user}." >&2
+                echo "If GHCR is private, run one-time docker login as ${deploy_user} on the host." >&2
+                exit 1
+              fi
+            else
+              docker_config_dir="$(mktemp -d)"
+              cleanup() {
+                docker --config "${docker_config_dir}" logout ghcr.io >/dev/null 2>&1 || true
+                rm -rf "${docker_config_dir}"
+              }
+              trap cleanup EXIT
+
+              echo "$GHCR_TOKEN" | docker --config "${docker_config_dir}" login ghcr.io -u "$GHCR_USERNAME" --password-stdin
+              DOCKER_CONFIG="${docker_config_dir}" IMAGE_REPOSITORY="${IMAGE_REPOSITORY}" IMAGE_TAG="${deploy_image_tag}" "${deploy_script}"
+            fi
           '''
         }
       }
