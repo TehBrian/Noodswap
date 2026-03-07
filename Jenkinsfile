@@ -100,11 +100,6 @@ pipeline {
             fi
 
             deploy_script="${DEPLOY_PATH}/deploy/update.sh"
-            if [ ! -x "${deploy_script}" ]; then
-              echo "Deploy script missing or not executable: ${deploy_script}" >&2
-              exit 1
-            fi
-
             deploy_user="${DEPLOY_AS_USER:-}"
             current_user="$(id -un)"
             if [ -n "${deploy_user}" ] && [ "${deploy_user}" != "${current_user}" ]; then
@@ -115,11 +110,16 @@ pipeline {
 
               # Run the exact deploy script command permitted by sudoers.
               if ! sudo -n -u "${deploy_user}" IMAGE_REPOSITORY="${IMAGE_REPOSITORY}" IMAGE_TAG="${deploy_image_tag}" "${deploy_script}"; then
-                echo "Deploy via sudo failed. Ensure Jenkins has NOPASSWD sudo for ${deploy_script} as ${deploy_user}." >&2
+                echo "Deploy via sudo failed. Ensure Jenkins has NOPASSWD sudo for ${deploy_script} as ${deploy_user}, and that the script path exists and is executable by ${deploy_user}." >&2
                 echo "If GHCR is private, run one-time docker login as ${deploy_user} on the host." >&2
                 exit 1
               fi
             else
+              if [ ! -x "${deploy_script}" ]; then
+                echo "Deploy script missing or not executable: ${deploy_script}" >&2
+                exit 1
+              fi
+
               docker_config_dir="$(mktemp -d)"
               cleanup() {
                 docker --config "${docker_config_dir}" logout ghcr.io >/dev/null 2>&1 || true
