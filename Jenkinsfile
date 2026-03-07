@@ -109,7 +109,7 @@ pipeline {
               fi
 
               # Run the exact deploy script command permitted by sudoers.
-              if ! sudo -n -u "${deploy_user}" IMAGE_REPOSITORY="${IMAGE_REPOSITORY}" IMAGE_TAG="${deploy_image_tag}" "${deploy_script}"; then
+              if ! sudo -n -u "${deploy_user}" "${deploy_script}" --image-repository "${IMAGE_REPOSITORY}" --image-tag "${deploy_image_tag}"; then
                 echo "Deploy via sudo failed. Ensure Jenkins has NOPASSWD sudo for ${deploy_script} as ${deploy_user}, and that the script path exists and is executable by ${deploy_user}." >&2
                 echo "If GHCR is private, run one-time docker login as ${deploy_user} on the host." >&2
                 exit 1
@@ -128,7 +128,7 @@ pipeline {
               trap cleanup EXIT
 
               echo "$GHCR_TOKEN" | docker --config "${docker_config_dir}" login ghcr.io -u "$GHCR_USERNAME" --password-stdin
-              DOCKER_CONFIG="${docker_config_dir}" IMAGE_REPOSITORY="${IMAGE_REPOSITORY}" IMAGE_TAG="${deploy_image_tag}" "${deploy_script}"
+              DOCKER_CONFIG="${docker_config_dir}" "${deploy_script}" --image-repository "${IMAGE_REPOSITORY}" --image-tag "${deploy_image_tag}"
             fi
           '''
         }

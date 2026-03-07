@@ -1,6 +1,35 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+IMAGE_REPOSITORY_OVERRIDE=""
+IMAGE_TAG_OVERRIDE=""
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --image-repository)
+      if [ "$#" -lt 2 ]; then
+        echo "Missing value for --image-repository" >&2
+        exit 2
+      fi
+      IMAGE_REPOSITORY_OVERRIDE="$2"
+      shift 2
+      ;;
+    --image-tag)
+      if [ "$#" -lt 2 ]; then
+        echo "Missing value for --image-tag" >&2
+        exit 2
+      fi
+      IMAGE_TAG_OVERRIDE="$2"
+      shift 2
+      ;;
+    *)
+      echo "Unknown argument: $1" >&2
+      echo "Usage: $0 [--image-repository <repo>] [--image-tag <tag>]" >&2
+      exit 2
+      ;;
+  esac
+done
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
@@ -12,6 +41,14 @@ fi
 if [ ! -f "$SCRIPT_DIR/runtime.env" ]; then
   echo "Missing $SCRIPT_DIR/runtime.env (copy from runtime.env.example and set secrets)." >&2
   exit 1
+fi
+
+if [ -n "$IMAGE_REPOSITORY_OVERRIDE" ]; then
+  export IMAGE_REPOSITORY="$IMAGE_REPOSITORY_OVERRIDE"
+fi
+
+if [ -n "$IMAGE_TAG_OVERRIDE" ]; then
+  export IMAGE_TAG="$IMAGE_TAG_OVERRIDE"
 fi
 
 mkdir -p "$SCRIPT_DIR/data/card_images"

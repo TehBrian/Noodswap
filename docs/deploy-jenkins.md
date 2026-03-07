@@ -29,6 +29,8 @@ sudo chmod 440 /etc/sudoers.d/jenkins-noodswap-deploy
 sudo visudo -cf /etc/sudoers.d/jenkins-noodswap-deploy
 ```
 
+This rule is command-scoped (least privilege) and does not require `SETENV`; Jenkins passes image repository/tag as script arguments.
+
 Then clone repo and prepare deploy files:
 
 ```bash
