@@ -1,5 +1,4 @@
 import io
-import json
 import tempfile
 import unittest
 from types import SimpleNamespace
@@ -13,7 +12,7 @@ from discord.ext import commands
 from noodswap import storage
 from noodswap.commands import _build_drop_preview_blocking, _get_card_image_bytes, register_commands
 from noodswap.images import DEFAULT_CARD_RENDER_SIZE, HD_CARD_RENDER_SIZE, RARITY_BORDER_COLORS, render_card_image_bytes
-from noodswap.views import HelpView, PaginatedLinesView, PlayerLeaderboardView, SortableCardListView, SortableCollectionView
+from noodswap.views import HelpView, PlayerLeaderboardView, SortableCardListView, SortableCollectionView
 
 
 _TEST_DB_TMP: tempfile.TemporaryDirectory[str] | None = None
@@ -348,7 +347,7 @@ class CommandsLeaderboardTests(unittest.IsolatedAsyncioTestCase):
             (100, 2, 1, 20, 0, 40),
             (200, 5, 3, 50, 2, 120),
         ]
-        with patch("noodswap.commands.get_player_leaderboard_stats", return_value=leaderboard_rows):
+        with patch("noodswap.commands.get_player_leaderboard_info", return_value=leaderboard_rows):
             await leaderboard_command.callback(ctx)
 
         ctx.send.assert_awaited_once()
@@ -967,7 +966,7 @@ class CommandsInfoTests(unittest.IsolatedAsyncioTestCase):
         ctx.reply = ctx.send
 
         with (
-            patch("noodswap.commands.get_player_stats", return_value=(123, 0.0, None)),
+            patch("noodswap.commands.get_player_info", return_value=(123, 0.0, None)),
             patch("noodswap.commands.get_player_starter", return_value=9),
             patch("noodswap.commands.get_total_cards", return_value=7),
             patch("noodswap.commands.get_wishlist_cards", return_value=["SPG", "PEN", "FUS"]),
@@ -999,7 +998,7 @@ class CommandsInfoTests(unittest.IsolatedAsyncioTestCase):
         ctx.reply = ctx.send
 
         with (
-            patch("noodswap.commands.get_player_stats", return_value=(999, 0.0, None)),
+            patch("noodswap.commands.get_player_info", return_value=(999, 0.0, None)),
             patch("noodswap.commands.get_player_starter", return_value=2),
             patch("noodswap.commands.get_total_cards", return_value=4),
             patch("noodswap.commands.get_wishlist_cards", return_value=["SPG"]),
@@ -1008,7 +1007,7 @@ class CommandsInfoTests(unittest.IsolatedAsyncioTestCase):
 
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
-        self.assertEqual(sent_embed.title, "Target's Stats")
+        self.assertEqual(sent_embed.title, "Target's Info")
 
 
 class CommandsVoteTests(unittest.IsolatedAsyncioTestCase):

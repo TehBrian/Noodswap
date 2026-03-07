@@ -9,6 +9,10 @@ Discord trading-card style bot using `discord.py`.
    ```bash
    pip install -r requirements.txt
    ```
+   For development checks (including `pylint`), install dev dependencies:
+   ```bash
+   pip install -r requirements-dev.txt
+   ```
 3. Set your token (never commit secrets):
    - Local dev:
    ```bash
@@ -34,7 +38,7 @@ Discord trading-card style bot using `discord.py`.
 
 ### What is included
 
-- CI: `.github/workflows/ci.yml` runs compile, migration smoke, and unit tests on push/PR.
+- CI: `.github/workflows/ci.yml` runs `pylint`, compile, migration smoke, and unit tests on push/PR.
 - CD image publish: `.github/workflows/cd.yml` builds and pushes GHCR images after CI passes on `main`.
 - Host deploy: `.github/workflows/deploy.yml` runs on GitHub-hosted runners and deploys to Ubuntu over SSH, pinned to commit SHA image tags.
 
@@ -117,7 +121,7 @@ This bot uses privileged intents. Enable these for your application in Discord D
 
 ## Commands (prefixes: `ns ` and short `n`, both case-insensitive)
 
-- `ns info [player]` / `ns i [player]` — show your stats or another player's stats (mention/username).
+- `ns info [player]` / `ns i [player]` — show your info or another player's info (mention/username).
 - `ns leaderboard` / `ns le` — show a paginated player leaderboard with criteria dropdown (`cards`, `wishes`, `dough`, `starter`, `collection value`).
 - `ns collection [player]` / `ns c [player]` — show your collection or another player's collection with interactive sorting and gallery toggle (defaults to yourself).
 - `ns cards` / `ns ca` — show all available cards with interactive sorting (wishes, rarity, series, base value, alphabetical; default alphabetical), plus a gallery toggle for one-card image mode.

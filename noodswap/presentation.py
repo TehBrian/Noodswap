@@ -1,6 +1,6 @@
 import discord
 
-from .cards import card_base_display, card_dupe_display
+from .cards import card_dupe_display
 from .utils import multiline_text
 
 ITALY_RED = 0xCE2B37
@@ -62,7 +62,7 @@ HELP_CATEGORY_PAGES: tuple[tuple[str, str, str], ...] = (
     (
         "overview",
         "Overview",
-        """- `ns info [player]` (`ns i`, `ni`) — View a player's stats; defaults to yourself or the replied user.
+        """- `ns info [player]` (`ns i`, `ni`) — View a player's info; defaults to yourself or the replied user.
 - `ns leaderboard` (`ns le`, `nle`) — View ranked players with selectable leaderboard criteria.
 - `ns collection [player]` (`ns c`, `nc`) — View a player's cards; defaults to yourself or the replied user.
 - `ns cards` (`ns ca`, `nca`) — View all cards, ranked by wish count.

@@ -369,7 +369,7 @@ def _apply_text_legibility_overlay(
     color: tuple[int, int, int],
     font_key: str | None = None,
 ):
-    from PIL import Image, ImageDraw, ImageFont
+    from PIL import Image, ImageDraw
 
     width, height = image.size
     # Two-stage overlay: solid base for text contrast, soft fade above for visual blend.
@@ -681,7 +681,7 @@ def render_card_surface(
     size: tuple[int, int] = DEFAULT_CARD_RENDER_SIZE,
 ):
     try:
-        from PIL import Image, ImageDraw, ImageOps
+        from PIL import Image, ImageOps
     except ImportError:
         return None
 

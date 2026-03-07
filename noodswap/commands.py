@@ -75,11 +75,11 @@ from .storage import (
     is_tag_assigned_to_instance,
     get_player_cooldown_timestamps,
     get_player_card_instances,
-    get_player_leaderboard_stats,
+    get_player_leaderboard_info,
     get_player_slots_timestamp,
     list_player_tags,
     get_player_starter,
-    get_player_stats,
+    get_player_info,
     get_player_vote_reward_timestamp,
     get_total_cards,
     set_player_tag_locked,
@@ -99,7 +99,6 @@ from .views import (
     HelpView,
     FrameConfirmView,
     MorphConfirmView,
-    PaginatedLinesView,
     PlayerLeaderboardView,
     SortableCardListView,
     SortableCollectionView,
@@ -432,7 +431,7 @@ async def _tag_add(ctx: commands.Context, tag_name: str) -> None:
     created = create_player_tag(ctx.guild.id, ctx.author.id, tag_name)
     normalized = tag_name.strip().lower()
     if not created:
-        await _reply(ctx, 
+        await _reply(ctx,
             embed=italy_embed(
                 "Tags",
                 "Could not create that tag. Tags must be unique, non-empty, and up to 32 characters.",
@@ -507,7 +506,7 @@ async def _tag_assign(ctx: commands.Context, tag_name: str, card_code: str) -> N
     assigned = assign_tag_to_instance(ctx.guild.id, ctx.author.id, instance_id, tag_name)
     normalized = tag_name.strip().lower()
     if not assigned:
-        await _reply(ctx, 
+        await _reply(ctx,
             embed=italy_embed(
                 "Tags",
                 "Could not tag that card. Make sure the tag exists and the card is yours.",
@@ -515,7 +514,7 @@ async def _tag_assign(ctx: commands.Context, tag_name: str, card_code: str) -> N
         )
         return
 
-    await _reply(ctx, 
+    await _reply(ctx,
         embed=italy_embed(
             "Tags",
             f"Tagged {card_dupe_display(card_id, generation, dupe_code=dupe_code)} with `{normalized}`.",
@@ -540,7 +539,7 @@ async def _tag_unassign(ctx: commands.Context, tag_name: str, card_code: str) ->
         await _reply(ctx, embed=italy_embed("Tags", f"That card is not tagged with `{normalized}`."))
         return
 
-    await _reply(ctx, 
+    await _reply(ctx,
         embed=italy_embed(
             "Tags",
             f"Removed `{normalized}` from {card_dupe_display(card_id, generation, dupe_code=dupe_code)}.",
@@ -586,7 +585,7 @@ async def _tag_cards(ctx: commands.Context, tag_name: str) -> None:
 def register_commands(bot: commands.Bot) -> None:
     @bot.group(name="wish", aliases=["w"], invoke_without_command=True)
     async def wish(ctx: commands.Context):
-        await _reply(ctx, 
+        await _reply(ctx,
             embed=italy_embed(
                 "Wishlist",
                 "Usage: `ns wish add <card_id>`, `ns wish remove <card_id>`, or `ns wish list [player]`.",
@@ -629,7 +628,7 @@ def register_commands(bot: commands.Bot) -> None:
 
     @bot.group(name="tag", aliases=["tg"], invoke_without_command=True)
     async def tag(ctx: commands.Context):
-        await _reply(ctx, 
+        await _reply(ctx,
             embed=italy_embed(
                 "Tags",
                 (
@@ -680,7 +679,7 @@ def register_commands(bot: commands.Bot) -> None:
             return
 
         wish_counts = get_card_wish_counts(ctx.guild.id)
-        entries = [(card_id, wish_counts.get(card_id, 0)) for card_id in CARD_CATALOG.keys()]
+        entries = [(card_id, wish_counts.get(card_id, 0)) for card_id in CARD_CATALOG]
 
         view = CardCatalogView(user_id=ctx.author.id, entries=entries)
         message = await _reply(ctx, embed=view.build_embed(), view=view)
@@ -793,7 +792,7 @@ def register_commands(bot: commands.Bot) -> None:
         prepared = prepare_drop(ctx.guild.id, ctx.author.id, now)
 
         if prepared.is_cooldown:
-            await _reply(ctx, 
+            await _reply(ctx,
                 embed=italy_embed(
                     "Drop Cooldown",
                     f"You need to wait **{format_cooldown(prepared.cooldown_remaining_seconds)}** before your next drop.",
@@ -1378,7 +1377,7 @@ def register_commands(bot: commands.Bot) -> None:
             await _reply(ctx, embed=italy_embed("Leaderboard", "Use this command in a server."))
             return
 
-        leaderboard_rows = get_player_leaderboard_stats(ctx.guild.id)
+        leaderboard_rows = get_player_leaderboard_info(ctx.guild.id)
         if not leaderboard_rows:
             await _reply(ctx, embed=italy_embed("Leaderboard", "No players found yet. Try `ns drop` first."))
             return
@@ -1404,7 +1403,7 @@ def register_commands(bot: commands.Bot) -> None:
             return
         target_member = resolved_member
 
-        dough, _, married_instance_id = get_player_stats(ctx.guild.id, target_member.id)
+        dough, _, married_instance_id = get_player_info(ctx.guild.id, target_member.id)
         starter = get_player_starter(ctx.guild.id, target_member.id)
         wishes_count = len(get_wishlist_cards(ctx.guild.id, target_member.id))
         married = "None"
@@ -1424,7 +1423,7 @@ def register_commands(bot: commands.Bot) -> None:
                     font_key=get_instance_font(ctx.guild.id, married_instance_id),
                 )
 
-        embed = italy_embed(f"{target_member.display_name}'s Stats")
+        embed = italy_embed(f"{target_member.display_name}'s Info")
         embed.add_field(name="Cards", value=str(get_total_cards(ctx.guild.id, target_member.id)), inline=True)
         embed.add_field(name="Dough", value=str(dough), inline=True)
         embed.add_field(name="Starter", value=str(starter), inline=True)
@@ -1484,7 +1483,7 @@ def register_commands(bot: commands.Bot) -> None:
             amount=amount,
         )
 
-        message = await _reply(ctx, 
+        message = await _reply(ctx,
             embed=italy_embed(
                 "Trade Offer",
                 trade_offer_description(resolved_member.mention, ctx.author.mention, card_id, generation, dupe_code, amount),
@@ -1506,7 +1505,7 @@ def register_commands(bot: commands.Bot) -> None:
             await _reply(ctx, embed=italy_embed("DB Export", "No database file found yet."))
             return
 
-        await _reply(ctx, 
+        await _reply(ctx,
             embed=italy_embed("DB Export", "Exporting current `noodswap.db`."),
             file=discord.File(DB_PATH, filename="noodswap.db"),
         )
@@ -1515,7 +1514,7 @@ def register_commands(bot: commands.Bot) -> None:
     @commands.is_owner()
     async def dbreset(ctx: commands.Context):
         reset_db_data()
-        await _reply(ctx, 
+        await _reply(ctx,
             embed=italy_embed(
                 "DB Reset",
                 "Database reset complete. All persisted Noodswap data has been deleted.",

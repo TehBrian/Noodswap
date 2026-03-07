@@ -190,8 +190,8 @@ class StorageTests(unittest.TestCase):
         self.assertEqual(len(buyer_instances), 1)
         self.assertEqual(buyer_instances[0][2], 800)
 
-        seller_dough, _, _ = storage.get_player_stats(guild_id, seller_id)
-        buyer_dough, _, _ = storage.get_player_stats(guild_id, buyer_id)
+        seller_dough, _, _ = storage.get_player_info(guild_id, seller_id)
+        buyer_dough, _, _ = storage.get_player_info(guild_id, buyer_id)
         self.assertEqual(seller_dough, 30)
         self.assertEqual(buyer_dough, 70)
 
@@ -217,8 +217,8 @@ class StorageTests(unittest.TestCase):
         self.assertIsNone(traded_generation)
         self.assertIsNone(traded_dupe_code)
 
-        seller_dough, _, _ = storage.get_player_stats(guild_id, seller_id)
-        buyer_dough, _, _ = storage.get_player_stats(guild_id, buyer_id)
+        seller_dough, _, _ = storage.get_player_info(guild_id, seller_id)
+        buyer_dough, _, _ = storage.get_player_info(guild_id, buyer_id)
         self.assertEqual(seller_dough, 0)
         self.assertEqual(buyer_dough, 100)
 
@@ -255,12 +255,12 @@ class StorageTests(unittest.TestCase):
         self.assertEqual(len(seller_instances), 1)
         self.assertEqual(len(buyer_instances), 0)
 
-        seller_dough, _, _ = storage.get_player_stats(guild_id, seller_id)
-        buyer_dough, _, _ = storage.get_player_stats(guild_id, buyer_id)
+        seller_dough, _, _ = storage.get_player_info(guild_id, seller_id)
+        buyer_dough, _, _ = storage.get_player_info(guild_id, buyer_id)
         self.assertEqual(seller_dough, 0)
         self.assertEqual(buyer_dough, 5)
 
-    def test_player_leaderboard_stats_aggregates_cards_wishes_and_value(self) -> None:
+    def test_player_leaderboard_info_aggregates_cards_wishes_and_value(self) -> None:
         guild_id = 1
         first_user = 1100
         second_user = 1200
@@ -278,7 +278,7 @@ class StorageTests(unittest.TestCase):
         storage.add_card_to_wishlist(guild_id, first_user, "PEN")
         storage.add_card_to_wishlist(guild_id, second_user, "BAR")
 
-        rows = storage.get_player_leaderboard_stats(guild_id)
+        rows = storage.get_player_leaderboard_info(guild_id)
         by_user = {row[0]: row for row in rows}
 
         first = by_user[first_user]
@@ -564,7 +564,7 @@ class StorageTests(unittest.TestCase):
         self.assertEqual(message, "")
         self.assertEqual(storage.get_instance_morph(guild_id, instance_id), "black_and_white")
 
-        dough, _, _ = storage.get_player_stats(guild_id, user_id)
+        dough, _, _ = storage.get_player_info(guild_id, user_id)
         self.assertEqual(dough, 41)
 
     def test_apply_morph_to_instance_rejects_insufficient_dough(self) -> None:
@@ -604,7 +604,7 @@ class StorageTests(unittest.TestCase):
         self.assertEqual(message, "")
         self.assertEqual(storage.get_instance_frame(guild_id, instance_id), "buttery")
 
-        dough, _, _ = storage.get_player_stats(guild_id, user_id)
+        dough, _, _ = storage.get_player_info(guild_id, user_id)
         self.assertEqual(dough, 41)
 
     def test_apply_frame_to_instance_rejects_insufficient_dough(self) -> None:
@@ -644,7 +644,7 @@ class StorageTests(unittest.TestCase):
         self.assertEqual(message, "")
         self.assertEqual(storage.get_instance_font(guild_id, instance_id), "serif")
 
-        dough, _, _ = storage.get_player_stats(guild_id, user_id)
+        dough, _, _ = storage.get_player_info(guild_id, user_id)
         self.assertEqual(dough, 41)
 
     def test_apply_font_to_instance_rejects_insufficient_dough(self) -> None:

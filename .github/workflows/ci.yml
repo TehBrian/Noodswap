@@ -21,7 +21,10 @@ jobs:
           cache: "pip"
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: pip install -r requirements-dev.txt
+
+      - name: Pylint
+        run: python -m pylint noodswap scripts tests --score=n
 
       - name: Compile check
         run: python -m py_compile bot.py noodswap/*.py scripts/*.py tests/*.py

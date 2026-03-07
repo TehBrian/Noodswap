@@ -46,19 +46,20 @@ def search_card_ids(
             elif cleaned_query in normalized_series:
                 contains_series_matches.append(card_id)
 
-    key = lambda cid: (card_catalog[cid]["name"].casefold(), cid)
+    def sort_key(cid: str) -> tuple[str, str]:
+        return card_catalog[cid]["name"].casefold(), cid
 
     ordered_groups = [
-        sorted(exact_name_matches, key=key),
-        sorted(prefix_name_matches, key=key),
-        sorted(contains_name_matches, key=key),
+        sorted(exact_name_matches, key=sort_key),
+        sorted(prefix_name_matches, key=sort_key),
+        sorted(contains_name_matches, key=sort_key),
     ]
     if include_series:
         ordered_groups.extend(
             [
-                sorted(exact_series_matches, key=key),
-                sorted(prefix_series_matches, key=key),
-                sorted(contains_series_matches, key=key),
+                sorted(exact_series_matches, key=sort_key),
+                sorted(prefix_series_matches, key=sort_key),
+                sorted(contains_series_matches, key=sort_key),
             ]
         )
 
@@ -77,7 +78,7 @@ def search_card_ids_by_name(query: str, *, card_catalog: Mapping[str, CardSearch
     return search_card_ids(query, card_catalog=card_catalog)
 
 
-def card_code(card_id: str, dupe_code: str) -> str:
+def card_code(_card_id: str, dupe_code: str) -> str:
     return dupe_code.strip().lower()
 
 

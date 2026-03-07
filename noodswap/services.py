@@ -24,7 +24,7 @@ from .storage import (
     get_instance_morph,
     get_instance_by_code,
     get_last_pulled_instance,
-    get_player_stats,
+    get_player_info,
     marry_card_instance,
     set_last_drop_at,
 )
@@ -465,7 +465,7 @@ def prepare_morph(guild_id: int, user_id: int, card_code: Optional[str]) -> Morp
 
     value = card_value(morph_card_id, morph_generation)
     cost = max(1, int(math.ceil(value * MORPH_COST_FRACTION)))
-    dough_before, _, _ = get_player_stats(guild_id, user_id)
+    dough_before, _, _ = get_player_info(guild_id, user_id)
     if dough_before < cost:
         return MorphPreparation(
             error_message="You do not have enough dough.",
@@ -518,7 +518,7 @@ def confirm_morph(
             remaining_dough=None,
         )
 
-    dough_after, _, _ = get_player_stats(guild_id, user_id)
+    dough_after, _, _ = get_player_info(guild_id, user_id)
     return MorphExecution(
         error_message=None,
         instance_id=instance_id,
@@ -746,7 +746,7 @@ def prepare_frame(guild_id: int, user_id: int, card_code: Optional[str]) -> Fram
 
     value = card_value(frame_card_id, frame_generation)
     cost = max(1, int(math.ceil(value * FRAME_COST_FRACTION)))
-    dough_before, _, _ = get_player_stats(guild_id, user_id)
+    dough_before, _, _ = get_player_info(guild_id, user_id)
     if dough_before < cost:
         return FramePreparation(
             error_message="You do not have enough dough.",
@@ -799,7 +799,7 @@ def confirm_frame(
             remaining_dough=None,
         )
 
-    dough_after, _, _ = get_player_stats(guild_id, user_id)
+    dough_after, _, _ = get_player_info(guild_id, user_id)
     return FrameExecution(
         error_message=None,
         instance_id=instance_id,
@@ -1028,7 +1028,7 @@ def prepare_font(guild_id: int, user_id: int, card_code: Optional[str]) -> FontP
 
     value = card_value(font_card_id, font_generation)
     cost = max(1, int(math.ceil(value * FONT_COST_FRACTION)))
-    dough_before, _, _ = get_player_stats(guild_id, user_id)
+    dough_before, _, _ = get_player_info(guild_id, user_id)
     if dough_before < cost:
         return FontPreparation(
             error_message="You do not have enough dough.",
@@ -1081,7 +1081,7 @@ def confirm_font(
             remaining_dough=None,
         )
 
-    dough_after, _, _ = get_player_stats(guild_id, user_id)
+    dough_after, _, _ = get_player_info(guild_id, user_id)
     return FontExecution(
         error_message=None,
         instance_id=instance_id,

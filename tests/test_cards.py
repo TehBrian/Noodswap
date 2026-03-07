@@ -1,6 +1,6 @@
 import unittest
 
-from noodswap.cards import CARD_CATALOG, CARD_IMAGE_URLS, SERIES_CATALOG, default_card_image
+from noodswap.cards import CARD_CATALOG, SERIES_CATALOG, default_card_image
 
 
 class CardsImageTests(unittest.TestCase):

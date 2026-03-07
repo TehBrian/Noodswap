@@ -22,7 +22,7 @@ APP_ASSETS_DIR = PROJECT_ROOT / "assets"
 
 
 def _resolve_path(value: str) -> Path:
-	return Path(value).expanduser().resolve()
+    return Path(value).expanduser().resolve()
 
 
 RUNTIME_DIR = _resolve_path(os.getenv("DATA_DIR", str(PROJECT_ROOT / "runtime")))

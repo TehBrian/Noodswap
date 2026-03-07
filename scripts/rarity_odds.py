@@ -6,7 +6,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from noodswap.cards import CARD_CATALOG, RARITY_CARD_COUNTS, effective_rarity_odds, target_rarity_odds
 from noodswap.rarities import (
-    RARITY_GROWTH_RATIO,
     RARITY_ORDER,
     RARITY_RAREST_WEIGHT,
     RARITY_TOTAL_WEIGHT,

@@ -1,0 +1,46 @@
+[MAIN]
+py-version=3.14
+jobs=0
+ignore=__pycache__
+
+[MESSAGES CONTROL]
+disable=
+    missing-module-docstring,
+    missing-class-docstring,
+    missing-function-docstring,
+    too-few-public-methods,
+    duplicate-code,
+    wrong-import-position,
+    import-outside-toplevel,
+    protected-access,
+    cyclic-import,
+    too-many-lines,
+    too-many-public-methods,
+    consider-using-with,
+    invalid-name,
+    global-statement,
+    broad-exception-caught,
+    too-many-instance-attributes,
+    too-many-return-statements,
+    too-many-boolean-expressions
+
+[FORMAT]
+max-line-length=150
+
+[DESIGN]
+max-args=12
+max-attributes=12
+max-bool-expr=10
+max-branches=50
+max-locals=60
+max-parents=8
+max-public-methods=30
+max-returns=10
+max-statements=450
+max-positional-arguments=8
+
+[BASIC]
+good-names=i,j,k,_,db,ctx
+
+[TYPECHECK]
+generated-members=discord.*,PIL.*

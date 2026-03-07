@@ -60,7 +60,7 @@ class PlayerRepository:
             (guild_id, user_id, self.starting_dough, 0),
         )
 
-    def get_stats(self, guild_id: int, user_id: int) -> tuple[int, float, Optional[int]]:
+    def get_info(self, guild_id: int, user_id: int) -> tuple[int, float, Optional[int]]:
         row = self.conn.execute(
             """
             SELECT dough, last_pull_at, married_instance_id

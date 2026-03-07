@@ -255,12 +255,12 @@ def get_card_wish_counts(guild_id: int) -> dict[str, int]:
         return wishlist.get_card_wish_counts(guild_id)
 
 
-def get_player_stats(guild_id: int, user_id: int) -> tuple[int, float, Optional[int]]:
+def get_player_info(guild_id: int, user_id: int) -> tuple[int, float, Optional[int]]:
     guild_id = _scope_guild_id(guild_id)
     with get_db_connection() as conn:
         players = PlayerRepository(conn, STARTING_DOUGH)
         players.ensure_player(guild_id, user_id)
-        return players.get_stats(guild_id, user_id)
+        return players.get_info(guild_id, user_id)
 
 
 def get_player_starter(guild_id: int, user_id: int) -> int:
@@ -593,7 +593,7 @@ def get_total_cards(guild_id: int, user_id: int) -> int:
         return instances.count_by_owner(guild_id, user_id)
 
 
-def get_player_leaderboard_stats(guild_id: int) -> list[tuple[int, int, int, int, int, int]]:
+def get_player_leaderboard_info(guild_id: int) -> list[tuple[int, int, int, int, int, int]]:
     guild_id = _scope_guild_id(guild_id)
     with get_db_connection() as conn:
         players = PlayerRepository(conn, STARTING_DOUGH)
@@ -775,6 +775,7 @@ def execute_trade(
     amount: int,
 ) -> tuple[bool, str, Optional[int], Optional[str]]:
     guild_id = _scope_guild_id(guild_id)
+    _ = card_id
     with get_db_connection() as conn:
         _begin_immediate(conn)
         players = PlayerRepository(conn, STARTING_DOUGH)
