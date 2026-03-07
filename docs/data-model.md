@@ -23,6 +23,7 @@ Columns:
 - `last_drop_at REAL NOT NULL DEFAULT 0` (tracks last `drop` command usage timestamp)
 - `last_pull_at REAL NOT NULL DEFAULT 0` (tracks last successful drop-card claim timestamp)
 - `last_vote_reward_at REAL NOT NULL DEFAULT 0` (tracks last successful starter claim from top.gg vote)
+- `last_slots_at REAL NOT NULL DEFAULT 0` (tracks last successful `slots` spin timestamp)
 - `married_card_id TEXT`
 - `married_instance_id INTEGER` (current marriage reference)
 - `last_dropped_instance_id INTEGER` (stores last pulled instance for arg-less `burn`/`marry`)
@@ -152,6 +153,8 @@ Current migration set:
 - `v12`:
 	- Adds `players.starter` for top.gg vote rewards.
 	- Adds `players.last_vote_reward_at` for vote reward cooldown tracking.
+- `v13`:
+	- Adds `players.last_slots_at` for slots cooldown tracking.
 
 Notes:
 - Startup migration is in-code (`noodswap/migrations.py`) and invoked by `storage.init_db()` using incremental version checks.

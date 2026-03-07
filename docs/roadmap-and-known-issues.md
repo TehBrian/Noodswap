@@ -80,6 +80,7 @@ Stage 3 implementation guide: `docs/refactor-phase-3.md`.
 
 ## Decision log (recent)
 
+- Added `slots` / `s` command with animated 3-reel food-emoji spins, jackpot starter payout (`+1..+3`), and a dedicated 22-minute cooldown tracked by `players.last_slots_at`.
 - Stage 3 kickoff (non-breaking): extracted pagination emoji resolution/constants from `views.py` into `noodswap/view_pagination.py`, and extracted card display-format helpers into `noodswap/card_display.py` while keeping `noodswap.cards` public functions as compatibility wrappers.
 - Continued Stage 3 (non-breaking): extracted help interaction classes (`HelpCategorySelect`, `HelpView`) into `noodswap/view_help.py` and kept `HelpView` available through `noodswap.views` for existing imports.
 - Continued Stage 3 (non-breaking): extracted `DropView` into `noodswap/view_drop.py` and `TradeView` into `noodswap/view_trade.py` while keeping both importable from `noodswap.views`.

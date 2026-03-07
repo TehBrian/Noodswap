@@ -451,6 +451,14 @@ def get_player_vote_reward_timestamp(guild_id: int, user_id: int) -> float:
         return players.get_last_vote_reward_at(guild_id, user_id)
 
 
+def get_player_slots_timestamp(guild_id: int, user_id: int) -> float:
+    guild_id = _scope_guild_id(guild_id)
+    with get_db_connection() as conn:
+        players = PlayerRepository(conn, STARTING_DOUGH)
+        players.ensure_player(guild_id, user_id)
+        return players.get_last_slots_at(guild_id, user_id)
+
+
 def claim_vote_reward_if_ready(
     guild_id: int,
     user_id: int,
@@ -472,6 +480,37 @@ def claim_vote_reward_if_ready(
         players.set_last_vote_reward_at(guild_id, user_id, now)
         players.add_starter(guild_id, user_id, reward_amount)
         return True, 0.0, players.get_starter(guild_id, user_id)
+
+
+def consume_slots_cooldown_if_ready(
+    guild_id: int,
+    user_id: int,
+    now: float,
+    cooldown_seconds: float,
+) -> float:
+    guild_id = _scope_guild_id(guild_id)
+    with get_db_connection() as conn:
+        _begin_immediate(conn)
+        players = PlayerRepository(conn, STARTING_DOUGH)
+        players.ensure_player(guild_id, user_id)
+
+        last_slots_at = players.get_last_slots_at(guild_id, user_id)
+        elapsed = now - last_slots_at
+        if elapsed < cooldown_seconds:
+            return cooldown_seconds - elapsed
+
+        players.set_last_slots_at(guild_id, user_id, now)
+        return 0.0
+
+
+def add_starter(guild_id: int, user_id: int, amount: int) -> int:
+    guild_id = _scope_guild_id(guild_id)
+    with get_db_connection() as conn:
+        _begin_immediate(conn)
+        players = PlayerRepository(conn, STARTING_DOUGH)
+        players.ensure_player(guild_id, user_id)
+        players.add_starter(guild_id, user_id, amount)
+        return players.get_starter(guild_id, user_id)
 
 
 def consume_pull_cooldown_if_ready(

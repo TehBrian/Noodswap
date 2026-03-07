@@ -16,6 +16,7 @@ This document defines behavior and presentation for commands and interaction flo
 - `lookuphd <card_id|card_code|query>` / `lhd <card_id|card_code|query>`
 - `help` / `h`
 - `drop` / `d`
+- `slots` / `s`
 - `vote` / `v`
 - `cooldown [player]` / `cd [player]`
 - `burn [card_code]` / `b [card_code]`
@@ -231,11 +232,20 @@ Shows:
 
 ## Cooldown UX
 
-- `cooldown [player]` / `cd [player]` shows drop, pull, and vote cooldown status for yourself or another player
+- `cooldown [player]` / `cd [player]` shows drop, pull, vote, and slots cooldown status for yourself or another player
 - Drop cooldown is 6 minutes and applies to `ns drop`
 - Pull cooldown is 4 minutes and applies to claiming cards from drops
 - Vote cooldown is 24 hours and applies to claiming top.gg vote rewards
+- Slots cooldown is 22 minutes and applies to `ns slots`
 - Embed title format is `{Player}'s Cooldowns`
+
+## Slots UX
+
+- `slots` / `s` spins 3 side-by-side food emoji reels in a single embed message
+- Reels should animate via rapid embed edits before finalizing the result
+- A jackpot requires all 3 reels to match the same emoji
+- Jackpot rewards `starter` in the range `1..3`
+- `slots` uses a 22-minute cooldown
 
 ## Vote UX
 

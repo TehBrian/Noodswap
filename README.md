@@ -125,8 +125,9 @@ This bot uses privileged intents. Enable these for your application in Discord D
 - `ns lookuphd <card_id|card_code|query>` / `ns lhd <card_id|card_code|query>` — same as lookup, but renders the card image at `1000x1400`.
 - `ns help` / `ns h` — show command help.
 - `ns drop` / `ns d` — open a drop with 3 random cards; anyone can claim unclaimed cards via buttons.
+- `ns slots` / `ns s` — spin 3 food reels; matching all 3 awards 1-3 `starter`.
 - `ns vote` / `ns v` — open the top.gg vote page and claim `starter` reward when your vote is detected.
-- `ns cooldown [player]` / `ns cd [player]` — show drop (6m), pull (4m), and vote reward (24h) cooldowns for yourself or another player.
+- `ns cooldown [player]` / `ns cd [player]` — show drop (6m), pull (4m), slots (22m), and vote reward (24h) cooldowns for yourself or another player.
 - `ns burn [card_code]` / `ns b [card_code]` — burn a specific dupe for dough (randomized around base). If omitted, defaults to your most recently pulled card. Burn is blocked for cards in locked tags.
 - `ns morph [card_code]` / `ns mo [card_code]` — pay 20% of card value (rounded up) to apply a random visual morph; currently supports `black_and_white`.
 - `ns frame [card_code]` / `ns fr [card_code]` — pay 20% of card value (rounded up) to apply a random cosmetic frame from available overlays (`buttery`, `gilded`, `drizzled`) in `assets/frame_overlays/`.

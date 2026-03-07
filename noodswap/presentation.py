@@ -74,6 +74,7 @@ HELP_CATEGORY_PAGES: tuple[tuple[str, str, str], ...] = (
         "economy",
         "Economy",
         """- `ns drop` (`ns d`, `nd`) — Open a drop with 3 cards and pull 1.
+- `ns slots` (`ns s`, `ns`) — Spin 3 food reels; matching all 3 wins 1-3 starter.
 - `ns cooldown [player]` (`ns cd`) — Check a player's cooldowns; defaults to yourself or the replied user.
 - `ns vote` (`ns v`, `nv`) — Open top.gg vote link and claim starter reward if your vote is detected.
 - `ns burn [card_code]` (`ns b`, `nb`) — Burn a card for dough; defaults to last pulled card.

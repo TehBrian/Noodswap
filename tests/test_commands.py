@@ -326,6 +326,7 @@ class CommandsAliasRegistrationTests(unittest.TestCase):
         self.assertIn("le", _get_command(self.bot, "leaderboard").aliases)
         self.assertIn("i", _get_command(self.bot, "info").aliases)
         self.assertIn("v", _get_command(self.bot, "vote").aliases)
+        self.assertIn("s", _get_command(self.bot, "slots").aliases)
         self.assertIn("tg", _get_command(self.bot, "tag").aliases)
 
 
@@ -823,6 +824,7 @@ class CommandsCooldownTests(unittest.IsolatedAsyncioTestCase):
         with (
             patch("noodswap.commands.get_player_cooldown_timestamps", return_value=(0.0, 0.0)),
             patch("noodswap.commands.get_player_vote_reward_timestamp", return_value=0.0),
+            patch("noodswap.commands.get_player_slots_timestamp", return_value=0.0),
             patch("noodswap.commands.time.time", return_value=10_000.0),
         ):
             await cooldown_command.callback(ctx, player=None)
@@ -833,6 +835,7 @@ class CommandsCooldownTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("Drop:", sent_embed.description)
         self.assertIn("Pull:", sent_embed.description)
         self.assertIn("Vote:", sent_embed.description)
+        self.assertIn("Slots:", sent_embed.description)
         self.assertIn("Ready", sent_embed.description)
 
     async def test_cooldown_uses_resolved_player_when_argument_provided(self) -> None:
@@ -849,6 +852,7 @@ class CommandsCooldownTests(unittest.IsolatedAsyncioTestCase):
             patch("noodswap.commands.resolve_member_argument", new=AsyncMock(return_value=(target, None))) as resolve_member,
             patch("noodswap.commands.get_player_cooldown_timestamps", return_value=(9_800.0, 9_850.0)),
             patch("noodswap.commands.get_player_vote_reward_timestamp", return_value=9_900.0),
+            patch("noodswap.commands.get_player_slots_timestamp", return_value=9_950.0),
             patch("noodswap.commands.time.time", return_value=10_000.0),
         ):
             await cooldown_command.callback(ctx, player="@Target")
@@ -860,6 +864,7 @@ class CommandsCooldownTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("Drop:", sent_embed.description)
         self.assertIn("Pull:", sent_embed.description)
         self.assertIn("Vote:", sent_embed.description)
+        self.assertIn("Slots:", sent_embed.description)
         self.assertIn("Cooling Down", sent_embed.description)
 
     async def test_cooldown_uses_replied_player_when_argument_omitted(self) -> None:
@@ -881,6 +886,7 @@ class CommandsCooldownTests(unittest.IsolatedAsyncioTestCase):
         with (
             patch("noodswap.commands.get_player_cooldown_timestamps", return_value=(9_800.0, 9_850.0)),
             patch("noodswap.commands.get_player_vote_reward_timestamp", return_value=9_900.0),
+            patch("noodswap.commands.get_player_slots_timestamp", return_value=9_950.0),
             patch("noodswap.commands.time.time", return_value=10_000.0),
         ):
             await cooldown_command.callback(ctx, player=None)
@@ -888,6 +894,62 @@ class CommandsCooldownTests(unittest.IsolatedAsyncioTestCase):
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
         self.assertEqual(sent_embed.title, "Target's Cooldowns")
+
+
+class CommandsSlotsTests(unittest.IsolatedAsyncioTestCase):
+    def setUp(self) -> None:
+        self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)
+        register_commands(self.bot)
+
+    async def test_slots_enforces_cooldown(self) -> None:
+        slots_command = _get_command(self.bot, "slots")
+
+        ctx = AsyncMock()
+        ctx.guild = _FakeGuild(1)
+        ctx.author = _FakeMember(100, "Caller")
+        ctx.send = AsyncMock()
+        ctx.reply = ctx.send
+
+        with (
+            patch("noodswap.commands.consume_slots_cooldown_if_ready", return_value=60.0),
+            patch("noodswap.commands.add_starter") as add_starter,
+            patch("noodswap.commands._animate_slots_spin", new=AsyncMock()) as animate,
+        ):
+            await slots_command.callback(ctx)
+
+        add_starter.assert_not_called()
+        animate.assert_not_awaited()
+        ctx.send.assert_awaited_once()
+        sent_embed = ctx.send.await_args.kwargs["embed"]
+        self.assertEqual(sent_embed.title, "Slots Cooldown")
+        self.assertIn("remaining", sent_embed.description)
+
+    async def test_slots_awards_starter_on_three_match(self) -> None:
+        slots_command = _get_command(self.bot, "slots")
+
+        message = AsyncMock()
+        ctx = AsyncMock()
+        ctx.guild = _FakeGuild(1)
+        ctx.author = _FakeMember(100, "Caller")
+        ctx.send = AsyncMock(return_value=message)
+        ctx.reply = ctx.send
+
+        with (
+            patch("noodswap.commands.consume_slots_cooldown_if_ready", return_value=0.0),
+            patch("noodswap.commands.random.choice", return_value="🍞"),
+            patch("noodswap.commands.random.randint", return_value=2),
+            patch("noodswap.commands.add_starter", return_value=7) as add_starter,
+            patch("noodswap.commands._animate_slots_spin", new=AsyncMock()) as animate,
+        ):
+            await slots_command.callback(ctx)
+
+        add_starter.assert_called_once_with(1, 100, 2)
+        animate.assert_awaited_once()
+        self.assertGreaterEqual(message.edit.await_count, 1)
+        final_embed = message.edit.await_args.kwargs["embed"]
+        self.assertEqual(final_embed.title, "Slots")
+        self.assertIn("Jackpot", final_embed.description)
+        self.assertIn("+2 starter", final_embed.description)
 
 
 class CommandsInfoTests(unittest.IsolatedAsyncioTestCase):

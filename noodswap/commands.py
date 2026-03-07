@@ -2,6 +2,7 @@ import asyncio
 import io
 import inspect
 import os
+import random
 import time
 
 asyncio.iscoroutinefunction = inspect.iscoroutinefunction  # type: ignore[assignment]
@@ -52,12 +53,15 @@ from .settings import (
     DROP_COOLDOWN_SECONDS,
     DROP_TIMEOUT_SECONDS,
     PULL_COOLDOWN_SECONDS,
+    SLOTS_COOLDOWN_SECONDS,
     VOTE_COOLDOWN_SECONDS,
     VOTE_STARTER_REWARD,
 )
 from .storage import (
+    add_starter,
     assign_tag_to_instance,
     claim_vote_reward_if_ready,
+    consume_slots_cooldown_if_ready,
     create_player_tag,
     delete_player_tag,
     get_instance_by_code,
@@ -72,6 +76,7 @@ from .storage import (
     get_player_cooldown_timestamps,
     get_player_card_instances,
     get_player_leaderboard_stats,
+    get_player_slots_timestamp,
     list_player_tags,
     get_player_starter,
     get_player_stats,
@@ -251,6 +256,43 @@ def _vote_link_view(vote_url: str) -> discord.ui.View:
     view = discord.ui.View(timeout=None)
     view.add_item(discord.ui.Button(label="Vote on top.gg", style=discord.ButtonStyle.link, url=vote_url))
     return view
+
+
+SLOTS_REEL_EMOJIS: tuple[str, ...] = ("🍞", "🍷", "🧀", "🍕", "🍇", "🥖", "🍝")
+SLOTS_REEL_COUNT = 3
+SLOTS_SPIN_STEPS = 12
+SLOTS_SPIN_FRAME_DELAY_SECONDS = 0.15
+SLOTS_MIN_REWARD = 1
+SLOTS_MAX_REWARD = 3
+
+
+def _slots_reel_line(symbols: list[str]) -> str:
+    return "  |  ".join(symbols)
+
+
+def _slots_embed(reel_symbols: list[str], status_lines: list[str]) -> discord.Embed:
+    return italy_embed(
+        "Slots",
+        multiline_text([
+            _slots_reel_line(reel_symbols),
+            "",
+            *status_lines,
+        ]),
+    )
+
+
+async def _animate_slots_spin(message: discord.Message, final_symbols: list[str]) -> None:
+    for step in range(SLOTS_SPIN_STEPS):
+        frame_symbols: list[str] = []
+        for reel_index in range(SLOTS_REEL_COUNT):
+            lock_step = SLOTS_SPIN_STEPS - (SLOTS_REEL_COUNT - reel_index)
+            if step >= lock_step:
+                frame_symbols.append(final_symbols[reel_index])
+            else:
+                frame_symbols.append(random.choice(SLOTS_REEL_EMOJIS))
+
+        await message.edit(embed=_slots_embed(frame_symbols, ["Spinning..."]))
+        await asyncio.sleep(SLOTS_SPIN_FRAME_DELAY_SECONDS)
 
 
 async def _reply(ctx: commands.Context, **kwargs):
@@ -1252,6 +1294,52 @@ def register_commands(bot: commands.Bot) -> None:
 
         await _reply(ctx, embed=italy_embed("Vote", multiline_text(lines)), view=_vote_link_view(vote_url))
 
+    @bot.command(name="slots", aliases=["s"])
+    async def slots(ctx: commands.Context):
+        if ctx.guild is None:
+            await _reply(ctx, embed=italy_embed("Slots", "Use this command in a server."))
+            return
+
+        now = time.time()
+        cooldown_remaining_seconds = consume_slots_cooldown_if_ready(
+            guild_id=ctx.guild.id,
+            user_id=ctx.author.id,
+            now=now,
+            cooldown_seconds=SLOTS_COOLDOWN_SECONDS,
+        )
+        if cooldown_remaining_seconds > 0:
+            await _reply(
+                ctx,
+                embed=italy_embed(
+                    "Slots Cooldown",
+                    (
+                        "You need to wait before spinning again "
+                        f"(**{format_cooldown(cooldown_remaining_seconds)}** remaining)."
+                    ),
+                ),
+            )
+            return
+
+        final_symbols = [random.choice(SLOTS_REEL_EMOJIS) for _ in range(SLOTS_REEL_COUNT)]
+        message = await _reply(ctx, embed=_slots_embed(final_symbols, ["Spinning..."]))
+        await _animate_slots_spin(message, final_symbols)
+
+        if len(set(final_symbols)) == 1:
+            starter_reward = random.randint(SLOTS_MIN_REWARD, SLOTS_MAX_REWARD)
+            starter_total = add_starter(ctx.guild.id, ctx.author.id, starter_reward)
+            final_lines = [
+                "Jackpot! All three matched.",
+                f"Reward: **+{starter_reward} starter**",
+                f"Starter Balance: **{starter_total}**",
+            ]
+        else:
+            final_lines = [
+                "No match this time.",
+                f"Try again in **{format_cooldown(SLOTS_COOLDOWN_SECONDS)}**.",
+            ]
+
+        await message.edit(embed=_slots_embed(final_symbols, final_lines))
+
     @bot.command(name="cooldown", aliases=["cd"])
     async def cooldown(ctx: commands.Context, player: str | None = None):
         if ctx.guild is None:
@@ -1266,16 +1354,19 @@ def register_commands(bot: commands.Bot) -> None:
 
         last_drop_at, last_pull_at = get_player_cooldown_timestamps(ctx.guild.id, target_member.id)
         last_vote_reward_at = get_player_vote_reward_timestamp(ctx.guild.id, target_member.id)
+        last_slots_at = get_player_slots_timestamp(ctx.guild.id, target_member.id)
         now = time.time()
         drop_elapsed = now - last_drop_at
         pull_elapsed = now - last_pull_at
         vote_elapsed = now - last_vote_reward_at
+        slots_elapsed = now - last_slots_at
 
         description = multiline_text(
             [
                 _cooldown_status_line("Drop", drop_elapsed, DROP_COOLDOWN_SECONDS),
                 _cooldown_status_line("Pull", pull_elapsed, PULL_COOLDOWN_SECONDS),
                 _cooldown_status_line("Vote", vote_elapsed, VOTE_COOLDOWN_SECONDS),
+                _cooldown_status_line("Slots", slots_elapsed, SLOTS_COOLDOWN_SECONDS),
             ]
         )
 

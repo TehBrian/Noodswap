@@ -46,6 +46,7 @@ def _run_fresh_init_validation() -> None:
                 _assert(_table_exists(conn, "wishlist_cards"), "wishlist_cards table was not created")
                 _assert(_column_exists(conn, "players", "married_instance_id"), "players.married_instance_id missing")
                 _assert(_column_exists(conn, "players", "last_dropped_instance_id"), "players.last_dropped_instance_id missing")
+                _assert(_column_exists(conn, "players", "last_slots_at"), "players.last_slots_at missing")
                 _assert(_column_exists(conn, "card_instances", "morph_key"), "card_instances.morph_key missing")
                 _assert(_column_exists(conn, "card_instances", "frame_key"), "card_instances.frame_key missing")
                 _assert(_column_exists(conn, "card_instances", "font_key"), "card_instances.font_key missing")

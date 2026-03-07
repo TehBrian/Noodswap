@@ -31,6 +31,7 @@ class StorageTests(unittest.TestCase):
             self.assertIn("last_dropped_instance_id", column_names)
             self.assertIn("starter", column_names)
             self.assertIn("last_vote_reward_at", column_names)
+            self.assertIn("last_slots_at", column_names)
 
             instance_columns = conn.execute("PRAGMA table_info(card_instances)").fetchall()
             instance_column_names = {str(column[1]) for column in instance_columns}
@@ -106,6 +107,32 @@ class StorageTests(unittest.TestCase):
         self.assertFalse(claimed)
         self.assertGreater(remaining, 0.0)
         self.assertEqual(starter_total, 1)
+
+    def test_slots_cooldown_and_starter_award(self) -> None:
+        guild_id = 1
+        user_id = 1240
+
+        storage.init_db()
+
+        first_remaining = storage.consume_slots_cooldown_if_ready(
+            guild_id=guild_id,
+            user_id=user_id,
+            now=5_000.0,
+            cooldown_seconds=1_320.0,
+        )
+        self.assertEqual(first_remaining, 0.0)
+
+        second_remaining = storage.consume_slots_cooldown_if_ready(
+            guild_id=guild_id,
+            user_id=user_id,
+            now=5_100.0,
+            cooldown_seconds=1_320.0,
+        )
+        self.assertGreater(second_remaining, 0.0)
+
+        starter_total = storage.add_starter(guild_id, user_id, 3)
+        self.assertEqual(starter_total, 3)
+        self.assertEqual(storage.get_player_starter(guild_id, user_id), 3)
 
     def test_burn_candidate_selects_highest_generation_copy(self) -> None:
         guild_id = 1
