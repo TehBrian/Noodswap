@@ -30,9 +30,10 @@ This runbook is for contributors and coding agents.
 - CD workflow: `.github/workflows/cd.yml`
   - triggered only after CI succeeds on `main`
   - builds/pushes GHCR image (`latest` + commit SHA)
-- Jenkins pipeline: `Jenkinsfile`
-  - deploys on Ubuntu via `deploy/update.sh`
-  - intended trigger: GitHub push webhook or polling
+- Deploy workflow: `.github/workflows/deploy.yml`
+  - runs on GitHub-hosted runner (`ubuntu-latest`)
+  - deploys to Ubuntu server via SSH
+  - waits for SHA-tagged GHCR image, deploys via `deploy/update.sh`, verifies running image
 
 ## Ubuntu deploy flow
 
@@ -43,7 +44,9 @@ This runbook is for contributors and coding agents.
   - `deploy/runtime.env` (runtime secrets)
 - Manual rollout command:
   - `./deploy/update.sh`
-- Jenkins setup guide:
+- GitHub Actions deploy setup guide:
+  - `docs/deploy-github-actions.md`
+- Legacy Jenkins setup guide:
   - `docs/deploy-jenkins.md`
 
 ## Validate after changes

@@ -26,13 +26,13 @@ Early prototype Discord trading-card style bot using `discord.py`.
    python bot.py
    ```
 
-## Deployment (Docker + Jenkins)
+## Deployment (Docker + GitHub Actions)
 
 ### What is included
 
 - CI: `.github/workflows/ci.yml` runs compile, migration smoke, and unit tests on push/PR.
 - CD image publish: `.github/workflows/cd.yml` builds and pushes GHCR images after CI passes on `main`.
-- Host deploy: `Jenkinsfile` runs `deploy/update.sh` on your Ubuntu server, pinned to the checked-out commit SHA image tag.
+- Host deploy: `.github/workflows/deploy.yml` runs on GitHub-hosted runners and deploys to Ubuntu over SSH, pinned to commit SHA image tags.
 
 ### Local Docker smoke test
 
@@ -67,28 +67,36 @@ Optional runtime values:
 sudo -u noodswap-user bash -lc 'cd /home/noodswap-user/noodswap && ./deploy/update.sh'
 ```
 
-### Jenkins minimum setup
+### GitHub Actions deploy minimum setup
 
-- Credential ID `ghcr-readonly` (`Username with password`, PAT needs `read:packages`)
-- Job environment variables:
+- Add required repository secrets for SSH deploy:
+   - `DEPLOY_HOST`
+   - `DEPLOY_SSH_USER`
+   - `DEPLOY_SSH_PRIVATE_KEY`
+   - `DEPLOY_SSH_KNOWN_HOSTS`
+-   - `DEPLOY_SSH_PORT`
+- Add required Actions variables:
    - `DEPLOY_PATH=/home/noodswap-user/noodswap`
-   - `IMAGE_REPOSITORY=ghcr.io/tehbrian/noodswap`
-- Ensure the Jenkins job executes deploy commands as `noodswap-user` (for example via `sudo -u noodswap-user ...`).
-- GitHub webhook for push events
+   - `DEPLOY_AS_USER=noodswap-user`
+   - `DEPLOY_IMAGE_REPOSITORY=ghcr.io/tehbrian/noodswap`
+- Add required Actions secrets for GHCR reads:
+   - `GHCR_READONLY_USERNAME`
+   - `GHCR_READONLY_TOKEN`
 
 Behavior notes:
 
-- Jenkins resolves `git rev-parse HEAD` and deploys `IMAGE_REPOSITORY:<that-sha>`.
-- The pipeline waits for that exact GHCR tag to become available before running the deploy step, avoiding stale `latest` races.
-- After deploy, Jenkins verifies `noodswap-bot` is running and that its configured image exactly equals `IMAGE_REPOSITORY:<that-sha>`.
+- Deploy resolves target SHA and deploys `IMAGE_REPOSITORY:<that-sha>`.
+- The workflow waits for that exact GHCR tag to become available before running the deploy step, avoiding stale `latest` races.
+- After deploy, workflow verifies `noodswap-bot` is running and that its configured image exactly equals `IMAGE_REPOSITORY:<that-sha>`.
 
-Full Jenkins instructions: `docs/deploy-jenkins.md`.
+Full Actions deploy instructions: `docs/deploy-github-actions.md`.
+Legacy Jenkins instructions: `docs/deploy-jenkins.md`.
 
 ### Persistence notes
 
 - SQLite DB: `deploy/data/noodswap.db`
 - Cached card images: `deploy/data/card_images`
-- Deploys run locally on Ubuntu via Jenkins (no SSH deploy from GitHub Actions)
+- Deploys run from GitHub-hosted runners to Ubuntu via SSH
 
 ### Discord developer portal requirements
 

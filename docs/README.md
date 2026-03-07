@@ -10,7 +10,8 @@ This folder contains maintainers/agent-oriented technical documentation.
 4. `commands-and-ux.md` — command behavior and embed presentation rules
 5. `development-runbook.md` — local workflows and safe change process
 6. `roadmap-and-known-issues.md` — known constraints and next milestones
-7. `deploy-jenkins.md` — Jenkins-based Ubuntu deployment flow
+7. `deploy-github-actions.md` — GitHub Actions (GitHub-hosted) SSH deployment flow
+8. `deploy-jenkins.md` — legacy/fallback Jenkins deployment flow
 
 ## Scope
 
