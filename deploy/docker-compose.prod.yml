@@ -6,6 +6,8 @@ services:
     restart: unless-stopped
     env_file:
       - ./runtime.env
+    environment:
+      - NOODSWAP_DB_PATH=/app/data/noodswap.db
     volumes:
-      - ./data/noodswap.db:/app/noodswap.db
+      - ./data:/app/data
       - ./data/card_images:/app/assets/card_images

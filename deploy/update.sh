@@ -57,6 +57,11 @@ touch "$SCRIPT_DIR/data/noodswap.db"
 # Run container using the same UID/GID as the deploy user so bind-mounted data stays writable.
 export BOT_UID="${BOT_UID:-$(id -u)}"
 export BOT_GID="${BOT_GID:-$(id -g)}"
+if ! chown -R "$BOT_UID:$BOT_GID" "$SCRIPT_DIR/data" 2>/dev/null; then
+  echo "Warning: could not chown $SCRIPT_DIR/data to $BOT_UID:$BOT_GID (insufficient privileges)." >&2
+  echo "If the bot still fails with readonly SQLite errors, run:" >&2
+  echo "  sudo chown -R $BOT_UID:$BOT_GID $SCRIPT_DIR/data" >&2
+fi
 chmod 664 "$SCRIPT_DIR/data/noodswap.db" || true
 chmod 775 "$SCRIPT_DIR/data/card_images" || true
 
