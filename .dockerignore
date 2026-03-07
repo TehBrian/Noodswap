@@ -8,6 +8,4 @@ docs
 .VSCodeCounter
 noodswap.db
 runtime
-data/seeds
-data/testdata
 *.DS_Store
