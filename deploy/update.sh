@@ -53,6 +53,13 @@ fi
 
 mkdir -p "$SCRIPT_DIR/data/card_images"
 DB_PATH="$SCRIPT_DIR/data/noodswap.db"
+CARD_IMAGE_DATA_DIR="$SCRIPT_DIR/data/card_images"
+REPO_CARD_IMAGE_DIR="$SCRIPT_DIR/../assets/card_images"
+
+if [ ! -f "$CARD_IMAGE_DATA_DIR/manifest.json" ] && [ -f "$REPO_CARD_IMAGE_DIR/manifest.json" ]; then
+  echo "Seeding card image cache into $CARD_IMAGE_DATA_DIR"
+  cp -a "$REPO_CARD_IMAGE_DIR/." "$CARD_IMAGE_DATA_DIR/"
+fi
 
 if [ ! -f "$DB_PATH" ]; then
   LEGACY_DB_PATHS=(
