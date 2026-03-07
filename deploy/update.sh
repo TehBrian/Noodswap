@@ -56,7 +56,13 @@ DB_PATH="$SCRIPT_DIR/data/noodswap.db"
 CARD_IMAGE_DATA_DIR="$SCRIPT_DIR/data/card_images"
 REPO_CARD_IMAGE_DIR="$SCRIPT_DIR/../assets/card_images"
 
-if [ ! -f "$CARD_IMAGE_DATA_DIR/manifest.json" ] && [ -f "$REPO_CARD_IMAGE_DIR/manifest.json" ]; then
+target_manifest="$CARD_IMAGE_DATA_DIR/manifest.json"
+source_manifest="$REPO_CARD_IMAGE_DIR/manifest.json"
+target_entries_count=$(find "$CARD_IMAGE_DATA_DIR" -mindepth 1 -maxdepth 1 | wc -l | tr -d ' ')
+
+if [ -f "$source_manifest" ] && {
+  [ ! -s "$target_manifest" ] || [ "$target_entries_count" -lt 2 ];
+}; then
   echo "Seeding card image cache into $CARD_IMAGE_DATA_DIR"
   cp -a "$REPO_CARD_IMAGE_DIR/." "$CARD_IMAGE_DATA_DIR/"
 fi

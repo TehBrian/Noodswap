@@ -211,3 +211,4 @@ Machine-readable output is available with `--json`.
 - Migrate to slash commands/app commands while keeping prefix aliases if desired.
 - Add anti-abuse checks (alt farming, suspicious transfer patterns).
 - Add paginated collection views and richer card metadata/assets.
+- Automate runtime state operations for production deploys: scheduled SQLite backups to remote storage, restore-on-empty bootstrap for `deploy/data/noodswap.db`, and first-run card-image cache bootstrap from a published artifact.

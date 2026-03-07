@@ -51,6 +51,10 @@
 - Auto-claim vote rewards from webhook events using existing cooldown safeguards.
 - Document deployment requirements (public HTTPS route, secret config, reverse-proxy wiring).
 
+7. Deploy-state automation
+- Add automated SQLite backup/restore workflow (scheduled backup to remote object storage + restore-on-empty bootstrap for `deploy/data/noodswap.db`).
+- Publish/import a versioned card-image cache artifact so new hosts can bootstrap `deploy/data/card_images` without manual copy steps.
+
 ## Refactor backlog (staged)
 
 Status: Stage 1 is complete. Stages below are intentionally deferred for later.
@@ -73,6 +77,7 @@ Status: Stage 1 is complete. Stages below are intentionally deferred for later.
 ## Decision log (recent)
 
 - Started Stage 3 callback slimming by moving drop-claim, trade accept/deny, and cosmetic roll-confirm execution into `services.py` (`execute_drop_claim`, `resolve_trade_offer`, `resolve_morph_roll`, `resolve_frame_roll`, `resolve_font_roll`) and updating `views.py` callbacks to delegate to those use-cases.
+- Added follow-up roadmap item to automate deploy-state bootstrap (SQLite backup/restore and card-image cache artifact import) so host migrations do not require manual DB/image copy steps.
 - Added `leaderboard` / `le` with invoker-scoped pagination + criterion dropdown (`Cards`, `Wishes`, `Dough`, `Starter`, `Collection Value`) to rank players by global player metrics.
 - Added `vote` / `v` command with top.gg link-button UX, top.gg API vote verification (`TOPGG_API_TOKEN` + `TOPGG_BOT_ID`), and `starter` reward claims with a 24-hour cooldown surfaced in both `info` and `cooldown`.
 - Planned follow-up: switch vote confirmation from pull-based checks to top.gg push webhooks so rewards can be granted immediately after vote events.
