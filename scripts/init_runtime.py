@@ -16,7 +16,7 @@ def _copy_dir_contents(src: Path, dst: Path) -> None:
 
 
 def _parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Initialize runtime state from versioned data seeds.")
+    parser = argparse.ArgumentParser(description="Initialize runtime state from versioned assets.")
     parser.add_argument(
         "--repo-root",
         type=Path,
@@ -31,7 +31,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--force-db",
         action="store_true",
-        help="Replace existing runtime DB from data/seeds/noodswap.seed.db when present.",
+        help="Replace existing runtime DB from assets/noodswap.seed.db when present.",
     )
     return parser.parse_args()
 
@@ -46,7 +46,7 @@ def main() -> None:
     runtime_log_dir = runtime_dir / "logs"
     runtime_cache_dir = runtime_dir / "cache"
 
-    seed_dir = repo_root / "data" / "seeds"
+    seed_dir = repo_root / "assets"
     seed_db_path = seed_dir / "noodswap.seed.db"
     seed_image_dir = seed_dir / "card_images"
 

@@ -112,7 +112,7 @@ Notes:
   - `.venv/bin/python scripts/init_runtime.py`
 - Force-refresh runtime image seeds:
   - `.venv/bin/python scripts/init_runtime.py --force-images`
-- Production deploys use `deploy/update.sh` to seed runtime images from `data/seeds/card_images/` when `runtime/card_images/` is empty.
+- Production deploys use `deploy/update.sh` to seed runtime images from `assets/card_images/` when `runtime/card_images/` is empty.
 
 ## Migration validation helper
 

@@ -115,7 +115,7 @@ Stage 3 implementation guide: `docs/refactor-phase-3.md`.
 - Added a `Gallery` toggle to sortable card-list embeds (`cards`, `wish list`, and multi-result `lookup`) to switch between paginated list mode and one-card image mode while keeping navigation controls.
 - Applied the same sortable-card dropdown interaction pattern to `wish list` and multi-result `lookup` embeds (`Rarity`, `Series`, `Base Value`, `Alphabetical`).
 - Added a sort-mode dropdown to the `cards` catalog embed with `Rarity`, `Series`, `Base Value`, and `Alphabetical` modes, while keeping wishlist counts visible per entry.
-- Switched embeds and drop-preview loading to local-only card images (attach local file when present), replaced card image URL mappings in code with manifest-driven local paths, and standardized seed-based runtime image hydration from `data/seeds/card_images/` into `runtime/card_images/`.
+- Switched embeds and drop-preview loading to local-only card images (attach local file when present), replaced card image URL mappings in code with manifest-driven local paths, and standardized seed-based runtime image hydration from `assets/card_images/` into `runtime/card_images/`.
 - Added `tests/test_sqlite_guardrails.py` to enforce explicit sqlite connection closing and prevent future raw `with sqlite3.connect(...) as conn:` regressions.
 - Introduced `repositories.py` and refactored `storage.py` into a stable facade that delegates player/card/wishlist/trade SQL operations to repository-style boundaries.
 - Split migration responsibilities out of `storage.py` into `migrations.py` and kept `storage.init_db()` as the single startup entry point.

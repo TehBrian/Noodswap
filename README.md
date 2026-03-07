@@ -107,7 +107,7 @@ Full Actions deploy instructions: `docs/deploy-github-actions.md`.
 
 - SQLite DB: `runtime/db/noodswap.db`
 - Cached card images: `runtime/card_images`
-- Seed fixtures live under `data/seeds/` and can initialize fresh runtime directories.
+- Seed fixtures live under `assets/` and can initialize fresh runtime directories.
 - Immutable render assets (fonts, frame overlays) live under `assets/` and are baked into the image.
 - Deploys run from GitHub-hosted runners to Ubuntu via SSH
 - Deploy/update does not transfer DB contents between machines/paths; it reuses whatever already exists under `runtime/` on the target host.
@@ -161,8 +161,8 @@ This bot uses privileged intents. Enable these for your application in Discord D
 
 Card rendering is local-only and expects card images under `runtime/card_images/`.
 
-- Local development: run `.venv/bin/python scripts/init_runtime.py` to seed `runtime/card_images/` from `data/seeds/card_images/`.
-- Production deploy: `deploy/update.sh` seeds `runtime/card_images/` from `data/seeds/card_images/` when the runtime image directory is empty.
+- Local development: run `.venv/bin/python scripts/init_runtime.py` to seed `runtime/card_images/` from `assets/card_images/`.
+- Production deploy: `deploy/update.sh` seeds `runtime/card_images/` from `assets/card_images/` when the runtime image directory is empty.
 
 The local image manifest lives at `runtime/card_images/manifest.json`.
 
