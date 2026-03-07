@@ -52,9 +52,11 @@ if [ -n "$IMAGE_TAG_OVERRIDE" ]; then
 fi
 
 mkdir -p "$SCRIPT_DIR/data/card_images"
+mkdir -p "$SCRIPT_DIR/data/card_fonts"
 DB_PATH="$SCRIPT_DIR/data/noodswap.db"
 CARD_IMAGE_DATA_DIR="$SCRIPT_DIR/data/card_images"
 REPO_CARD_IMAGE_DIR="$SCRIPT_DIR/../assets/card_images"
+CARD_FONT_DATA_DIR="$SCRIPT_DIR/data/card_fonts"
 
 target_manifest="$CARD_IMAGE_DATA_DIR/manifest.json"
 source_manifest="$REPO_CARD_IMAGE_DIR/manifest.json"
@@ -100,6 +102,7 @@ if ! chown -R "$BOT_UID:$BOT_GID" "$SCRIPT_DIR/data" 2>/dev/null; then
 fi
 chmod 664 "$DB_PATH" || true
 chmod 775 "$SCRIPT_DIR/data/card_images" || true
+chmod 775 "$CARD_FONT_DATA_DIR" || true
 
 docker compose -f "$SCRIPT_DIR/docker-compose.prod.yml" pull
 

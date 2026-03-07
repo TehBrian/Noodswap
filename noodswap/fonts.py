@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Final
 
-from .settings import CARD_IMAGE_CACHE_MANIFEST
+from .settings import CARD_FONTS_DIR as SETTINGS_CARD_FONTS_DIR
 
 
 FONT_SERIF: Final[str] = "serif"
@@ -34,7 +34,7 @@ FONT_LABELS: Final[dict[str, str]] = {
     FONT_PLAYFUL: "Playful",
 }
 
-CARD_FONTS_DIR: Final[Path] = CARD_IMAGE_CACHE_MANIFEST.parent.parent / "card_fonts"
+CARD_FONTS_DIR: Final[Path] = SETTINGS_CARD_FONTS_DIR
 
 
 def normalize_font_key(font_key: str | None) -> str | None:

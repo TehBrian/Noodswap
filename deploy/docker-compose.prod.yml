@@ -8,6 +8,7 @@ services:
       - ./runtime.env
     environment:
       - NOODSWAP_DB_PATH=/app/data/noodswap.db
+      - NOODSWAP_CARD_FONTS_DIR=/app/data/card_fonts
     volumes:
       - ./data:/app/data
       - ./data/card_images:/app/assets/card_images

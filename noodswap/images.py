@@ -188,14 +188,16 @@ def _load_overlay_font(size: int, *, bold: bool, font_key: str | None = None):
     from PIL import ImageFont
 
     normalized_font_key = normalize_font_key(font_key)
+    resolved_font_key = normalized_font_key or "classic"
 
     candidate_paths: list[Path] = []
-    custom_base = CARD_FONTS_DIR / f"{normalized_font_key}.ttf"
-    custom_bold = CARD_FONTS_DIR / f"{normalized_font_key}-bold.ttf"
-    if bold and custom_bold.exists():
-        candidate_paths.append(custom_bold)
-    if custom_base.exists():
-        candidate_paths.append(custom_base)
+    for extension in (".ttf", ".otf", ".ttc"):
+        custom_base = CARD_FONTS_DIR / f"{resolved_font_key}{extension}"
+        custom_bold = CARD_FONTS_DIR / f"{resolved_font_key}-bold{extension}"
+        if bold and custom_bold.exists():
+            candidate_paths.append(custom_bold)
+        if custom_base.exists():
+            candidate_paths.append(custom_base)
 
     try:
         import PIL
