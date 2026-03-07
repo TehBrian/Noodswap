@@ -52,7 +52,30 @@ if [ -n "$IMAGE_TAG_OVERRIDE" ]; then
 fi
 
 mkdir -p "$SCRIPT_DIR/data/card_images"
-touch "$SCRIPT_DIR/data/noodswap.db"
+DB_PATH="$SCRIPT_DIR/data/noodswap.db"
+
+if [ ! -f "$DB_PATH" ]; then
+  LEGACY_DB_PATHS=(
+    "$SCRIPT_DIR/noodswap.db"
+    "$SCRIPT_DIR/../noodswap.db"
+  )
+  for legacy in "${LEGACY_DB_PATHS[@]}"; do
+    if [ -s "$legacy" ]; then
+      cp "$legacy" "$DB_PATH"
+      echo "Migrated existing DB from $legacy to $DB_PATH"
+      break
+    fi
+  done
+fi
+
+if [ ! -f "$DB_PATH" ]; then
+  touch "$DB_PATH"
+  echo "No existing DB found; created new empty DB at $DB_PATH"
+fi
+
+if [ ! -s "$DB_PATH" ]; then
+  echo "Warning: $DB_PATH is empty. If this is not a fresh install, restore your previous noodswap.db backup." >&2
+fi
 
 # Run container using the same UID/GID as the deploy user so bind-mounted data stays writable.
 export BOT_UID="${BOT_UID:-$(id -u)}"
@@ -62,7 +85,7 @@ if ! chown -R "$BOT_UID:$BOT_GID" "$SCRIPT_DIR/data" 2>/dev/null; then
   echo "If the bot still fails with readonly SQLite errors, run:" >&2
   echo "  sudo chown -R $BOT_UID:$BOT_GID $SCRIPT_DIR/data" >&2
 fi
-chmod 664 "$SCRIPT_DIR/data/noodswap.db" || true
+chmod 664 "$DB_PATH" || true
 chmod 775 "$SCRIPT_DIR/data/card_images" || true
 
 docker compose -f "$SCRIPT_DIR/docker-compose.prod.yml" pull

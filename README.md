@@ -54,7 +54,9 @@ sudo -u noodswap-user bash -lc 'cd /home/noodswap-user/noodswap/deploy && cp .en
 Set required values:
 
 - `deploy/.env`: `IMAGE_REPOSITORY=ghcr.io/tehbrian/noodswap`
-- `deploy/runtime.env`: `DISCORD_TOKEN=<your-token>`
+- `deploy/runtime.env`: `DISCORD_TOKEN=<your-token>` (raw token only, no quotes)
+
+If startup fails with `401 Unauthorized` / `Improper token has been passed`, verify `deploy/runtime.env` contains a current bot token with no surrounding quotes and no extra whitespace.
 
 Optional runtime values:
 
@@ -97,6 +99,7 @@ Legacy Jenkins instructions: `docs/deploy-jenkins.md`.
 - SQLite DB: `deploy/data/noodswap.db`
 - Cached card images: `deploy/data/card_images`
 - Deploys run from GitHub-hosted runners to Ubuntu via SSH
+- Deploy/update does not transfer DB contents between machines/paths; it reuses whatever already exists at `deploy/data/noodswap.db` on the target host.
 
 ### Discord developer portal requirements
 

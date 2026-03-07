@@ -16,6 +16,14 @@ from .storage import init_db
 logger = logging.getLogger(__name__)
 
 
+def _normalize_secret(value: str) -> str:
+    """Trim whitespace and one surrounding quote pair from env/file secrets."""
+    normalized = value.strip()
+    if len(normalized) >= 2 and normalized[0] == normalized[-1] and normalized[0] in {'"', "'"}:
+        normalized = normalized[1:-1].strip()
+    return normalized
+
+
 async def _reply(ctx: commands.Context, **kwargs):
     return await ctx.reply(mention_author=False, **kwargs)
 
@@ -23,22 +31,33 @@ async def _reply(ctx: commands.Context, **kwargs):
 def resolve_discord_token() -> str:
     token = os.getenv("DISCORD_TOKEN")
     if token:
-        return token.strip()
+        resolved = _normalize_secret(token)
+        if resolved and resolved != "replace-with-real-token":
+            return resolved
+        raise RuntimeError(
+            "DISCORD_TOKEN is set but is empty/placeholder after normalization."
+        )
 
     token_file = os.getenv("DISCORD_TOKEN_FILE")
     if token_file:
+        token_file_path = _normalize_secret(token_file)
+        if not token_file_path:
+            raise RuntimeError("DISCORD_TOKEN_FILE is set but empty.")
         try:
-            with open(token_file, "r", encoding="utf-8") as file:
+            with open(token_file_path, "r", encoding="utf-8") as file:
                 token_from_file = file.read().strip()
         except OSError as exc:
             raise RuntimeError(
                 "DISCORD_TOKEN_FILE is set but could not be read."
             ) from exc
 
-        if token_from_file:
-            return token_from_file
+        resolved = _normalize_secret(token_from_file)
+        if resolved and resolved != "replace-with-real-token":
+            return resolved
 
-        raise RuntimeError("DISCORD_TOKEN_FILE is set but empty.")
+        raise RuntimeError(
+            "DISCORD_TOKEN_FILE is set but token content is empty/placeholder after normalization."
+        )
 
     raise RuntimeError("Set DISCORD_TOKEN or DISCORD_TOKEN_FILE in your environment.")
 
@@ -137,4 +156,10 @@ def main() -> None:
 
     init_db()
     bot = create_bot()
-    bot.run(token)
+    try:
+        bot.run(token)
+    except discord.LoginFailure as exc:
+        raise RuntimeError(
+            "Discord token was rejected (401 Unauthorized). "
+            "Check deploy/runtime.env DISCORD_TOKEN for typos/rotation, and remove surrounding quotes."
+        ) from exc
