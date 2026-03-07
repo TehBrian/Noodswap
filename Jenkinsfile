@@ -11,21 +11,16 @@ pipeline {
     timestamps()
   }
 
-  environment {
-    DEPLOY_IMAGE_TAG = ''
-  }
-
   stages {
     stage('Checkout') {
       steps {
         checkout scm
         script {
-          String resolvedTag = (env.GIT_COMMIT ?: sh(script: 'git rev-parse HEAD', returnStdout: true)).trim()
-          if (!resolvedTag) {
-            error('Failed to resolve DEPLOY_IMAGE_TAG from checkout (GIT_COMMIT and git rev-parse were empty).')
+          String resolvedTag = sh(script: 'git rev-parse HEAD', returnStdout: true).trim()
+          if (!resolvedTag || resolvedTag == 'null') {
+            error('Failed to resolve deploy image tag from git rev-parse HEAD.')
           }
-          env.DEPLOY_IMAGE_TAG = resolvedTag
-          echo "Resolved deploy image tag: ${env.DEPLOY_IMAGE_TAG}"
+          echo "Resolved deploy image tag: ${resolvedTag}"
         }
       }
     }
@@ -46,12 +41,13 @@ pipeline {
           sh '''#!/usr/bin/env bash
             set -euo pipefail
 
-            if [ -z "${DEPLOY_IMAGE_TAG:-}" ]; then
-              echo "DEPLOY_IMAGE_TAG is empty or unset after Checkout; aborting deploy wait." >&2
+            deploy_image_tag="$(git rev-parse HEAD | tr -d '\n')"
+            if [ -z "${deploy_image_tag}" ] || [ "${deploy_image_tag}" = "null" ]; then
+              echo "Failed to resolve deploy image tag from git in Wait For Tagged Image stage." >&2
               exit 1
             fi
 
-            image_ref="${IMAGE_REPOSITORY}:${DEPLOY_IMAGE_TAG}"
+            image_ref="${IMAGE_REPOSITORY}:${deploy_image_tag}"
             echo "Waiting for image to become available: ${image_ref}"
             echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USERNAME" --password-stdin
 
@@ -91,14 +87,15 @@ pipeline {
           sh '''#!/usr/bin/env bash
             set -euo pipefail
 
-            if [ -z "${DEPLOY_IMAGE_TAG:-}" ]; then
-              echo "DEPLOY_IMAGE_TAG is empty or unset after Checkout; aborting deploy." >&2
+            deploy_image_tag="$(git rev-parse HEAD | tr -d '\n')"
+            if [ -z "${deploy_image_tag}" ] || [ "${deploy_image_tag}" = "null" ]; then
+              echo "Failed to resolve deploy image tag from git in Deploy Main stage." >&2
               exit 1
             fi
 
             cd "${DEPLOY_PATH}"
             echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USERNAME" --password-stdin
-            IMAGE_REPOSITORY="${IMAGE_REPOSITORY}" IMAGE_TAG="${DEPLOY_IMAGE_TAG}" ./deploy/update.sh
+            IMAGE_REPOSITORY="${IMAGE_REPOSITORY}" IMAGE_TAG="${deploy_image_tag}" ./deploy/update.sh
             docker logout ghcr.io
           '''
         }
@@ -114,12 +111,13 @@ pipeline {
         sh '''#!/usr/bin/env bash
           set -euo pipefail
 
-          if [ -z "${DEPLOY_IMAGE_TAG:-}" ]; then
-            echo "DEPLOY_IMAGE_TAG is empty or unset after Checkout; cannot verify running image." >&2
+          deploy_image_tag="$(git rev-parse HEAD | tr -d '\n')"
+          if [ -z "${deploy_image_tag}" ] || [ "${deploy_image_tag}" = "null" ]; then
+            echo "Failed to resolve deploy image tag from git in Verify Running Image stage." >&2
             exit 1
           fi
 
-          expected_image="${IMAGE_REPOSITORY}:${DEPLOY_IMAGE_TAG}"
+          expected_image="${IMAGE_REPOSITORY}:${deploy_image_tag}"
           container_name="noodswap-bot"
 
           # Ensure the container is currently running.
