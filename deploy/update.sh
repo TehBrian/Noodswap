@@ -34,6 +34,17 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
+assert_writable_path() {
+  local path="$1"
+  local probe="$path/.write_probe.$$"
+  if ! touch "$probe" 2>/dev/null; then
+    echo "ERROR: path is not writable: $path" >&2
+    echo "Ensure ownership/permissions are correct before deploy." >&2
+    exit 1
+  fi
+  rm -f "$probe"
+}
+
 if [ ! -f "$SCRIPT_DIR/.env" ]; then
   echo "Missing $SCRIPT_DIR/.env (copy from .env.example and set IMAGE_REPOSITORY)." >&2
   exit 1
@@ -91,13 +102,28 @@ export BOT_UID="${BOT_UID:-$(id -u)}"
 export BOT_GID="${BOT_GID:-$(id -g)}"
 if ! chown -R "$BOT_UID:$BOT_GID" "$RUNTIME_DIR" 2>/dev/null; then
   echo "Warning: could not chown $RUNTIME_DIR to $BOT_UID:$BOT_GID (insufficient privileges)." >&2
-  echo "If the bot still fails with readonly SQLite errors, run:" >&2
-  echo "  sudo chown -R $BOT_UID:$BOT_GID $RUNTIME_DIR" >&2
+  if [ "$(id -u)" -eq 0 ]; then
+    echo "ERROR: chown failed while running as root." >&2
+    exit 1
+  fi
+  echo "Continuing only if runtime paths are already writable by the current user." >&2
 fi
-chmod 664 "$DB_PATH" || true
-chmod 775 "$RUNTIME_IMAGE_DIR" || true
-chmod 775 "$RUNTIME_LOG_DIR" || true
-chmod 775 "$RUNTIME_CACHE_DIR" || true
+
+chmod 664 "$DB_PATH" 2>/dev/null || true
+chmod 775 "$RUNTIME_DB_DIR" 2>/dev/null || true
+chmod 775 "$RUNTIME_IMAGE_DIR" 2>/dev/null || true
+chmod 775 "$RUNTIME_LOG_DIR" 2>/dev/null || true
+chmod 775 "$RUNTIME_CACHE_DIR" 2>/dev/null || true
+
+# Fail fast before container startup if runtime state cannot be written.
+assert_writable_path "$RUNTIME_DB_DIR"
+assert_writable_path "$RUNTIME_IMAGE_DIR"
+assert_writable_path "$RUNTIME_LOG_DIR"
+assert_writable_path "$RUNTIME_CACHE_DIR"
+if ! [ -w "$DB_PATH" ]; then
+  echo "ERROR: database file is not writable: $DB_PATH" >&2
+  exit 1
+fi
 
 docker compose -f "$SCRIPT_DIR/docker-compose.prod.yml" pull
 

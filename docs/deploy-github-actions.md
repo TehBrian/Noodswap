@@ -89,7 +89,9 @@ After deploy workflow completes:
 1. `docker ps` shows `noodswap-bot` running.
 2. Workflow deploy step confirms container image equals `IMAGE_REPOSITORY:<sha>`.
 3. `runtime/db/noodswap.db` persists across restarts.
+4. Container health status reaches `healthy` (SQLite `PRAGMA quick_check` passes).
 
 ## Notes
 
 - This deploy path is SHA-pinned (immutable), not `latest`.
+- `deploy/update.sh` performs a runtime preflight and exits early if runtime directories or DB are not writable by the deploy user context.

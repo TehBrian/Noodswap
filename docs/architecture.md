@@ -8,12 +8,16 @@ Noodswap is structured in a pragmatic layered style:
 
 - Presentation layer:
   - `noodswap/commands.py` (prefix command handlers)
-  - `noodswap/views.py` (button interactions: drop/trade/burn confirm)
+  - `noodswap/views/` (button interactions: drop/trade/burn confirm + cosmetics confirms)
   - `noodswap/presentation.py` (shared embed styles + reusable command description formatting)
 - Use-case/service layer:
   - `noodswap/services.py` (command-facing orchestration for drop/burn/marry/divorce/trade prep)
 - Domain/config layer:
-  - `noodswap/cards.py` (catalog, pull/generation helpers, burn value logic)
+  - `noodswap/cards/` (catalog, pull/generation helpers, burn value logic)
+  - `noodswap/card_search.py` (card search + dupe code parsing helpers used by `cards.py` wrappers)
+  - `noodswap/card_economy.py` (generation/value/payout + rarity-odds helpers used by `cards.py` wrappers)
+  - `noodswap/images.py` (local card image lookup + card render pipeline)
+  - `noodswap/morphs.py` / `noodswap/frames.py` / `noodswap/fonts.py` (cosmetic option metadata + normalization)
   - `noodswap/rarities.py` (rarity weight constants)
   - `noodswap/settings.py` (global settings/constants)
   - `noodswap/utils.py` (small utility helpers)
@@ -29,7 +33,8 @@ Noodswap is structured in a pragmatic layered style:
 
 - Centralized command error handling is in `noodswap/app.py` (`on_command_error`).
 - Shared operational constants are in `noodswap/settings.py` (cooldowns, timeouts, generation bounds).
-- Interaction button disable behavior is encapsulated per-view in `noodswap/views.py`.
+- Interaction button disable behavior is encapsulated per-view in `noodswap/views/` modules.
+- Card visual customization flows are instance-based (`morph_key`, `frame_key`, `font_key`) and resolved through `noodswap/images.py` during render.
 
 ## Startup flow
 
@@ -56,6 +61,13 @@ Noodswap is structured in a pragmatic layered style:
 2. Command validates ownership and constructs `TradeView`
 3. Buyer accepts/denies via interaction
 4. On accept, storage layer transfers one card instance and dough atomically within one DB transaction scope
+
+### Cosmetics flow (`morph` / `frame` / `font`)
+
+1. User runs `ns morph|frame|font <card_code>`
+2. Command resolves target instance and proposed cosmetic roll via service layer
+3. Confirmation view presents before/after preview
+4. On confirm, storage persists per-instance cosmetic key and applies dough charge atomically
 
 ## Ownership model
 
@@ -89,5 +101,28 @@ When adding new user-facing output, keep this consistent.
 - Data safety logic is isolated to one file
 - Command orchestration changes are isolated to `services.py`
 - UX text/formatting changes are isolated to `presentation.py`
-- Discord wiring changes are isolated to `commands.py` / `views.py`
+- Discord wiring changes are isolated to `commands.py` / `views/`
 - New commands can reuse the existing service boundaries quickly
+
+## Phase 3 achieved layout (non-breaking)
+
+Stage 3 completed this layout while preserving stable public imports.
+
+- Views split target:
+  - `noodswap/views/help.py`
+  - `noodswap/views/drop.py`
+  - `noodswap/views/trade.py`
+  - `noodswap/views/confirmations.py` (burn/morph/frame/font)
+  - `noodswap/views/catalog.py` (cards/collection/wishlist paged views)
+  - `noodswap/views/pagination.py` (shared pagination components)
+  - `noodswap/views/__init__.py` re-exporting current symbols used by `commands.py`
+- Cards split target:
+  - `noodswap/cards/catalog.py` (load/validate catalog + series + image map)
+  - `noodswap/cards/search.py` (query + lookup helpers)
+  - `noodswap/cards/display.py` (display labels + code formatting)
+  - `noodswap/cards/economy.py` (generation/value/payout helpers)
+  - `noodswap/cards/__init__.py` re-exporting legacy `noodswap.cards` API during migration
+- Storage/repository boundary target:
+  - `storage.py` owns transaction scope and domain invariants for multi-step operations.
+  - `repositories.py` owns direct SQL statements and row-shape translation.
+  - Avoid adding new one-line pass-through wrappers in `storage.py` when repository call sites are sufficient.

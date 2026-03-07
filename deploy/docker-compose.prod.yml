@@ -4,7 +4,18 @@ services:
     user: ${BOT_UID:?set BOT_UID}:${BOT_GID:?set BOT_GID}
     container_name: noodswap-bot
     restart: unless-stopped
+    stop_grace_period: 20s
     env_file:
       - ./runtime.env
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - import sqlite3; conn = sqlite3.connect('/app/runtime/db/noodswap.db'); conn.execute('PRAGMA quick_check').fetchone(); conn.close()
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
     volumes:
       - ../runtime:/app/runtime

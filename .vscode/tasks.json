@@ -40,6 +40,15 @@
 				"7"
 			],
 			"group": "test"
+		},
+		{
+			"label": "check:odds",
+			"type": "shell",
+			"command": "${workspaceFolder}/.venv/bin/python",
+			"args": [
+				"scripts/rarity_odds.py"
+			],
+			"group": "test"
 		}
 	]
 }

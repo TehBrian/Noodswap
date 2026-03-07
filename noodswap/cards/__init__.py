@@ -1,11 +1,41 @@
 import json
-import random
-from collections import Counter
 from pathlib import Path
 from typing import NotRequired, TypedDict
 
-from .rarities import RARITY_WEIGHTS
-from .settings import CARD_IMAGE_MANIFEST, GENERATION_MAX, GENERATION_MIN
+from ..card_display import (
+    card_base_display as _card_base_display_impl,
+    card_dupe_display as _card_dupe_display_impl,
+    card_dupe_display_concise as _card_dupe_display_concise_impl,
+    display_dupe_code as _display_dupe_code_impl,
+    display_dupe_code_raw as _display_dupe_code_raw_impl,
+    generation_label as _generation_label_impl,
+    proper_case as _proper_case_impl,
+    series_display as _series_display_impl,
+    series_emoji as _series_emoji_impl,
+)
+from ..card_economy import (
+    burn_delta_range as _burn_delta_range_impl,
+    card_base_value as _card_base_value_impl,
+    card_value as _card_value_impl,
+    compute_normalized_rarity_weights as _compute_normalized_rarity_weights_impl,
+    compute_rarity_card_counts as _compute_rarity_card_counts_impl,
+    effective_rarity_odds as _effective_rarity_odds_impl,
+    generation_value_multiplier as _generation_value_multiplier_impl,
+    get_burn_payout as _get_burn_payout_impl,
+    make_drop_choices as _make_drop_choices_impl,
+    random_card_id as _random_card_id_impl,
+    random_generation as _random_generation_impl,
+    target_rarity_odds as _target_rarity_odds_impl,
+)
+from ..card_search import (
+    card_code as _card_code_impl,
+    normalize_card_id as _normalize_card_id_impl,
+    search_card_ids as _search_card_ids_impl,
+    search_card_ids_by_name as _search_card_ids_by_name_impl,
+    split_card_code as _split_card_code_impl,
+)
+from ..rarities import RARITY_WEIGHTS
+from ..settings import CARD_IMAGE_MANIFEST, GENERATION_MAX, GENERATION_MIN
 
 
 class CardData(TypedDict):
@@ -28,7 +58,7 @@ class SeriesData(TypedDict):
     label: NotRequired[str]
 
 
-CARD_DATA_DIR = Path(__file__).resolve().parent / "data"
+CARD_DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 CARD_CATALOG_PATH = CARD_DATA_DIR / "cards.json"
 CARD_BASE_VALUES_PATH = CARD_DATA_DIR / "base_values.json"
 SERIES_CATALOG_PATH = CARD_DATA_DIR / "series.json"
@@ -176,7 +206,7 @@ def _validate_no_remote_image_paths() -> None:
     remote_ids = [
         card_id
         for card_id, card in CARD_CATALOG.items()
-        if isinstance(card.get("image"), str) and card["image"].startswith(("http://", "https://"))
+        if isinstance(card.get("image"), str) and str(card.get("image")).startswith(("http://", "https://"))
     ]
     if remote_ids:
         raise RuntimeError(
@@ -189,7 +219,7 @@ def _validate_image_paths_use_runtime_card_images() -> None:
         card_id
         for card_id, card in CARD_CATALOG.items()
         if not isinstance(card.get("image"), str)
-        or not str(card["image"]).startswith("runtime/card_images/")
+        or not str(card.get("image")).startswith("runtime/card_images/")
     ]
     if invalid_ids:
         raise RuntimeError(
@@ -214,177 +244,94 @@ _validate_image_paths_use_runtime_card_images()
 _validate_card_series_metadata()
 
 
-RARITY_CARD_COUNTS = Counter(card["rarity"] for card in CARD_CATALOG.values())
-NORMALIZED_RARITY_WEIGHTS = {
-    rarity: weight / RARITY_CARD_COUNTS[rarity]
-    for rarity, weight in RARITY_WEIGHTS.items()
-    if RARITY_CARD_COUNTS.get(rarity, 0) > 0
-}
+RARITY_CARD_COUNTS = _compute_rarity_card_counts_impl(CARD_CATALOG)
+NORMALIZED_RARITY_WEIGHTS = _compute_normalized_rarity_weights_impl(
+    RARITY_WEIGHTS,
+    RARITY_CARD_COUNTS,
+)
 
 
 def effective_rarity_odds() -> dict[str, float]:
-    weighted_totals = {
-        rarity: NORMALIZED_RARITY_WEIGHTS[rarity] * RARITY_CARD_COUNTS[rarity]
-        for rarity in NORMALIZED_RARITY_WEIGHTS
-    }
-    grand_total = sum(weighted_totals.values())
-    if grand_total <= 0:
-        return {rarity: 0.0 for rarity in weighted_totals}
-    return {rarity: weighted_totals[rarity] / grand_total for rarity in weighted_totals}
+    return _effective_rarity_odds_impl(
+        normalized_rarity_weights=NORMALIZED_RARITY_WEIGHTS,
+        rarity_card_counts=RARITY_CARD_COUNTS,
+    )
 
 
 def target_rarity_odds() -> dict[str, float]:
-    active_weights = {
-        rarity: weight
-        for rarity, weight in RARITY_WEIGHTS.items()
-        if RARITY_CARD_COUNTS.get(rarity, 0) > 0
-    }
-    total_weight = sum(active_weights.values())
-    if total_weight <= 0:
-        return {rarity: 0.0 for rarity in active_weights}
-    return {rarity: active_weights[rarity] / total_weight for rarity in active_weights}
+    return _target_rarity_odds_impl(
+        rarity_weights=RARITY_WEIGHTS,
+        rarity_card_counts=RARITY_CARD_COUNTS,
+    )
 
 
 def normalize_card_id(card_id: str) -> str:
-    return card_id.strip().upper()
+    return _normalize_card_id_impl(card_id)
 
 
 def search_card_ids(query: str, *, include_series: bool = False) -> list[str]:
-    cleaned_query = query.strip().casefold()
-    if not cleaned_query:
-        return []
-
-    exact_name_matches: list[str] = []
-    prefix_name_matches: list[str] = []
-    contains_name_matches: list[str] = []
-    exact_series_matches: list[str] = []
-    prefix_series_matches: list[str] = []
-    contains_series_matches: list[str] = []
-
-    for card_id, card in CARD_CATALOG.items():
-        card_name = card["name"]
-        normalized_name = card_name.casefold()
-        if normalized_name == cleaned_query:
-            exact_name_matches.append(card_id)
-        elif normalized_name.startswith(cleaned_query):
-            prefix_name_matches.append(card_id)
-        elif cleaned_query in normalized_name:
-            contains_name_matches.append(card_id)
-
-        if include_series:
-            normalized_series = card["series"].casefold()
-            if normalized_series == cleaned_query:
-                exact_series_matches.append(card_id)
-            elif normalized_series.startswith(cleaned_query):
-                prefix_series_matches.append(card_id)
-            elif cleaned_query in normalized_series:
-                contains_series_matches.append(card_id)
-
-    key = lambda cid: (CARD_CATALOG[cid]["name"].casefold(), cid)
-
-    ordered_groups = [
-        sorted(exact_name_matches, key=key),
-        sorted(prefix_name_matches, key=key),
-        sorted(contains_name_matches, key=key),
-    ]
-    if include_series:
-        ordered_groups.extend(
-            [
-                sorted(exact_series_matches, key=key),
-                sorted(prefix_series_matches, key=key),
-                sorted(contains_series_matches, key=key),
-            ]
-        )
-
-    seen: set[str] = set()
-    results: list[str] = []
-    for group in ordered_groups:
-        for card_id in group:
-            if card_id in seen:
-                continue
-            seen.add(card_id)
-            results.append(card_id)
-    return results
+    return _search_card_ids_impl(
+        query,
+        card_catalog=CARD_CATALOG,
+        include_series=include_series,
+    )
 
 
 def search_card_ids_by_name(query: str) -> list[str]:
-    return search_card_ids(query)
+    return _search_card_ids_by_name_impl(query, card_catalog=CARD_CATALOG)
 
 
 def card_code(card_id: str, dupe_code: str) -> str:
-    return dupe_code.strip().lower()
+    return _card_code_impl(card_id, dupe_code)
 
 
 def split_card_code(raw_code: str) -> str | None:
-    cleaned = raw_code.strip()
-    if not cleaned:
-        return None
-
-    if cleaned.startswith("#"):
-        cleaned = cleaned[1:]
-        if not cleaned:
-            return None
-
-    dupe_code = cleaned.lower()
-
-    if not all(char.isdigit() or ("a" <= char <= "z") for char in dupe_code):
-        return None
-
-    return dupe_code
+    return _split_card_code_impl(raw_code)
 
 
 def display_dupe_code(dupe_code: str | None) -> str:
-    if dupe_code is None:
-        return "?  "
-    return dupe_code.strip().lower().ljust(3)
+    return _display_dupe_code_impl(dupe_code)
 
 
 def display_dupe_code_raw(dupe_code: str | None) -> str:
-    if dupe_code is None:
-        return "?"
-    return dupe_code.strip().lower()
+    return _display_dupe_code_raw_impl(dupe_code)
 
 
 def generation_label(generation: int) -> str:
-    return f"G-{generation}"
+    return _generation_label_impl(generation)
 
 
 def proper_case(value: str) -> str:
-    return " ".join(word.capitalize() for word in value.split())
+    return _proper_case_impl(value)
 
 
 def series_display(series: str) -> str:
-    series_meta = SERIES_CATALOG.get(series)
-    if series_meta is None:
-        return proper_case(series)
-
-    label = series_meta.get("label") or proper_case(series)
-    return f"{series_meta['emoji']} {label}"
+    return _series_display_impl(series, series_catalog=SERIES_CATALOG)
 
 
 def series_emoji(series: str) -> str:
-    series_meta = SERIES_CATALOG.get(series)
-    if series_meta is None:
-        return proper_case(series)
-    return series_meta["emoji"]
+    return _series_emoji_impl(series, series_catalog=SERIES_CATALOG)
 
 
 def card_base_value(card_id: str) -> int:
-    return int(CARD_CATALOG[card_id]["base_value"])
+    return _card_base_value_impl(card_id, card_catalog=CARD_CATALOG)
 
 
 def card_value(card_id: str, generation: int) -> int:
-    base_value = card_base_value(card_id)
-    multiplier = generation_value_multiplier(generation)
-    return max(1, int(round(base_value * multiplier)))
+    return _card_value_impl(
+        card_id,
+        generation,
+        card_base_value_func=card_base_value,
+        generation_multiplier_func=generation_value_multiplier,
+    )
 
 
 def card_base_display(card_id: str) -> str:
-    card = CARD_CATALOG[card_id]
-    return (
-        f"(`{card_id}`) [{series_emoji(card['series'])}] "
-        f"**{card['name']}** ({proper_case(card['rarity'])}) "
-        f"(**{card_base_value(card_id)}** dough)"
+    return _card_base_display_impl(
+        card_id,
+        card_catalog=CARD_CATALOG,
+        series_catalog=SERIES_CATALOG,
+        card_base_value=card_base_value,
     )
 
 
@@ -395,22 +342,25 @@ def card_dupe_display(
     *,
     pad_dupe_code: bool = True,
 ) -> str:
-    card = CARD_CATALOG[card_id]
-    dupe_code_text = display_dupe_code(dupe_code) if pad_dupe_code else display_dupe_code_raw(dupe_code)
-    return (
-        f"`#{dupe_code_text}` **{card['name']}** • (`{card_id}`) "
-        f"[{series_display(card['series'])}] ({proper_case(card['rarity'])}) "
-        f"• **{generation_label(generation)}** (**{card_value(card_id, generation)}** dough)"
+    return _card_dupe_display_impl(
+        card_id,
+        generation,
+        dupe_code,
+        pad_dupe_code=pad_dupe_code,
+        card_catalog=CARD_CATALOG,
+        series_catalog=SERIES_CATALOG,
+        card_value=card_value,
     )
 
 
 def card_dupe_display_concise(card_id: str, generation: int, dupe_code: str | None = None) -> str:
-    card = CARD_CATALOG[card_id]
-    dupe_code_text = display_dupe_code(dupe_code)
-    return (
-        f"`#{dupe_code_text}` (`{card_id}`) [{series_emoji(card['series'])}] "
-        f"**{card['name']}** ({proper_case(card['rarity'])}) • **{generation_label(generation)}** "
-        f"(**{card_value(card_id, generation)}** dough)"
+    return _card_dupe_display_concise_impl(
+        card_id,
+        generation,
+        dupe_code,
+        card_catalog=CARD_CATALOG,
+        series_catalog=SERIES_CATALOG,
+        card_value=card_value,
     )
 
 
@@ -420,46 +370,46 @@ def card_image_url(card_id: str) -> str:
 
 
 def random_card_id() -> str:
-    card_ids = list(CARD_CATALOG.keys())
-    weights = [
-        NORMALIZED_RARITY_WEIGHTS.get(CARD_CATALOG[cid]["rarity"], 1.0)
-        for cid in card_ids
-    ]
-    return random.choices(card_ids, weights=weights, k=1)[0]
+    return _random_card_id_impl(
+        card_catalog=CARD_CATALOG,
+        normalized_rarity_weights=NORMALIZED_RARITY_WEIGHTS,
+    )
 
 
 def random_generation() -> int:
-    x = random.betavariate(1.6, 1.04)
-    return int(max(GENERATION_MIN, min(GENERATION_MAX, GENERATION_MAX * x)))
+    return _random_generation_impl(
+        generation_min=GENERATION_MIN,
+        generation_max=GENERATION_MAX,
+    )
 
 
 def make_drop_choices(size: int = 3) -> list[tuple[str, int]]:
-    if size >= len(CARD_CATALOG):
-        card_ids = random.sample(list(CARD_CATALOG.keys()), len(CARD_CATALOG))
-        return [(card_id, random_generation()) for card_id in card_ids]
-
-    chosen: set[str] = set()
-    while len(chosen) < size:
-        chosen.add(random_card_id())
-    return [(card_id, random_generation()) for card_id in chosen]
+    return _make_drop_choices_impl(
+        card_catalog=CARD_CATALOG,
+        random_card_id_func=random_card_id,
+        random_generation_func=random_generation,
+        size=size,
+    )
 
 
 def generation_value_multiplier(generation: int) -> float:
-    clamped_generation = max(GENERATION_MIN, min(GENERATION_MAX, generation))
-    progress = (GENERATION_MAX - clamped_generation) / (GENERATION_MAX - GENERATION_MIN)
-    return 1.0 + (2 * progress ** 2) + (9 * progress ** 9) + (49 * progress ** 49)
+    return _generation_value_multiplier_impl(
+        generation,
+        generation_min=GENERATION_MIN,
+        generation_max=GENERATION_MAX,
+    )
 
 
 def burn_delta_range(value: int) -> int:
-    percent = random.randint(5, 20)
-    return max(1, int(round(value * (percent / 100.0))))
+    return _burn_delta_range_impl(value)
 
 
 def get_burn_payout(card_id: str, generation: int, delta_range: int | None = None) -> tuple[int, int, int, int, float, int]:
-    base_value = card_base_value(card_id)
-    multiplier = generation_value_multiplier(generation)
-    value = max(1, int(round(base_value * multiplier)))
-    resolved_delta_range = burn_delta_range(value) if delta_range is None else max(1, delta_range)
-    delta = random.randint(-resolved_delta_range, resolved_delta_range)
-    payout = max(1, value + delta)
-    return payout, value, base_value, delta, multiplier, resolved_delta_range
+    return _get_burn_payout_impl(
+        card_id,
+        generation,
+        card_base_value_func=card_base_value,
+        generation_multiplier_func=generation_value_multiplier,
+        burn_delta_range_func=burn_delta_range,
+        delta_range=delta_range,
+    )

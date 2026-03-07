@@ -93,19 +93,14 @@ Notes:
 - Use `--mode all` only when intentionally rebalancing the full catalog.
 - No need to add image files for new cards immediately; keep the metadata path under `runtime/card_images` and populate files later.
 
-## Card image sync helper
+## Card image runtime seeds
 
-- Pull image URLs dynamically from `CARD_CATALOG` and write a JSON report:
-  - Missing-only mode (default):
-    - `.venv/bin/python scripts/pull_card_images.py`
-  - Full refresh mode:
-    - `.venv/bin/python scripts/pull_card_images.py --all`
-  - Custom output path:
-    - `.venv/bin/python scripts/pull_card_images.py --output tmp/card_image_pull_report.json`
-
-  - Cache all card images locally for drop preview composition (avoids remote rate limiting):
-
-    - `.venv/bin/python scripts/cache_card_images.py`
+- Card rendering is local-only and expects images under `runtime/card_images/`.
+- Initialize runtime seeds locally:
+  - `.venv/bin/python scripts/init_runtime.py`
+- Force-refresh runtime image seeds:
+  - `.venv/bin/python scripts/init_runtime.py --force-images`
+- Production deploys use `deploy/update.sh` to seed runtime images from `data/seeds/card_images/` when `runtime/card_images/` is empty.
 
 ## Migration validation helper
 
@@ -135,12 +130,12 @@ Notes:
 
 ## Subsystem guide
 
-- Catalog/cards logic: `noodswap/cards.py`
+- Catalog/cards logic: `noodswap/cards/`
 - Rarity tuning: `noodswap/rarities.py`
 - DB and ownership semantics: `noodswap/storage.py`
 - Command/use-case orchestration: `noodswap/services.py`
 - Command Discord wiring + routing: `noodswap/commands.py`
-- Interaction UX: `noodswap/views.py`
+- Interaction UX: `noodswap/views/`
 - Shared embed theme + reusable description formatting: `noodswap/presentation.py`
 
 ## Operational conventions

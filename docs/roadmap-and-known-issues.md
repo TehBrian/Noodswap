@@ -64,10 +64,14 @@ Status: Stage 1 is complete. Stages below are intentionally deferred for later.
 - Introduce repository-oriented functions (players/card_instances/trades) behind a stable facade.
 - Add migration-version edge case tests and transaction boundary tests.
 
-### Stage 3 — View callback slimming
-- Move remaining callback orchestration from `views.py` into `services.py` use-cases.
-- Keep `views.py` focused on Discord interaction authorization, lifecycle, and response wiring.
-- Add focused tests around resolved-click and timeout transitions per view.
+### Stage 3 — Module boundary hardening (no behavior change)
+- Keep this stage refactor-only (no command UX changes, no schema changes, no deploy/tmpfs changes).
+- Split `views.py` into domain-focused modules while preserving existing interaction behavior and timeouts.
+- Split `cards.py` into catalog-loading, search, and display/value concerns with stable public wrappers.
+- Tighten `storage.py` facade scope to transaction/use-case orchestration and keep direct SQL in `repositories.py`.
+- Add focused regression tests before each split to lock current behavior.
+
+Stage 3 implementation guide: `docs/refactor-phase-3.md`.
 
 ### Stage 4 — Presentation expansion and consistency
 - Continue centralizing repeated embed description assembly into `presentation.py` helpers.
@@ -76,6 +80,17 @@ Status: Stage 1 is complete. Stages below are intentionally deferred for later.
 
 ## Decision log (recent)
 
+- Stage 3 kickoff (non-breaking): extracted pagination emoji resolution/constants from `views.py` into `noodswap/view_pagination.py`, and extracted card display-format helpers into `noodswap/card_display.py` while keeping `noodswap.cards` public functions as compatibility wrappers.
+- Continued Stage 3 (non-breaking): extracted help interaction classes (`HelpCategorySelect`, `HelpView`) into `noodswap/view_help.py` and kept `HelpView` available through `noodswap.views` for existing imports.
+- Continued Stage 3 (non-breaking): extracted `DropView` into `noodswap/view_drop.py` and `TradeView` into `noodswap/view_trade.py` while keeping both importable from `noodswap.views`.
+- Continued Stage 3 (non-breaking): extracted confirmation interaction classes (`BurnConfirmView`, `MorphConfirmView`, `FrameConfirmView`, `FontConfirmView`) into `noodswap/view_confirmations.py` and preserved `noodswap.views` monkeypatch targets used by tests.
+- Continued Stage 3 (non-breaking): extracted `CardCatalogView` into `noodswap/view_catalog.py` and preserved `noodswap.views` compatibility imports and image payload patch targets.
+- Continued Stage 3 (non-breaking): extracted `PaginatedLinesView` and `PlayerLeaderboardView` into `noodswap/view_text.py` and preserved `noodswap.views` compatibility imports.
+- Continued Stage 3 (non-breaking): extracted `SortableCardListView` and `SortableCollectionView` into `noodswap/view_sortable_lists.py` and preserved `noodswap.views` compatibility imports and image payload patch targets.
+- Continued Stage 3 (non-breaking): extracted search/code-parsing helpers from `cards.py` into `noodswap/card_search.py` while keeping `noodswap.cards` wrappers stable.
+- Continued Stage 3 (non-breaking): extracted generation/value/payout + rarity-odds helpers from `cards.py` into `noodswap/card_economy.py` while keeping `noodswap.cards` wrappers stable.
+- Continued Stage 3 boundary tightening (non-breaking): removed the unused `storage.ensure_player(...)` pass-through wrapper.
+- Finalized Stage 3 package layout (non-breaking): converted `noodswap.cards` and `noodswap.views` from single-module shims to package paths (`noodswap/cards/__init__.py`, `noodswap/views/__init__.py`) and added package submodules (`catalog/search/display/economy` and `help/drop/trade/confirmations/catalog/pagination/sortable_lists/text`).
 - Started Stage 3 callback slimming by moving drop-claim, trade accept/deny, and cosmetic roll-confirm execution into `services.py` (`execute_drop_claim`, `resolve_trade_offer`, `resolve_morph_roll`, `resolve_frame_roll`, `resolve_font_roll`) and updating `views.py` callbacks to delegate to those use-cases.
 - Added follow-up roadmap item to automate deploy-state bootstrap (SQLite backup/restore and card-image cache artifact import) so host migrations do not require manual DB/image copy steps.
 - Added `leaderboard` / `le` with invoker-scoped pagination + criterion dropdown (`Cards`, `Wishes`, `Dough`, `Starter`, `Collection Value`) to rank players by global player metrics.
@@ -99,7 +114,7 @@ Status: Stage 1 is complete. Stages below are intentionally deferred for later.
 - Added a `Gallery` toggle to sortable card-list embeds (`cards`, `wish list`, and multi-result `lookup`) to switch between paginated list mode and one-card image mode while keeping navigation controls.
 - Applied the same sortable-card dropdown interaction pattern to `wish list` and multi-result `lookup` embeds (`Rarity`, `Series`, `Base Value`, `Alphabetical`).
 - Added a sort-mode dropdown to the `cards` catalog embed with `Rarity`, `Series`, `Base Value`, and `Alphabetical` modes, while keeping wishlist counts visible per entry.
-- Switched embeds and drop-preview loading to local-only card images (attach local file when present), replaced card image URL mappings in code with manifest-driven local paths, and added `scripts/export_card_image_url_backup.py` + `scripts/cache_card_images_from_backup.py` for URL backup and staged local cache hydration.
+- Switched embeds and drop-preview loading to local-only card images (attach local file when present), replaced card image URL mappings in code with manifest-driven local paths, and standardized seed-based runtime image hydration from `data/seeds/card_images/` into `runtime/card_images/`.
 - Added `tests/test_sqlite_guardrails.py` to enforce explicit sqlite connection closing and prevent future raw `with sqlite3.connect(...) as conn:` regressions.
 - Introduced `repositories.py` and refactored `storage.py` into a stable facade that delegates player/card/wishlist/trade SQL operations to repository-style boundaries.
 - Split migration responsibilities out of `storage.py` into `migrations.py` and kept `storage.init_db()` as the single startup entry point.

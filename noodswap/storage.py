@@ -255,11 +255,6 @@ def get_card_wish_counts(guild_id: int) -> dict[str, int]:
         return wishlist.get_card_wish_counts(guild_id)
 
 
-def ensure_player(conn: sqlite3.Connection, guild_id: int, user_id: int) -> None:
-    guild_id = _scope_guild_id(guild_id)
-    PlayerRepository(conn, STARTING_DOUGH).ensure_player(guild_id, user_id)
-
-
 def get_player_stats(guild_id: int, user_id: int) -> tuple[int, float, Optional[int]]:
     guild_id = _scope_guild_id(guild_id)
     with get_db_connection() as conn:

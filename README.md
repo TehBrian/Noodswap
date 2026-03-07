@@ -94,6 +94,8 @@ Behavior notes:
 - Deploy resolves target SHA and deploys `IMAGE_REPOSITORY:<that-sha>`.
 - The workflow waits for that exact GHCR tag to become available before running the deploy step, avoiding stale `latest` races.
 - After deploy, workflow verifies `noodswap-bot` is running and that its configured image exactly equals `IMAGE_REPOSITORY:<that-sha>`.
+- `deploy/update.sh` now performs a runtime writability preflight and fails before container startup if `runtime/{db,card_images,logs,cache}` is not writable.
+- Production compose includes a SQLite healthcheck (`PRAGMA quick_check`) against `runtime/db/noodswap.db`.
 
 Full Actions deploy instructions: `docs/deploy-github-actions.md`.
 
@@ -150,20 +152,14 @@ This bot uses privileged intents. Enable these for your application in Discord D
 - `ns dbexport` — upload the SQLite file (`noodswap.db`) to Discord.
 - `ns dbreset` — delete all persisted player/card data.
 
-### Optional: local card image cache (recommended)
+### Optional: runtime image cache initialization
 
-Drop preview image composition uses a lazy cache at runtime:
+Card rendering is local-only and expects card images under `runtime/card_images/`.
 
-- If an image exists in `runtime/card_images/manifest.json`, it uses local bytes.
-- If missing, it fetches once from the source URL, saves it to `runtime/card_images/`, updates the manifest, and reuses local cache on later drops.
+- Local development: run `.venv/bin/python scripts/init_runtime.py` to seed `runtime/card_images/` from `data/seeds/card_images/`.
+- Production deploy: `deploy/update.sh` seeds `runtime/card_images/` from `data/seeds/card_images/` when the runtime image directory is empty.
 
-You can also pre-warm the full cache in advance to avoid first-hit fetches:
-
-```bash
-.venv/bin/python scripts/cache_card_images.py
-```
-
-This writes files into `runtime/card_images/` and a manifest at `runtime/card_images/manifest.json`.
+The local image manifest lives at `runtime/card_images/manifest.json`.
 
 ### Optional: generation economy report
 
@@ -201,10 +197,10 @@ Machine-readable output is available with `--json`.
 - `bot.py` — thin launcher.
 - `noodswap/app.py` — bot creation, intents, startup wiring.
 - `noodswap/commands.py` — Discord command handlers (presentation layer).
-- `noodswap/views.py` — interactive button views for drops/trades.
+- `noodswap/views/` — interactive button views for drops/trades and pagination helpers.
 - `noodswap/presentation.py` — shared embed styling helpers.
 - `noodswap/storage.py` — SQLite persistence functions (domain/data layer).
-- `noodswap/cards.py` — card catalog and card-related logic.
+- `noodswap/cards/` — card catalog and card-related logic.
 - `noodswap/rarities.py` — rarity weights.
 - `noodswap/settings.py` — global config constants.
 - `noodswap/utils.py` — shared utility helpers.

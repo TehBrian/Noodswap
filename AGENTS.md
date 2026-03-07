@@ -28,9 +28,9 @@ This file is the primary handoff guide for AI coding agents working on Noodswap.
 - `noodswap/app.py`: bot creation, intents, startup lifecycle, command registration
 - `noodswap/commands.py`: command handlers (`drop/marry/divorce/collection/burn/info/trade/help/db*`)
 - `noodswap/services.py`: command-facing use-case orchestration (`drop/burn/marry/divorce/trade` prep/exec)
-- `noodswap/views.py`: interactive `discord.ui.View` flows (drop/trade/burn-confirm)
+- `noodswap/views/`: interactive `discord.ui.View` flows (drop/trade/burn-confirm)
 - `noodswap/presentation.py`: shared embed style + reusable command description formatting helpers
-- `noodswap/cards.py`: card catalog + generation/pull/burn helper functions
+- `noodswap/cards/`: card catalog + generation/pull/burn helper functions
 - `noodswap/rarities.py`: rarity weights used in pull selection
 - `noodswap/storage.py`: SQLite domain persistence operations
 - `noodswap/migrations.py`: SQLite schema versioning and startup migration steps
@@ -70,9 +70,9 @@ Migration behavior in `init_db()`:
 - `noodswap/storage.py`: ownership, marriage integrity, and trade safety.
 - `noodswap/migrations.py`: migration safety/versioning and schema transition behavior.
 - `noodswap/repositories.py`: SQL behavior changes affecting ownership/trade/marriage semantics.
-- `noodswap/views.py`: interaction race conditions and timeout behavior.
+- `noodswap/views/`: interaction race conditions and timeout behavior.
 - `noodswap/commands.py`: UX consistency, embeds, and argument handling.
-- `noodswap/cards.py`: catalog IDs and rarity/value consistency.
+- `noodswap/cards/`: catalog IDs and rarity/value consistency.
 
 ## 7) Agent Change Protocol
 

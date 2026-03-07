@@ -1,0 +1,132 @@
+# Stage 3 Refactor Guide (No Behavior Change)
+
+This document defines the execution plan for Stage 3 module-boundary hardening.
+
+## Scope
+
+Included:
+- `noodswap/views/` internal split by interaction domain.
+- `noodswap/cards/` internal split by concern (catalog/search/display/economy).
+- `storage.py` and `repositories.py` boundary tightening.
+
+Explicitly excluded:
+- No tmpfs changes.
+- No deploy topology changes.
+- No schema migrations.
+- No command UX changes.
+- No slash-command migration.
+
+## Completed slices
+
+- Slice 1 (done): extracted pagination emoji resolution/constants into `noodswap/view_pagination.py`.
+- Slice 2 (done): extracted display-format helpers into `noodswap/card_display.py` with compatibility wrappers on the `noodswap.cards` import surface.
+- Slice 3 (done): extracted `HelpCategorySelect` and `HelpView` into `noodswap/view_help.py` while preserving `from noodswap.views import HelpView` compatibility.
+- Slice 4 (done): extracted `DropView` into `noodswap/view_drop.py` while preserving `from noodswap.views import DropView` compatibility.
+- Slice 5 (done): extracted `TradeView` into `noodswap/view_trade.py` while preserving `from noodswap.views import TradeView` compatibility.
+- Slice 6 (done): extracted burn/morph/frame/font confirmation views into `noodswap/view_confirmations.py` while preserving imports from `noodswap.views`.
+- Slice 7 (done): extracted `CardCatalogView` into `noodswap/view_catalog.py` while preserving `from noodswap.views import CardCatalogView` compatibility.
+- Slice 8 (done): extracted `PaginatedLinesView` and `PlayerLeaderboardView` into `noodswap/view_text.py` while preserving imports from `noodswap.views`.
+- Slice 9 (done): extracted `SortableCardListView` and `SortableCollectionView` into `noodswap/view_sortable_lists.py` while preserving imports from `noodswap.views` and existing test monkeypatch targets.
+- Slice 10 (done): extracted card search + code-parsing helpers into `noodswap/card_search.py` with compatibility wrappers retained on the `noodswap.cards` import surface.
+- Slice 11 (done): extracted generation/value/payout + rarity-odds helpers into `noodswap/card_economy.py` with compatibility wrappers retained on the `noodswap.cards` import surface.
+- Slice 12 (done): removed unused one-line `storage.ensure_player(...)` pass-through wrapper to keep direct repository access out of non-transactional helper exports.
+- Slice 13 (done): converted `noodswap.cards` and `noodswap.views` to package paths (`noodswap/cards/__init__.py`, `noodswap/views/__init__.py`) and added `noodswap/cards/*` + `noodswap/views/*` submodule surfaces matching the Stage 3 target layout.
+
+## Preconditions
+
+1. Keep current public imports stable during migration.
+2. Add/adjust tests before moving code where behavior is subtle.
+3. Move in small slices and run `check:quick` + `check:tests` after each slice.
+
+## Workstreams
+
+## A) Views split
+
+Current pain point:
+- Legacy view code was concentrated in one surface and mixed unrelated interaction concerns.
+
+Target structure:
+- `noodswap/views/help.py`
+- `noodswap/views/drop.py`
+- `noodswap/views/trade.py`
+- `noodswap/views/confirmations.py`
+- `noodswap/views/catalog.py`
+- `noodswap/views/pagination.py`
+- `noodswap/views/__init__.py`
+
+Incremental steps:
+1. Create `noodswap/views/` package and move pagination helpers first.
+2. Move help views (`HelpView`, `HelpCategorySelect`) next.
+3. Move `DropView` and `TradeView` once imports are stable.
+4. Move confirmation views (burn/morph/frame/font).
+5. Re-export all existing symbols from `noodswap/views/__init__.py`.
+6. Keep legacy import path working in `commands.py` throughout.
+
+Acceptance checks:
+- Existing interaction timeouts unchanged.
+- Existing resolved-click behavior unchanged.
+- `tests/test_views.py` green.
+
+## B) Cards split
+
+Current pain point:
+- Legacy card code mixed data loading, search, display formatting, and value-generation logic in one surface.
+
+Target structure:
+- `noodswap/cards/catalog.py`
+- `noodswap/cards/search.py`
+- `noodswap/cards/display.py`
+- `noodswap/cards/economy.py`
+- `noodswap/cards/__init__.py`
+
+Incremental steps:
+1. Move pure formatter helpers into `display.py`.
+2. Move search/query helpers into `search.py`.
+3. Move generation/value/payout math into `economy.py`.
+4. Keep catalog load/validation in `catalog.py`.
+5. Re-export old API names from `cards/__init__.py` until all imports are updated.
+
+Acceptance checks:
+- Card IDs/codes resolve exactly as before.
+- Burn payout range calculations unchanged.
+- Generation distribution function unchanged.
+- `tests/test_cards.py`, `tests/test_services.py`, and `tests/test_commands.py` green.
+
+## C) Storage vs repository boundary
+
+Boundary contract:
+- `repositories.py`: direct SQL and row parsing.
+- `storage.py`: transaction orchestration and domain invariants.
+
+Incremental steps:
+1. Identify one-line pass-through wrappers in `storage.py`.
+2. For low-risk read-only paths, switch callers to repository usage where practical.
+3. Keep multi-step write flows in `storage.py` with explicit transaction scopes.
+4. Add notes when a `storage.py` function remains intentionally as a boundary.
+
+Acceptance checks:
+- Trade/marry/burn semantics unchanged.
+- Migration startup behavior unchanged.
+- `tests/test_storage.py` and `tests/test_sqlite_guardrails.py` green.
+
+## Suggested execution order
+
+1. Views pagination/help extraction.
+2. Cards display/search extraction.
+3. Storage wrapper reduction (read-only first).
+4. Remaining views and cards extraction.
+
+## Validation commands
+
+```bash
+.venv/bin/python -m py_compile bot.py noodswap/*.py scripts/*.py tests/*.py
+.venv/bin/python scripts/migration_smoke.py
+.venv/bin/python -m unittest discover -s tests -p 'test_*.py'
+```
+
+## Definition of done
+
+1. Legacy single-file modules are reduced to small compatibility shims or removed.
+2. Public command behavior remains identical.
+3. No deploy/runtime behavior changes introduced in this stage.
+4. Documentation (`docs/architecture.md`, this file, and roadmap) matches final structure.

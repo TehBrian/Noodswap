@@ -1,0 +1,99 @@
+from typing import Mapping, TypedDict
+
+
+class CardSearchRecord(TypedDict):
+    name: str
+    series: str
+
+
+def normalize_card_id(card_id: str) -> str:
+    return card_id.strip().upper()
+
+
+def search_card_ids(
+    query: str,
+    *,
+    card_catalog: Mapping[str, CardSearchRecord],
+    include_series: bool = False,
+) -> list[str]:
+    cleaned_query = query.strip().casefold()
+    if not cleaned_query:
+        return []
+
+    exact_name_matches: list[str] = []
+    prefix_name_matches: list[str] = []
+    contains_name_matches: list[str] = []
+    exact_series_matches: list[str] = []
+    prefix_series_matches: list[str] = []
+    contains_series_matches: list[str] = []
+
+    for card_id, card in card_catalog.items():
+        card_name = card["name"]
+        normalized_name = card_name.casefold()
+        if normalized_name == cleaned_query:
+            exact_name_matches.append(card_id)
+        elif normalized_name.startswith(cleaned_query):
+            prefix_name_matches.append(card_id)
+        elif cleaned_query in normalized_name:
+            contains_name_matches.append(card_id)
+
+        if include_series:
+            normalized_series = card["series"].casefold()
+            if normalized_series == cleaned_query:
+                exact_series_matches.append(card_id)
+            elif normalized_series.startswith(cleaned_query):
+                prefix_series_matches.append(card_id)
+            elif cleaned_query in normalized_series:
+                contains_series_matches.append(card_id)
+
+    key = lambda cid: (card_catalog[cid]["name"].casefold(), cid)
+
+    ordered_groups = [
+        sorted(exact_name_matches, key=key),
+        sorted(prefix_name_matches, key=key),
+        sorted(contains_name_matches, key=key),
+    ]
+    if include_series:
+        ordered_groups.extend(
+            [
+                sorted(exact_series_matches, key=key),
+                sorted(prefix_series_matches, key=key),
+                sorted(contains_series_matches, key=key),
+            ]
+        )
+
+    seen: set[str] = set()
+    results: list[str] = []
+    for group in ordered_groups:
+        for card_id in group:
+            if card_id in seen:
+                continue
+            seen.add(card_id)
+            results.append(card_id)
+    return results
+
+
+def search_card_ids_by_name(query: str, *, card_catalog: Mapping[str, CardSearchRecord]) -> list[str]:
+    return search_card_ids(query, card_catalog=card_catalog)
+
+
+def card_code(card_id: str, dupe_code: str) -> str:
+    return dupe_code.strip().lower()
+
+
+def split_card_code(raw_code: str) -> str | None:
+    cleaned = raw_code.strip()
+    if not cleaned:
+        return None
+
+    if cleaned.startswith("#"):
+        cleaned = cleaned[1:]
+        if not cleaned:
+            return None
+
+    dupe_code = cleaned.lower()
+
+    if not all(char.isdigit() or ("a" <= char <= "z") for char in dupe_code):
+        return None
+
+    return dupe_code
