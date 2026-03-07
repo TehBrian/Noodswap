@@ -3,6 +3,7 @@ from typing import Optional
 import discord
 
 from .cards import CARD_CATALOG, card_base_display
+from .images import embed_image_payload
 from .presentation import italy_embed
 from .settings import TRADE_TIMEOUT_SECONDS
 from .utils import multiline_text
@@ -141,9 +142,7 @@ class CardCatalogView(discord.ui.View):
 
         embed = italy_embed("All Cards", description)
         if self.gallery_mode and page_entries:
-            from . import views as views_module
-
-            image_url, image_file = views_module.embed_image_payload(page_entries[0][0])
+            image_url, image_file = embed_image_payload(page_entries[0][0])
             if image_url is not None:
                 embed.set_image(url=image_url)
         sort_label_map = {

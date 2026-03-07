@@ -8,7 +8,14 @@ from ..cards import (
     card_value,
 )
 from ..images import embed_image_payload, morph_transition_image_payload
-from ..services import execute_drop_claim, resolve_font_roll, resolve_frame_roll, resolve_morph_roll, resolve_trade_offer
+from ..services import (
+    execute_burn_confirmation,
+    execute_drop_claim,
+    resolve_font_roll,
+    resolve_frame_roll,
+    resolve_morph_roll,
+    resolve_trade_offer,
+)
 from ..storage import add_dough, burn_instance, get_locked_tags_for_instance
 from ..presentation import italy_embed
 from ..settings import (
@@ -34,6 +41,7 @@ __all__ = [
     "embed_image_payload",
     "morph_transition_image_payload",
     "execute_drop_claim",
+    "execute_burn_confirmation",
     "resolve_font_roll",
     "resolve_frame_roll",
     "resolve_morph_roll",

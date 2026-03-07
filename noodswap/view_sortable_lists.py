@@ -4,6 +4,7 @@ from typing import Optional
 import discord
 
 from .cards import CARD_CATALOG, card_base_display, card_dupe_display, card_value
+from .images import embed_image_payload
 from .presentation import italy_embed
 from .settings import TRADE_TIMEOUT_SECONDS
 from .utils import multiline_text
@@ -154,9 +155,7 @@ class SortableCardListView(discord.ui.View):
 
         embed = italy_embed(self.title, description)
         if self.gallery_mode and page_card_ids:
-            from . import views as views_module
-
-            image_url, image_file = views_module.embed_image_payload(page_card_ids[0])
+            image_url, image_file = embed_image_payload(page_card_ids[0])
             if image_url is not None:
                 embed.set_image(url=image_url)
         sort_label_map = {
@@ -462,9 +461,7 @@ class SortableCollectionView(discord.ui.View):
             instance_id, card_id, generation, _dupe_code = page_instances[0]
             morph_key, frame_key, font_key = self.instance_styles.get(instance_id, (None, None, None))
 
-            from . import views as views_module
-
-            image_url, image_file = views_module.embed_image_payload(
+            image_url, image_file = embed_image_payload(
                 card_id,
                 generation=generation,
                 morph_key=morph_key,

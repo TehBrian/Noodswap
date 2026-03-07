@@ -153,7 +153,7 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         self.assertIsNotNone(callback)
 
         with patch(
-            "noodswap.views.execute_drop_claim",
+            "noodswap.view_drop.execute_drop_claim",
             return_value=type("Result", (), {"is_error": False, "dupe_code": "abc"})(),
         ) as execute_claim:
             await callback(interaction)
@@ -170,7 +170,7 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         callback = view.children[0].callback
         self.assertIsNotNone(callback)
 
-        with patch("noodswap.views.execute_drop_claim") as execute_claim:
+        with patch("noodswap.view_drop.execute_drop_claim") as execute_claim:
             await callback(interaction)
             execute_claim.assert_not_called()
 
@@ -187,7 +187,7 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         self.assertIsNotNone(callback)
 
         with patch(
-            "noodswap.views.execute_drop_claim",
+            "noodswap.view_drop.execute_drop_claim",
             return_value=type("Result", (), {"is_error": False, "dupe_code": "abc"})(),
         ) as execute_claim:
             await callback(first_interaction)
@@ -204,7 +204,7 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         self.assertIsNotNone(callback)
 
         with patch(
-            "noodswap.views.execute_drop_claim",
+            "noodswap.view_drop.execute_drop_claim",
             return_value=type("Result", (), {"is_error": False, "dupe_code": "abc"})(),
         ):
             await callback(first_interaction)
@@ -233,7 +233,7 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         self.assertIsNotNone(callback)
 
         with patch(
-            "noodswap.views.execute_drop_claim",
+            "noodswap.view_drop.execute_drop_claim",
             return_value=type("Result", (), {"is_error": True, "cooldown_remaining_seconds": 30.0})(),
         ) as execute_claim:
             await callback(interaction)
@@ -248,7 +248,7 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         view = TradeView(guild_id=1, seller_id=10, buyer_id=20, card_id="SPG", dupe_code="0", amount=25)
         interaction = _FakeInteraction(user_id=30)
 
-        with patch("noodswap.views.resolve_trade_offer") as resolve_trade:
+        with patch("noodswap.view_trade.resolve_trade_offer") as resolve_trade:
             await view._resolve(interaction, accepted=True)
             resolve_trade.assert_not_called()
 
@@ -262,7 +262,7 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         interaction = _FakeInteraction(user_id=20)
 
         with patch(
-            "noodswap.views.resolve_trade_offer",
+            "noodswap.view_trade.resolve_trade_offer",
             return_value=type("TradeResult", (), {"is_failed": False, "generation": 123, "dupe_code": "a"})(),
         ) as resolve_trade:
             await view._resolve(interaction, accepted=True)
@@ -294,17 +294,26 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         view = BurnConfirmView(guild_id=1, user_id=10, instance_id=77, card_id="SPG", generation=321, delta_range=8)
         interaction = _FakeInteraction(user_id=10)
 
-        with (
-            patch("noodswap.views.get_locked_tags_for_instance", return_value=[]),
-            patch("noodswap.views.burn_instance", return_value=("SPG", 321, "a")) as burn,
-            patch("noodswap.views.get_burn_payout", return_value=(42, 40, 38, 2, 1.05, 8)) as payout,
-            patch("noodswap.views.add_dough") as add_dough,
-        ):
+        burn_result = type(
+            "BurnResult",
+            (),
+            {
+                "is_blocked": False,
+                "is_failed": False,
+                "card_id": "SPG",
+                "generation": 321,
+                "dupe_code": "a",
+                "payout": 42,
+                "delta": 2,
+                "locked_tags": (),
+                "message": "",
+            },
+        )()
+
+        with patch("noodswap.view_confirmations.execute_burn_confirmation", return_value=burn_result) as execute_burn:
             await view.confirm_button.callback(interaction)
 
-        burn.assert_called_once_with(1, 10, 77)
-        payout.assert_called_once_with("SPG", 321, 8)
-        add_dough.assert_called_once_with(1, 10, 42)
+        execute_burn.assert_called_once_with(1, 10, instance_id=77, delta_range=8)
         self.assertTrue(view.finished)
         self.assertEqual(len(interaction.response.edited_messages), 1)
         self.assertEqual(interaction.response.edited_messages[0].get("view"), view)
@@ -316,13 +325,26 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         view = BurnConfirmView(guild_id=1, user_id=10, instance_id=77, card_id="SPG", generation=321, delta_range=8)
         interaction = _FakeInteraction(user_id=10)
 
-        with (
-            patch("noodswap.views.get_locked_tags_for_instance", return_value=["safe"]),
-            patch("noodswap.views.burn_instance") as burn,
-        ):
+        burn_result = type(
+            "BurnResult",
+            (),
+            {
+                "is_blocked": True,
+                "is_failed": False,
+                "card_id": None,
+                "generation": None,
+                "dupe_code": None,
+                "payout": None,
+                "delta": None,
+                "locked_tags": ("safe",),
+                "message": "",
+            },
+        )()
+
+        with patch("noodswap.view_confirmations.execute_burn_confirmation", return_value=burn_result) as execute_burn:
             await view.confirm_button.callback(interaction)
 
-        burn.assert_not_called()
+        execute_burn.assert_called_once_with(1, 10, instance_id=77, delta_range=8)
         self.assertTrue(view.finished)
         self.assertEqual(len(interaction.response.edited_messages), 1)
         self.assertEqual(len(interaction.message.replies), 1)
@@ -357,7 +379,7 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         interaction = _FakeInteraction(user_id=10)
 
         with patch(
-            "noodswap.views.resolve_morph_roll",
+            "noodswap.view_confirmations.resolve_morph_roll",
             return_value=type(
                 "MorphResult",
                 (),
@@ -396,7 +418,7 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         )
         interaction = _FakeInteraction(user_id=99)
 
-        with patch("noodswap.views.resolve_morph_roll") as resolve_morph:
+        with patch("noodswap.view_confirmations.resolve_morph_roll") as resolve_morph:
             await view.confirm_button.callback(interaction)
             resolve_morph.assert_not_called()
 
@@ -446,7 +468,7 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         interaction = _FakeInteraction(user_id=10)
 
         with patch(
-            "noodswap.views.resolve_frame_roll",
+            "noodswap.view_confirmations.resolve_frame_roll",
             return_value=type(
                 "FrameResult",
                 (),
@@ -512,7 +534,7 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         interaction = _FakeInteraction(user_id=10)
 
         with patch(
-            "noodswap.views.resolve_font_roll",
+            "noodswap.view_confirmations.resolve_font_roll",
             return_value=type(
                 "FontResult",
                 (),
@@ -706,7 +728,7 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
 
         interaction = _FakeInteraction(user_id=10)
         fake_file = object()
-        with patch("noodswap.views.embed_image_payload", return_value=("attachment://SPG.png", fake_file)):
+        with patch("noodswap.view_catalog.embed_image_payload", return_value=("attachment://SPG.png", fake_file)):
             await view.next_page_button.callback(interaction)
 
         edit_kwargs = interaction.response.edited_messages[0]
@@ -1055,7 +1077,7 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
 
         interaction = _FakeInteraction(user_id=10)
         fake_file = object()
-        with patch("noodswap.views.embed_image_payload", return_value=("attachment://SPG.png", fake_file)):
+        with patch("noodswap.view_sortable_lists.embed_image_payload", return_value=("attachment://SPG.png", fake_file)):
             await view.next_page_button.callback(interaction)
 
         edit_kwargs = interaction.response.edited_messages[0]

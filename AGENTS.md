@@ -103,14 +103,12 @@ When making non-trivial changes:
 
 ## 10) Deferred Refactor Stages (To-Do)
 
-Stage 1 is complete. Remaining deferred stages are:
+Stages 1 and 3 are complete. Remaining deferred stages are:
 
 1. **Stage 2 — Storage boundary split**
    - Separate migration logic from general data access.
    - Add repository-style boundaries with stable call surface.
-2. **Stage 3 — View callback slimming**
-   - Move remaining orchestration from `views.py` into service use-cases.
-3. **Stage 4 — Presentation expansion**
+2. **Stage 4 — Presentation expansion**
    - Continue centralizing repeated embed/description assembly and add formatter tests.
 
 ## 11) If You Are the Next Agent

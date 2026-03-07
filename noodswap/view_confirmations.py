@@ -5,8 +5,10 @@ import discord
 from .cards import card_dupe_display
 from .fonts import font_label
 from .frames import frame_label
+from .images import morph_transition_image_payload
 from .morphs import morph_label
 from .presentation import italy_embed
+from .services import execute_burn_confirmation, resolve_font_roll, resolve_frame_roll, resolve_morph_roll
 from .settings import BURN_CONFIRM_TIMEOUT_SECONDS
 
 
@@ -41,15 +43,18 @@ class BurnConfirmView(discord.ui.View):
             )
             return
 
-        from . import views as views_module
-
-        locked_tags = views_module.get_locked_tags_for_instance(self.guild_id, self.user_id, self.instance_id)
-        if locked_tags:
+        burn_result = execute_burn_confirmation(
+            self.guild_id,
+            self.user_id,
+            instance_id=self.instance_id,
+            delta_range=self.delta_range,
+        )
+        if burn_result.is_blocked:
             self.finished = True
             self._disable_buttons()
             await interaction.response.edit_message(view=self)
             if interaction.message is not None:
-                locked_tags_text = ", ".join(f"`{tag}`" for tag in locked_tags)
+                locked_tags_text = ", ".join(f"`{tag}`" for tag in burn_result.locked_tags)
                 await interaction.message.reply(
                     embed=italy_embed(
                         "Burn Blocked",
@@ -59,8 +64,7 @@ class BurnConfirmView(discord.ui.View):
                 )
             return
 
-        burned = views_module.burn_instance(self.guild_id, self.user_id, self.instance_id)
-        if burned is None:
+        if burn_result.is_failed:
             self.finished = True
             self._disable_buttons()
             await interaction.response.edit_message(
@@ -68,24 +72,34 @@ class BurnConfirmView(discord.ui.View):
             )
             if interaction.message is not None:
                 await interaction.message.reply(
-                    embed=italy_embed("Burn Failed", "That card instance is no longer available."),
+                    embed=italy_embed("Burn Failed", burn_result.message),
                     mention_author=False,
                 )
             return
 
-        burned_card_id, burned_generation, burned_dupe_code = burned
-        payout, _value, _base_value, delta, _multiplier, _resolved_delta_range = views_module.get_burn_payout(
-            burned_card_id,
-            burned_generation,
-            self.delta_range,
-        )
-        views_module.add_dough(self.guild_id, self.user_id, payout)
+        if (
+            burn_result.card_id is None
+            or burn_result.generation is None
+            or burn_result.dupe_code is None
+            or burn_result.payout is None
+            or burn_result.delta is None
+        ):
+            self.finished = True
+            self._disable_buttons()
+            await interaction.response.edit_message(view=self)
+            if interaction.message is not None:
+                await interaction.message.reply(
+                    embed=italy_embed("Burn Failed", "Burn failed."),
+                    mention_author=False,
+                )
+            return
+
         burned_embed = italy_embed(
             "**Card Burned**",
-            f"""{card_dupe_display(burned_card_id, burned_generation, dupe_code=burned_dupe_code)}
+            f"""{card_dupe_display(burn_result.card_id, burn_result.generation, dupe_code=burn_result.dupe_code)}
 
-Payout: **{payout} dough**
-    RNG: **{delta:+}**""",
+Payout: **{burn_result.payout} dough**
+    RNG: **{burn_result.delta:+}**""",
         )
 
         self.finished = True
@@ -194,9 +208,7 @@ class MorphConfirmView(discord.ui.View):
             )
             return
 
-        from . import views as views_module
-
-        result = views_module.resolve_morph_roll(
+        result = resolve_morph_roll(
             self.guild_id,
             self.user_id,
             instance_id=self.instance_id,
@@ -243,7 +255,7 @@ class MorphConfirmView(discord.ui.View):
                 f"Dough Remaining: **{result.remaining_dough}**"
             ),
         )
-        image_url, image_file = views_module.morph_transition_image_payload(
+        image_url, image_file = morph_transition_image_payload(
             self.card_id,
             generation=self.generation,
             before_morph_key=self.before_morph_key,
@@ -354,9 +366,7 @@ class FrameConfirmView(discord.ui.View):
             )
             return
 
-        from . import views as views_module
-
-        result = views_module.resolve_frame_roll(
+        result = resolve_frame_roll(
             self.guild_id,
             self.user_id,
             instance_id=self.instance_id,
@@ -403,7 +413,7 @@ class FrameConfirmView(discord.ui.View):
                 f"Dough Remaining: **{result.remaining_dough}**"
             ),
         )
-        image_url, image_file = views_module.morph_transition_image_payload(
+        image_url, image_file = morph_transition_image_payload(
             self.card_id,
             generation=self.generation,
             before_morph_key=self.before_morph_key,
@@ -514,9 +524,7 @@ class FontConfirmView(discord.ui.View):
             )
             return
 
-        from . import views as views_module
-
-        result = views_module.resolve_font_roll(
+        result = resolve_font_roll(
             self.guild_id,
             self.user_id,
             instance_id=self.instance_id,
@@ -563,7 +571,7 @@ class FontConfirmView(discord.ui.View):
                 f"Dough Remaining: **{result.remaining_dough}**"
             ),
         )
-        image_url, image_file = views_module.morph_transition_image_payload(
+        image_url, image_file = morph_transition_image_payload(
             self.card_id,
             generation=self.generation,
             before_morph_key=self.before_morph_key,

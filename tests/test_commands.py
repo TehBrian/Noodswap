@@ -134,7 +134,10 @@ class CommandsWishlistTests(unittest.IsolatedAsyncioTestCase):
         ctx.send = AsyncMock()
         ctx.reply = ctx.send
 
-        with patch("noodswap.commands.add_card_to_wishlist", return_value=True) as add_wishlist:
+        with (
+            patch("noodswap.commands.search_card_ids_by_name", return_value=["SPG"]),
+            patch("noodswap.commands.add_card_to_wishlist", return_value=True) as add_wishlist,
+        ):
             await wish_add_command.callback(ctx, card_id="spaghetti")
 
         add_wishlist.assert_called_once_with(1, 100, "SPG")
@@ -513,7 +516,8 @@ class CommandsLookupTests(unittest.IsolatedAsyncioTestCase):
         ctx.send = AsyncMock()
         ctx.reply = ctx.send
 
-        await lookup_command.callback(ctx, card_id="spaghetti")
+        with patch("noodswap.commands.search_card_ids", return_value=["SPG"]):
+            await lookup_command.callback(ctx, card_id="spaghetti")
 
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]

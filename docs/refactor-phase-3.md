@@ -31,6 +31,7 @@ Explicitly excluded:
 - Slice 11 (done): extracted generation/value/payout + rarity-odds helpers into `noodswap/card_economy.py` with compatibility wrappers retained on the `noodswap.cards` import surface.
 - Slice 12 (done): removed unused one-line `storage.ensure_player(...)` pass-through wrapper to keep direct repository access out of non-transactional helper exports.
 - Slice 13 (done): converted `noodswap.cards` and `noodswap.views` to package paths (`noodswap/cards/__init__.py`, `noodswap/views/__init__.py`) and added `noodswap/cards/*` + `noodswap/views/*` submodule surfaces matching the Stage 3 target layout.
+- Slice 14 (done): completed callback slimming by moving burn-confirm execution into `services.py` and switching view callbacks to direct service/image imports (no `noodswap.views` facade indirection within callback execution paths).
 
 ## Preconditions
 

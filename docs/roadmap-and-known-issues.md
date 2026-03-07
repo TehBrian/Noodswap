@@ -57,7 +57,7 @@
 
 ## Refactor backlog (staged)
 
-Status: Stage 1 is complete. Stages below are intentionally deferred for later.
+Status: Stages 1 and 3 are complete. Remaining deferred stages are Stage 2 and Stage 4.
 
 ### Stage 2 — Storage boundary split
 - Extract migration logic from `storage.py` into a dedicated migration module while preserving current startup behavior.
@@ -93,6 +93,7 @@ Stage 3 implementation guide: `docs/refactor-phase-3.md`.
 - Continued Stage 3 boundary tightening (non-breaking): removed the unused `storage.ensure_player(...)` pass-through wrapper.
 - Finalized Stage 3 package layout (non-breaking): converted `noodswap.cards` and `noodswap.views` from single-module shims to package paths (`noodswap/cards/__init__.py`, `noodswap/views/__init__.py`) and added package submodules (`catalog/search/display/economy` and `help/drop/trade/confirmations/catalog/pagination/sortable_lists/text`).
 - Started Stage 3 callback slimming by moving drop-claim, trade accept/deny, and cosmetic roll-confirm execution into `services.py` (`execute_drop_claim`, `resolve_trade_offer`, `resolve_morph_roll`, `resolve_frame_roll`, `resolve_font_roll`) and updating `views.py` callbacks to delegate to those use-cases.
+- Completed Stage 3 callback slimming by moving burn confirmation execution into `services.py` (`execute_burn_confirmation`), removing remaining `noodswap.views` callback indirection in view modules, and updating view tests to patch canonical module-level symbols.
 - Added follow-up roadmap item to automate deploy-state bootstrap (SQLite backup/restore and card-image cache artifact import) so host migrations do not require manual DB/image copy steps.
 - Added `leaderboard` / `le` with invoker-scoped pagination + criterion dropdown (`Cards`, `Wishes`, `Dough`, `Starter`, `Collection Value`) to rank players by global player metrics.
 - Added `vote` / `v` command with top.gg link-button UX, top.gg API vote verification (`TOPGG_API_TOKEN` + `TOPGG_BOT_ID`), and `starter` reward claims with a 24-hour cooldown surfaced in both `info` and `cooldown`.

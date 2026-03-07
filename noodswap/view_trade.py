@@ -4,6 +4,7 @@ import discord
 
 from .cards import card_base_display, card_dupe_display
 from .presentation import italy_embed
+from .services import resolve_trade_offer
 from .settings import TRADE_TIMEOUT_SECONDS
 
 
@@ -43,9 +44,7 @@ class TradeView(discord.ui.View):
             return
 
         if not accepted:
-            from . import views as views_module
-
-            trade_result = views_module.resolve_trade_offer(
+            trade_result = resolve_trade_offer(
                 guild_id=self.guild_id,
                 seller_id=self.seller_id,
                 buyer_id=self.buyer_id,
@@ -63,9 +62,7 @@ class TradeView(discord.ui.View):
             )
             return
 
-        from . import views as views_module
-
-        trade_result = views_module.resolve_trade_offer(
+        trade_result = resolve_trade_offer(
             guild_id=self.guild_id,
             seller_id=self.seller_id,
             buyer_id=self.buyer_id,

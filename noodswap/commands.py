@@ -259,7 +259,8 @@ def _vote_link_view(vote_url: str) -> discord.ui.View:
 
 SLOTS_REEL_EMOJIS: tuple[str, ...] = ("🍞", "🍷", "🧀", "🍕", "🍇", "🥖", "🍝")
 SLOTS_REEL_COUNT = 3
-SLOTS_SPIN_STEPS = 12
+SLOTS_SPIN_MIN_STEPS = 4
+SLOTS_SPIN_MAX_STEPS = 7
 SLOTS_SPIN_FRAME_DELAY_SECONDS = 0.15
 SLOTS_MIN_REWARD = 1
 SLOTS_MAX_REWARD = 3
@@ -269,28 +270,34 @@ def _slots_reel_line(symbols: list[str]) -> str:
     return "  |  ".join(symbols)
 
 
-def _slots_embed(reel_symbols: list[str], status_lines: list[str]) -> discord.Embed:
+def _slots_reel_content(symbols: list[str], result_emoji: str | None = None) -> str:
+    line = _slots_reel_line(symbols)
+    if result_emoji is not None:
+        return f"{line} {result_emoji}"
+    return line
+
+
+def _slots_embed(status_lines: list[str]) -> discord.Embed:
     return italy_embed(
         "Slots",
         multiline_text([
-            _slots_reel_line(reel_symbols),
-            "",
             *status_lines,
         ]),
     )
 
 
 async def _animate_slots_spin(message: discord.Message, final_symbols: list[str]) -> None:
-    for step in range(SLOTS_SPIN_STEPS):
+    spin_steps = random.randint(SLOTS_SPIN_MIN_STEPS, SLOTS_SPIN_MAX_STEPS)
+    for step in range(spin_steps):
         frame_symbols: list[str] = []
         for reel_index in range(SLOTS_REEL_COUNT):
-            lock_step = SLOTS_SPIN_STEPS - (SLOTS_REEL_COUNT - reel_index)
+            lock_step = spin_steps - (SLOTS_REEL_COUNT - reel_index)
             if step >= lock_step:
                 frame_symbols.append(final_symbols[reel_index])
             else:
                 frame_symbols.append(random.choice(SLOTS_REEL_EMOJIS))
 
-        await message.edit(embed=_slots_embed(frame_symbols, ["Spinning..."]))
+        await message.edit(content=_slots_reel_content(frame_symbols))
         await asyncio.sleep(SLOTS_SPIN_FRAME_DELAY_SECONDS)
 
 
@@ -1320,10 +1327,16 @@ def register_commands(bot: commands.Bot) -> None:
             return
 
         final_symbols = [random.choice(SLOTS_REEL_EMOJIS) for _ in range(SLOTS_REEL_COUNT)]
-        message = await _reply(ctx, embed=_slots_embed(final_symbols, ["Spinning..."]))
+        initial_symbols = [random.choice(SLOTS_REEL_EMOJIS) for _ in range(SLOTS_REEL_COUNT)]
+        message = await _reply(
+            ctx,
+            content=_slots_reel_content(initial_symbols),
+            embed=_slots_embed(["Spinning..."]),
+        )
         await _animate_slots_spin(message, final_symbols)
 
-        if len(set(final_symbols)) == 1:
+        is_win = len(set(final_symbols)) == 1
+        if is_win:
             starter_reward = random.randint(SLOTS_MIN_REWARD, SLOTS_MAX_REWARD)
             starter_total = add_starter(ctx.guild.id, ctx.author.id, starter_reward)
             final_lines = [
@@ -1337,7 +1350,11 @@ def register_commands(bot: commands.Bot) -> None:
                 f"Try again in **{format_cooldown(SLOTS_COOLDOWN_SECONDS)}**.",
             ]
 
-        await message.edit(embed=_slots_embed(final_symbols, final_lines))
+        result_emoji = "🎉" if is_win else "❌"
+        await message.edit(
+            content=_slots_reel_content(final_symbols, result_emoji=result_emoji),
+            embed=_slots_embed(final_lines),
+        )
 
     @bot.command(name="cooldown", aliases=["cd"])
     async def cooldown(ctx: commands.Context, player: str | None = None):

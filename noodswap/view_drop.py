@@ -6,6 +6,7 @@ import discord
 from .cards import CARD_CATALOG, card_dupe_display
 from .images import embed_image_payload
 from .presentation import italy_embed
+from .services import execute_drop_claim
 from .settings import DROP_TIMEOUT_SECONDS, PULL_COOLDOWN_SECONDS
 
 
@@ -48,9 +49,7 @@ class DropView(discord.ui.View):
                     )
                     return
 
-                from . import views as views_module
-
-                claim_result = views_module.execute_drop_claim(
+                claim_result = execute_drop_claim(
                     self.guild_id,
                     interaction.user.id,
                     card_id,

@@ -10,9 +10,11 @@ from .morphs import AVAILABLE_MORPHS, MORPH_COST_FRACTION, morph_label
 from .settings import DROP_CHOICES_COUNT, DROP_COOLDOWN_SECONDS
 from .storage import (
     add_card_to_player,
+    add_dough,
     apply_font_to_instance,
     apply_frame_to_instance,
     apply_morph_to_instance,
+    burn_instance,
     consume_pull_cooldown_if_ready,
     divorce_card,
     execute_trade,
@@ -274,6 +276,83 @@ def prepare_burn(guild_id: int, user_id: int, card_code: Optional[str]) -> BurnP
         delta=delta,
         delta_range=delta_range,
         multiplier=multiplier,
+    )
+
+
+@dataclass(frozen=True)
+class BurnConfirmationExecution:
+    status: str
+    message: str
+    card_id: Optional[str]
+    generation: Optional[int]
+    dupe_code: Optional[str]
+    payout: Optional[int]
+    delta: Optional[int]
+    locked_tags: tuple[str, ...]
+
+    @property
+    def is_blocked(self) -> bool:
+        return self.status == "blocked"
+
+    @property
+    def is_failed(self) -> bool:
+        return self.status == "failed"
+
+    @property
+    def is_burned(self) -> bool:
+        return self.status == "burned"
+
+
+def execute_burn_confirmation(
+    guild_id: int,
+    user_id: int,
+    *,
+    instance_id: int,
+    delta_range: int,
+) -> BurnConfirmationExecution:
+    locked_tags = tuple(get_locked_tags_for_instance(guild_id, user_id, instance_id))
+    if locked_tags:
+        return BurnConfirmationExecution(
+            status="blocked",
+            message="Card is protected by locked tags.",
+            card_id=None,
+            generation=None,
+            dupe_code=None,
+            payout=None,
+            delta=None,
+            locked_tags=locked_tags,
+        )
+
+    burned = burn_instance(guild_id, user_id, instance_id)
+    if burned is None:
+        return BurnConfirmationExecution(
+            status="failed",
+            message="That card instance is no longer available.",
+            card_id=None,
+            generation=None,
+            dupe_code=None,
+            payout=None,
+            delta=None,
+            locked_tags=(),
+        )
+
+    burned_card_id, burned_generation, burned_dupe_code = burned
+    payout, _value, _base_value, delta, _multiplier, _resolved_delta_range = get_burn_payout(
+        burned_card_id,
+        burned_generation,
+        delta_range,
+    )
+    add_dough(guild_id, user_id, payout)
+
+    return BurnConfirmationExecution(
+        status="burned",
+        message="",
+        card_id=burned_card_id,
+        generation=burned_generation,
+        dupe_code=burned_dupe_code,
+        payout=payout,
+        delta=delta,
+        locked_tags=(),
     )
 
 

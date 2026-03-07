@@ -122,6 +122,52 @@ class ServicesTests(unittest.TestCase):
             "That card is protected by locked tag(s): `safe`.",
         )
 
+    def test_execute_burn_confirmation_returns_blocked_for_locked_tags(self) -> None:
+        guild_id = 1
+        user_id = 232
+        instance_id = storage.add_card_to_player(guild_id, user_id, "SPG", 333)
+        storage.create_player_tag(guild_id, user_id, "safe")
+        storage.assign_tag_to_instance(guild_id, user_id, instance_id, "safe")
+        storage.set_player_tag_locked(guild_id, user_id, "safe", True)
+
+        result = services.execute_burn_confirmation(
+            guild_id,
+            user_id,
+            instance_id=instance_id,
+            delta_range=8,
+        )
+
+        self.assertTrue(result.is_blocked)
+        self.assertEqual(result.locked_tags, ("safe",))
+
+    def test_execute_burn_confirmation_returns_failed_when_instance_missing(self) -> None:
+        result = services.execute_burn_confirmation(1, 233, instance_id=999_999, delta_range=8)
+
+        self.assertTrue(result.is_failed)
+        self.assertEqual(result.message, "That card instance is no longer available.")
+
+    def test_execute_burn_confirmation_burns_and_awards_dough(self) -> None:
+        guild_id = 1
+        user_id = 234
+        instance_id = storage.add_card_to_player(guild_id, user_id, "SPG", 333)
+        dough_before, _, _ = storage.get_player_info(guild_id, user_id)
+
+        result = services.execute_burn_confirmation(
+            guild_id,
+            user_id,
+            instance_id=instance_id,
+            delta_range=8,
+        )
+
+        self.assertTrue(result.is_burned)
+        self.assertEqual(result.card_id, "SPG")
+        self.assertEqual(result.generation, 333)
+        self.assertIsNotNone(result.payout)
+        self.assertIsNotNone(result.delta)
+        self.assertIsNone(storage.get_instance_by_id(guild_id, instance_id))
+        dough_after, _, _ = storage.get_player_info(guild_id, user_id)
+        self.assertEqual(dough_after, dough_before + int(result.payout or 0))
+
     def test_prepare_morph_returns_preview_without_applying(self) -> None:
         guild_id = 1
         user_id = 24

@@ -449,6 +449,12 @@
     "rarity": "uncommon",
     "series": "entree"
   },
+  "DWS": {
+    "image": "runtime/card_images/DWS.jpg",
+    "name": "Dwight's Snack",
+    "rarity": "divine",
+    "series": "snack"
+  },
   "EBG": {
     "image": "runtime/card_images/EBG.jpg",
     "name": "Everything Bagel",
