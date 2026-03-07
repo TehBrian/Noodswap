@@ -40,12 +40,6 @@
 				"7"
 			],
 			"group": "test"
-		},
-		{
-			"label": "git:commit-task-cleanup",
-			"type": "shell",
-			"command": "git add .vscode/tasks.json && git commit -m \"chore: remove temporary git helper tasks\"",
-			"isBackground": false
 		}
 	]
 }
