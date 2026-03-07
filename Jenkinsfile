@@ -64,7 +64,6 @@ pipeline {
             until docker --config "${docker_config_dir}" manifest inspect "$image_ref" >/dev/null 2>&1; do
               if [ "$attempt" -ge "$max_attempts" ]; then
                 echo "Timed out waiting for ${image_ref}" >&2
-                docker logout ghcr.io >/dev/null 2>&1 || true
                 exit 1
               fi
               echo "Image not available yet (attempt ${attempt}/${max_attempts}); retrying in 10s..."

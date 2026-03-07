@@ -52,6 +52,12 @@ Edit `deploy/runtime.env` and set at minimum:
 DISCORD_TOKEN=<your-token>
 ```
 
+If your GHCR package is private and `DEPLOY_AS_USER=noodswap-user`, run a one-time login as that user so `docker compose pull` can authenticate during deploy:
+
+```bash
+sudo -u noodswap-user docker login ghcr.io
+```
+
 ## Jenkins job setup
 
 1. Create a Pipeline job (or multibranch pipeline) pointing to this repository.
