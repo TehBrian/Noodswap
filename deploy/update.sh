@@ -52,11 +52,13 @@ if [ -n "$IMAGE_TAG_OVERRIDE" ]; then
 fi
 
 mkdir -p "$SCRIPT_DIR/assets/card_images"
-mkdir -p "$SCRIPT_DIR/assets/card_fonts"
+mkdir -p "$SCRIPT_DIR/assets/fonts"
+mkdir -p "$SCRIPT_DIR/assets/frame_overlays"
 DB_PATH="$SCRIPT_DIR/assets/noodswap.db"
 CARD_IMAGE_DATA_DIR="$SCRIPT_DIR/assets/card_images"
 REPO_CARD_IMAGE_DIR="$SCRIPT_DIR/../assets/card_images"
-CARD_FONT_DATA_DIR="$SCRIPT_DIR/assets/card_fonts"
+CARD_FONT_DATA_DIR="$SCRIPT_DIR/assets/fonts"
+FRAME_OVERLAY_DATA_DIR="$SCRIPT_DIR/assets/frame_overlays"
 
 target_manifest="$CARD_IMAGE_DATA_DIR/manifest.json"
 source_manifest="$REPO_CARD_IMAGE_DIR/manifest.json"
@@ -89,6 +91,11 @@ if [ ! -f "$DB_PATH" ]; then
   echo "No existing DB found; created new empty DB at $DB_PATH"
 fi
 
+if [ -d "$SCRIPT_DIR/assets/card_fonts" ] && [ -z "$(find "$CARD_FONT_DATA_DIR" -mindepth 1 -maxdepth 1 2>/dev/null)" ]; then
+  cp -a "$SCRIPT_DIR/assets/card_fonts/." "$CARD_FONT_DATA_DIR/"
+  echo "Migrated legacy card fonts from $SCRIPT_DIR/assets/card_fonts to $CARD_FONT_DATA_DIR"
+fi
+
 if [ -d "$SCRIPT_DIR/data" ] && [ ! -e "$SCRIPT_DIR/assets/.migrated-from-data" ]; then
   if [ -d "$SCRIPT_DIR/data/card_fonts" ] && [ -z "$(find "$CARD_FONT_DATA_DIR" -mindepth 1 -maxdepth 1 2>/dev/null)" ]; then
     cp -a "$SCRIPT_DIR/data/card_fonts/." "$CARD_FONT_DATA_DIR/"
@@ -112,6 +119,7 @@ fi
 chmod 664 "$DB_PATH" || true
 chmod 775 "$SCRIPT_DIR/assets/card_images" || true
 chmod 775 "$CARD_FONT_DATA_DIR" || true
+chmod 775 "$FRAME_OVERLAY_DATA_DIR" || true
 
 docker compose -f "$SCRIPT_DIR/docker-compose.prod.yml" pull
 

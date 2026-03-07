@@ -39,7 +39,7 @@ CARD_IMAGE_MANIFEST = CARD_IMAGE_DIR / "manifest.json"
 CARD_FONTS_DIR = Path(
 	os.getenv(
 		"NOODSWAP_CARD_FONTS_DIR",
-		str(ASSETS_DIR / "card_fonts"),
+		str(ASSETS_DIR / "fonts"),
 	)
 )
 FRAME_OVERLAYS_DIR = Path(

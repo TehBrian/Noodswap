@@ -7,8 +7,10 @@ services:
     env_file:
       - ./runtime.env
     environment:
-      - NOODSWAP_DB_PATH=/app/assets/noodswap.db
-      - NOODSWAP_CARD_FONTS_DIR=/app/assets/card_fonts
-      - NOODSWAP_CARD_IMAGES_DIR=/app/assets/card_images
+      - NOODSWAP_ASSETS_DIR=/app/deploy/assets
+      - NOODSWAP_DB_PATH=/app/deploy/assets/noodswap.db
+      - NOODSWAP_CARD_FONTS_DIR=/app/deploy/assets/fonts
+      - NOODSWAP_CARD_IMAGES_DIR=/app/deploy/assets/card_images
+      - NOODSWAP_FRAME_OVERLAYS_DIR=/app/deploy/assets/frame_overlays
     volumes:
-      - ./assets:/app/assets
+      - ./assets:/app/deploy/assets

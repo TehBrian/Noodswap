@@ -48,7 +48,7 @@ Use a deploy path such as `/home/noodswap-user/noodswap` owned by a dedicated Li
 ```bash
 sudo useradd --system --create-home --home-dir /home/noodswap-user --shell /usr/sbin/nologin noodswap-user
 sudo -u noodswap-user mkdir -p /home/noodswap-user/noodswap
-sudo -u noodswap-user bash -lc 'cd /home/noodswap-user/noodswap/deploy && cp .env.example .env && cp runtime.env.example runtime.env && mkdir -p assets/card_images assets/card_fonts'
+sudo -u noodswap-user bash -lc 'cd /home/noodswap-user/noodswap/deploy && cp .env.example .env && cp runtime.env.example runtime.env && mkdir -p assets/card_images assets/fonts'
 ```
 
 Set required values:
