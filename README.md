@@ -157,11 +157,11 @@ This bot uses privileged intents. Enable these for your application in Discord D
 - `ns dbexport` — upload the SQLite file (`noodswap.db`) to Discord.
 - `ns dbreset` — delete all persisted player/card data.
 
-### Optional: runtime image cache initialization
+### Optional: runtime asset initialization
 
-Card rendering is local-only and expects card images under `runtime/card_images/`.
+Card rendering is local-only and expects runtime assets under `runtime/`.
 
-- Local development: run `.venv/bin/python scripts/init_runtime.py` to seed `runtime/card_images/` from `assets/card_images/`.
+- Local development: run `.venv/bin/python scripts/init_runtime.py` to replace `runtime/card_images/`, `runtime/fonts/`, and `runtime/frame_overlays/` from `assets/` seeds.
 - Production deploy: `deploy/update.sh` seeds `runtime/card_images/` from `assets/card_images/` when the runtime image directory is empty.
 
 The local image manifest lives at `runtime/card_images/manifest.json`.

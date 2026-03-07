@@ -719,6 +719,11 @@
     "rarity": "epic",
     "series": "noodle"
   },
+  "LFS": {
+    "name": "Luffy's Spaghetti",
+    "rarity": "mythic",
+    "series": "entree"
+  },
   "LGP": {
     "image": "runtime/card_images/LGP.jpg",
     "name": "Lobster Gnocchi Piccata",

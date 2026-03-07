@@ -107,11 +107,10 @@ Notes:
 
 ## Card image runtime seeds
 
-- Card rendering is local-only and expects images under `runtime/card_images/`.
-- Initialize runtime seeds locally:
+- Card rendering is local-only and expects runtime assets under `runtime/`.
+- Initialize runtime seeds locally (replaces runtime copies from `assets/`):
   - `.venv/bin/python scripts/init_runtime.py`
-- Force-refresh runtime image seeds:
-  - `.venv/bin/python scripts/init_runtime.py --force-images`
+  - Replaces `runtime/card_images/`, `runtime/fonts/`, and `runtime/frame_overlays/`
 - Production deploys use `deploy/update.sh` to seed runtime images from `assets/card_images/` when `runtime/card_images/` is empty.
 
 ## Migration validation helper
