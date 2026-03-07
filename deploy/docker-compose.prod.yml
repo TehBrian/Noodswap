@@ -1,6 +1,7 @@
 services:
   bot:
     image: ${IMAGE_REPOSITORY:?set IMAGE_REPOSITORY}:${IMAGE_TAG:-latest}
+    user: ${BOT_UID:?set BOT_UID}:${BOT_GID:?set BOT_GID}
     container_name: noodswap-bot
     restart: unless-stopped
     env_file:

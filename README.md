@@ -1,6 +1,6 @@
-# Noodswap (Prototype)
+# Noodswap
 
-Early prototype Discord trading-card style bot using `discord.py`.
+Discord trading-card style bot using `discord.py`.
 
 ## Quick start
 
@@ -167,7 +167,7 @@ To compare your target inverse-value generation odds (`tau`) against the live in
 
 Machine-readable output is available with `--json`.
 
-## Notes / prototype limitations
+## Notes / current limitations
 
 - Data is persisted in local SQLite (`noodswap.db`) in the project directory.
 - `.env` files are gitignored; keep real tokens only in untracked local env files or deployment secret managers.
