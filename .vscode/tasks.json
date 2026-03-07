@@ -40,6 +40,24 @@
 				"7"
 			],
 			"group": "test"
+		},
+		{
+			"label": "git:rename-check",
+			"type": "shell",
+			"command": "git status --short --find-renames && echo '---' && git diff --name-status -M -- . ':(exclude)noodswap/data/cards.json' | head -n 200",
+			"isBackground": false
+		},
+		{
+			"label": "git:status-full",
+			"type": "shell",
+			"command": "git status --short && echo '---' && git diff --name-only && echo '---' && git diff --cached --name-only",
+			"isBackground": false
+		},
+		{
+			"label": "git:stage-unrelated",
+			"type": "shell",
+			"command": "git add .vscode/tasks.json noodswap/fonts.py noodswap/frames.py noodswap/migrations.py noodswap/storage.py scripts/migration_smoke.py tests/test_commands.py tests/test_services.py tests/test_storage.py && git commit -m \"chore: checkpoint unrelated local edits\"",
+			"isBackground": false
 		}
 	]
 }

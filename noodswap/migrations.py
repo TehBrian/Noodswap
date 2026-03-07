@@ -72,6 +72,7 @@ def _set_schema_version(conn: sqlite3.Connection, version: int) -> None:
 
 
 def _apply_migration_v1(conn: sqlite3.Connection, random_generation_func: Callable[[], int]) -> None:
+    _ = random_generation_func
     conn.executescript(
         """
         CREATE TABLE IF NOT EXISTS players (
@@ -81,17 +82,6 @@ def _apply_migration_v1(conn: sqlite3.Connection, random_generation_func: Callab
             last_pull_at REAL NOT NULL DEFAULT 0,
             married_card_id TEXT,
             PRIMARY KEY (guild_id, user_id)
-        );
-
-        CREATE TABLE IF NOT EXISTS player_cards (
-            guild_id INTEGER NOT NULL,
-            user_id INTEGER NOT NULL,
-            card_id TEXT NOT NULL,
-            quantity INTEGER NOT NULL CHECK(quantity > 0),
-            PRIMARY KEY (guild_id, user_id, card_id),
-            FOREIGN KEY (guild_id, user_id)
-                REFERENCES players(guild_id, user_id)
-                ON DELETE CASCADE
         );
 
         CREATE INDEX IF NOT EXISTS idx_players_married
@@ -117,37 +107,6 @@ def _apply_migration_v1(conn: sqlite3.Connection, random_generation_func: Callab
         conn.execute("ALTER TABLE players ADD COLUMN married_instance_id INTEGER")
     if not _has_column(conn, "players", "last_dropped_instance_id"):
         conn.execute("ALTER TABLE players ADD COLUMN last_dropped_instance_id INTEGER")
-
-    migrated_row = conn.execute(
-        """
-        SELECT COUNT(*) AS c
-        FROM card_instances
-        """
-    ).fetchone()
-    already_migrated = int(migrated_row["c"]) > 0 if migrated_row else False
-
-    if not already_migrated:
-        rows = conn.execute(
-            """
-            SELECT guild_id, user_id, card_id, quantity
-            FROM player_cards
-            """
-        ).fetchall()
-        for row in rows:
-            quantity = int(row["quantity"])
-            for _ in range(quantity):
-                conn.execute(
-                    """
-                    INSERT INTO card_instances (guild_id, user_id, card_id, generation)
-                    VALUES (?, ?, ?, ?)
-                    """,
-                    (
-                        int(row["guild_id"]),
-                        int(row["user_id"]),
-                        str(row["card_id"]),
-                        random_generation_func(),
-                    ),
-                )
 
 
 def _apply_migration_v2(conn: sqlite3.Connection) -> None:
@@ -231,8 +190,6 @@ def _apply_migration_v3(conn: sqlite3.Connection) -> None:
 
 
 def _apply_migration_v4(conn: sqlite3.Connection, global_guild_id: int) -> None:
-    dupe_column = "dupe_code" if _has_column(conn, "card_instances", "dupe_code") else "dupe_id"
-
     player_rows = conn.execute(
         """
         SELECT user_id, COALESCE(SUM(dough), 0) AS total_dough, COALESCE(MAX(last_pull_at), 0) AS max_last_pull
@@ -303,46 +260,29 @@ def _apply_migration_v4(conn: sqlite3.Connection, global_guild_id: int) -> None:
     for idx, row in enumerate(rows):
         instance_id = int(row["instance_id"])
         conn.execute(
-            f"""
+            """
             UPDATE card_instances
-            SET {dupe_column} = ?
+            SET dupe_code = ?
             WHERE instance_id = ?
             """,
             (_to_base36(idx), instance_id),
         )
 
-    conn.execute("DROP INDEX IF EXISTS idx_card_instances_dupe_id")
     conn.execute("DROP INDEX IF EXISTS idx_card_instances_dupe_code")
     conn.execute(
-        f"""
+        """
         CREATE UNIQUE INDEX IF NOT EXISTS idx_card_instances_dupe_code
-            ON card_instances({dupe_column})
-            WHERE {dupe_column} IS NOT NULL
+            ON card_instances(dupe_code)
+            WHERE dupe_code IS NOT NULL
         """
     )
 
 
 def _apply_migration_v5(conn: sqlite3.Connection) -> None:
     has_dupe_code = _has_column(conn, "card_instances", "dupe_code")
-    has_dupe_id = _has_column(conn, "card_instances", "dupe_id")
-
-    if not has_dupe_code and has_dupe_id:
-        conn.execute("ALTER TABLE card_instances RENAME COLUMN dupe_id TO dupe_code")
-    elif not has_dupe_code and not has_dupe_id:
+    if not has_dupe_code:
         conn.execute("ALTER TABLE card_instances ADD COLUMN dupe_code TEXT")
 
-    has_dupe_code = _has_column(conn, "card_instances", "dupe_code")
-    has_dupe_id = _has_column(conn, "card_instances", "dupe_id")
-    if has_dupe_code and has_dupe_id:
-        conn.execute(
-            """
-            UPDATE card_instances
-            SET dupe_code = dupe_id
-            WHERE dupe_code IS NULL AND dupe_id IS NOT NULL
-            """
-        )
-
-    conn.execute("DROP INDEX IF EXISTS idx_card_instances_dupe_id")
     conn.execute("DROP INDEX IF EXISTS idx_card_instances_dupe_code")
     conn.execute(
         """
@@ -441,18 +381,7 @@ def _apply_migration_v10(conn: sqlite3.Connection) -> None:
 
 
 def _apply_migration_v11(conn: sqlite3.Connection) -> None:
-    # "classic" is now the built-in default style, not a persisted modifier.
-    if not _has_column(conn, "card_instances", "font_key"):
-        return
-
-    conn.execute(
-        """
-        UPDATE card_instances
-        SET font_key = NULL
-        WHERE font_key IS NOT NULL
-          AND LOWER(TRIM(font_key)) = 'classic'
-        """
-    )
+    _ = conn
 
 
 def _apply_migration_v12(conn: sqlite3.Connection) -> None:

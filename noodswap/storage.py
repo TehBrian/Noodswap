@@ -57,7 +57,6 @@ def reset_db_data() -> None:
         conn.execute("DELETE FROM player_tags")
         conn.execute("DELETE FROM wishlist_cards")
         conn.execute("DELETE FROM card_instances")
-        conn.execute("DELETE FROM player_cards")
         conn.execute("DELETE FROM players")
 
 

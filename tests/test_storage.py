@@ -53,52 +53,14 @@ class StorageTests(unittest.TestCase):
             ).fetchone()
             self.assertIsNotNone(instance_tags_row)
 
-    def test_init_db_backfills_legacy_player_cards(self) -> None:
-        with closing(sqlite3.connect(storage.DB_PATH)) as conn:
-            with conn:
-                conn.executescript(
-                    """
-                    CREATE TABLE players (
-                        guild_id INTEGER NOT NULL,
-                        user_id INTEGER NOT NULL,
-                        dough INTEGER NOT NULL DEFAULT 0,
-                        last_pull_at REAL NOT NULL DEFAULT 0,
-                        married_card_id TEXT,
-                        PRIMARY KEY (guild_id, user_id)
-                    );
-
-                    CREATE TABLE player_cards (
-                        guild_id INTEGER NOT NULL,
-                        user_id INTEGER NOT NULL,
-                        card_id TEXT NOT NULL,
-                        quantity INTEGER NOT NULL CHECK(quantity > 0),
-                        PRIMARY KEY (guild_id, user_id, card_id)
-                    );
-                    """
-                )
-                conn.execute(
-                    "INSERT INTO players (guild_id, user_id, dough, last_pull_at, married_card_id) VALUES (?, ?, ?, ?, ?)",
-                    (1, 42, 0, 0, None),
-                )
-                conn.execute(
-                    "INSERT INTO player_cards (guild_id, user_id, card_id, quantity) VALUES (?, ?, ?, ?)",
-                    (1, 42, "SPG", 2),
-                )
-                conn.execute(
-                    "INSERT INTO player_cards (guild_id, user_id, card_id, quantity) VALUES (?, ?, ?, ?)",
-                    (1, 42, "PEN", 1),
-                )
-
+    def test_init_db_does_not_create_player_cards_table(self) -> None:
         storage.init_db()
 
         with closing(sqlite3.connect(storage.DB_PATH)) as conn:
-            count_row = conn.execute("SELECT COUNT(*) FROM card_instances").fetchone()
-            self.assertIsNotNone(count_row)
-            self.assertEqual(int(count_row[0]), 3)
-
-            version_row = conn.execute("SELECT version FROM schema_migrations LIMIT 1").fetchone()
-            self.assertIsNotNone(version_row)
-            self.assertEqual(int(version_row[0]), storage.TARGET_SCHEMA_VERSION)
+            row = conn.execute(
+                "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'player_cards'"
+            ).fetchone()
+            self.assertIsNone(row)
 
     def test_marry_selects_lowest_generation_copy(self) -> None:
         guild_id = 1
@@ -493,7 +455,7 @@ class StorageTests(unittest.TestCase):
         self.assertEqual(by_plain_code, by_hash_code)
         self.assertEqual(by_plain_code, by_hash_global)
 
-    def test_init_db_v5_renames_legacy_dupe_id_column(self) -> None:
+    def test_init_db_v5_ensures_dupe_code_column_and_index(self) -> None:
         with closing(sqlite3.connect(storage.DB_PATH)) as conn:
             with conn:
                 conn.executescript(
@@ -508,16 +470,11 @@ class StorageTests(unittest.TestCase):
                         guild_id INTEGER NOT NULL,
                         user_id INTEGER NOT NULL,
                         card_id TEXT NOT NULL,
-                        generation INTEGER NOT NULL,
-                        dupe_id TEXT
+                        generation INTEGER NOT NULL
                     );
 
-                    INSERT INTO card_instances (guild_id, user_id, card_id, generation, dupe_id)
-                    VALUES (0, 42, 'SPG', 123, 'a');
-
-                    CREATE UNIQUE INDEX idx_card_instances_dupe_id
-                        ON card_instances(dupe_id)
-                        WHERE dupe_id IS NOT NULL;
+                    INSERT INTO card_instances (guild_id, user_id, card_id, generation)
+                    VALUES (0, 42, 'SPG', 123);
                     """
                 )
 
@@ -531,10 +488,6 @@ class StorageTests(unittest.TestCase):
             columns = conn.execute("PRAGMA table_info(card_instances)").fetchall()
             column_names = {str(column[1]) for column in columns}
             self.assertIn("dupe_code", column_names)
-
-            value_row = conn.execute("SELECT dupe_code FROM card_instances WHERE instance_id = 1").fetchone()
-            self.assertIsNotNone(value_row)
-            self.assertEqual(str(value_row[0]), "a")
 
             index_row = conn.execute(
                 "SELECT name FROM sqlite_master WHERE type = 'index' AND name = 'idx_card_instances_dupe_code'"

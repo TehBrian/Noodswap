@@ -181,7 +181,8 @@ class ServicesTests(unittest.TestCase):
         storage.add_dough(guild_id, user_id, 200)
         instance_id = storage.add_card_to_player(guild_id, user_id, "SPG", 333)
 
-        result = services.prepare_frame(guild_id=guild_id, user_id=user_id, card_code=None)
+        with patch("noodswap.services.available_frame_keys", return_value=["buttery", "gilded", "drizzled"]):
+            result = services.prepare_frame(guild_id=guild_id, user_id=user_id, card_code=None)
 
         self.assertFalse(result.is_error)
         self.assertEqual(result.instance_id, instance_id)
@@ -560,7 +561,10 @@ class ServicesTests(unittest.TestCase):
         storage.add_dough(guild_id, user_id, 50)
         instance_id = storage.add_card_to_player(guild_id, user_id, "SPG", 333)
 
-        with patch("noodswap.services.random.choice", return_value="buttery"):
+        with (
+            patch("noodswap.services.available_frame_keys", return_value=["buttery", "gilded", "drizzled"]),
+            patch("noodswap.services.random.choice", return_value="buttery"),
+        ):
             result = services.resolve_frame_roll(
                 guild_id,
                 user_id,

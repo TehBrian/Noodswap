@@ -13,7 +13,6 @@ FONT_PLAYFUL: Final[str] = "playful"
 FONT_COST_FRACTION: Final[float] = 0.20
 
 # Classic is now the built-in default style, not a purchasable modifier.
-LEGACY_CLASSIC_KEY: Final[str] = "classic"
 DEFAULT_FONT_LABEL: Final[str] = "Classic"
 
 AVAILABLE_FONTS: Final[tuple[str, ...]] = (
@@ -43,10 +42,6 @@ def normalize_font_key(font_key: str | None) -> str | None:
 
     normalized = font_key.strip().lower()
     if not normalized:
-        return None
-
-    # Backward compatibility: old "classic" entries are treated as default/no modifier.
-    if normalized == LEGACY_CLASSIC_KEY:
         return None
 
     if normalized not in AVAILABLE_FONTS:

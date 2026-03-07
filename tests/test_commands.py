@@ -10,9 +10,32 @@ from pathlib import Path
 import discord
 from discord.ext import commands
 
+from noodswap import storage
 from noodswap.commands import _build_drop_preview_blocking, _get_card_image_bytes, register_commands
 from noodswap.images import DEFAULT_CARD_RENDER_SIZE, HD_CARD_RENDER_SIZE, RARITY_BORDER_COLORS, render_card_image_bytes
 from noodswap.views import HelpView, PaginatedLinesView, PlayerLeaderboardView, SortableCardListView, SortableCollectionView
+
+
+_TEST_DB_TMP: tempfile.TemporaryDirectory[str] | None = None
+_ORIGINAL_DB_PATH: Path | None = None
+
+
+def setUpModule() -> None:
+    global _TEST_DB_TMP, _ORIGINAL_DB_PATH
+    _TEST_DB_TMP = tempfile.TemporaryDirectory()
+    _ORIGINAL_DB_PATH = storage.DB_PATH
+    storage.DB_PATH = Path(_TEST_DB_TMP.name) / "test_commands.db"
+    storage.init_db()
+
+
+def tearDownModule() -> None:
+    global _TEST_DB_TMP, _ORIGINAL_DB_PATH
+    if _ORIGINAL_DB_PATH is not None:
+        storage.DB_PATH = _ORIGINAL_DB_PATH
+    if _TEST_DB_TMP is not None:
+        _TEST_DB_TMP.cleanup()
+    _TEST_DB_TMP = None
+    _ORIGINAL_DB_PATH = None
 
 
 class _FakeGuild:

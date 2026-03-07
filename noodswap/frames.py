@@ -57,8 +57,4 @@ def frame_overlay_path(frame_key: str) -> Path | None:
 
 
 def available_frame_keys() -> tuple[str, ...]:
-    discovered = tuple(frame_key for frame_key in AVAILABLE_FRAMES if frame_overlay_path(frame_key) is not None)
-    if discovered:
-        return discovered
-    # Fallback keeps feature usable in dev/test before assets are added.
-    return AVAILABLE_FRAMES
+    return tuple(frame_key for frame_key in AVAILABLE_FRAMES if frame_overlay_path(frame_key) is not None)
