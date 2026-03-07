@@ -52,8 +52,8 @@
 - Document deployment requirements (public HTTPS route, secret config, reverse-proxy wiring).
 
 7. Deploy-state automation
-- Add automated SQLite backup/restore workflow (scheduled backup to remote object storage + restore-on-empty bootstrap for `deploy/data/noodswap.db`).
-- Publish/import a versioned card-image cache artifact so new hosts can bootstrap `deploy/data/card_images` without manual copy steps.
+- Add automated SQLite backup/restore workflow (scheduled backup to remote object storage + restore-on-empty bootstrap for `deploy/assets/noodswap.db`).
+- Publish/import a versioned card-image cache artifact so new hosts can bootstrap `deploy/assets/card_images` without manual copy steps.
 
 ## Refactor backlog (staged)
 

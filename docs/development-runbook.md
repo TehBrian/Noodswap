@@ -46,8 +46,6 @@ This runbook is for contributors and coding agents.
   - `./deploy/update.sh`
 - GitHub Actions deploy setup guide:
   - `docs/deploy-github-actions.md`
-- Legacy Jenkins setup guide:
-  - `docs/deploy-jenkins.md`
 
 ## Validate after changes
 

@@ -13,7 +13,7 @@ RUN pip install --no-cache-dir -r /app/requirements.txt
 
 COPY bot.py /app/bot.py
 COPY noodswap /app/noodswap
-COPY assets /app/assets
+RUN mkdir -p /app/assets
 COPY scripts /app/scripts
 
 RUN chown -R noodswap:noodswap /app

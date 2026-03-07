@@ -48,7 +48,7 @@ Use a deploy path such as `/home/noodswap-user/noodswap` owned by a dedicated Li
 ```bash
 sudo useradd --system --create-home --home-dir /home/noodswap-user --shell /usr/sbin/nologin noodswap-user
 sudo -u noodswap-user mkdir -p /home/noodswap-user/noodswap
-sudo -u noodswap-user bash -lc 'cd /home/noodswap-user/noodswap/deploy && cp .env.example .env && cp runtime.env.example runtime.env && mkdir -p data/card_images'
+sudo -u noodswap-user bash -lc 'cd /home/noodswap-user/noodswap/deploy && cp .env.example .env && cp runtime.env.example runtime.env && mkdir -p assets/card_images assets/card_fonts'
 ```
 
 Set required values:
@@ -92,14 +92,28 @@ Behavior notes:
 - After deploy, workflow verifies `noodswap-bot` is running and that its configured image exactly equals `IMAGE_REPOSITORY:<that-sha>`.
 
 Full Actions deploy instructions: `docs/deploy-github-actions.md`.
-Legacy Jenkins instructions: `docs/deploy-jenkins.md`.
 
 ### Persistence notes
 
-- SQLite DB: `deploy/data/noodswap.db`
-- Cached card images: `deploy/data/card_images`
+- SQLite DB: `deploy/assets/noodswap.db`
+- Cached card images: `deploy/assets/card_images`
 - Deploys run from GitHub-hosted runners to Ubuntu via SSH
-- Deploy/update does not transfer DB contents between machines/paths; it reuses whatever already exists at `deploy/data/noodswap.db` on the target host.
+- Deploy/update does not transfer DB contents between machines/paths; it reuses whatever already exists at `deploy/assets/noodswap.db` on the target host.
+
+### Upgrade note: legacy `deploy/data` installs
+
+If your host still has runtime state in `deploy/data`, run this once before deploy:
+
+```bash
+cd deploy
+mkdir -p assets
+if [ -d data ] && [ ! -e assets/.migrated-from-data ]; then
+   cp -an data/. assets/
+   touch assets/.migrated-from-data
+fi
+```
+
+`deploy/update.sh` also includes a legacy fallback migration path for older layouts.
 
 ### Discord developer portal requirements
 
@@ -211,4 +225,4 @@ Machine-readable output is available with `--json`.
 - Migrate to slash commands/app commands while keeping prefix aliases if desired.
 - Add anti-abuse checks (alt farming, suspicious transfer patterns).
 - Add paginated collection views and richer card metadata/assets.
-- Automate runtime state operations for production deploys: scheduled SQLite backups to remote storage, restore-on-empty bootstrap for `deploy/data/noodswap.db`, and first-run card-image cache bootstrap from a published artifact.
+- Automate runtime state operations for production deploys: scheduled SQLite backups to remote storage, restore-on-empty bootstrap for `deploy/assets/noodswap.db`, and first-run card-image cache bootstrap from a published artifact.

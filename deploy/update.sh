@@ -51,12 +51,12 @@ if [ -n "$IMAGE_TAG_OVERRIDE" ]; then
   export IMAGE_TAG="$IMAGE_TAG_OVERRIDE"
 fi
 
-mkdir -p "$SCRIPT_DIR/data/card_images"
-mkdir -p "$SCRIPT_DIR/data/card_fonts"
-DB_PATH="$SCRIPT_DIR/data/noodswap.db"
-CARD_IMAGE_DATA_DIR="$SCRIPT_DIR/data/card_images"
+mkdir -p "$SCRIPT_DIR/assets/card_images"
+mkdir -p "$SCRIPT_DIR/assets/card_fonts"
+DB_PATH="$SCRIPT_DIR/assets/noodswap.db"
+CARD_IMAGE_DATA_DIR="$SCRIPT_DIR/assets/card_images"
 REPO_CARD_IMAGE_DIR="$SCRIPT_DIR/../assets/card_images"
-CARD_FONT_DATA_DIR="$SCRIPT_DIR/data/card_fonts"
+CARD_FONT_DATA_DIR="$SCRIPT_DIR/assets/card_fonts"
 
 target_manifest="$CARD_IMAGE_DATA_DIR/manifest.json"
 source_manifest="$REPO_CARD_IMAGE_DIR/manifest.json"
@@ -71,6 +71,7 @@ fi
 
 if [ ! -f "$DB_PATH" ]; then
   LEGACY_DB_PATHS=(
+    "$SCRIPT_DIR/data/noodswap.db"
     "$SCRIPT_DIR/noodswap.db"
     "$SCRIPT_DIR/../noodswap.db"
   )
@@ -88,6 +89,14 @@ if [ ! -f "$DB_PATH" ]; then
   echo "No existing DB found; created new empty DB at $DB_PATH"
 fi
 
+if [ -d "$SCRIPT_DIR/data" ] && [ ! -e "$SCRIPT_DIR/assets/.migrated-from-data" ]; then
+  if [ -d "$SCRIPT_DIR/data/card_fonts" ] && [ -z "$(find "$CARD_FONT_DATA_DIR" -mindepth 1 -maxdepth 1 2>/dev/null)" ]; then
+    cp -a "$SCRIPT_DIR/data/card_fonts/." "$CARD_FONT_DATA_DIR/"
+    echo "Migrated legacy card fonts from $SCRIPT_DIR/data/card_fonts to $CARD_FONT_DATA_DIR"
+  fi
+  touch "$SCRIPT_DIR/assets/.migrated-from-data"
+fi
+
 if [ ! -s "$DB_PATH" ]; then
   echo "Warning: $DB_PATH is empty. If this is not a fresh install, restore your previous noodswap.db backup." >&2
 fi
@@ -95,13 +104,13 @@ fi
 # Run container using the same UID/GID as the deploy user so bind-mounted data stays writable.
 export BOT_UID="${BOT_UID:-$(id -u)}"
 export BOT_GID="${BOT_GID:-$(id -g)}"
-if ! chown -R "$BOT_UID:$BOT_GID" "$SCRIPT_DIR/data" 2>/dev/null; then
-  echo "Warning: could not chown $SCRIPT_DIR/data to $BOT_UID:$BOT_GID (insufficient privileges)." >&2
+if ! chown -R "$BOT_UID:$BOT_GID" "$SCRIPT_DIR/assets" 2>/dev/null; then
+  echo "Warning: could not chown $SCRIPT_DIR/assets to $BOT_UID:$BOT_GID (insufficient privileges)." >&2
   echo "If the bot still fails with readonly SQLite errors, run:" >&2
-  echo "  sudo chown -R $BOT_UID:$BOT_GID $SCRIPT_DIR/data" >&2
+  echo "  sudo chown -R $BOT_UID:$BOT_GID $SCRIPT_DIR/assets" >&2
 fi
 chmod 664 "$DB_PATH" || true
-chmod 775 "$SCRIPT_DIR/data/card_images" || true
+chmod 775 "$SCRIPT_DIR/assets/card_images" || true
 chmod 775 "$CARD_FONT_DATA_DIR" || true
 
 docker compose -f "$SCRIPT_DIR/docker-compose.prod.yml" pull
