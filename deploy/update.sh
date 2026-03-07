@@ -55,6 +55,17 @@ mkdir -p "$SCRIPT_DIR/data/card_images"
 touch "$SCRIPT_DIR/data/noodswap.db"
 
 docker compose -f "$SCRIPT_DIR/docker-compose.prod.yml" pull
+
+# Bind-mounted paths must be writable by the container's runtime UID/GID.
+image_ref="${IMAGE_REPOSITORY}:${IMAGE_TAG:-latest}"
+container_uid="$(docker run --rm --entrypoint id "$image_ref" -u)"
+container_gid="$(docker run --rm --entrypoint id "$image_ref" -g)"
+
+chown "$container_uid:$container_gid" "$SCRIPT_DIR/data/noodswap.db"
+chown -R "$container_uid:$container_gid" "$SCRIPT_DIR/data/card_images"
+chmod 664 "$SCRIPT_DIR/data/noodswap.db"
+chmod 775 "$SCRIPT_DIR/data/card_images"
+
 docker compose -f "$SCRIPT_DIR/docker-compose.prod.yml" up -d --remove-orphans
 
 # Keep recent images around; remove older dangling layers.
