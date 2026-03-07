@@ -102,7 +102,11 @@ jobs:
           set -euo pipefail
 
           run_as_deploy_user() {
-            sudo -n -u "${DEPLOY_AS_USER}" "$@"
+            if [ "$(id -un)" = "${DEPLOY_AS_USER}" ]; then
+              "$@"
+            else
+              sudo -n -u "${DEPLOY_AS_USER}" "$@"
+            fi
           }
 
           GHCR_TOKEN="$(printf '%s' "${GHCR_TOKEN_B64}" | base64 -d)"
