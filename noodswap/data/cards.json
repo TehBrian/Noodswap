@@ -1043,6 +1043,11 @@
     "rarity": "uncommon",
     "series": "bread"
   },
+  "PWC": {
+    "name": "Pawbcorn",
+    "rarity": "legendary",
+    "series": "snack"
+  },
   "PZA": {
     "image": "runtime/card_images/PZA.jpg",
     "name": "Pizza",

@@ -27,6 +27,10 @@
     "emoji": "🧂",
     "label": "Ingredient"
   },
+  "snack": {
+    "emoji": "🍿",
+    "label": "Snack"
+  },
   "wine": {
     "emoji": "🍷",
     "label": "Wine"
