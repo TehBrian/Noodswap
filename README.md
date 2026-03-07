@@ -53,7 +53,7 @@ sudo -u noodswap-user bash -lc 'cd /home/noodswap-user/noodswap/deploy && cp .en
 
 Set required values:
 
-- `deploy/.env`: `IMAGE_REPOSITORY=ghcr.io/<your-github-user-or-org>/noodswap`
+- `deploy/.env`: `IMAGE_REPOSITORY=ghcr.io/tehbrian/noodswap`
 - `deploy/runtime.env`: `DISCORD_TOKEN=<your-token>`
 
 Optional runtime values:
@@ -72,7 +72,7 @@ sudo -u noodswap-user bash -lc 'cd /home/noodswap-user/noodswap && ./deploy/upda
 - Credential ID `ghcr-readonly` (`Username with password`, PAT needs `read:packages`)
 - Job environment variables:
    - `DEPLOY_PATH=/home/noodswap-user/noodswap`
-  - `IMAGE_REPOSITORY=ghcr.io/<your-github-user-or-org>/noodswap`
+   - `IMAGE_REPOSITORY=ghcr.io/tehbrian/noodswap`
 - Ensure the Jenkins job executes deploy commands as `noodswap-user` (for example via `sudo -u noodswap-user ...`).
 - GitHub webhook for push events
 

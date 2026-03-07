@@ -3,7 +3,7 @@ pipeline {
 
   parameters {
     string(name: 'DEPLOY_PATH', defaultValue: '/home/noodswap-user/noodswap', description: 'Absolute path to the deployment checkout on Ubuntu')
-    string(name: 'IMAGE_REPOSITORY', defaultValue: 'ghcr.io/replace-me/noodswap', description: 'GHCR image repository without tag')
+    string(name: 'IMAGE_REPOSITORY', defaultValue: 'ghcr.io/tehbrian/noodswap', description: 'GHCR image repository without tag')
   }
 
   options {
