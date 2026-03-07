@@ -22,17 +22,29 @@ DB_PATH = Path(
 	)
 )
 DB_LOCK_TIMEOUT_SECONDS = 5.0
-CARD_IMAGE_CACHE_DIR = Path(
+ASSETS_DIR = Path(
 	os.getenv(
-		"NOODSWAP_CARD_IMAGES_DIR",
-		str(Path(__file__).resolve().parent.parent / "assets" / "card_images"),
+		"NOODSWAP_ASSETS_DIR",
+		str(Path(__file__).resolve().parent.parent / "assets"),
 	)
 )
-CARD_IMAGE_CACHE_MANIFEST = CARD_IMAGE_CACHE_DIR / "manifest.json"
+CARD_IMAGE_DIR = Path(
+	os.getenv(
+		"NOODSWAP_CARD_IMAGES_DIR",
+		str(ASSETS_DIR / "card_images"),
+	)
+)
+CARD_IMAGE_MANIFEST = CARD_IMAGE_DIR / "manifest.json"
 CARD_FONTS_DIR = Path(
 	os.getenv(
 		"NOODSWAP_CARD_FONTS_DIR",
-		str(Path(__file__).resolve().parent.parent / "assets" / "card_fonts"),
+		str(ASSETS_DIR / "card_fonts"),
+	)
+)
+FRAME_OVERLAYS_DIR = Path(
+	os.getenv(
+		"NOODSWAP_FRAME_OVERLAYS_DIR",
+		str(ASSETS_DIR / "frame_overlays"),
 	)
 )
 

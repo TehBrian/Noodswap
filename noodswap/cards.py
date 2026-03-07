@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import NotRequired, TypedDict
 
 from .rarities import RARITY_WEIGHTS
-from .settings import CARD_IMAGE_CACHE_MANIFEST, GENERATION_MAX, GENERATION_MIN
+from .settings import CARD_IMAGE_MANIFEST, GENERATION_MAX, GENERATION_MIN
 
 
 class CardData(TypedDict):
@@ -131,7 +131,7 @@ def default_card_image(card_id: str) -> str:
 
 def _read_local_image_manifest() -> dict[str, dict[str, str | int]]:
     try:
-        parsed = json.loads(CARD_IMAGE_CACHE_MANIFEST.read_text(encoding="utf-8"))
+        parsed = json.loads(CARD_IMAGE_MANIFEST.read_text(encoding="utf-8"))
     except Exception:
         return {}
 
@@ -158,7 +158,7 @@ def _build_local_card_image_map() -> dict[str, str]:
                 mapped[card_id] = str(relative_base / file_name)
                 continue
 
-        candidates = sorted(CARD_IMAGE_CACHE_MANIFEST.parent.glob(f"{card_id}.*"))
+        candidates = sorted(CARD_IMAGE_MANIFEST.parent.glob(f"{card_id}.*"))
         if candidates:
             mapped[card_id] = str(relative_base / candidates[0].name)
 

@@ -28,7 +28,7 @@ from .morphs import (
     MORPH_UPSIDE_DOWN,
     normalize_morph_key,
 )
-from .settings import CARD_BODY_ASPECT_RATIO, CARD_IMAGE_CACHE_MANIFEST
+from .settings import CARD_BODY_ASPECT_RATIO, CARD_IMAGE_MANIFEST
 
 
 CARD_ASPECT_WIDTH = 5
@@ -54,7 +54,7 @@ RARITY_BORDER_COLORS: dict[str, tuple[int, int, int]] = {
 
 def _read_image_manifest() -> dict[str, dict[str, str | int]]:
     try:
-        parsed = json.loads(CARD_IMAGE_CACHE_MANIFEST.read_text(encoding="utf-8"))
+        parsed = json.loads(CARD_IMAGE_MANIFEST.read_text(encoding="utf-8"))
     except Exception:
         return {}
 
@@ -76,11 +76,11 @@ def local_card_image_path(card_id: str) -> Path | None:
     if isinstance(entry, dict):
         file_name = entry.get("file")
         if isinstance(file_name, str) and file_name:
-            image_path = CARD_IMAGE_CACHE_MANIFEST.parent / Path(file_name)
+            image_path = CARD_IMAGE_MANIFEST.parent / Path(file_name)
             if image_path.exists() and image_path.is_file():
                 return image_path
 
-    for candidate in CARD_IMAGE_CACHE_MANIFEST.parent.glob(f"{normalized_card_id}.*"):
+    for candidate in CARD_IMAGE_MANIFEST.parent.glob(f"{normalized_card_id}.*"):
         if candidate.exists() and candidate.is_file():
             return candidate
 

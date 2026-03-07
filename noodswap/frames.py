@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Final
 
-from .settings import CARD_IMAGE_CACHE_MANIFEST
+from .settings import FRAME_OVERLAYS_DIR as SETTINGS_FRAME_OVERLAYS_DIR
 
 
 FRAME_BUTTERY: Final[str] = "buttery"
@@ -21,7 +21,7 @@ FRAME_LABELS: Final[dict[str, str]] = {
     FRAME_DRIZZLED: "Drizzled",
 }
 
-FRAME_OVERLAYS_DIR: Final[Path] = CARD_IMAGE_CACHE_MANIFEST.parent.parent / "frame_overlays"
+FRAME_OVERLAYS_DIR: Final[Path] = SETTINGS_FRAME_OVERLAYS_DIR
 
 
 def normalize_frame_key(frame_key: str | None) -> str | None:
