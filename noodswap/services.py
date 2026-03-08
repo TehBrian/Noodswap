@@ -14,26 +14,26 @@ from .storage import (
     apply_font_to_instance,
     apply_frame_to_instance,
     apply_morph_to_instance,
-    burn_instance,
+    burn_instances,
+    consume_drop_cooldown_or_ticket,
     consume_pull_cooldown_if_ready,
     divorce_card,
     execute_trade,
     create_battle_proposal,
+    end_open_battles_for_shutdown as storage_end_open_battles_for_shutdown,
     execute_battle_turn_action,
     get_battle_session,
     get_battle_state,
     get_instance_by_id,
     get_instance_font,
     get_instance_frame,
-    get_locked_tags_for_instance,
-    get_player_cooldown_timestamps,
+    get_locked_protection_for_instance,
     get_instance_morph,
     get_instance_by_code,
     get_last_pulled_instance,
     get_player_info,
     resolve_battle_proposal,
     marry_card_instance,
-    set_last_drop_at,
 )
 
 
@@ -41,6 +41,7 @@ from .storage import (
 class DropPreparation:
     choices: list[tuple[str, int]]
     cooldown_remaining_seconds: float
+    used_drop_ticket: bool
 
     @property
     def is_cooldown(self) -> bool:
@@ -48,18 +49,21 @@ class DropPreparation:
 
 
 def prepare_drop(guild_id: int, user_id: int, now: float) -> DropPreparation:
-    last_drop_at, _ = get_player_cooldown_timestamps(guild_id, user_id)
-    elapsed = now - last_drop_at
-
-    if elapsed < DROP_COOLDOWN_SECONDS:
+    used_drop_ticket, cooldown_remaining_seconds = consume_drop_cooldown_or_ticket(
+        guild_id,
+        user_id,
+        now=now,
+        cooldown_seconds=DROP_COOLDOWN_SECONDS,
+    )
+    if cooldown_remaining_seconds > 0:
         return DropPreparation(
             choices=[],
-            cooldown_remaining_seconds=DROP_COOLDOWN_SECONDS - elapsed,
+            cooldown_remaining_seconds=cooldown_remaining_seconds,
+            used_drop_ticket=False,
         )
 
     choices = make_drop_choices(DROP_CHOICES_COUNT)
-    set_last_drop_at(guild_id, user_id, now)
-    return DropPreparation(choices=choices, cooldown_remaining_seconds=0.0)
+    return DropPreparation(choices=choices, cooldown_remaining_seconds=0.0, used_drop_ticket=used_drop_ticket)
 
 
 @dataclass(frozen=True)
@@ -251,11 +255,15 @@ def prepare_burn(guild_id: int, user_id: int, card_code: Optional[str]) -> BurnP
             )
 
     instance_id, burn_card_id, burn_generation, burn_dupe_code = target_instance
-    locked_tags = get_locked_tags_for_instance(guild_id, user_id, instance_id)
-    if locked_tags:
-        locked_tags_text = ", ".join(f"`{tag}`" for tag in locked_tags)
+    locked_tags, locked_folder_name = get_locked_protection_for_instance(guild_id, user_id, instance_id)
+    if locked_tags or locked_folder_name is not None:
+        details: list[str] = []
+        if locked_tags:
+            details.append("locked tag(s): " + ", ".join(f"`{tag}`" for tag in locked_tags))
+        if locked_folder_name is not None:
+            details.append(f"locked folder: `{locked_folder_name}`")
         return BurnPreparation(
-            error_message=f"That card is protected by locked tag(s): {locked_tags_text}.",
+            error_message=f"That card is protected by {'; '.join(details)}.",
             instance_id=None,
             card_id=None,
             generation=None,
@@ -308,6 +316,198 @@ class BurnConfirmationExecution:
         return self.status == "burned"
 
 
+@dataclass(frozen=True)
+class BurnPreviewItem:
+    instance_id: int
+    card_id: str
+    generation: int
+    dupe_code: str
+    value: int
+    base_value: int
+    delta_range: int
+    multiplier: float
+
+
+@dataclass(frozen=True)
+class BurnBatchPreparation:
+    error_message: Optional[str]
+    items: tuple[BurnPreviewItem, ...]
+    total_value: Optional[int]
+    total_delta_range: Optional[int]
+
+    @property
+    def is_error(self) -> bool:
+        return self.error_message is not None
+
+
+@dataclass(frozen=True)
+class BurnBatchConfirmationEntry:
+    card_id: str
+    generation: int
+    dupe_code: str
+    payout: int
+    delta: int
+
+
+@dataclass(frozen=True)
+class BurnBatchConfirmationExecution:
+    status: str
+    message: str
+    burned_entries: tuple[BurnBatchConfirmationEntry, ...]
+    locked_instances: tuple[tuple[int, tuple[str, ...]], ...]
+
+    @property
+    def is_blocked(self) -> bool:
+        return self.status == "blocked"
+
+    @property
+    def is_failed(self) -> bool:
+        return self.status == "failed"
+
+    @property
+    def is_burned(self) -> bool:
+        return self.status == "burned"
+
+
+def prepare_burn_batch(
+    guild_id: int,
+    user_id: int,
+    targets: list[tuple[int, str, int, str]],
+) -> BurnBatchPreparation:
+    if not targets:
+        return BurnBatchPreparation(
+            error_message="No burn targets found.",
+            items=(),
+            total_value=None,
+            total_delta_range=None,
+        )
+
+    seen_instance_ids: set[int] = set()
+    unique_targets: list[tuple[int, str, int, str]] = []
+    for instance_id, card_id, generation, dupe_code in targets:
+        if instance_id in seen_instance_ids:
+            continue
+        seen_instance_ids.add(instance_id)
+        unique_targets.append((instance_id, card_id, generation, dupe_code))
+
+    locked_cards: list[str] = []
+    preview_items: list[BurnPreviewItem] = []
+    total_value = 0
+    total_delta_range = 0
+
+    for instance_id, card_id, generation, dupe_code in unique_targets:
+        locked_tags, locked_folder_name = get_locked_protection_for_instance(guild_id, user_id, instance_id)
+        if locked_tags or locked_folder_name is not None:
+            details: list[str] = []
+            if locked_tags:
+                details.append("locked tag(s): " + ", ".join(f"`{tag}`" for tag in locked_tags))
+            if locked_folder_name is not None:
+                details.append(f"locked folder: `{locked_folder_name}`")
+            locked_cards.append(f"`{dupe_code}` ({'; '.join(details)})")
+            continue
+
+        _payout, value, base_value, _delta, multiplier, delta_range = get_burn_payout(card_id, generation)
+        total_value += value
+        total_delta_range += delta_range
+        preview_items.append(
+            BurnPreviewItem(
+                instance_id=instance_id,
+                card_id=card_id,
+                generation=generation,
+                dupe_code=dupe_code,
+                value=value,
+                base_value=base_value,
+                delta_range=delta_range,
+                multiplier=multiplier,
+            )
+        )
+
+    if locked_cards:
+        return BurnBatchPreparation(
+            error_message=(
+                "Burn blocked because at least one target is protected by lock(s):\n"
+                + "\n".join(f"- {card_line}" for card_line in locked_cards)
+            ),
+            items=(),
+            total_value=None,
+            total_delta_range=None,
+        )
+
+    return BurnBatchPreparation(
+        error_message=None,
+        items=tuple(preview_items),
+        total_value=total_value,
+        total_delta_range=total_delta_range,
+    )
+
+
+def execute_burn_batch_confirmation(
+    guild_id: int,
+    user_id: int,
+    *,
+    burn_targets: list[tuple[int, int]],
+) -> BurnBatchConfirmationExecution:
+    if not burn_targets:
+        return BurnBatchConfirmationExecution(
+            status="failed",
+            message="No burn targets were provided.",
+            burned_entries=(),
+            locked_instances=(),
+        )
+
+    instance_ids = [instance_id for instance_id, _delta_range in burn_targets]
+    delta_by_instance = {instance_id: delta_range for instance_id, delta_range in burn_targets}
+
+    burned_rows, locked_by_instance = burn_instances(guild_id, user_id, instance_ids)
+    if locked_by_instance:
+        locked_instances = tuple(
+            (instance_id, tuple(tags))
+            for instance_id, tags in sorted(locked_by_instance.items(), key=lambda entry: entry[0])
+        )
+        return BurnBatchConfirmationExecution(
+            status="blocked",
+            message="Burn blocked: at least one selected card is protected by lock(s).",
+            burned_entries=(),
+            locked_instances=locked_instances,
+        )
+
+    if burned_rows is None:
+        return BurnBatchConfirmationExecution(
+            status="failed",
+            message="One or more selected cards are no longer available.",
+            burned_entries=(),
+            locked_instances=(),
+        )
+
+    burned_entries: list[BurnBatchConfirmationEntry] = []
+    total_payout = 0
+    for instance_id, card_id, generation, dupe_code in burned_rows:
+        resolved_delta_range = delta_by_instance.get(instance_id)
+        payout, _value, _base_value, delta, _multiplier, _resolved_delta_range = get_burn_payout(
+            card_id,
+            generation,
+            resolved_delta_range,
+        )
+        total_payout += payout
+        burned_entries.append(
+            BurnBatchConfirmationEntry(
+                card_id=card_id,
+                generation=generation,
+                dupe_code=dupe_code,
+                payout=payout,
+                delta=delta,
+            )
+        )
+
+    add_dough(guild_id, user_id, total_payout)
+    return BurnBatchConfirmationExecution(
+        status="burned",
+        message="",
+        burned_entries=tuple(burned_entries),
+        locked_instances=(),
+    )
+
+
 def execute_burn_confirmation(
     guild_id: int,
     user_id: int,
@@ -315,11 +515,17 @@ def execute_burn_confirmation(
     instance_id: int,
     delta_range: int,
 ) -> BurnConfirmationExecution:
-    locked_tags = tuple(get_locked_tags_for_instance(guild_id, user_id, instance_id))
-    if locked_tags:
+    batch_result = execute_burn_batch_confirmation(
+        guild_id,
+        user_id,
+        burn_targets=[(instance_id, delta_range)],
+    )
+
+    if batch_result.is_blocked:
+        locked_tags = tuple(batch_result.locked_instances[0][1]) if batch_result.locked_instances else tuple()
         return BurnConfirmationExecution(
             status="blocked",
-            message="Card is protected by locked tags.",
+            message="Card is protected by lock(s).",
             card_id=None,
             generation=None,
             dupe_code=None,
@@ -328,8 +534,7 @@ def execute_burn_confirmation(
             locked_tags=locked_tags,
         )
 
-    burned = burn_instance(guild_id, user_id, instance_id)
-    if burned is None:
+    if batch_result.is_failed or not batch_result.burned_entries:
         return BurnConfirmationExecution(
             status="failed",
             message="That card instance is no longer available.",
@@ -341,22 +546,16 @@ def execute_burn_confirmation(
             locked_tags=(),
         )
 
-    burned_card_id, burned_generation, burned_dupe_code = burned
-    payout, _value, _base_value, delta, _multiplier, _resolved_delta_range = get_burn_payout(
-        burned_card_id,
-        burned_generation,
-        delta_range,
-    )
-    add_dough(guild_id, user_id, payout)
+    burned_entry = batch_result.burned_entries[0]
 
     return BurnConfirmationExecution(
         status="burned",
         message="",
-        card_id=burned_card_id,
-        generation=burned_generation,
-        dupe_code=burned_dupe_code,
-        payout=payout,
-        delta=delta,
+        card_id=burned_entry.card_id,
+        generation=burned_entry.generation,
+        dupe_code=burned_entry.dupe_code,
+        payout=burned_entry.payout,
+        delta=burned_entry.delta,
         locked_tags=(),
     )
 
@@ -1508,3 +1707,7 @@ def resolve_battle_turn_action(
         next_actor_id=next_actor_id,
         snapshot=snapshot,
     )
+
+
+def end_open_battles_for_shutdown() -> int:
+    return storage_end_open_battles_for_shutdown()

@@ -20,6 +20,7 @@ Columns:
 - `user_id INTEGER NOT NULL`
 - `dough INTEGER NOT NULL DEFAULT 0`
 - `starter INTEGER NOT NULL DEFAULT 0`
+- `drop_tickets INTEGER NOT NULL DEFAULT 0`
 - `last_drop_at REAL NOT NULL DEFAULT 0` (tracks last `drop` command usage timestamp)
 - `last_pull_at REAL NOT NULL DEFAULT 0` (tracks last successful drop-card claim timestamp)
 - `last_vote_reward_at REAL NOT NULL DEFAULT 0` (tracks last successful starter claim from top.gg vote)
@@ -31,7 +32,7 @@ Columns:
 
 Purpose:
 - Player economy and cooldown state in the global Noodswap scope
-- Includes both standard (`dough`) and higher-tier (`starter`) currencies
+- Includes standard (`dough`) and higher-tier currencies (`starter`, `drop_tickets`)
 - Marriage linkage to a specific owned card instance
 
 ### card_instances
@@ -110,6 +111,37 @@ Columns:
 Purpose:
 - Links owned card instances to player tag collections
 - Supports many-to-many tagging (a card can have multiple tags)
+
+### player_folders
+
+Primary key:
+- `(guild_id, user_id, folder_name)`
+
+Columns:
+- `guild_id INTEGER NOT NULL`
+- `user_id INTEGER NOT NULL`
+- `folder_name TEXT NOT NULL`
+- `emoji TEXT NOT NULL` (default `📁`)
+- `is_locked INTEGER NOT NULL DEFAULT 0` (`0` unlocked, `1` locked)
+
+Purpose:
+- Stores each player's personal card folders in global scope
+- `is_locked = 1` marks a protected folder whose cards cannot be burned
+
+### card_instance_folders
+
+Primary key:
+- `(guild_id, user_id, instance_id)`
+
+Columns:
+- `guild_id INTEGER NOT NULL`
+- `user_id INTEGER NOT NULL`
+- `instance_id INTEGER NOT NULL`
+- `folder_name TEXT NOT NULL`
+
+Purpose:
+- Links each owned card instance to at most one player folder
+- Supports one-folder-per-instance assignment with move-on-reassign semantics
 
 ### player_teams
 
@@ -246,6 +278,11 @@ Current migration set:
 	- Adds `players.last_flip_at` for flip cooldown tracking.
 - `v16`:
 	- Adds `battle_combatants` for persisted turn-based combat state.
+- `v17`:
+	- Adds `players.drop_tickets` for drop-cooldown bypass purchases/consumption.
+- `v18`:
+	- Adds `player_folders` for per-player folder collections, emojis, and lock state.
+	- Adds `card_instance_folders` for one-folder-per-instance assignment.
 
 Notes:
 - Startup migration is in-code (`noodswap/migrations.py`) and invoked by `storage.init_db()` using incremental version checks.
@@ -270,7 +307,7 @@ Notes:
 
 - `marry <card_code>`: targets the exact referenced instance
 - `burn <card_code>`: targets the exact referenced instance
-	- Burn is blocked if the referenced instance belongs to any locked tag.
+	- Burn is blocked if the referenced instance belongs to any locked tag or locked folder.
 - `trade <card_code>`: transfers the exact referenced instance
 - card code format is standalone base36 (`0-9a-z`) with optional leading `#` and without card-id prefix
 - arg-less `marry` / `burn`: default to the last pulled instance (`last_dropped_instance_id` column)

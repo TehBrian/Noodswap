@@ -10,7 +10,8 @@ from discord.ext import commands
 
 from .commands import register_commands
 from .fonts import AVAILABLE_FONTS, font_asset_files
-from .presentation import italy_embed
+from .presentation import command_syntax_for_error, italy_embed
+from .services import end_open_battles_for_shutdown
 from .settings import CARD_FONTS_DIR, COMMAND_PREFIX, SHORT_COMMAND_PREFIX
 from .storage import init_db
 
@@ -27,6 +28,33 @@ def _normalize_secret(value: str) -> str:
 
 async def _reply(ctx: commands.Context, **kwargs):
     return await ctx.reply(mention_author=False, **kwargs)
+
+
+def _resolve_command_syntax(ctx: commands.Context) -> str | None:
+    if ctx.command is None:
+        return None
+
+    keys: list[str] = []
+    qualified_name = getattr(ctx.command, "qualified_name", "")
+    if qualified_name:
+        keys.append(qualified_name)
+
+    name = getattr(ctx.command, "name", "")
+    if name and name not in keys:
+        keys.append(name)
+
+    for key in keys:
+        syntax = command_syntax_for_error(key)
+        if syntax:
+            return syntax
+    return None
+
+
+def _format_input_error_description(ctx: commands.Context, reason: str) -> str:
+    syntax = _resolve_command_syntax(ctx)
+    if syntax is None:
+        return reason
+    return f"{reason}\nUsage: `{syntax}`."
 
 
 def resolve_discord_token() -> str:
@@ -80,11 +108,21 @@ def _resolve_command_prefix(bot: commands.Bot, message: discord.Message) -> list
 
 
 def create_bot() -> commands.Bot:
+    class NoodswapBot(commands.Bot):
+        async def close(self) -> None:
+            try:
+                ended_battles = end_open_battles_for_shutdown()
+                if ended_battles > 0:
+                    logger.info("Ended %s open battle(s) during shutdown.", ended_battles)
+            except Exception:  # pragma: no cover - defensive shutdown path
+                logger.exception("Failed to end open battles during shutdown.")
+            await super().close()
+
     intents = discord.Intents.default()
     intents.message_content = True
     intents.members = True
 
-    bot = commands.Bot(
+    bot = NoodswapBot(
         command_prefix=_resolve_command_prefix,
         intents=intents,
         help_command=None,
@@ -110,17 +148,10 @@ def create_bot() -> commands.Bot:
             return
 
         if isinstance(error, commands.MissingRequiredArgument):
-            usage_overrides = {
-                "lookup": "Usage: `ns lookup <card_id|query>`."
-            }
-            usage_hint = ""
-            if ctx.command is not None:
-                usage_hint = usage_overrides.get(ctx.command.name, "")
-
-            description = f"Missing required argument: **{error.param.name}**."
-            if usage_hint:
-                description = f"{description}\n{usage_hint}"
-
+            description = _format_input_error_description(
+                ctx,
+                f"Missing required argument: **{error.param.name}**.",
+            )
             await _reply(
                 ctx,
                 embed=italy_embed(
@@ -130,8 +161,18 @@ def create_bot() -> commands.Bot:
             )
             return
 
+        if isinstance(error, commands.TooManyArguments):
+            description = _format_input_error_description(
+                ctx,
+                "Too many arguments were provided.",
+            )
+            await _reply(ctx, embed=italy_embed("Command Error", description))
+            return
+
         if isinstance(error, commands.BadArgument):
-            await _reply(ctx, embed=italy_embed("Command Error", "Invalid argument provided."))
+            detail = str(error).strip() or "Invalid argument provided."
+            description = _format_input_error_description(ctx, detail)
+            await _reply(ctx, embed=italy_embed("Command Error", description))
             return
 
         if isinstance(error, commands.CheckFailure):

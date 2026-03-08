@@ -1,6 +1,9 @@
 import unittest
 from unittest.mock import patch
 
+from noodswap.presentation import battle_arena_description
+from noodswap.services import BattleSnapshot
+from noodswap.view_battle import _battle_embed
 from noodswap.views import (
     BurnConfirmView,
     CardCatalogView,
@@ -71,6 +74,123 @@ class _FakeMessage:
 
 
 class ViewTests(unittest.IsolatedAsyncioTestCase):
+    async def test_battle_arena_description_adds_winner_celebration_emojis(self) -> None:
+        description = battle_arena_description(
+            challenger_mention="<@10>",
+            challenged_mention="<@20>",
+            stake=25,
+            turn_number=4,
+            acting_user_id=None,
+            winner_user_id=20,
+            challenger_team_name="Pasta",
+            challenged_team_name="Sauce",
+            challenger_rows=(
+                {
+                    "card_id": "SPG",
+                    "dupe_code": "0",
+                    "current_hp": 80,
+                    "max_hp": 100,
+                    "is_defending": False,
+                    "is_knocked_out": False,
+                    "is_active": True,
+                },
+            ),
+            challenged_rows=(
+                {
+                    "card_id": "PEN",
+                    "dupe_code": "1",
+                    "current_hp": 0,
+                    "max_hp": 100,
+                    "is_defending": False,
+                    "is_knocked_out": True,
+                    "is_active": True,
+                },
+            ),
+            last_action="<@20> won.",
+        )
+
+        self.assertIn("Winner: 🏆 <@20> 🥇", description)
+
+    async def test_battle_embed_title_celebrates_finished_winner(self) -> None:
+        snapshot = BattleSnapshot(
+            battle_id=1,
+            status="finished",
+            challenger_id=10,
+            challenged_id=20,
+            acting_user_id=None,
+            winner_user_id=20,
+            turn_number=6,
+            stake=50,
+            last_action="<@20> dealt **45** and knocked out the last opposing card.",
+            challenger_team_name="Pasta",
+            challenged_team_name="Sauce",
+            challenger_combatants=(
+                {
+                    "card_id": "SPG",
+                    "dupe_code": "0",
+                    "current_hp": 0,
+                    "max_hp": 100,
+                    "is_defending": False,
+                    "is_knocked_out": True,
+                    "is_active": True,
+                },
+            ),
+            challenged_combatants=(
+                {
+                    "card_id": "PEN",
+                    "dupe_code": "1",
+                    "current_hp": 45,
+                    "max_hp": 100,
+                    "is_defending": False,
+                    "is_knocked_out": False,
+                    "is_active": True,
+                },
+            ),
+        )
+
+        embed = _battle_embed(snapshot)
+        self.assertEqual(embed.title, "Battle Arena 🏆")
+
+    async def test_battle_embed_title_stays_plain_for_active_battle(self) -> None:
+        snapshot = BattleSnapshot(
+            battle_id=2,
+            status="active",
+            challenger_id=10,
+            challenged_id=20,
+            acting_user_id=10,
+            winner_user_id=None,
+            turn_number=2,
+            stake=50,
+            last_action="<@10> dealt **12** (1.00x).",
+            challenger_team_name="Pasta",
+            challenged_team_name="Sauce",
+            challenger_combatants=(
+                {
+                    "card_id": "SPG",
+                    "dupe_code": "0",
+                    "current_hp": 88,
+                    "max_hp": 100,
+                    "is_defending": False,
+                    "is_knocked_out": False,
+                    "is_active": True,
+                },
+            ),
+            challenged_combatants=(
+                {
+                    "card_id": "PEN",
+                    "dupe_code": "1",
+                    "current_hp": 72,
+                    "max_hp": 100,
+                    "is_defending": False,
+                    "is_knocked_out": False,
+                    "is_active": True,
+                },
+            ),
+        )
+
+        embed = _battle_embed(snapshot)
+        self.assertEqual(embed.title, "Battle Arena")
+
     async def test_player_leaderboard_view_ranks_by_selected_criteria(self) -> None:
         view = PlayerLeaderboardView(
             user_id=10,
@@ -133,6 +253,36 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         edited_embed = interaction.response.edited_messages[0]["embed"]
         self.assertEqual(edited_embed.title, "Help: Economy")
         self.assertIn("ns drop", edited_embed.description)
+        self.assertNotIn("ns slots", edited_embed.description)
+        self.assertNotIn("ns flip", edited_embed.description)
+        self.assertNotIn("ns team", edited_embed.description)
+        self.assertNotIn("ns battle", edited_embed.description)
+
+        interaction.response.edited_messages.clear()
+        view.category_select._values = ["gambling"]
+        await view.category_select.callback(interaction)
+        self.assertEqual(len(interaction.response.edited_messages), 1)
+        gambling_embed = interaction.response.edited_messages[0]["embed"]
+        self.assertEqual(gambling_embed.title, "Help: Gambling")
+        self.assertIn("ns slots", gambling_embed.description)
+        self.assertIn("ns flip", gambling_embed.description)
+
+        interaction.response.edited_messages.clear()
+        view.category_select._values = ["battle"]
+        await view.category_select.callback(interaction)
+        self.assertEqual(len(interaction.response.edited_messages), 1)
+        battle_embed = interaction.response.edited_messages[0]["embed"]
+        self.assertEqual(battle_embed.title, "Help: Battle")
+        self.assertIn("ns team", battle_embed.description)
+        self.assertIn("ns battle", battle_embed.description)
+
+    async def test_help_view_category_option_order_includes_gambling_and_battle(self) -> None:
+        view = HelpView(user_id=10)
+        option_values = [option.value for option in view.category_select.options]
+        self.assertIn("gambling", option_values)
+        self.assertIn("battle", option_values)
+        self.assertLess(option_values.index("economy"), option_values.index("gambling"))
+        self.assertLess(option_values.index("gambling"), option_values.index("battle"))
 
     async def test_help_view_select_rejects_unauthorized_user(self) -> None:
         view = HelpView(user_id=10)
@@ -661,6 +811,58 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("Wishes: **3**", edited_embed.description)
         self.assertIn("Sort: Wishes", edited_embed.footer.text)
 
+    async def test_card_catalog_sort_direction_toggle_flips_order_and_resets_page(self) -> None:
+        entries = [
+            ("SPG", 1),
+            ("BLA", 2),
+            ("BAR", 3),
+        ]
+        view = CardCatalogView(user_id=10, entries=entries, page_size=1)
+        interaction = _FakeInteraction(user_id=10)
+
+        view.sort_select._values = ["wishes"]
+        await view.sort_select.callback(interaction)
+
+        view.page_index = 2
+        toggle_interaction = _FakeInteraction(user_id=10)
+        await view.sort_direction_button.callback(toggle_interaction)
+
+        self.assertEqual(view.page_index, 0)
+        self.assertFalse(view.sort_descending)
+        edited_embed = toggle_interaction.response.edited_messages[0]["embed"]
+        self.assertIn("Spaghetti", edited_embed.description)
+        self.assertIn("Sort: Wishes (Asc)", edited_embed.footer.text)
+
+    async def test_card_catalog_sort_mode_resets_direction_to_default(self) -> None:
+        entries = [
+            ("SPG", 1),
+            ("BLA", 2),
+            ("BAR", 3),
+        ]
+        view = CardCatalogView(user_id=10, entries=entries, page_size=1)
+        toggle_interaction = _FakeInteraction(user_id=10)
+        await view.sort_direction_button.callback(toggle_interaction)
+        self.assertTrue(view.sort_descending)
+
+        interaction = _FakeInteraction(user_id=10)
+        view.sort_select._values = ["series"]
+        await view.sort_select.callback(interaction)
+
+        self.assertFalse(view.sort_descending)
+        edited_embed = interaction.response.edited_messages[0]["embed"]
+        self.assertIn("Sort: Series (Asc)", edited_embed.footer.text)
+
+    async def test_card_catalog_rejects_unauthorized_sort_direction_toggle(self) -> None:
+        entries = [("SPG", 2), ("PEN", 3)]
+        view = CardCatalogView(user_id=10, entries=entries, page_size=1)
+
+        interaction = _FakeInteraction(user_id=99)
+        await view.sort_direction_button.callback(interaction)
+
+        self.assertFalse(view.sort_descending)
+        self.assertEqual(len(interaction.response.sent_messages), 1)
+        self.assertTrue(interaction.response.sent_messages[0].get("ephemeral"))
+
     async def test_card_catalog_gallery_toggle_enables_single_card_mode(self) -> None:
         entries = [
             ("SPG", 2),
@@ -819,6 +1021,70 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         edited_embed = interaction.response.edited_messages[0]["embed"]
         self.assertIn("Black Truffle Ravioli", edited_embed.description)
         self.assertIn("Sort: Wishes", edited_embed.footer.text)
+
+    async def test_sortable_card_list_sort_direction_toggle_flips_order_and_resets_page(self) -> None:
+        card_ids = ["SPG", "BLA", "BAR"]
+        view = SortableCardListView(
+            user_id=10,
+            title="Lookup Matches",
+            card_ids=card_ids,
+            wish_counts={"SPG": 1, "BLA": 2, "BAR": 3},
+            guard_title="Lookup",
+            page_size=1,
+        )
+
+        interaction = _FakeInteraction(user_id=10)
+        view.sort_select._values = ["wishes"]
+        await view.sort_select.callback(interaction)
+
+        view.page_index = 2
+        toggle_interaction = _FakeInteraction(user_id=10)
+        await view.sort_direction_button.callback(toggle_interaction)
+
+        self.assertEqual(view.page_index, 0)
+        self.assertFalse(view.sort_descending)
+        edited_embed = toggle_interaction.response.edited_messages[0]["embed"]
+        self.assertIn("Spaghetti", edited_embed.description)
+        self.assertIn("Sort: Wishes (Asc)", edited_embed.footer.text)
+
+    async def test_sortable_card_list_sort_mode_resets_direction_to_default(self) -> None:
+        card_ids = ["SPG", "BLA", "BAR"]
+        view = SortableCardListView(
+            user_id=10,
+            title="Lookup Matches",
+            card_ids=card_ids,
+            guard_title="Lookup",
+            page_size=1,
+        )
+
+        toggle_interaction = _FakeInteraction(user_id=10)
+        await view.sort_direction_button.callback(toggle_interaction)
+        self.assertTrue(view.sort_descending)
+
+        interaction = _FakeInteraction(user_id=10)
+        view.sort_select._values = ["series"]
+        await view.sort_select.callback(interaction)
+
+        self.assertFalse(view.sort_descending)
+        edited_embed = interaction.response.edited_messages[0]["embed"]
+        self.assertIn("Sort: Series (Asc)", edited_embed.footer.text)
+
+    async def test_sortable_card_list_rejects_unauthorized_sort_direction_toggle(self) -> None:
+        card_ids = ["SPG", "PEN"]
+        view = SortableCardListView(
+            user_id=10,
+            title="Wishlist",
+            card_ids=card_ids,
+            guard_title="Wishlist",
+            page_size=1,
+        )
+
+        interaction = _FakeInteraction(user_id=99)
+        await view.sort_direction_button.callback(interaction)
+
+        self.assertFalse(view.sort_descending)
+        self.assertEqual(len(interaction.response.sent_messages), 1)
+        self.assertTrue(interaction.response.sent_messages[0].get("ephemeral"))
 
     async def test_sortable_card_list_gallery_toggle_enables_single_card_mode(self) -> None:
         card_ids = ["SPG", "BLA", "BAR"]
@@ -997,6 +1263,88 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         edited_embed = interaction.response.edited_messages[0]["embed"]
         self.assertIn("Sort: Generation", edited_embed.footer.text)
 
+    async def test_sortable_collection_view_sort_direction_toggle_flips_order_and_resets_page(self) -> None:
+        instances = [
+            (1, "SPG", 500, "0"),
+            (2, "BAR", 20, "1"),
+            (3, "BLA", 20, "2"),
+            (4, "SPG", 10, "3"),
+        ]
+        view = SortableCollectionView(
+            user_id=10,
+            title="Caller's Collection",
+            instances=instances,
+            wish_counts={},
+            instance_styles={},
+            guard_title="Collection",
+            page_size=1,
+        )
+
+        interaction = _FakeInteraction(user_id=10)
+        view.sort_select._values = ["generation"]
+        await view.sort_select.callback(interaction)
+
+        view.page_index = 2
+        toggle_interaction = _FakeInteraction(user_id=10)
+        await view.sort_direction_button.callback(toggle_interaction)
+
+        self.assertEqual(view.page_index, 0)
+        self.assertTrue(view.sort_descending)
+        self.assertEqual([row[0] for row in view._sorted_instances], [1, 2, 3, 4])
+        edited_embed = toggle_interaction.response.edited_messages[0]["embed"]
+        self.assertIn("Sort: Generation (Desc)", edited_embed.footer.text)
+
+    async def test_sortable_collection_view_sort_mode_resets_direction_to_default(self) -> None:
+        instances = [
+            (1, "SPG", 500, "0"),
+            (2, "BAR", 20, "1"),
+            (3, "BLA", 20, "2"),
+            (4, "SPG", 10, "3"),
+        ]
+        view = SortableCollectionView(
+            user_id=10,
+            title="Caller's Collection",
+            instances=instances,
+            wish_counts={},
+            instance_styles={},
+            guard_title="Collection",
+            page_size=1,
+        )
+
+        toggle_interaction = _FakeInteraction(user_id=10)
+        await view.sort_direction_button.callback(toggle_interaction)
+        self.assertTrue(view.sort_descending)
+
+        interaction = _FakeInteraction(user_id=10)
+        view.sort_select._values = ["actual_value"]
+        await view.sort_select.callback(interaction)
+
+        self.assertTrue(view.sort_descending)
+        edited_embed = interaction.response.edited_messages[0]["embed"]
+        self.assertIn("Sort: Actual Value (Desc)", edited_embed.footer.text)
+
+    async def test_sortable_collection_view_rejects_unauthorized_sort_direction_toggle(self) -> None:
+        instances = [
+            (1, "SPG", 100, "0"),
+            (2, "BLA", 120, "1"),
+        ]
+        view = SortableCollectionView(
+            user_id=10,
+            title="Caller's Collection",
+            instances=instances,
+            wish_counts={"SPG": 2, "BLA": 3},
+            instance_styles={},
+            guard_title="Collection",
+            page_size=1,
+        )
+
+        interaction = _FakeInteraction(user_id=99)
+        await view.sort_direction_button.callback(interaction)
+
+        self.assertFalse(view.sort_descending)
+        self.assertEqual(len(interaction.response.sent_messages), 1)
+        self.assertTrue(interaction.response.sent_messages[0].get("ephemeral"))
+
     async def test_sortable_collection_view_marks_locked_instances_with_emoji(self) -> None:
         instances = [
             (1, "SPG", 100, "0"),
@@ -1016,6 +1364,27 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         embed = view.build_embed()
         self.assertIn("🔒", embed.description)
         self.assertIn("`  `", embed.description)
+
+    async def test_sortable_collection_view_shows_folder_emoji_before_lock_marker(self) -> None:
+        instances = [
+            (1, "SPG", 100, "0"),
+            (2, "BLA", 120, "1"),
+        ]
+        view = SortableCollectionView(
+            user_id=10,
+            title="Caller's Collection",
+            instances=instances,
+            wish_counts={},
+            instance_styles={},
+            guard_title="Collection",
+            locked_instance_ids={1},
+            folder_emojis_by_instance={1: "🔥", 2: "📦"},
+            page_size=10,
+        )
+
+        embed = view.build_embed()
+        self.assertIn("🔥 🔒", embed.description)
+        self.assertIn("📦 `  `", embed.description)
 
     async def test_sortable_collection_view_gallery_toggle(self) -> None:
         instances = [

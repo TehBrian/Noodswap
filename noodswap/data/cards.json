@@ -257,6 +257,12 @@
     "rarity": "epic",
     "series": "noodle"
   },
+  "CCA": {
+    "image": "runtime/card_images/CCA.jpg",
+    "name": "Cera's Chicken Alfredo",
+    "rarity": "legendary",
+    "series": "entree"
+  },
   "CAP": {
     "image": "runtime/card_images/CAP.jpg",
     "name": "Capellini",
@@ -443,6 +449,12 @@
     "rarity": "common",
     "series": "noodle"
   },
+  "DWF": {
+    "image": "runtime/card_images/DWF.jpg",
+    "name": "Dwight's Waffles",
+    "rarity": "celestial",
+    "series": "dessert"
+  },
   "DVE": {
     "image": "runtime/card_images/DVE.jpg",
     "name": "Deviled Egg",
@@ -460,6 +472,12 @@
     "name": "Everything Bagel",
     "rarity": "common",
     "series": "bread"
+  },
+  "ECP": {
+    "image": "runtime/card_images/ECP.jpg",
+    "name": "Ericka's Cleaned Plate",
+    "rarity": "rare",
+    "series": "entree"
   },
   "ECL": {
     "image": "runtime/card_images/ECL.jpg",
@@ -508,6 +526,12 @@
     "name": "Focaccia al Formaggio",
     "rarity": "rare",
     "series": "bread"
+  },
+  "FHS": {
+    "image": "runtime/card_images/FHS.jpg",
+    "name": "Frank's Hot Sauce",
+    "rarity": "mythic",
+    "series": "ingredient"
   },
   "FDG": {
     "image": "runtime/card_images/FDG.jpg",
@@ -701,6 +725,12 @@
     "rarity": "divine",
     "series": "entree"
   },
+  "KPC": {
+    "image": "runtime/card_images/KPC.jpg",
+    "name": "Kee's Philly Cheesecake",
+    "rarity": "divine",
+    "series": "dessert"
+  },
   "LAM": {
     "image": "runtime/card_images/LAM.jpg",
     "name": "Lambrusco",
@@ -725,6 +755,12 @@
     "rarity": "epic",
     "series": "noodle"
   },
+  "LGR": {
+    "image": "runtime/card_images/LGR.jpg",
+    "name": "Leaven's Grapes",
+    "rarity": "legendary",
+    "series": "ingredient"
+  },
   "LFS": {
     "name": "Luffy's Spaghetti",
     "rarity": "mythic",
@@ -735,6 +771,12 @@
     "name": "Lobster Gnocchi Piccata",
     "rarity": "epic",
     "series": "entree"
+  },
+  "LMC": {
+    "image": "runtime/card_images/LMC.jpg",
+    "name": "Leaven's Macaroons",
+    "rarity": "celestial",
+    "series": "dessert"
   },
   "LIN": {
     "image": "runtime/card_images/LIN.jpg",
@@ -1197,6 +1239,12 @@
     "rarity": "mythic",
     "series": "wine"
   },
+  "RYB": {
+    "image": "runtime/card_images/RYB.jpg",
+    "name": "Reyne's Balls",
+    "rarity": "celestial",
+    "series": "entree"
+  },
   "RYS": {
     "image": "runtime/card_images/RYS.img",
     "name": "Reyne's Shrimp",
@@ -1239,11 +1287,23 @@
     "rarity": "rare",
     "series": "entree"
   },
+  "SDB": {
+    "image": "runtime/card_images/SDB.jpg",
+    "name": "Sisi's Dog Bowl",
+    "rarity": "rare",
+    "series": "snack"
+  },
   "SDM": {
     "image": "runtime/card_images/SDM.jpg",
     "name": "Semolina Bread",
     "rarity": "common",
     "series": "bread"
+  },
+  "SGD": {
+    "image": "runtime/card_images/SGD.jpg",
+    "name": "Sammy's Girl Dinner",
+    "rarity": "mythic",
+    "series": "entree"
   },
   "SFL": {
     "image": "runtime/card_images/SFL.jpg",

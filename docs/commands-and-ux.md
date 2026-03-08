@@ -20,7 +20,8 @@ This document defines behavior and presentation for commands and interaction flo
 - `flip <stake> [heads|tails]` / `f <stake> [heads|tails]`
 - `vote` / `v`
 - `cooldown [player]` / `cd [player]`
-- `burn [card_code]` / `b [card_code]`
+- `burn [targets...]` / `b [targets...]`
+- `gift <player> <dough>` / `g <player> <dough>`
 - `morph [card_code]` / `mo [card_code]`
 - `frame [card_code]` / `fr [card_code]`
 - `font [card_code]` / `fo [card_code]`
@@ -33,6 +34,15 @@ This document defines behavior and presentation for commands and interaction flo
 - `team unassign <team_name> <card_code>` / `team u ...`
 - `team cards <team_name>` / `team c <team_name>`
 - `team active [team_name]`
+- `folder` / `fd`
+- `folder add <folder_name> [emoji]` / `folder a ...`
+- `folder remove <folder_name>` / `folder r ...`
+- `folder list` / `folder l`
+- `folder lock <folder_name>` / `folder unlock <folder_name>`
+- `folder assign <folder_name> <card_code>` / `folder as ...`
+- `folder unassign <folder_name> <card_code>` / `folder u ...`
+- `folder cards <folder_name>` / `folder c ...`
+- `folder emoji <folder_name> <emoji>` / `folder e ...`
 - `battle <player> <stake>` / `bt ...`
 - `wish` / `w`
 - `wish add <card_id>` / `wish a <card_id>` / `w add <card_id>` / `w a <card_id>` / `wa <card_id>`
@@ -61,6 +71,7 @@ All user-facing responses should be embeds with:
 This includes:
 - success responses
 - validation errors
+- command syntax/parser errors (include both the concrete error reason and full command usage)
 - cooldown messages
 - interaction responses
 - interaction timeout updates
@@ -111,7 +122,12 @@ This includes:
 Burn flow:
 
 - `burn` with no argument targets the player's most recently pulled card instance
-- `burn <card_code>` targets that exact dupe code
+- `burn` accepts one or many targets in the same command
+- card targets can be provided as a card code (for an exact dupe) or as a base card id (burns the highest-generation owned copy)
+- tag targets can be provided as `tag <tag_name>` or `tag:<tag_name>`
+- folder targets can be provided as `folder <folder_name>` or `folder:<folder_name>`
+- all selected targets are confirmed together and listed individually in the confirmation embed
+- if any selected target is protected by locked tags or a locked folder, the full burn is blocked and no cards are burned
 - card code format is standalone base36 with optional leading `#` (examples: `0`, `a`, `10`, `#10`)
 - Burn always requires confirm/cancel interaction before destruction
 - Burn payout includes a generation multiplier (lower generation = higher payout)
@@ -144,6 +160,15 @@ Burn result format should remain:
 - insufficient-dough responses should report stake and current balance
 - flip responses use the standard `italy_embed` style
 - successful flips use a delayed reveal: initial embed shows a randomized "coin is ..." suspense line, then edits to reveal the result after 3 seconds
+
+## Gift UX
+
+- `gift <player> <dough>` sends dough from the command invoker to another player
+- player argument supports mention or exact username resolution
+- gift amount must be at least `1`
+- gifting to yourself is blocked
+- gifting to bots is blocked
+- sender must have enough dough to cover the gift amount
 
 ## Morph UX
 
@@ -263,10 +288,19 @@ Shows:
 - total cards
 - dough
 - starter
+- drop tickets
 - total wishes
 - married card instance display
 - if married, show the married card image
 - Optional player argument supports mention (e.g. `@Friend`) or exact username
+
+## Drop Ticket UX
+
+- `buy drop [quantity]` purchases drop tickets using `starter`
+- Cost is `1 starter` per ticket
+- Default quantity is `1`
+- `drop` auto-consumes exactly `1` ticket when drop cooldown is active
+- auto-ticket use bypasses drop cooldown for that attempt only and does not modify cooldown timestamps
 
 ## Leaderboard UX
 
@@ -314,7 +348,7 @@ Shows:
 
 - Render one line per owned card instance (no grouping)
 - Keep duplicate copies visible as separate entries
-- Show a `🔒` marker next to instances protected by at least one locked tag
+- Show folder emoji (if assigned) first, then lock marker next to instances protected by at least one locked tag or locked folder
 - Include each dupe's `Code` (e.g. `0`, `a`, `10`, `#10`)
 - Includes a sort dropdown with modes: `Generation`, `Wishes`, `Rarity`, `Series`, `Base Value`, `Actual Value`, `Alphabetical`
 - Default sort mode is `Alphabetical`
@@ -325,6 +359,14 @@ Shows:
 - `tag cards <tag_name>` shows tagged card instances in a sortable, paginated embed
 - Sort modes are: `Generation`, `Wishes`, `Rarity`, `Series`, `Base Value`, `Actual Value`, `Alphabetical`
 - `Actual Value` uses per-instance computed card value (`card_value`), so generation differences affect order
+
+## Folders UX
+
+- Folder names are normalized to lowercase and limited to 32 chars.
+- Folder emoji defaults to `📁` and can be changed with `folder emoji`.
+- Folder assignment is per-instance and one-to-one (a card instance can belong to at most one folder).
+- Assigning a card to a different folder moves it from its previous folder.
+- Locked folders apply burn protection the same as locked tags.
 
 ## Interaction constraints
 

@@ -8,8 +8,11 @@ from .settings import BATTLE_PROPOSAL_TIMEOUT_SECONDS, BATTLE_TURN_TIMEOUT_SECON
 
 
 def _battle_embed(snapshot) -> discord.Embed:
+    title = "Battle Arena"
+    if snapshot.status == "finished" and snapshot.winner_user_id is not None:
+        title = "Battle Arena 🏆"
     return italy_embed(
-        "Battle Arena",
+        title,
         battle_arena_description(
             challenger_mention=f"<@{snapshot.challenger_id}>",
             challenged_mention=f"<@{snapshot.challenged_id}>",

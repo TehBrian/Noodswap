@@ -10,9 +10,11 @@ from .battle_engine import build_battle_card, resolve_attack
 from .migrations import TARGET_SCHEMA_VERSION, run_migrations
 from .repositories import (
     BattleCombatantRepository,
+    CardInstanceFolderRepository,
     BattleSessionRepository,
     CardInstanceRepository,
     CardInstanceTagRepository,
+    PlayerFolderRepository,
     PlayerRepository,
     PlayerTagRepository,
     PlayerTeamRepository,
@@ -30,6 +32,7 @@ from .settings import (
 
 
 GLOBAL_GUILD_ID = 0
+DEFAULT_FOLDER_EMOJI = "📁"
 
 
 def _scope_guild_id(_guild_id: int) -> int:
@@ -67,6 +70,8 @@ def init_db() -> None:
 def reset_db_data() -> None:
     with get_db_connection() as conn:
         _begin_immediate(conn)
+        conn.execute("DELETE FROM card_instance_folders")
+        conn.execute("DELETE FROM player_folders")
         conn.execute("DELETE FROM card_instance_tags")
         conn.execute("DELETE FROM player_tags")
         conn.execute("DELETE FROM wishlist_cards")
@@ -88,6 +93,26 @@ def _normalize_team_name(team_name: str) -> Optional[str]:
     if not normalized:
         return None
     if len(normalized) > 32:
+        return None
+    return normalized
+
+
+def _normalize_folder_name(folder_name: str) -> Optional[str]:
+    normalized = folder_name.strip().lower()
+    if not normalized:
+        return None
+    if len(normalized) > 32:
+        return None
+    return normalized
+
+
+def _normalize_folder_emoji(emoji: str | None) -> Optional[str]:
+    if emoji is None:
+        return DEFAULT_FOLDER_EMOJI
+    normalized = emoji.strip()
+    if not normalized:
+        return None
+    if len(normalized) > 64:
         return None
     return normalized
 
@@ -452,7 +477,8 @@ def resolve_battle_proposal(
                 )
             )
 
-        marked = battles.mark_active(guild_id, battle_id, challenger_id, time.time())
+        initial_actor_id = random.choice([challenger_id, challenged_id])
+        marked = battles.mark_active(guild_id, battle_id, initial_actor_id, time.time())
         if not marked:
             return "failed", "Could not start the battle."
 
@@ -551,16 +577,29 @@ def execute_battle_turn_action(
             return "advanced", last_action, None, opponent_user_id
 
         if action == "switch":
+            active_slot_index = int(actor_active["slot_index"])
             reserve_slot = None
             for row in actor_rows:
-                if bool(row["is_active"]):
+                slot_index = int(row["slot_index"])
+                if slot_index <= active_slot_index:
                     continue
                 if bool(row["is_knocked_out"]):
                     continue
                 if int(row["current_hp"]) <= 0:
                     continue
-                reserve_slot = int(row["slot_index"])
+                reserve_slot = slot_index
                 break
+            if reserve_slot is None:
+                for row in actor_rows:
+                    slot_index = int(row["slot_index"])
+                    if slot_index >= active_slot_index:
+                        continue
+                    if bool(row["is_knocked_out"]):
+                        continue
+                    if int(row["current_hp"]) <= 0:
+                        continue
+                    reserve_slot = slot_index
+                    break
             if reserve_slot is None:
                 return "failed", "No reserve card available to switch.", None, None
 
@@ -697,6 +736,18 @@ def execute_battle_turn_action(
         return "failed", "Action not handled.", None, None
 
 
+def end_open_battles_for_shutdown() -> int:
+    guild_id = _scope_guild_id(0)
+    with get_db_connection() as conn:
+        _begin_immediate(conn)
+        battles = BattleSessionRepository(conn)
+        return battles.mark_all_open_finished(
+            guild_id,
+            finished_at=time.time(),
+            last_action="Battle ended: bot shutdown.",
+        )
+
+
 def create_player_tag(guild_id: int, user_id: int, tag_name: str) -> bool:
     guild_id = _scope_guild_id(guild_id)
     normalized = _normalize_tag_name(tag_name)
@@ -827,8 +878,11 @@ def get_locked_instance_ids(guild_id: int, user_id: int, instance_ids: list[int]
     with get_db_connection() as conn:
         players = PlayerRepository(conn, STARTING_DOUGH)
         tags = PlayerTagRepository(conn)
+        folders = PlayerFolderRepository(conn)
         players.ensure_player(guild_id, user_id)
-        return tags.list_locked_instance_ids(guild_id, user_id, instance_ids)
+        locked_by_tags = tags.list_locked_instance_ids(guild_id, user_id, instance_ids)
+        locked_by_folders = folders.list_locked_instance_ids(guild_id, user_id, instance_ids)
+        return locked_by_tags | locked_by_folders
 
 
 def get_instances_by_tag(guild_id: int, user_id: int, tag_name: str) -> list[tuple[int, str, int, str]]:
@@ -845,6 +899,192 @@ def get_instances_by_tag(guild_id: int, user_id: int, tag_name: str) -> list[tup
         if not tags.exists(guild_id, user_id, normalized):
             return []
         return instance_tags.list_tagged_instances(guild_id, user_id, normalized)
+
+
+def create_player_folder(guild_id: int, user_id: int, folder_name: str, emoji: str | None = None) -> bool:
+    guild_id = _scope_guild_id(guild_id)
+    normalized_name = _normalize_folder_name(folder_name)
+    normalized_emoji = _normalize_folder_emoji(emoji)
+    if normalized_name is None or normalized_emoji is None:
+        return False
+
+    with get_db_connection() as conn:
+        _begin_immediate(conn)
+        players = PlayerRepository(conn, STARTING_DOUGH)
+        folders = PlayerFolderRepository(conn)
+        players.ensure_player(guild_id, user_id)
+        return folders.create(guild_id, user_id, normalized_name, normalized_emoji)
+
+
+def delete_player_folder(guild_id: int, user_id: int, folder_name: str) -> bool:
+    guild_id = _scope_guild_id(guild_id)
+    normalized_name = _normalize_folder_name(folder_name)
+    if normalized_name is None:
+        return False
+
+    with get_db_connection() as conn:
+        _begin_immediate(conn)
+        players = PlayerRepository(conn, STARTING_DOUGH)
+        folders = PlayerFolderRepository(conn)
+        players.ensure_player(guild_id, user_id)
+        return folders.delete(guild_id, user_id, normalized_name)
+
+
+def list_player_folders(guild_id: int, user_id: int) -> list[tuple[str, str, bool, int]]:
+    guild_id = _scope_guild_id(guild_id)
+    with get_db_connection() as conn:
+        players = PlayerRepository(conn, STARTING_DOUGH)
+        folders = PlayerFolderRepository(conn)
+        players.ensure_player(guild_id, user_id)
+        return folders.list_with_counts(guild_id, user_id)
+
+
+def set_player_folder_locked(guild_id: int, user_id: int, folder_name: str, locked: bool) -> bool:
+    guild_id = _scope_guild_id(guild_id)
+    normalized_name = _normalize_folder_name(folder_name)
+    if normalized_name is None:
+        return False
+
+    with get_db_connection() as conn:
+        _begin_immediate(conn)
+        players = PlayerRepository(conn, STARTING_DOUGH)
+        folders = PlayerFolderRepository(conn)
+        players.ensure_player(guild_id, user_id)
+        return folders.set_locked(guild_id, user_id, normalized_name, locked)
+
+
+def set_player_folder_emoji(guild_id: int, user_id: int, folder_name: str, emoji: str) -> bool:
+    guild_id = _scope_guild_id(guild_id)
+    normalized_name = _normalize_folder_name(folder_name)
+    normalized_emoji = _normalize_folder_emoji(emoji)
+    if normalized_name is None or normalized_emoji is None:
+        return False
+
+    with get_db_connection() as conn:
+        _begin_immediate(conn)
+        players = PlayerRepository(conn, STARTING_DOUGH)
+        folders = PlayerFolderRepository(conn)
+        players.ensure_player(guild_id, user_id)
+        return folders.set_emoji(guild_id, user_id, normalized_name, normalized_emoji)
+
+
+def assign_instance_to_folder(guild_id: int, user_id: int, instance_id: int, folder_name: str) -> bool:
+    guild_id = _scope_guild_id(guild_id)
+    normalized_name = _normalize_folder_name(folder_name)
+    if normalized_name is None:
+        return False
+
+    with get_db_connection() as conn:
+        _begin_immediate(conn)
+        players = PlayerRepository(conn, STARTING_DOUGH)
+        instances = CardInstanceRepository(conn)
+        folders = PlayerFolderRepository(conn)
+        instance_folders = CardInstanceFolderRepository(conn)
+        players.ensure_player(guild_id, user_id)
+
+        owned = instances.get_owned_instance_for_marry(guild_id, user_id, instance_id)
+        if owned is None:
+            return False
+        if not folders.exists(guild_id, user_id, normalized_name):
+            return False
+
+        return instance_folders.set_folder(guild_id, user_id, instance_id, normalized_name)
+
+
+def is_instance_assigned_to_folder(guild_id: int, user_id: int, instance_id: int, folder_name: str) -> bool:
+    guild_id = _scope_guild_id(guild_id)
+    normalized_name = _normalize_folder_name(folder_name)
+    if normalized_name is None:
+        return False
+
+    with get_db_connection() as conn:
+        players = PlayerRepository(conn, STARTING_DOUGH)
+        instances = CardInstanceRepository(conn)
+        folders = PlayerFolderRepository(conn)
+        instance_folders = CardInstanceFolderRepository(conn)
+        players.ensure_player(guild_id, user_id)
+
+        owned = instances.get_owned_instance_for_marry(guild_id, user_id, instance_id)
+        if owned is None:
+            return False
+        if not folders.exists(guild_id, user_id, normalized_name):
+            return False
+        return instance_folders.is_assigned(guild_id, user_id, instance_id, normalized_name)
+
+
+def unassign_instance_from_folder(guild_id: int, user_id: int, instance_id: int, folder_name: str) -> bool:
+    guild_id = _scope_guild_id(guild_id)
+    normalized_name = _normalize_folder_name(folder_name)
+    if normalized_name is None:
+        return False
+
+    with get_db_connection() as conn:
+        _begin_immediate(conn)
+        players = PlayerRepository(conn, STARTING_DOUGH)
+        instances = CardInstanceRepository(conn)
+        instance_folders = CardInstanceFolderRepository(conn)
+        players.ensure_player(guild_id, user_id)
+
+        owned = instances.get_owned_instance_for_marry(guild_id, user_id, instance_id)
+        if owned is None:
+            return False
+        return instance_folders.clear_folder(guild_id, user_id, instance_id, normalized_name)
+
+
+def get_folder_for_instance(guild_id: int, user_id: int, instance_id: int) -> Optional[tuple[str, str]]:
+    guild_id = _scope_guild_id(guild_id)
+    with get_db_connection() as conn:
+        players = PlayerRepository(conn, STARTING_DOUGH)
+        instance_folders = CardInstanceFolderRepository(conn)
+        players.ensure_player(guild_id, user_id)
+        return instance_folders.get_for_instance(guild_id, user_id, instance_id)
+
+
+def get_folder_emojis_for_instances(guild_id: int, user_id: int, instance_ids: list[int]) -> dict[int, str]:
+    guild_id = _scope_guild_id(guild_id)
+    with get_db_connection() as conn:
+        players = PlayerRepository(conn, STARTING_DOUGH)
+        instance_folders = CardInstanceFolderRepository(conn)
+        players.ensure_player(guild_id, user_id)
+        return instance_folders.list_for_instances(guild_id, user_id, instance_ids)
+
+
+def get_locked_folder_for_instance(guild_id: int, user_id: int, instance_id: int) -> Optional[tuple[str, str]]:
+    guild_id = _scope_guild_id(guild_id)
+    with get_db_connection() as conn:
+        players = PlayerRepository(conn, STARTING_DOUGH)
+        folders = PlayerFolderRepository(conn)
+        players.ensure_player(guild_id, user_id)
+        return folders.get_locked_for_instance(guild_id, user_id, instance_id)
+
+
+def get_locked_protection_for_instance(guild_id: int, user_id: int, instance_id: int) -> tuple[list[str], Optional[str]]:
+    guild_id = _scope_guild_id(guild_id)
+    with get_db_connection() as conn:
+        players = PlayerRepository(conn, STARTING_DOUGH)
+        tags = PlayerTagRepository(conn)
+        folders = PlayerFolderRepository(conn)
+        players.ensure_player(guild_id, user_id)
+        locked_tags = tags.list_locked_for_instance(guild_id, user_id, instance_id)
+        locked_folder = folders.get_locked_for_instance(guild_id, user_id, instance_id)
+        locked_folder_name = locked_folder[0] if locked_folder is not None else None
+        return locked_tags, locked_folder_name
+
+
+def get_instances_by_folder(guild_id: int, user_id: int, folder_name: str) -> list[tuple[int, str, int, str]]:
+    guild_id = _scope_guild_id(guild_id)
+    normalized_name = _normalize_folder_name(folder_name)
+    if normalized_name is None:
+        return []
+
+    with get_db_connection() as conn:
+        players = PlayerRepository(conn, STARTING_DOUGH)
+        folders = PlayerFolderRepository(conn)
+        instance_folders = CardInstanceFolderRepository(conn)
+        players.ensure_player(guild_id, user_id)
+        if not folders.exists(guild_id, user_id, normalized_name):
+            return []
+        return instance_folders.list_foldered_instances(guild_id, user_id, normalized_name)
 
 
 def get_wishlist_cards(guild_id: int, user_id: int) -> list[str]:
@@ -897,6 +1137,14 @@ def get_player_starter(guild_id: int, user_id: int) -> int:
         players = PlayerRepository(conn, STARTING_DOUGH)
         players.ensure_player(guild_id, user_id)
         return players.get_starter(guild_id, user_id)
+
+
+def get_player_drop_tickets(guild_id: int, user_id: int) -> int:
+    guild_id = _scope_guild_id(guild_id)
+    with get_db_connection() as conn:
+        players = PlayerRepository(conn, STARTING_DOUGH)
+        players.ensure_player(guild_id, user_id)
+        return players.get_drop_tickets(guild_id, user_id)
 
 
 def get_instance_by_id(guild_id: int, instance_id: int) -> Optional[tuple[int, str, int, str]]:
@@ -1203,6 +1451,52 @@ def add_starter(guild_id: int, user_id: int, amount: int) -> int:
         return players.get_starter(guild_id, user_id)
 
 
+def buy_drop_tickets_with_starter(guild_id: int, user_id: int, quantity: int) -> tuple[bool, int, int, int]:
+    guild_id = _scope_guild_id(guild_id)
+    with get_db_connection() as conn:
+        _begin_immediate(conn)
+        players = PlayerRepository(conn, STARTING_DOUGH)
+        players.ensure_player(guild_id, user_id)
+
+        starter_balance = players.get_starter(guild_id, user_id)
+        if quantity <= 0:
+            return False, starter_balance, players.get_drop_tickets(guild_id, user_id), 0
+        if starter_balance < quantity:
+            return False, starter_balance, players.get_drop_tickets(guild_id, user_id), 0
+
+        players.add_starter(guild_id, user_id, -quantity)
+        players.add_drop_tickets(guild_id, user_id, quantity)
+        return True, players.get_starter(guild_id, user_id), players.get_drop_tickets(guild_id, user_id), quantity
+
+
+def consume_drop_cooldown_or_ticket(
+    guild_id: int,
+    user_id: int,
+    *,
+    now: float,
+    cooldown_seconds: float,
+) -> tuple[bool, float]:
+    guild_id = _scope_guild_id(guild_id)
+    with get_db_connection() as conn:
+        _begin_immediate(conn)
+        players = PlayerRepository(conn, STARTING_DOUGH)
+        players.ensure_player(guild_id, user_id)
+
+        last_drop_at = players.get_last_drop_at(guild_id, user_id)
+        elapsed = now - last_drop_at
+        if elapsed >= cooldown_seconds:
+            players.set_last_drop_at(guild_id, user_id, now)
+            return False, 0.0
+
+        drop_tickets = players.get_drop_tickets(guild_id, user_id)
+        if drop_tickets > 0:
+            # Ticket substitution bypasses drop cooldown without modifying last_drop_at.
+            players.add_drop_tickets(guild_id, user_id, -1)
+            return True, 0.0
+
+        return False, cooldown_seconds - elapsed
+
+
 def consume_pull_cooldown_if_ready(
     guild_id: int,
     user_id: int,
@@ -1357,9 +1651,12 @@ def burn_instance(guild_id: int, user_id: int, instance_id: int) -> Optional[tup
         players = PlayerRepository(conn, STARTING_DOUGH)
         instances = CardInstanceRepository(conn)
         tags = PlayerTagRepository(conn)
+        folders = PlayerFolderRepository(conn)
         players.ensure_player(guild_id, user_id)
 
         if tags.list_locked_for_instance(guild_id, user_id, instance_id):
+            return None
+        if folders.get_locked_for_instance(guild_id, user_id, instance_id) is not None:
             return None
 
         burned = instances.burn_owned_instance(guild_id, user_id, instance_id)
@@ -1369,6 +1666,58 @@ def burn_instance(guild_id: int, user_id: int, instance_id: int) -> Optional[tup
         players.clear_marriage_if_matches(guild_id, user_id, instance_id)
         players.clear_last_pulled_if_matches(guild_id, user_id, instance_id)
         return burned
+
+
+def burn_instances(guild_id: int, user_id: int, instance_ids: list[int]) -> tuple[list[tuple[int, str, int, str]] | None, dict[int, list[str]]]:
+    guild_id = _scope_guild_id(guild_id)
+    unique_instance_ids: list[int] = []
+    seen: set[int] = set()
+    for instance_id in instance_ids:
+        if instance_id in seen:
+            continue
+        seen.add(instance_id)
+        unique_instance_ids.append(instance_id)
+
+    if not unique_instance_ids:
+        return [], {}
+
+    with get_db_connection() as conn:
+        _begin_immediate(conn)
+        players = PlayerRepository(conn, STARTING_DOUGH)
+        instances = CardInstanceRepository(conn)
+        tags = PlayerTagRepository(conn)
+        folders = PlayerFolderRepository(conn)
+        players.ensure_player(guild_id, user_id)
+
+        locked_by_instance: dict[int, list[str]] = {}
+        for instance_id in unique_instance_ids:
+            owned = instances.get_owned_instance_for_marry(guild_id, user_id, instance_id)
+            if owned is None:
+                return None, {}
+
+            locked_tags = tags.list_locked_for_instance(guild_id, user_id, instance_id)
+            locked_folder = folders.get_locked_for_instance(guild_id, user_id, instance_id)
+            lock_reasons = list(locked_tags)
+            if locked_folder is not None:
+                lock_reasons.append(f"folder:{locked_folder[0]}")
+            if lock_reasons:
+                locked_by_instance[instance_id] = lock_reasons
+
+        if locked_by_instance:
+            return None, locked_by_instance
+
+        burned_rows: list[tuple[int, str, int, str]] = []
+        for instance_id in unique_instance_ids:
+            burned = instances.burn_owned_instance(guild_id, user_id, instance_id)
+            if burned is None:
+                return None, {}
+
+            burned_card_id, burned_generation, burned_dupe_code = burned
+            players.clear_marriage_if_matches(guild_id, user_id, instance_id)
+            players.clear_last_pulled_if_matches(guild_id, user_id, instance_id)
+            burned_rows.append((instance_id, burned_card_id, burned_generation, burned_dupe_code))
+
+        return burned_rows, {}
 
 
 def _select_instance_for_marry(
@@ -1490,3 +1839,33 @@ def execute_trade(
         players.add_dough(guild_id, buyer_id, -amount)
 
         return True, "", generation, traded_dupe_code
+
+
+def execute_gift_dough(
+    guild_id: int,
+    sender_id: int,
+    recipient_id: int,
+    amount: int,
+) -> tuple[bool, str, Optional[int], Optional[int]]:
+    guild_id = _scope_guild_id(guild_id)
+    with get_db_connection() as conn:
+        _begin_immediate(conn)
+        players = PlayerRepository(conn, STARTING_DOUGH)
+        players.ensure_player(guild_id, sender_id)
+        players.ensure_player(guild_id, recipient_id)
+
+        if sender_id == recipient_id:
+            return False, "You cannot gift dough to yourself.", None, None
+
+        if amount < 1:
+            return False, "Gift amount must be at least 1 dough.", None, None
+
+        sender_dough = players.get_dough(guild_id, sender_id)
+        if sender_dough < amount:
+            return False, "You do not have enough dough.", None, None
+
+        recipient_dough = players.get_dough(guild_id, recipient_id)
+        players.add_dough(guild_id, sender_id, -amount)
+        players.add_dough(guild_id, recipient_id, amount)
+
+        return True, "", sender_dough - amount, recipient_dough + amount

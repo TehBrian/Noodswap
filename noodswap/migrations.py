@@ -2,7 +2,7 @@ from collections.abc import Callable
 import sqlite3
 
 
-TARGET_SCHEMA_VERSION = 16
+TARGET_SCHEMA_VERSION = 18
 _BASE36_ALPHABET = "0123456789abcdefghijklmnopqrstuvwxyz"
 
 
@@ -578,6 +578,63 @@ def _apply_migration_v16(conn: sqlite3.Connection) -> None:
     )
 
 
+def _apply_migration_v17(conn: sqlite3.Connection) -> None:
+    players_table_exists = conn.execute(
+        """
+        SELECT 1
+        FROM sqlite_master
+        WHERE type = 'table' AND name = 'players'
+        LIMIT 1
+        """
+    ).fetchone() is not None
+    if not players_table_exists:
+        return
+
+    if not _has_column(conn, "players", "drop_tickets"):
+        conn.execute("ALTER TABLE players ADD COLUMN drop_tickets INTEGER NOT NULL DEFAULT 0")
+
+
+def _apply_migration_v18(conn: sqlite3.Connection) -> None:
+    conn.executescript(
+        """
+        CREATE TABLE IF NOT EXISTS player_folders (
+            guild_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            folder_name TEXT NOT NULL,
+            emoji TEXT NOT NULL DEFAULT '📁',
+            is_locked INTEGER NOT NULL DEFAULT 0 CHECK(is_locked IN (0, 1)),
+            PRIMARY KEY (guild_id, user_id, folder_name),
+            FOREIGN KEY (guild_id, user_id)
+                REFERENCES players(guild_id, user_id)
+                ON DELETE CASCADE
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_player_folders_owner
+            ON player_folders(guild_id, user_id, folder_name);
+
+        CREATE TABLE IF NOT EXISTS card_instance_folders (
+            guild_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            instance_id INTEGER NOT NULL,
+            folder_name TEXT NOT NULL,
+            PRIMARY KEY (guild_id, user_id, instance_id),
+            FOREIGN KEY (guild_id, user_id, folder_name)
+                REFERENCES player_folders(guild_id, user_id, folder_name)
+                ON DELETE CASCADE,
+            FOREIGN KEY (instance_id)
+                REFERENCES card_instances(instance_id)
+                ON DELETE CASCADE
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_card_instance_folders_owner
+            ON card_instance_folders(guild_id, user_id, folder_name, instance_id);
+
+        CREATE INDEX IF NOT EXISTS idx_card_instance_folders_instance
+            ON card_instance_folders(instance_id);
+        """
+    )
+
+
 def run_migrations(
     conn: sqlite3.Connection,
     *,
@@ -666,6 +723,16 @@ def run_migrations(
         _apply_migration_v16(conn)
         _set_schema_version(conn, 16)
         current_version = 16
+
+    if current_version < 17:
+        _apply_migration_v17(conn)
+        _set_schema_version(conn, 17)
+        current_version = 17
+
+    if current_version < 18:
+        _apply_migration_v18(conn)
+        _set_schema_version(conn, 18)
+        current_version = 18
 
     if current_version > target_schema_version:
         raise RuntimeError(

@@ -308,6 +308,220 @@ class CommandsTagTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("2. (`CHJ`) [🧀] **Cheddar Jack**", sent_embed.description)
 
 
+class CommandsFolderTests(unittest.IsolatedAsyncioTestCase):
+    def setUp(self) -> None:
+        self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)
+        register_commands(self.bot)
+
+    async def test_folder_list_shows_lock_markers_and_emoji(self) -> None:
+        folder_list_command = _get_group_command(self.bot, "folder", "list")
+
+        ctx = AsyncMock()
+        ctx.guild = _FakeGuild(1)
+        ctx.author = _FakeMember(100, "Caller")
+        ctx.send = AsyncMock()
+        ctx.reply = ctx.send
+
+        with patch(
+            "noodswap.commands.list_player_folders",
+            return_value=[("vault", "📦", True, 2), ("dump", "🗑️", False, 1)],
+        ):
+            await folder_list_command.callback(ctx)
+
+        ctx.send.assert_awaited_once()
+        sent_embed = ctx.send.await_args.kwargs["embed"]
+        self.assertEqual(sent_embed.title, "Your Folders")
+        self.assertIn("🔒 📦 `vault` - Locked - 2 card(s)", sent_embed.description)
+        self.assertIn("`  ` 🗑️ `dump` - Unlocked - 1 card(s)", sent_embed.description)
+
+    async def test_folder_assign_rejects_duplicate_assignment(self) -> None:
+        folder_assign_command = _get_group_command(self.bot, "folder", "assign")
+
+        ctx = AsyncMock()
+        ctx.guild = _FakeGuild(1)
+        ctx.author = _FakeMember(100, "Caller")
+        ctx.send = AsyncMock()
+        ctx.reply = ctx.send
+
+        selected = (5, "SPG", 1200, "0")
+        with (
+            patch("noodswap.commands.get_instance_by_code", return_value=selected),
+            patch("noodswap.commands.is_instance_assigned_to_folder", return_value=True),
+            patch("noodswap.commands.assign_instance_to_folder", return_value=False) as assign_folder,
+        ):
+            await folder_assign_command.callback(ctx, folder_name="vault", card_code="0")
+
+        assign_folder.assert_not_called()
+        ctx.send.assert_awaited_once()
+        sent_embed = ctx.send.await_args.kwargs["embed"]
+        self.assertEqual(sent_embed.title, "Folders")
+        self.assertEqual(sent_embed.description, "That card is already in that folder.")
+
+
+class CommandsBurnTests(unittest.IsolatedAsyncioTestCase):
+    def setUp(self) -> None:
+        self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)
+        register_commands(self.bot)
+
+    async def test_burn_rejects_selector_without_value(self) -> None:
+        burn_command = _get_command(self.bot, "burn")
+
+        ctx = AsyncMock()
+        ctx.guild = _FakeGuild(1)
+        ctx.author = _FakeMember(100, "Caller")
+        ctx.send = AsyncMock()
+        ctx.reply = ctx.send
+
+        await burn_command.callback(ctx, "tag")
+
+        ctx.send.assert_awaited_once()
+        sent_embed = ctx.send.await_args.kwargs["embed"]
+        self.assertEqual(sent_embed.title, "Burn")
+        self.assertIn("Missing value", sent_embed.description)
+
+    async def test_burn_supports_folder_selector(self) -> None:
+        burn_command = _get_command(self.bot, "burn")
+
+        ctx = AsyncMock()
+        ctx.guild = _FakeGuild(1)
+        ctx.author = _FakeMember(100, "Caller")
+        ctx.send = AsyncMock(return_value=SimpleNamespace())
+        ctx.reply = ctx.send
+
+        with (
+            patch("noodswap.commands.get_instances_by_folder", return_value=[(10, "SPG", 100, "0")]),
+            patch(
+                "noodswap.commands.prepare_burn_batch",
+                return_value=SimpleNamespace(
+                    is_error=False,
+                    error_message=None,
+                    items=(
+                        SimpleNamespace(
+                            instance_id=10,
+                            card_id="SPG",
+                            generation=100,
+                            dupe_code="0",
+                            value=10,
+                            base_value=9,
+                            delta_range=1,
+                            multiplier=1.1,
+                        ),
+                    ),
+                    total_value=10,
+                    total_delta_range=1,
+                ),
+            ),
+            patch("noodswap.commands.get_instance_morph", return_value=None),
+            patch("noodswap.commands.get_instance_frame", return_value=None),
+            patch("noodswap.commands.get_instance_font", return_value=None),
+            patch("noodswap.commands.embed_image_payload", return_value=(None, None)),
+        ):
+            await burn_command.callback(ctx, "folder:vault")
+
+        ctx.send.assert_awaited_once()
+        sent_embed = ctx.send.await_args.kwargs["embed"]
+        self.assertEqual(sent_embed.title, "Burn Confirmation")
+
+    async def test_burn_supports_tag_and_card_targets_together(self) -> None:
+        burn_command = _get_command(self.bot, "burn")
+
+        ctx = AsyncMock()
+        ctx.guild = _FakeGuild(1)
+        ctx.author = _FakeMember(100, "Caller")
+        ctx.send = AsyncMock(return_value=SimpleNamespace())
+        ctx.reply = ctx.send
+
+        fake_items = (
+            SimpleNamespace(
+                instance_id=10,
+                card_id="SPG",
+                generation=100,
+                dupe_code="0",
+                value=12,
+                base_value=3,
+                delta_range=2,
+                multiplier=1.5,
+            ),
+            SimpleNamespace(
+                instance_id=11,
+                card_id="PEN",
+                generation=200,
+                dupe_code="1",
+                value=14,
+                base_value=4,
+                delta_range=3,
+                multiplier=1.7,
+            ),
+        )
+        prepared = SimpleNamespace(
+            is_error=False,
+            error_message=None,
+            items=fake_items,
+            total_value=26,
+            total_delta_range=5,
+        )
+
+        class _FakeBurnView:
+            def __init__(self, **kwargs):
+                self.kwargs = kwargs
+                self.message = None
+
+        with (
+            patch("noodswap.commands.get_instances_by_tag", return_value=[(10, "SPG", 100, "0")]),
+            patch("noodswap.commands.get_instance_by_code", return_value=(11, "PEN", 200, "1")),
+            patch("noodswap.commands.prepare_burn_batch", return_value=prepared),
+            patch("noodswap.commands.BurnConfirmView", _FakeBurnView),
+        ):
+            await burn_command.callback(ctx, "tag", "safe", "a")
+
+        ctx.send.assert_awaited_once()
+        sent_embed = ctx.send.await_args.kwargs["embed"]
+        sent_view = ctx.send.await_args.kwargs["view"]
+        self.assertEqual(sent_embed.title, "Burn Confirmation")
+        self.assertIn("Cards: **2**", sent_embed.description)
+        self.assertEqual(
+            sent_view.kwargs["burn_items"],
+            [(10, 2), (11, 3)],
+        )
+
+
+class CommandsTeamTests(unittest.IsolatedAsyncioTestCase):
+    def setUp(self) -> None:
+        self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)
+        register_commands(self.bot)
+
+    async def test_team_cards_shows_hp_atk_def_stats(self) -> None:
+        team_cards_command = _get_group_command(self.bot, "team", "cards")
+
+        ctx = AsyncMock()
+        ctx.guild = _FakeGuild(1)
+        ctx.author = _FakeMember(100, "Caller")
+        ctx.send = AsyncMock(return_value=SimpleNamespace())
+        ctx.reply = ctx.send
+
+        team_instances = [
+            (1, "SPG", 1200, "0"),
+            (2, "BAR", 900, "1"),
+        ]
+        with (
+            patch("noodswap.commands.get_instances_by_team", return_value=team_instances),
+            patch("noodswap.commands.get_locked_instance_ids", return_value=set()),
+            patch("noodswap.commands.get_card_wish_counts", return_value={"SPG": 1, "BAR": 2}),
+            patch("noodswap.commands.get_instance_morph", return_value=None),
+            patch("noodswap.commands.get_instance_frame", return_value=None),
+            patch("noodswap.commands.get_instance_font", return_value=None),
+        ):
+            await team_cards_command.callback(ctx, team_name="alpha")
+
+        ctx.send.assert_awaited_once()
+        sent_embed = ctx.send.await_args.kwargs["embed"]
+        sent_view = ctx.send.await_args.kwargs["view"]
+        self.assertEqual(sent_embed.title, "Team: `alpha`")
+        self.assertRegex(sent_embed.description, r"HP:\d+ ATK:\d+ DEF:\d+")
+        self.assertIsInstance(sent_view, SortableCollectionView)
+        self.assertIs(sent_view.message, ctx.send.return_value)
+
+
 class CommandsAliasRegistrationTests(unittest.TestCase):
     def setUp(self) -> None:
         self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)
@@ -338,7 +552,9 @@ class CommandsAliasRegistrationTests(unittest.TestCase):
         self.assertIn("v", _get_command(self.bot, "vote").aliases)
         self.assertIn("sl", _get_command(self.bot, "slots").aliases)
         self.assertIn("f", _get_command(self.bot, "flip").aliases)
+        self.assertIn("g", _get_command(self.bot, "gift").aliases)
         self.assertIn("tg", _get_command(self.bot, "tag").aliases)
+        self.assertIn("fd", _get_command(self.bot, "folder").aliases)
 
 
 class CommandsLeaderboardTests(unittest.IsolatedAsyncioTestCase):
@@ -753,7 +969,7 @@ class CommandsCollectionTests(unittest.IsolatedAsyncioTestCase):
         send_kwargs = ctx.send.await_args.kwargs
         self.assertIn("view", send_kwargs)
         self.assertIsInstance(send_kwargs["view"], SortableCollectionView)
-        self.assertEqual(send_kwargs["embed"].footer.text, "Page 1/2 • Sort: Alphabetical")
+        self.assertEqual(send_kwargs["embed"].footer.text, "Page 1/2 • Sort: Alphabetical (Asc)")
 
     async def test_wish_list_uses_pagination_view_for_multi_page_results(self) -> None:
         wish_list_command = _get_group_command(self.bot, "wish", "list")
@@ -772,7 +988,7 @@ class CommandsCollectionTests(unittest.IsolatedAsyncioTestCase):
         send_kwargs = ctx.send.await_args.kwargs
         self.assertIn("view", send_kwargs)
         self.assertIsInstance(send_kwargs["view"], SortableCardListView)
-        self.assertEqual(send_kwargs["embed"].footer.text, "Page 1/2 • Sort: Alphabetical")
+        self.assertEqual(send_kwargs["embed"].footer.text, "Page 1/2 • Sort: Alphabetical (Asc)")
 
     async def test_wish_list_sends_error_when_player_resolution_fails(self) -> None:
         wish_list_command = _get_group_command(self.bot, "wish", "list")
@@ -876,12 +1092,86 @@ class CommandsCooldownTests(unittest.IsolatedAsyncioTestCase):
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
         self.assertEqual(sent_embed.title, "Target's Cooldowns")
-        self.assertIn("Drop:", sent_embed.description)
-        self.assertIn("Pull:", sent_embed.description)
-        self.assertIn("Vote:", sent_embed.description)
-        self.assertIn("Slots:", sent_embed.description)
-        self.assertIn("Flip:", sent_embed.description)
-        self.assertIn("Cooling Down", sent_embed.description)
+
+
+class CommandsBuyTests(unittest.IsolatedAsyncioTestCase):
+    def setUp(self) -> None:
+        self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)
+        register_commands(self.bot)
+
+    async def test_buy_drop_shows_usage_when_group_called(self) -> None:
+        buy_command = _get_command(self.bot, "buy")
+
+        ctx = AsyncMock()
+        ctx.send = AsyncMock()
+        ctx.reply = ctx.send
+
+        await buy_command.callback(ctx)
+
+        ctx.send.assert_awaited_once()
+        sent_embed = ctx.send.await_args.kwargs["embed"]
+        self.assertEqual(sent_embed.title, "Buy")
+        self.assertIn("ns buy drop", sent_embed.description)
+
+    async def test_buy_drop_purchases_with_starter(self) -> None:
+        buy_drop_command = _get_group_command(self.bot, "buy", "drop")
+
+        ctx = AsyncMock()
+        ctx.guild = _FakeGuild(1)
+        ctx.author = _FakeMember(100, "Caller")
+        ctx.send = AsyncMock()
+        ctx.reply = ctx.send
+
+        with patch("noodswap.commands.buy_drop_tickets_with_starter", return_value=(True, 4, 7, 3)) as buy_tickets:
+            await buy_drop_command.callback(ctx, quantity=3)
+
+        buy_tickets.assert_called_once_with(1, 100, 3)
+        ctx.send.assert_awaited_once()
+        sent_embed = ctx.send.await_args.kwargs["embed"]
+        self.assertEqual(sent_embed.title, "Buy")
+        self.assertIn("Purchased: **3 drop ticket(s)**", sent_embed.description)
+        self.assertIn("Starter Balance: **4**", sent_embed.description)
+        self.assertIn("Drop Tickets: **7**", sent_embed.description)
+
+
+class CommandsDropTests(unittest.IsolatedAsyncioTestCase):
+    def setUp(self) -> None:
+        self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)
+        register_commands(self.bot)
+
+    async def test_drop_footer_mentions_ticket_use(self) -> None:
+        drop_command = _get_command(self.bot, "drop")
+
+        ctx = AsyncMock()
+        ctx.guild = _FakeGuild(1)
+        ctx.author = _FakeMember(100, "Caller")
+        ctx.send = AsyncMock(return_value=SimpleNamespace())
+        ctx.reply = ctx.send
+
+        prepared = SimpleNamespace(
+            is_cooldown=False,
+            cooldown_remaining_seconds=0.0,
+            choices=[("SPG", 100), ("PEN", 200), ("FUS", 300)],
+            used_drop_ticket=True,
+        )
+        with (
+            patch("noodswap.commands.prepare_drop", return_value=prepared),
+            patch("noodswap.commands.build_drop_preview_file", new=AsyncMock(return_value=None)),
+            patch("noodswap.commands.DropView") as drop_view_cls,
+        ):
+            view = SimpleNamespace(message=None)
+            drop_view_cls.return_value = view
+            await drop_command.callback(ctx)
+
+        ctx.send.assert_awaited_once()
+        sent_embed = ctx.send.await_args.kwargs["embed"]
+        self.assertIn("drop ticket used", sent_embed.footer.text)
+
+
+class CommandsCooldownReplyTargetTests(unittest.IsolatedAsyncioTestCase):
+    def setUp(self) -> None:
+        self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)
+        register_commands(self.bot)
 
     async def test_cooldown_uses_replied_player_when_argument_omitted(self) -> None:
         cooldown_command = _get_command(self.bot, "cooldown")
@@ -1200,6 +1490,7 @@ class CommandsInfoTests(unittest.IsolatedAsyncioTestCase):
         with (
             patch("noodswap.commands.get_player_info", return_value=(123, 0.0, None)),
             patch("noodswap.commands.get_player_starter", return_value=9),
+            patch("noodswap.commands.get_player_drop_tickets", return_value=4),
             patch("noodswap.commands.get_total_cards", return_value=7),
             patch("noodswap.commands.get_wishlist_cards", return_value=["SPG", "PEN", "FUS"]),
         ):
@@ -1211,6 +1502,7 @@ class CommandsInfoTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(field_values.get("Cards"), "7")
         self.assertEqual(field_values.get("Dough"), "123")
         self.assertEqual(field_values.get("Starter"), "9")
+        self.assertEqual(field_values.get("Drop Tickets"), "4")
         self.assertEqual(field_values.get("Wishes"), "3")
 
     async def test_info_uses_replied_player_when_argument_omitted(self) -> None:
@@ -1232,6 +1524,7 @@ class CommandsInfoTests(unittest.IsolatedAsyncioTestCase):
         with (
             patch("noodswap.commands.get_player_info", return_value=(999, 0.0, None)),
             patch("noodswap.commands.get_player_starter", return_value=2),
+            patch("noodswap.commands.get_player_drop_tickets", return_value=0),
             patch("noodswap.commands.get_total_cards", return_value=4),
             patch("noodswap.commands.get_wishlist_cards", return_value=["SPG"]),
         ):
@@ -1240,6 +1533,59 @@ class CommandsInfoTests(unittest.IsolatedAsyncioTestCase):
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
         self.assertEqual(sent_embed.title, "Target's Info")
+
+
+class CommandsGiftTests(unittest.IsolatedAsyncioTestCase):
+    def setUp(self) -> None:
+        self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)
+        register_commands(self.bot)
+
+    async def test_gift_rejects_bot_target(self) -> None:
+        gift_command = _get_command(self.bot, "gift")
+
+        ctx = AsyncMock()
+        ctx.guild = _FakeGuild(1)
+        ctx.author = _FakeMember(100, "Caller")
+        ctx.send = AsyncMock()
+        ctx.reply = ctx.send
+
+        bot_target = _FakeMember(200, "BotTarget")
+        bot_target.bot = True
+        with (
+            patch("noodswap.commands.resolve_member_argument", new=AsyncMock(return_value=(bot_target, None))),
+            patch("noodswap.commands.execute_gift_dough") as execute_gift,
+        ):
+            await gift_command.callback(ctx, player="@BotTarget", dough=10)
+
+        execute_gift.assert_not_called()
+        ctx.send.assert_awaited_once()
+        sent_embed = ctx.send.await_args.kwargs["embed"]
+        self.assertEqual(sent_embed.title, "Gift")
+        self.assertIn("cannot gift dough to bots", sent_embed.description)
+
+    async def test_gift_success_sends_confirmation_embed(self) -> None:
+        gift_command = _get_command(self.bot, "gift")
+
+        ctx = AsyncMock()
+        ctx.guild = _FakeGuild(1)
+        ctx.author = _FakeMember(100, "Caller")
+        ctx.send = AsyncMock()
+        ctx.reply = ctx.send
+
+        target = _FakeMember(200, "Target")
+        with (
+            patch("noodswap.commands.resolve_member_argument", new=AsyncMock(return_value=(target, None))),
+            patch("noodswap.commands.execute_gift_dough", return_value=(True, "", 90, 10)) as execute_gift,
+        ):
+            await gift_command.callback(ctx, player="@Target", dough=10)
+
+        execute_gift.assert_called_once_with(1, 100, 200, 10)
+        ctx.send.assert_awaited_once()
+        sent_embed = ctx.send.await_args.kwargs["embed"]
+        self.assertEqual(sent_embed.title, "Gift Sent")
+        self.assertIn("gifted **10 dough**", sent_embed.description)
+        self.assertIn("Your Balance: **90**", sent_embed.description)
+        self.assertIn("Their Balance: **10**", sent_embed.description)
 
 
 class CommandsVoteTests(unittest.IsolatedAsyncioTestCase):
@@ -1306,19 +1652,26 @@ class CommandsBurnTests(unittest.IsolatedAsyncioTestCase):
         prepared = SimpleNamespace(
             is_error=False,
             error_message=None,
-            instance_id=77,
-            card_id="SPG",
-            generation=321,
-            dupe_code="a",
-            payout=42,
-            value=40,
-            base_value=38,
-            delta=2,
-            delta_range=8,
-            multiplier=1.05,
+            items=(
+                SimpleNamespace(
+                    instance_id=77,
+                    card_id="SPG",
+                    generation=321,
+                    dupe_code="a",
+                    value=40,
+                    base_value=38,
+                    delta_range=8,
+                    multiplier=1.05,
+                ),
+            ),
+            total_value=40,
+            total_delta_range=8,
         )
 
-        with patch("noodswap.commands.prepare_burn", return_value=prepared):
+        with (
+            patch("noodswap.commands.get_instance_by_code", return_value=(77, "SPG", 321, "a")),
+            patch("noodswap.commands.prepare_burn_batch", return_value=prepared),
+        ):
             await burn_command.callback(ctx, card_code="a")
 
         ctx.send.assert_awaited_once()
@@ -1326,6 +1679,48 @@ class CommandsBurnTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(sent_embed.title, "Burn Confirmation")
         self.assertIn("`#a", sent_embed.description)
         self.assertNotIn("`#?`", sent_embed.description)
+
+    async def test_burn_supports_folder_selector(self) -> None:
+        burn_command = _get_command(self.bot, "burn")
+
+        ctx = AsyncMock()
+        ctx.guild = _FakeGuild(1)
+        ctx.author = _FakeMember(100, "Caller")
+        ctx.send = AsyncMock(return_value=SimpleNamespace())
+        ctx.reply = ctx.send
+
+        prepared = SimpleNamespace(
+            is_error=False,
+            error_message=None,
+            items=(
+                SimpleNamespace(
+                    instance_id=10,
+                    card_id="SPG",
+                    generation=100,
+                    dupe_code="0",
+                    value=10,
+                    base_value=9,
+                    delta_range=1,
+                    multiplier=1.1,
+                ),
+            ),
+            total_value=10,
+            total_delta_range=1,
+        )
+
+        with (
+            patch("noodswap.commands.get_instances_by_folder", return_value=[(10, "SPG", 100, "0")]),
+            patch("noodswap.commands.prepare_burn_batch", return_value=prepared),
+            patch("noodswap.commands.get_instance_morph", return_value=None),
+            patch("noodswap.commands.get_instance_frame", return_value=None),
+            patch("noodswap.commands.get_instance_font", return_value=None),
+            patch("noodswap.commands.embed_image_payload", return_value=(None, None)),
+        ):
+            await burn_command.callback(ctx, card_code="folder:vault")
+
+        ctx.send.assert_awaited_once()
+        sent_embed = ctx.send.await_args.kwargs["embed"]
+        self.assertEqual(sent_embed.title, "Burn Confirmation")
 
 
 class CommandsMorphTests(unittest.IsolatedAsyncioTestCase):

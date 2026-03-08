@@ -46,6 +46,7 @@ class PlayerRepository:
                 user_id,
                 dough,
                 starter,
+                drop_tickets,
                 last_drop_at,
                 last_pull_at,
                 last_vote_reward_at,
@@ -55,10 +56,10 @@ class PlayerRepository:
                 married_instance_id,
                 last_dropped_instance_id
             )
-            VALUES (?, ?, ?, ?, 0, 0, 0, 0, 0, NULL, NULL, NULL)
+            VALUES (?, ?, ?, ?, ?, 0, 0, 0, 0, 0, NULL, NULL, NULL)
             ON CONFLICT(guild_id, user_id) DO NOTHING
             """,
-            (guild_id, user_id, self.starting_dough, 0),
+            (guild_id, user_id, self.starting_dough, 0, 0),
         )
 
     def get_info(self, guild_id: int, user_id: int) -> tuple[int, float, Optional[int]]:
@@ -307,6 +308,27 @@ class PlayerRepository:
             """
             UPDATE players
             SET starter = starter + ?
+            WHERE guild_id = ? AND user_id = ?
+            """,
+            (amount, guild_id, user_id),
+        )
+
+    def get_drop_tickets(self, guild_id: int, user_id: int) -> int:
+        row = self.conn.execute(
+            """
+            SELECT drop_tickets
+            FROM players
+            WHERE guild_id = ? AND user_id = ?
+            """,
+            (guild_id, user_id),
+        ).fetchone()
+        return int(row["drop_tickets"]) if row is not None else 0
+
+    def add_drop_tickets(self, guild_id: int, user_id: int, amount: int) -> None:
+        self.conn.execute(
+            """
+            UPDATE players
+            SET drop_tickets = drop_tickets + ?
             WHERE guild_id = ? AND user_id = ?
             """,
             (amount, guild_id, user_id),
@@ -634,6 +656,251 @@ class CardInstanceTagRepository:
         ]
 
 
+class PlayerFolderRepository:
+    def __init__(self, conn: sqlite3.Connection):
+        self.conn = conn
+
+    def create(self, guild_id: int, user_id: int, folder_name: str, emoji: str) -> bool:
+        cursor = self.conn.execute(
+            """
+            INSERT OR IGNORE INTO player_folders (guild_id, user_id, folder_name, emoji, is_locked)
+            VALUES (?, ?, ?, ?, 0)
+            """,
+            (guild_id, user_id, folder_name, emoji),
+        )
+        return int(cursor.rowcount) > 0
+
+    def delete(self, guild_id: int, user_id: int, folder_name: str) -> bool:
+        cursor = self.conn.execute(
+            """
+            DELETE FROM player_folders
+            WHERE guild_id = ? AND user_id = ? AND folder_name = ?
+            """,
+            (guild_id, user_id, folder_name),
+        )
+        return int(cursor.rowcount) > 0
+
+    def exists(self, guild_id: int, user_id: int, folder_name: str) -> bool:
+        row = self.conn.execute(
+            """
+            SELECT 1
+            FROM player_folders
+            WHERE guild_id = ? AND user_id = ? AND folder_name = ?
+            LIMIT 1
+            """,
+            (guild_id, user_id, folder_name),
+        ).fetchone()
+        return row is not None
+
+    def set_locked(self, guild_id: int, user_id: int, folder_name: str, locked: bool) -> bool:
+        cursor = self.conn.execute(
+            """
+            UPDATE player_folders
+            SET is_locked = ?
+            WHERE guild_id = ? AND user_id = ? AND folder_name = ?
+            """,
+            (1 if locked else 0, guild_id, user_id, folder_name),
+        )
+        return int(cursor.rowcount) > 0
+
+    def set_emoji(self, guild_id: int, user_id: int, folder_name: str, emoji: str) -> bool:
+        cursor = self.conn.execute(
+            """
+            UPDATE player_folders
+            SET emoji = ?
+            WHERE guild_id = ? AND user_id = ? AND folder_name = ?
+            """,
+            (emoji, guild_id, user_id, folder_name),
+        )
+        return int(cursor.rowcount) > 0
+
+    def list_with_counts(self, guild_id: int, user_id: int) -> list[tuple[str, str, bool, int]]:
+        rows = self.conn.execute(
+            """
+            SELECT pf.folder_name, pf.emoji, pf.is_locked, COUNT(cif.instance_id) AS card_count
+            FROM player_folders pf
+            LEFT JOIN card_instance_folders cif
+                ON cif.guild_id = pf.guild_id
+                AND cif.user_id = pf.user_id
+                AND cif.folder_name = pf.folder_name
+            WHERE pf.guild_id = ? AND pf.user_id = ?
+            GROUP BY pf.folder_name, pf.emoji, pf.is_locked
+            ORDER BY pf.folder_name ASC
+            """,
+            (guild_id, user_id),
+        ).fetchall()
+        return [
+            (
+                str(row["folder_name"]),
+                str(row["emoji"]),
+                bool(int(row["is_locked"])),
+                int(row["card_count"]),
+            )
+            for row in rows
+        ]
+
+    def get_locked_for_instance(self, guild_id: int, user_id: int, instance_id: int) -> Optional[tuple[str, str]]:
+        row = self.conn.execute(
+            """
+            SELECT pf.folder_name, pf.emoji
+            FROM card_instance_folders cif
+            JOIN player_folders pf
+                ON pf.guild_id = cif.guild_id
+                AND pf.user_id = cif.user_id
+                AND pf.folder_name = cif.folder_name
+            WHERE cif.guild_id = ?
+                AND cif.user_id = ?
+                AND cif.instance_id = ?
+                AND pf.is_locked = 1
+            LIMIT 1
+            """,
+            (guild_id, user_id, instance_id),
+        ).fetchone()
+        if row is None:
+            return None
+        return str(row["folder_name"]), str(row["emoji"])
+
+    def list_locked_instance_ids(
+        self,
+        guild_id: int,
+        user_id: int,
+        instance_ids: list[int] | None = None,
+    ) -> set[int]:
+        base_query = (
+            """
+            SELECT DISTINCT cif.instance_id
+            FROM card_instance_folders cif
+            JOIN player_folders pf
+                ON pf.guild_id = cif.guild_id
+                AND pf.user_id = cif.user_id
+                AND pf.folder_name = cif.folder_name
+            WHERE cif.guild_id = ?
+                AND cif.user_id = ?
+                AND pf.is_locked = 1
+            """
+        )
+        params: list[int] = [guild_id, user_id]
+
+        if instance_ids is not None:
+            if not instance_ids:
+                return set()
+            placeholders = ", ".join("?" for _ in instance_ids)
+            base_query += f" AND cif.instance_id IN ({placeholders})"
+            params.extend(instance_ids)
+
+        rows = self.conn.execute(base_query, params).fetchall()
+        return {int(row["instance_id"]) for row in rows}
+
+
+class CardInstanceFolderRepository:
+    def __init__(self, conn: sqlite3.Connection):
+        self.conn = conn
+
+    def set_folder(self, guild_id: int, user_id: int, instance_id: int, folder_name: str) -> bool:
+        cursor = self.conn.execute(
+            """
+            INSERT INTO card_instance_folders (guild_id, user_id, instance_id, folder_name)
+            VALUES (?, ?, ?, ?)
+            ON CONFLICT(guild_id, user_id, instance_id)
+            DO UPDATE SET folder_name = excluded.folder_name
+            """,
+            (guild_id, user_id, instance_id, folder_name),
+        )
+        return int(cursor.rowcount) > 0
+
+    def clear_folder(self, guild_id: int, user_id: int, instance_id: int, folder_name: str | None = None) -> bool:
+        if folder_name is None:
+            cursor = self.conn.execute(
+                """
+                DELETE FROM card_instance_folders
+                WHERE guild_id = ? AND user_id = ? AND instance_id = ?
+                """,
+                (guild_id, user_id, instance_id),
+            )
+            return int(cursor.rowcount) > 0
+
+        cursor = self.conn.execute(
+            """
+            DELETE FROM card_instance_folders
+            WHERE guild_id = ? AND user_id = ? AND instance_id = ? AND folder_name = ?
+            """,
+            (guild_id, user_id, instance_id, folder_name),
+        )
+        return int(cursor.rowcount) > 0
+
+    def get_for_instance(self, guild_id: int, user_id: int, instance_id: int) -> Optional[tuple[str, str]]:
+        row = self.conn.execute(
+            """
+            SELECT cif.folder_name, pf.emoji
+            FROM card_instance_folders cif
+            JOIN player_folders pf
+                ON pf.guild_id = cif.guild_id
+                AND pf.user_id = cif.user_id
+                AND pf.folder_name = cif.folder_name
+            WHERE cif.guild_id = ? AND cif.user_id = ? AND cif.instance_id = ?
+            LIMIT 1
+            """,
+            (guild_id, user_id, instance_id),
+        ).fetchone()
+        if row is None:
+            return None
+        return str(row["folder_name"]), str(row["emoji"])
+
+    def is_assigned(self, guild_id: int, user_id: int, instance_id: int, folder_name: str) -> bool:
+        row = self.conn.execute(
+            """
+            SELECT 1
+            FROM card_instance_folders
+            WHERE guild_id = ? AND user_id = ? AND instance_id = ? AND folder_name = ?
+            LIMIT 1
+            """,
+            (guild_id, user_id, instance_id, folder_name),
+        ).fetchone()
+        return row is not None
+
+    def list_foldered_instances(self, guild_id: int, user_id: int, folder_name: str) -> list[tuple[int, str, int, str]]:
+        rows = self.conn.execute(
+            """
+            SELECT ci.instance_id, ci.card_id, ci.generation, ci.dupe_code
+            FROM card_instance_folders cif
+            JOIN card_instances ci
+                ON ci.instance_id = cif.instance_id
+                AND ci.guild_id = cif.guild_id
+                AND ci.user_id = cif.user_id
+            WHERE cif.guild_id = ? AND cif.user_id = ? AND cif.folder_name = ?
+            ORDER BY ci.generation ASC, ci.card_id ASC, ci.instance_id ASC
+            """,
+            (guild_id, user_id, folder_name),
+        ).fetchall()
+        return [
+            (int(row["instance_id"]), str(row["card_id"]), int(row["generation"]), str(row["dupe_code"]))
+            for row in rows
+        ]
+
+    def list_for_instances(self, guild_id: int, user_id: int, instance_ids: list[int]) -> dict[int, str]:
+        if not instance_ids:
+            return {}
+
+        placeholders = ", ".join("?" for _ in instance_ids)
+        query = (
+            """
+            SELECT cif.instance_id, pf.emoji
+            FROM card_instance_folders cif
+            JOIN player_folders pf
+                ON pf.guild_id = cif.guild_id
+                AND pf.user_id = cif.user_id
+                AND pf.folder_name = cif.folder_name
+            WHERE cif.guild_id = ?
+                AND cif.user_id = ?
+                AND cif.instance_id IN (
+            """
+            + placeholders
+            + ")"
+        )
+        rows = self.conn.execute(query, [guild_id, user_id, *instance_ids]).fetchall()
+        return {int(row["instance_id"]): str(row["emoji"]) for row in rows}
+
+
 class PlayerTeamRepository:
     def __init__(self, conn: sqlite3.Connection):
         self.conn = conn
@@ -908,6 +1175,21 @@ class BattleSessionRepository:
             (winner_user_id, finished_at, last_action, guild_id, battle_id),
         )
         return int(cursor.rowcount) > 0
+
+    def mark_all_open_finished(self, guild_id: int, finished_at: float, last_action: str) -> int:
+        cursor = self.conn.execute(
+            """
+            UPDATE battle_sessions
+            SET status = 'finished',
+                finished_at = ?,
+                acting_user_id = NULL,
+                last_action = ?
+            WHERE guild_id = ?
+                AND status IN ('pending', 'active')
+            """,
+            (finished_at, last_action, guild_id),
+        )
+        return int(cursor.rowcount)
 
 
 class BattleCombatantRepository:

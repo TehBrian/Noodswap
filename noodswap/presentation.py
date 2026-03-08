@@ -118,7 +118,7 @@ def battle_arena_description(
     last_action: str,
 ) -> str:
     actor_text = f"<@{acting_user_id}>" if acting_user_id is not None else "None"
-    winner_text = f"<@{winner_user_id}>" if winner_user_id is not None else "-"
+    winner_text = f"🏆 <@{winner_user_id}> 🥇" if winner_user_id is not None else "-"
     challenger_lines = [_combatant_line(row) for row in challenger_rows] or ["(no cards)"]
     challenged_lines = [_combatant_line(row) for row in challenged_rows] or ["(no cards)"]
     return (
@@ -132,6 +132,74 @@ def battle_arena_description(
         f"{multiline_text(challenged_lines)}\n\n"
         f"Last Action: {last_action}"
     )
+
+
+# Canonical command syntax used in command error embeds.
+COMMAND_SYNTAX_BY_KEY: dict[str, str] = {
+    "battle": "ns battle <player> <stake>",
+    "burn": "ns burn [targets...]",
+    "buy": "ns buy drop [quantity]",
+    "buy drop": "ns buy drop [quantity]",
+    "cards": "ns cards",
+    "collection": "ns collection [player]",
+    "cooldown": "ns cooldown [player]",
+    "dbexport": "ns dbexport",
+    "dbreset": "ns dbreset",
+    "divorce": "ns divorce",
+    "drop": "ns drop",
+    "flip": "ns flip <stake> [heads|tails]",
+    "folder": "ns folder add <folder_name> [emoji], ns folder remove <folder_name>, ns folder list, ns folder lock <folder_name>, ns folder unlock <folder_name>, ns folder assign <folder_name> <card_code>, ns folder unassign <folder_name> <card_code>, ns folder cards <folder_name>, ns folder emoji <folder_name> <emoji>",
+    "folder add": "ns folder add <folder_name> [emoji]",
+    "folder assign": "ns folder assign <folder_name> <card_code>",
+    "folder cards": "ns folder cards <folder_name>",
+    "folder emoji": "ns folder emoji <folder_name> <emoji>",
+    "folder list": "ns folder list",
+    "folder lock": "ns folder lock <folder_name>",
+    "folder remove": "ns folder remove <folder_name>",
+    "folder unassign": "ns folder unassign <folder_name> <card_code>",
+    "folder unlock": "ns folder unlock <folder_name>",
+    "font": "ns font [card_code]",
+    "frame": "ns frame [card_code]",
+    "gift": "ns gift <player> <dough>",
+    "help": "ns help",
+    "info": "ns info [player]",
+    "leaderboard": "ns leaderboard",
+    "lookup": "ns lookup <card_id|card_code|query>",
+    "lookuphd": "ns lookuphd <card_id|card_code|query>",
+    "marry": "ns marry [card_code]",
+    "morph": "ns morph [card_code]",
+    "slots": "ns slots",
+    "tag": "ns tag add <tag_name>, ns tag remove <tag_name>, ns tag list, ns tag lock <tag_name>, ns tag unlock <tag_name>, ns tag assign <tag_name> <card_code>, ns tag unassign <tag_name> <card_code>, ns tag cards <tag_name>",
+    "tag add": "ns tag add <tag_name>",
+    "tag assign": "ns tag assign <tag_name> <card_code>",
+    "tag cards": "ns tag cards <tag_name>",
+    "tag list": "ns tag list",
+    "tag lock": "ns tag lock <tag_name>",
+    "tag remove": "ns tag remove <tag_name>",
+    "tag unassign": "ns tag unassign <tag_name> <card_code>",
+    "tag unlock": "ns tag unlock <tag_name>",
+    "team": "ns team add <team_name>, ns team remove <team_name>, ns team list, ns team assign <team_name> <card_code>, ns team unassign <team_name> <card_code>, ns team cards <team_name>, ns team active [team_name]",
+    "team active": "ns team active [team_name]",
+    "team add": "ns team add <team_name>",
+    "team assign": "ns team assign <team_name> <card_code>",
+    "team cards": "ns team cards <team_name>",
+    "team list": "ns team list",
+    "team remove": "ns team remove <team_name>",
+    "team unassign": "ns team unassign <team_name> <card_code>",
+    "trade": "ns trade <player> <card_code> <amount>",
+    "vote": "ns vote",
+    "wa": "ns wish add <card_id>",
+    "wish": "ns wish add <card_id>, ns wish remove <card_id>, ns wish list [player]",
+    "wish add": "ns wish add <card_id>",
+    "wish list": "ns wish list [player]",
+    "wish remove": "ns wish remove <card_id>",
+    "wl": "ns wish list [player]",
+    "wr": "ns wish remove <card_id>",
+}
+
+
+def command_syntax_for_error(command_key: str) -> str | None:
+    return COMMAND_SYNTAX_BY_KEY.get(command_key)
 
 HELP_CATEGORY_PAGES: tuple[tuple[str, str, str], ...] = (
     (
@@ -148,15 +216,25 @@ HELP_CATEGORY_PAGES: tuple[tuple[str, str, str], ...] = (
     (
         "economy",
         "Economy",
-        """- `ns drop` (`ns d`, `nd`) — Open a drop with 3 cards and pull 1.
-- `ns slots` (`ns sl`) — Spin 3 food reels; matching all 3 wins 1-3 starter.
-    - `ns flip <stake> [heads|tails]` (`ns f`, `nf`) — Flip a coin wager (46% heads win / 54% tails lose), 2m cooldown.
+        """- `ns drop` (`ns d`, `nd`) — Open a drop with 3 cards and pull 1 (auto-uses 1 drop ticket if drop cooldown is active).
+    - `ns buy drop [quantity]` — Buy drop tickets for 1 starter each (default quantity: 1).
 - `ns cooldown [player]` (`ns cd`) — Check a player's cooldowns; defaults to yourself or the replied user.
 - `ns vote` (`ns v`, `nv`) — Open top.gg vote link and claim starter reward if your vote is detected.
-- `ns burn [card_code]` (`ns b`, `nb`) — Burn a card for dough; defaults to last pulled card.
-    - `ns trade <player> <card_code> <amount>` (`ns t`, `nt`) — Offer a card-for-dough trade.
-    - `ns team ...` (`ns tm ...`) — Manage battle teams and set your active team.
-    - `ns battle <player> <stake>` (`ns bt`) — Propose a stake battle to another player.""",
+- `ns burn [targets...]` (`ns b`, `nb`) — Burn one or many targets for dough; supports card codes/IDs and `tag <name>`; defaults to last pulled card.
+    - `ns gift <player> <dough>` (`ns g`) — Send dough to another player.
+    - `ns trade <player> <card_code> <amount>` (`ns t`, `nt`) — Offer a card-for-dough trade.""",
+    ),
+    (
+        "gambling",
+        "Gambling",
+        """- `ns slots` (`ns sl`) — Spin 3 food reels; matching all 3 wins 1-3 starter.
+- `ns flip <stake> [heads|tails]` (`ns f`, `nf`) — Flip a coin wager (46% heads win / 54% tails lose), 2m cooldown.""",
+    ),
+    (
+        "battle",
+        "Battle",
+        """- `ns team ...` (`ns tm ...`) — Manage battle teams and set your active team.
+- `ns battle <player> <stake>` (`ns bt`) — Propose a stake battle to another player.""",
     ),
     (
         "cosmetics",

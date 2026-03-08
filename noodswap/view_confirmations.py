@@ -8,12 +8,33 @@ from .frames import frame_label
 from .images import morph_transition_image_payload
 from .morphs import morph_label
 from .presentation import italy_embed
-from .services import execute_burn_confirmation, resolve_font_roll, resolve_frame_roll, resolve_morph_roll
+from .services import execute_burn_batch_confirmation, execute_burn_confirmation, resolve_font_roll, resolve_frame_roll, resolve_morph_roll
 from .settings import BURN_CONFIRM_TIMEOUT_SECONDS
 
 
+def _format_lock_reason(reason: str) -> str:
+    if reason.startswith("folder:"):
+        return f"folder `{reason.removeprefix('folder:')}`"
+    return f"tag `{reason}`"
+
+
+def _format_lock_reasons(reasons: tuple[str, ...] | list[str]) -> str:
+    if not reasons:
+        return "lock(s)"
+    return ", ".join(_format_lock_reason(reason) for reason in reasons)
+
+
 class BurnConfirmView(discord.ui.View):
-    def __init__(self, guild_id: int, user_id: int, instance_id: int, card_id: str, generation: int, delta_range: int):
+    def __init__(
+        self,
+        guild_id: int,
+        user_id: int,
+        instance_id: int,
+        card_id: str,
+        generation: int,
+        delta_range: int,
+        burn_items: list[tuple[int, int]] | None = None,
+    ):
         super().__init__(timeout=BURN_CONFIRM_TIMEOUT_SECONDS)
         self.guild_id = guild_id
         self.user_id = user_id
@@ -21,6 +42,10 @@ class BurnConfirmView(discord.ui.View):
         self.card_id = card_id
         self.generation = generation
         self.delta_range = delta_range
+        if burn_items is None:
+            self.burn_items = [(instance_id, delta_range)]
+        else:
+            self.burn_items = burn_items
         self.finished = False
         self.message: Optional[discord.Message] = None
 
@@ -43,22 +68,97 @@ class BurnConfirmView(discord.ui.View):
             )
             return
 
-        burn_result = execute_burn_confirmation(
+        if len(self.burn_items) <= 1:
+            burn_result = execute_burn_confirmation(
+                self.guild_id,
+                self.user_id,
+                instance_id=self.instance_id,
+                delta_range=self.delta_range,
+            )
+            if burn_result.is_blocked:
+                self.finished = True
+                self._disable_buttons()
+                await interaction.response.edit_message(view=self)
+                if interaction.message is not None:
+                    lock_reason_text = _format_lock_reasons(burn_result.locked_tags)
+                    await interaction.message.reply(
+                        embed=italy_embed(
+                            "Burn Blocked",
+                            f"This card is protected by {lock_reason_text}.",
+                        ),
+                        mention_author=False,
+                    )
+                return
+
+            if burn_result.is_failed:
+                self.finished = True
+                self._disable_buttons()
+                await interaction.response.edit_message(
+                    view=self,
+                )
+                if interaction.message is not None:
+                    await interaction.message.reply(
+                        embed=italy_embed("Burn Failed", burn_result.message),
+                        mention_author=False,
+                    )
+                return
+
+            if (
+                burn_result.card_id is None
+                or burn_result.generation is None
+                or burn_result.dupe_code is None
+                or burn_result.payout is None
+                or burn_result.delta is None
+            ):
+                self.finished = True
+                self._disable_buttons()
+                await interaction.response.edit_message(view=self)
+                if interaction.message is not None:
+                    await interaction.message.reply(
+                        embed=italy_embed("Burn Failed", "Burn failed."),
+                        mention_author=False,
+                    )
+                return
+
+            burned_embed = italy_embed(
+                "**Card Burned**",
+                f"""{card_dupe_display(burn_result.card_id, burn_result.generation, dupe_code=burn_result.dupe_code)}
+
+Payout: **{burn_result.payout} dough**
+    RNG: **{burn_result.delta:+}**""",
+            )
+
+            self.finished = True
+            self._disable_buttons()
+            await interaction.response.edit_message(
+                view=self,
+            )
+            if interaction.message is not None:
+                await interaction.message.reply(embed=burned_embed, mention_author=False)
+            return
+
+        burn_result = execute_burn_batch_confirmation(
             self.guild_id,
             self.user_id,
-            instance_id=self.instance_id,
-            delta_range=self.delta_range,
+            burn_targets=self.burn_items,
         )
         if burn_result.is_blocked:
             self.finished = True
             self._disable_buttons()
             await interaction.response.edit_message(view=self)
             if interaction.message is not None:
-                locked_tags_text = ", ".join(f"`{tag}`" for tag in burn_result.locked_tags)
+                blocked_lines: list[str] = []
+                for instance_id, lock_reasons in burn_result.locked_instances:
+                    lock_reason_text = _format_lock_reasons(lock_reasons)
+                    blocked_lines.append(f"`#{instance_id}`: {lock_reason_text}")
                 await interaction.message.reply(
                     embed=italy_embed(
                         "Burn Blocked",
-                        f"This card is protected by locked tag(s): {locked_tags_text}.",
+                        (
+                            "Burn failed because at least one selected card is protected by lock(s). "
+                            "No cards were burned.\n\n"
+                            + "\n".join(blocked_lines)
+                        ),
                     ),
                     mention_author=False,
                 )
@@ -77,29 +177,18 @@ class BurnConfirmView(discord.ui.View):
                 )
             return
 
-        if (
-            burn_result.card_id is None
-            or burn_result.generation is None
-            or burn_result.dupe_code is None
-            or burn_result.payout is None
-            or burn_result.delta is None
-        ):
-            self.finished = True
-            self._disable_buttons()
-            await interaction.response.edit_message(view=self)
-            if interaction.message is not None:
-                await interaction.message.reply(
-                    embed=italy_embed("Burn Failed", "Burn failed."),
-                    mention_author=False,
-                )
-            return
+        burned_lines: list[str] = []
+        total_payout = 0
+        for entry in burn_result.burned_entries:
+            total_payout += entry.payout
+            burned_lines.append(
+                f"{card_dupe_display(entry.card_id, entry.generation, dupe_code=entry.dupe_code)}\n"
+                f"Payout: **{entry.payout} dough** | RNG: **{entry.delta:+}**"
+            )
 
         burned_embed = italy_embed(
-            "**Card Burned**",
-            f"""{card_dupe_display(burn_result.card_id, burn_result.generation, dupe_code=burn_result.dupe_code)}
-
-Payout: **{burn_result.payout} dough**
-    RNG: **{burn_result.delta:+}**""",
+            "**Cards Burned**",
+            "\n\n".join(burned_lines) + f"\n\nTotal Payout: **{total_payout} dough**",
         )
 
         self.finished = True

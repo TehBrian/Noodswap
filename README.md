@@ -128,12 +128,14 @@ This bot uses privileged intents. Enable these for your application in Discord D
 - `ns lookup <card_id|card_code|query>` / `ns l <card_id|card_code|query>` — show base card details, or exact dupe details when a card code is provided.
 - `ns lookuphd <card_id|card_code|query>` / `ns lhd <card_id|card_code|query>` — same as lookup, but renders the card image at `1000x1400`.
 - `ns help` / `ns h` — show command help.
-- `ns drop` / `ns d` — open a drop with 3 random cards; anyone can claim unclaimed cards via buttons.
+- `ns drop` / `ns d` — open a drop with 3 random cards; anyone can claim unclaimed cards via buttons. If drop cooldown is active, one `drop ticket` is auto-consumed instead.
+- `ns buy drop [quantity]` — buy drop tickets using `starter` (cost: 1 starter per ticket; default quantity is 1).
 - `ns slots` / `ns sl` — spin 3 food reels; matching all 3 awards 1-3 `starter`.
 - `ns flip <stake>` / `ns f <stake>` — coin flip wager with 46% win / 54% lose odds; heads wins `+stake`, tails loses `-stake` (2m cooldown).
 - `ns vote` / `ns v` — open the top.gg vote page and claim `starter` reward when your vote is detected.
 - `ns cooldown [player]` / `ns cd [player]` — show drop (6m), pull (4m), flip (2m), slots (22m), and vote reward (24h) cooldowns for yourself or another player.
-- `ns burn [card_code]` / `ns b [card_code]` — burn a specific dupe for dough (randomized around base). If omitted, defaults to your most recently pulled card. Burn is blocked for cards in locked tags.
+- `ns burn [targets...]` / `ns b [targets...]` — burn one or more targets for dough. Supports card codes/IDs, `tag <name>`, and `folder <name>` selectors (`tag:<name>`, `folder:<name>` also supported). If any selected card is in a locked tag or locked folder, the entire burn is blocked.
+- `ns gift <player> <dough>` / `ns g <player> <dough>` — send dough to another player.
 - `ns morph [card_code]` / `ns mo [card_code]` — pay 20% of card value (rounded up) to apply a random visual morph; currently supports `black_and_white`.
 - `ns frame [card_code]` / `ns fr [card_code]` — pay 20% of card value (rounded up) to apply a random cosmetic frame from available overlays (`buttery`, `gilded`, `drizzled`) in `assets/frame_overlays/`.
 - `ns font [card_code]` / `ns fo [card_code]` — pay 20% of card value (rounded up) to apply a random cosmetic font (`serif`, `mono`, `storybook`, `spooky`, `pixel`, `playful`). `Classic` is now the default baseline style (not a modifier).
@@ -159,6 +161,15 @@ This bot uses privileged intents. Enable these for your application in Discord D
 - `ns tag assign <tag_name> <card_code>` / `ns tag as ...` — tag one of your owned dupes.
 - `ns tag unassign <tag_name> <card_code>` / `ns tag u ...` — remove a card from a tag.
 - `ns tag cards <tag_name>` / `ns tag c <tag_name>` — list cards in a specific tag.
+- `ns folder` / `ns fd` — folder command group.
+- `ns folder add <folder_name> [emoji]` / `ns folder a ...` — create a personal folder with optional emoji (default `📁`).
+- `ns folder remove <folder_name>` / `ns folder r ...` — delete one of your folders.
+- `ns folder list` / `ns folder l` — list your folders, emoji, lock status, and card counts.
+- `ns folder lock <folder_name>` / `ns folder unlock <folder_name>` — toggle burn protection for that folder.
+- `ns folder assign <folder_name> <card_code>` / `ns folder as ...` — place one owned card instance into a folder (moves it if it already had one).
+- `ns folder unassign <folder_name> <card_code>` / `ns folder u ...` — remove a card from that folder.
+- `ns folder cards <folder_name>` / `ns folder c <folder_name>` — list cards in a specific folder.
+- `ns folder emoji <folder_name> <emoji>` / `ns folder e ...` — update a folder's emoji.
 - `ns marry [card_code]` / `ns m [card_code]` — marry a specific owned dupe by code.
 - `ns divorce` / `ns dv` — divorce your currently married card.
 
@@ -205,6 +216,7 @@ Machine-readable output is available with `--json`.
 - **DUPE CARDS have CODES. BASE CARDS have IDS.**
 - Player state is global across all guilds: inventories, dough, marriages, and wishlist are shared across every server where the bot is installed.
 - `starter` is a higher-tier currency earned from verified top.gg votes.
+- `drop tickets` are a consumable currency that bypasses `drop` cooldown when used automatically.
 - `burn` includes an explicit confirm/cancel interaction before destruction.
 - Team capacity is capped at 3 cards per team, and battles consume each player's active team.
 - Battles are turn-based (`Attack`, `Defend`, `Switch`, `Surrender`) and include miss chance, effectiveness multipliers by series, and roll variance.

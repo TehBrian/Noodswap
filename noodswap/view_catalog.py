@@ -18,10 +18,12 @@ class CardCatalogView(discord.ui.View):
         self.default_page_size = max(1, page_size)
         self.page_index = 0
         self.sort_mode = "alphabetical"
+        self.sort_descending = self._default_sort_descending(self.sort_mode)
         self.gallery_mode = False
         self.message: Optional[discord.Message] = None
-        self._sorted_entries = self._sorted_entries_for_mode(self.sort_mode)
+        self._sorted_entries = self._sorted_entries_for_mode(self.sort_mode, descending=self.sort_descending)
         self._set_gallery_button_label()
+        self._set_sort_direction_button_label()
         self._set_sort_select_defaults()
         self._refresh_button_state()
 
@@ -38,6 +40,12 @@ class CardCatalogView(discord.ui.View):
     def _set_gallery_button_label(self) -> None:
         self.gallery_toggle_button.label = "Gallery: On" if self.gallery_mode else "Gallery: Off"
 
+    def _set_sort_direction_button_label(self) -> None:
+        self.sort_direction_button.label = "▼" if self.sort_descending else "▲"
+
+    def _default_sort_descending(self, mode: str) -> bool:
+        return mode in {"wishes", "base_value"}
+
     def _rarity_rank(self, rarity: str) -> int:
         order = {
             "celestial": 0,
@@ -51,12 +59,12 @@ class CardCatalogView(discord.ui.View):
         }
         return order.get(rarity, len(order))
 
-    def _sorted_entries_for_mode(self, mode: str) -> list[tuple[str, int]]:
+    def _sorted_entries_for_mode(self, mode: str, *, descending: bool) -> list[tuple[str, int]]:
         if mode == "wishes":
             return sorted(
                 self.entries,
                 key=lambda entry: (
-                    -entry[1],
+                    -entry[1] if descending else entry[1],
                     str(CARD_CATALOG[entry[0]]["name"]),
                     entry[0],
                 ),
@@ -70,13 +78,14 @@ class CardCatalogView(discord.ui.View):
                     str(CARD_CATALOG[entry[0]]["name"]),
                     entry[0],
                 ),
+                reverse=descending,
             )
 
         if mode == "base_value":
             return sorted(
                 self.entries,
                 key=lambda entry: (
-                    -int(CARD_CATALOG[entry[0]]["base_value"]),
+                    -int(CARD_CATALOG[entry[0]]["base_value"]) if descending else int(CARD_CATALOG[entry[0]]["base_value"]),
                     str(CARD_CATALOG[entry[0]]["name"]),
                     entry[0],
                 ),
@@ -89,6 +98,7 @@ class CardCatalogView(discord.ui.View):
                     str(CARD_CATALOG[entry[0]]["name"]),
                     entry[0],
                 ),
+                reverse=descending,
             )
 
         return sorted(
@@ -98,6 +108,7 @@ class CardCatalogView(discord.ui.View):
                 str(CARD_CATALOG[entry[0]]["name"]),
                 entry[0],
             ),
+            reverse=descending,
         )
 
     def _set_sort_select_defaults(self) -> None:
@@ -152,8 +163,12 @@ class CardCatalogView(discord.ui.View):
             "base_value": "Base Value",
             "alphabetical": "Alphabetical",
         }
+        direction_label = "Desc" if self.sort_descending else "Asc"
         embed.set_footer(
-            text=f"Page {self.page_index + 1}/{self.total_pages} • Sort: {sort_label_map.get(self.sort_mode, 'Alphabetical')}"
+            text=(
+                f"Page {self.page_index + 1}/{self.total_pages} • "
+                f"Sort: {sort_label_map.get(self.sort_mode, 'Alphabetical')} ({direction_label})"
+            )
         )
         return embed, image_file
 
@@ -163,6 +178,7 @@ class CardCatalogView(discord.ui.View):
 
     async def _update_message(self, interaction: discord.Interaction) -> None:
         self._set_gallery_button_label()
+        self._set_sort_direction_button_label()
         self._clamp_page_index()
         self._refresh_button_state()
         embed, image_file = self._build_embed_and_file()
@@ -200,9 +216,19 @@ class CardCatalogView(discord.ui.View):
 
         selected_mode = select.values[0]
         self.sort_mode = selected_mode
+        self.sort_descending = self._default_sort_descending(selected_mode)
         self.page_index = 0
-        self._sorted_entries = self._sorted_entries_for_mode(selected_mode)
+        self._sorted_entries = self._sorted_entries_for_mode(selected_mode, descending=self.sort_descending)
         self._set_sort_select_defaults()
+        await self._update_message(interaction)
+
+    @discord.ui.button(label="▲", style=discord.ButtonStyle.secondary)
+    async def sort_direction_button(self, interaction: discord.Interaction, _button: discord.ui.Button):
+        if not await self._guard_user(interaction):
+            return
+        self.sort_descending = not self.sort_descending
+        self.page_index = 0
+        self._sorted_entries = self._sorted_entries_for_mode(self.sort_mode, descending=self.sort_descending)
         await self._update_message(interaction)
 
     @discord.ui.button(label="Gallery: Off", style=discord.ButtonStyle.primary)

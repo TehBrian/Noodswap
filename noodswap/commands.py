@@ -12,11 +12,13 @@ import aiohttp
 import discord
 from discord.ext import commands
 
+from .battle_engine import value_to_stats
 from .cards import (
     CARD_CATALOG,
     card_base_display,
     card_dupe_display,
     card_dupe_display_concise,
+    card_value,
     normalize_card_id,
     search_card_ids,
     search_card_ids_by_name,
@@ -35,7 +37,6 @@ from .frames import frame_label
 from .morphs import morph_label
 from .presentation import (
     battle_offer_description,
-    burn_confirmation_description,
     drop_choices_description,
     italy_embed,
     italy_marry_embed,
@@ -45,6 +46,7 @@ from .services import (
     execute_divorce,
     execute_marry,
     prepare_burn,
+    prepare_burn_batch,
     prepare_drop,
     prepare_font,
     prepare_frame,
@@ -65,40 +67,54 @@ from .settings import (
 )
 from .storage import (
     add_starter,
+    buy_drop_tickets_with_starter,
+    assign_instance_to_folder,
     assign_instance_to_team,
     assign_tag_to_instance,
     claim_vote_reward_if_ready,
     consume_slots_cooldown_if_ready,
     execute_flip_wager,
+    create_player_folder,
     create_player_tag,
     create_player_team,
+    delete_player_folder,
     delete_player_team,
     delete_player_tag,
+        get_folder_emojis_for_instances,
+    execute_gift_dough,
     get_instance_by_code,
     get_instance_by_id,
     get_instance_by_dupe_code,
     get_instance_font,
     get_instance_frame,
     get_instance_morph,
+    get_burn_candidate_by_card_id,
+    get_instances_by_folder,
     get_instances_by_tag,
     get_instances_by_team,
     get_locked_instance_ids,
+    is_instance_assigned_to_folder,
     is_tag_assigned_to_instance,
     get_player_cooldown_timestamps,
     get_player_card_instances,
     get_player_flip_timestamp,
     get_player_leaderboard_info,
     get_player_slots_timestamp,
+    list_player_folders,
     list_player_tags,
     list_player_teams,
     get_player_starter,
     get_player_info,
+    get_player_drop_tickets,
     get_player_vote_reward_timestamp,
     get_total_cards,
+    set_player_folder_emoji,
+    set_player_folder_locked,
     set_player_tag_locked,
     set_active_team,
     get_active_team_name,
     is_instance_assigned_to_team,
+    unassign_instance_from_folder,
     unassign_instance_from_team,
     unassign_tag_from_instance,
     add_card_to_wishlist,
@@ -322,6 +338,81 @@ def _normalize_flip_side(side_raw: str | None) -> str | None:
     return None
 
 
+def _parse_burn_selector_tokens(raw_targets: tuple[str, ...]) -> tuple[list[tuple[str, str]], str | None]:
+    if not raw_targets:
+        return [], None
+
+    selectors: list[tuple[str, str]] = []
+    index = 0
+    while index < len(raw_targets):
+        token = raw_targets[index].strip()
+        if not token:
+            index += 1
+            continue
+
+        lowered = token.casefold()
+        if ":" in token:
+            prefix, value = token.split(":", 1)
+            selector_type = prefix.strip().casefold()
+            selector_value = value.strip()
+            if selector_type in {"card", "tag", "folder"}:
+                if not selector_value:
+                    return [], f"Missing value for `{selector_type}` selector."
+                selectors.append((selector_type, selector_value))
+                index += 1
+                continue
+
+        if lowered in {"card", "tag", "folder"}:
+            if index + 1 >= len(raw_targets):
+                return [], f"Missing value after `{token}`."
+            selector_value = raw_targets[index + 1].strip()
+            if not selector_value:
+                return [], f"Missing value after `{token}`."
+            selectors.append((lowered, selector_value))
+            index += 2
+            continue
+
+        selectors.append(("card", token))
+        index += 1
+
+    return selectors, None
+
+
+def _resolve_burn_selector_instances(
+    guild_id: int,
+    user_id: int,
+    *,
+    selector_type: str,
+    selector_value: str,
+) -> tuple[list[tuple[int, str, int, str]], str | None]:
+    if selector_type == "card":
+        normalized_card_id = normalize_card_id(selector_value)
+        if normalized_card_id in CARD_CATALOG:
+            selected = get_burn_candidate_by_card_id(guild_id, user_id, normalized_card_id)
+            if selected is None:
+                return [], f"You do not own any copies of `{normalized_card_id}`."
+            return [selected], None
+
+        selected = get_instance_by_code(guild_id, user_id, selector_value)
+        if selected is None:
+            return [], f"You do not own the card code `{selector_value}`."
+        return [selected], None
+
+    if selector_type == "tag":
+        selected = get_instances_by_tag(guild_id, user_id, selector_value)
+        if not selected:
+            return [], f"Tag `{selector_value}` has no cards to burn."
+        return selected, None
+
+    if selector_type == "folder":
+        selected = get_instances_by_folder(guild_id, user_id, selector_value)
+        if not selected:
+            return [], f"Folder `{selector_value}` has no cards to burn."
+        return selected, None
+
+    return [], f"Unknown burn selector `{selector_type}`."
+
+
 def _opposite_flip_side(side: str) -> str:
     return "tails" if side == "heads" else "heads"
 
@@ -495,6 +586,18 @@ async def _wish_list(ctx: commands.Context, target_member: discord.abc.User | No
     view.message = message
 
 
+def _folder_emoji_map_for_instances(
+    guild_id: int,
+    user_id: int,
+    instances: list[tuple[int, str, int, str]],
+) -> dict[int, str]:
+    return get_folder_emojis_for_instances(
+        guild_id,
+        user_id,
+        [instance_id for instance_id, _card_id, _generation, _dupe_code in instances],
+    )
+
+
 async def _tag_add(ctx: commands.Context, tag_name: str) -> None:
     if ctx.guild is None:
         await _reply(ctx, embed=italy_embed("Tags", "Use this command in a server."))
@@ -640,6 +743,7 @@ async def _tag_cards(ctx: commands.Context, tag_name: str) -> None:
             [instance_id for instance_id, _card_id, _generation, _dupe_code in tagged_instances],
         ),
         wish_counts=get_card_wish_counts(ctx.guild.id),
+        folder_emojis_by_instance=_folder_emoji_map_for_instances(ctx.guild.id, ctx.author.id, tagged_instances),
         instance_styles={
             instance_id: (
                 get_instance_morph(ctx.guild.id, instance_id),
@@ -649,6 +753,187 @@ async def _tag_cards(ctx: commands.Context, tag_name: str) -> None:
             for instance_id, _card_id, _generation, _dupe_code in tagged_instances
         },
         guard_title="Tags",
+    )
+    message = await _reply(ctx, embed=view.build_embed(), view=view)
+    view.message = message
+
+
+async def _folder_add(ctx: commands.Context, folder_name: str, emoji: str | None) -> None:
+    if ctx.guild is None:
+        await _reply(ctx, embed=italy_embed("Folders", "Use this command in a server."))
+        return
+
+    created = create_player_folder(ctx.guild.id, ctx.author.id, folder_name, emoji)
+    normalized = folder_name.strip().lower()
+    if not created:
+        await _reply(
+            ctx,
+            embed=italy_embed(
+                "Folders",
+                "Could not create that folder. Folder names must be unique, non-empty, and up to 32 characters.",
+            ),
+        )
+        return
+
+    await _reply(ctx, embed=italy_embed("Folders", f"Created folder: `{normalized}`"))
+
+
+async def _folder_remove(ctx: commands.Context, folder_name: str) -> None:
+    if ctx.guild is None:
+        await _reply(ctx, embed=italy_embed("Folders", "Use this command in a server."))
+        return
+
+    removed = delete_player_folder(ctx.guild.id, ctx.author.id, folder_name)
+    normalized = folder_name.strip().lower()
+    if not removed:
+        await _reply(ctx, embed=italy_embed("Folders", f"Folder not found: `{normalized}`"))
+        return
+
+    await _reply(ctx, embed=italy_embed("Folders", f"Deleted folder: `{normalized}`"))
+
+
+async def _folder_list(ctx: commands.Context) -> None:
+    if ctx.guild is None:
+        await _reply(ctx, embed=italy_embed("Folders", "Use this command in a server."))
+        return
+
+    folders = list_player_folders(ctx.guild.id, ctx.author.id)
+    if not folders:
+        await _reply(ctx, embed=italy_embed("Your Folders", "No folders yet. Create one with `ns folder add <folder_name> [emoji]`."))
+        return
+
+    lines = [
+        (
+            f"{'🔒 ' if is_locked else '`  ` '}"
+            f"{emoji} `{folder_name}` - {'Locked' if is_locked else 'Unlocked'} - {card_count} card(s)"
+        )
+        for folder_name, emoji, is_locked, card_count in folders
+    ]
+    await _reply(ctx, embed=italy_embed("Your Folders", multiline_text(lines)))
+
+
+async def _folder_lock(ctx: commands.Context, folder_name: str, locked: bool) -> None:
+    if ctx.guild is None:
+        await _reply(ctx, embed=italy_embed("Folders", "Use this command in a server."))
+        return
+
+    updated = set_player_folder_locked(ctx.guild.id, ctx.author.id, folder_name, locked)
+    normalized = folder_name.strip().lower()
+    if not updated:
+        await _reply(ctx, embed=italy_embed("Folders", f"Folder not found: `{normalized}`"))
+        return
+
+    state = "locked" if locked else "unlocked"
+    await _reply(ctx, embed=italy_embed("Folders", f"Folder `{normalized}` is now **{state}**."))
+
+
+async def _folder_emoji(ctx: commands.Context, folder_name: str, emoji: str) -> None:
+    if ctx.guild is None:
+        await _reply(ctx, embed=italy_embed("Folders", "Use this command in a server."))
+        return
+
+    updated = set_player_folder_emoji(ctx.guild.id, ctx.author.id, folder_name, emoji)
+    normalized = folder_name.strip().lower()
+    if not updated:
+        await _reply(ctx, embed=italy_embed("Folders", f"Folder not found: `{normalized}`"))
+        return
+
+    await _reply(ctx, embed=italy_embed("Folders", f"Updated emoji for `{normalized}`."))
+
+
+async def _folder_assign(ctx: commands.Context, folder_name: str, card_code: str) -> None:
+    if ctx.guild is None:
+        await _reply(ctx, embed=italy_embed("Folders", "Use this command in a server."))
+        return
+
+    selected = get_instance_by_code(ctx.guild.id, ctx.author.id, card_code)
+    if selected is None:
+        await _reply(ctx, embed=italy_embed("Folders", "You do not own that card code."))
+        return
+
+    instance_id, card_id, generation, dupe_code = selected
+    if is_instance_assigned_to_folder(ctx.guild.id, ctx.author.id, instance_id, folder_name):
+        await _reply(ctx, embed=italy_embed("Folders", "That card is already in that folder."))
+        return
+
+    assigned = assign_instance_to_folder(ctx.guild.id, ctx.author.id, instance_id, folder_name)
+    normalized = folder_name.strip().lower()
+    if not assigned:
+        await _reply(
+            ctx,
+            embed=italy_embed(
+                "Folders",
+                "Could not folder that card. Make sure the folder exists and the card is yours.",
+            ),
+        )
+        return
+
+    await _reply(
+        ctx,
+        embed=italy_embed(
+            "Folders",
+            f"Placed {card_dupe_display(card_id, generation, dupe_code=dupe_code)} into `{normalized}`.",
+        ),
+    )
+
+
+async def _folder_unassign(ctx: commands.Context, folder_name: str, card_code: str) -> None:
+    if ctx.guild is None:
+        await _reply(ctx, embed=italy_embed("Folders", "Use this command in a server."))
+        return
+
+    selected = get_instance_by_code(ctx.guild.id, ctx.author.id, card_code)
+    if selected is None:
+        await _reply(ctx, embed=italy_embed("Folders", "You do not own that card code."))
+        return
+
+    instance_id, card_id, generation, dupe_code = selected
+    removed = unassign_instance_from_folder(ctx.guild.id, ctx.author.id, instance_id, folder_name)
+    normalized = folder_name.strip().lower()
+    if not removed:
+        await _reply(ctx, embed=italy_embed("Folders", f"That card is not in folder `{normalized}`."))
+        return
+
+    await _reply(
+        ctx,
+        embed=italy_embed(
+            "Folders",
+            f"Removed {card_dupe_display(card_id, generation, dupe_code=dupe_code)} from `{normalized}`.",
+        ),
+    )
+
+
+async def _folder_cards(ctx: commands.Context, folder_name: str) -> None:
+    if ctx.guild is None:
+        await _reply(ctx, embed=italy_embed("Folders", "Use this command in a server."))
+        return
+
+    normalized = folder_name.strip().lower()
+    folder_instances = get_instances_by_folder(ctx.guild.id, ctx.author.id, normalized)
+    if not folder_instances:
+        await _reply(ctx, embed=italy_embed("Folders", f"No cards found for folder `{normalized}`."))
+        return
+
+    view = SortableCollectionView(
+        user_id=ctx.author.id,
+        title=f"Folder: `{normalized}`",
+        instances=folder_instances,
+        locked_instance_ids=get_locked_instance_ids(
+            ctx.guild.id,
+            ctx.author.id,
+            [instance_id for instance_id, _card_id, _generation, _dupe_code in folder_instances],
+        ),
+        wish_counts=get_card_wish_counts(ctx.guild.id),
+        folder_emojis_by_instance=_folder_emoji_map_for_instances(ctx.guild.id, ctx.author.id, folder_instances),
+        instance_styles={
+            instance_id: (
+                get_instance_morph(ctx.guild.id, instance_id),
+                get_instance_frame(ctx.guild.id, instance_id),
+                get_instance_font(ctx.guild.id, instance_id),
+            )
+            for instance_id, _card_id, _generation, _dupe_code in folder_instances
+        },
+        guard_title="Folders",
     )
     message = await _reply(ctx, embed=view.build_embed(), view=view)
     view.message = message
@@ -782,6 +1067,7 @@ async def _team_cards(ctx: commands.Context, team_name: str) -> None:
             [instance_id for instance_id, _card_id, _generation, _dupe_code in team_instances],
         ),
         wish_counts=get_card_wish_counts(ctx.guild.id),
+        folder_emojis_by_instance=_folder_emoji_map_for_instances(ctx.guild.id, ctx.author.id, team_instances),
         instance_styles={
             instance_id: (
                 get_instance_morph(ctx.guild.id, instance_id),
@@ -790,10 +1076,16 @@ async def _team_cards(ctx: commands.Context, team_name: str) -> None:
             )
             for instance_id, _card_id, _generation, _dupe_code in team_instances
         },
+        card_line_formatter=_team_card_line_with_stats,
         guard_title="Teams",
     )
     message = await _reply(ctx, embed=view.build_embed(), view=view)
     view.message = message
+
+
+def _team_card_line_with_stats(card_id: str, generation: int, dupe_code: str | None) -> str:
+    hp, attack, defense = value_to_stats(card_value(card_id, generation))
+    return f"{card_dupe_display(card_id, generation, dupe_code)} • HP:{hp} ATK:{attack} DEF:{defense}"
 
 
 async def _team_active(ctx: commands.Context, team_name: str | None) -> None:
@@ -960,6 +1252,57 @@ def register_commands(bot: commands.Bot) -> None:
     async def tag_cards(ctx: commands.Context, tag_name: str):
         await _tag_cards(ctx, tag_name)
 
+    @bot.group(name="folder", aliases=["fd"], invoke_without_command=True)
+    async def folder(ctx: commands.Context):
+        await _reply(
+            ctx,
+            embed=italy_embed(
+                "Folders",
+                (
+                    "Usage: `ns folder add <folder_name> [emoji]`, `ns folder remove <folder_name>`, "
+                    "`ns folder list`, `ns folder lock <folder_name>`, `ns folder unlock <folder_name>`, "
+                    "`ns folder assign <folder_name> <card_code>`, `ns folder unassign <folder_name> <card_code>`, "
+                    "`ns folder cards <folder_name>`, `ns folder emoji <folder_name> <emoji>`."
+                ),
+            ),
+        )
+
+    @folder.command(name="add", aliases=["a", "create"])
+    async def folder_add(ctx: commands.Context, folder_name: str, emoji: str | None = None):
+        await _folder_add(ctx, folder_name, emoji)
+
+    @folder.command(name="remove", aliases=["r", "delete"])
+    async def folder_remove(ctx: commands.Context, folder_name: str):
+        await _folder_remove(ctx, folder_name)
+
+    @folder.command(name="list", aliases=["l"])
+    async def folder_list(ctx: commands.Context):
+        await _folder_list(ctx)
+
+    @folder.command(name="lock")
+    async def folder_lock(ctx: commands.Context, folder_name: str):
+        await _folder_lock(ctx, folder_name, True)
+
+    @folder.command(name="unlock")
+    async def folder_unlock(ctx: commands.Context, folder_name: str):
+        await _folder_lock(ctx, folder_name, False)
+
+    @folder.command(name="assign", aliases=["as"])
+    async def folder_assign(ctx: commands.Context, folder_name: str, card_code: str):
+        await _folder_assign(ctx, folder_name, card_code)
+
+    @folder.command(name="unassign", aliases=["u"])
+    async def folder_unassign(ctx: commands.Context, folder_name: str, card_code: str):
+        await _folder_unassign(ctx, folder_name, card_code)
+
+    @folder.command(name="cards", aliases=["c"])
+    async def folder_cards(ctx: commands.Context, folder_name: str):
+        await _folder_cards(ctx, folder_name)
+
+    @folder.command(name="emoji", aliases=["e"])
+    async def folder_emoji(ctx: commands.Context, folder_name: str, emoji: str):
+        await _folder_emoji(ctx, folder_name, emoji)
+
     @bot.group(name="team", aliases=["tm"], invoke_without_command=True)
     async def team(ctx: commands.Context):
         await _reply(
@@ -1001,6 +1344,62 @@ def register_commands(bot: commands.Bot) -> None:
     @team.command(name="active")
     async def team_active(ctx: commands.Context, team_name: str | None = None):
         await _team_active(ctx, team_name)
+
+    @bot.group(name="buy", invoke_without_command=True)
+    async def buy(ctx: commands.Context):
+        await _reply(
+            ctx,
+            embed=italy_embed(
+                "Buy",
+                "Usage: `ns buy drop [quantity]` (1 starter per drop ticket).",
+            ),
+        )
+
+    @buy.command(name="drop")
+    async def buy_drop(ctx: commands.Context, quantity: int = 1):
+        if ctx.guild is None:
+            await _reply(ctx, embed=italy_embed("Buy", "Use this command in a server."))
+            return
+
+        if quantity <= 0:
+            await _reply(ctx, embed=italy_embed("Buy", "Quantity must be a positive integer."))
+            return
+
+        purchased, starter_balance, drop_tickets, spent = buy_drop_tickets_with_starter(
+            ctx.guild.id,
+            ctx.author.id,
+            quantity,
+        )
+        if not purchased:
+            await _reply(
+                ctx,
+                embed=italy_embed(
+                    "Buy",
+                    multiline_text(
+                        [
+                            f"Cost: **{quantity} starter**",
+                            f"Starter Balance: **{starter_balance}**",
+                            "You do not have enough starter.",
+                        ]
+                    ),
+                ),
+            )
+            return
+
+        await _reply(
+            ctx,
+            embed=italy_embed(
+                "Buy",
+                multiline_text(
+                    [
+                        f"Purchased: **{spent} drop ticket(s)**",
+                        f"Spent: **{spent} starter**",
+                        f"Starter Balance: **{starter_balance}**",
+                        f"Drop Tickets: **{drop_tickets}**",
+                    ]
+                ),
+            ),
+        )
 
     @bot.command(name="cards", aliases=["ca"])
     async def cards(ctx: commands.Context):
@@ -1136,7 +1535,10 @@ def register_commands(bot: commands.Bot) -> None:
             f"{ctx.author.display_name}'s Drop",
             drop_choices_description(choices),
         )
-        embed.set_footer(text=f"Pull timeout: {DROP_TIMEOUT_SECONDS}s")
+        footer_text = f"Pull timeout: {DROP_TIMEOUT_SECONDS}s"
+        if prepared.used_drop_ticket:
+            footer_text = f"{footer_text} | 1 drop ticket used"
+        embed.set_footer(text=footer_text)
 
         preview_file = await build_drop_preview_file(choices)
         send_kwargs: dict[str, object] = {"embed": embed}
@@ -1270,6 +1672,7 @@ def register_commands(bot: commands.Bot) -> None:
                 [instance_id for instance_id, _card_id, _generation, _dupe_code in instances],
             ),
             wish_counts=get_card_wish_counts(ctx.guild.id),
+            folder_emojis_by_instance=_folder_emoji_map_for_instances(ctx.guild.id, target_member.id, instances),
             instance_styles={
                 instance_id: (
                     get_instance_morph(ctx.guild.id, instance_id),
@@ -1285,72 +1688,113 @@ def register_commands(bot: commands.Bot) -> None:
         view.message = message
 
     @bot.command(name="burn", aliases=["b"])
-    async def burn(ctx: commands.Context, card_code: str | None = None):
+    async def burn(ctx: commands.Context, card_code: str | None = None, *targets: str):
         if ctx.guild is None:
             await _reply(ctx, embed=italy_embed("Burn", "Use this command in a server."))
             return
 
-        prepared = prepare_burn(ctx.guild.id, ctx.author.id, card_code)
+        resolved_targets: list[tuple[int, str, int, str]] = []
+        raw_targets = ((card_code,) + targets) if card_code is not None else targets
+        parsed_selectors, parse_error = _parse_burn_selector_tokens(raw_targets)
+        if parse_error is not None:
+            await _reply(ctx, embed=italy_embed("Burn", parse_error))
+            return
+
+        if not parsed_selectors:
+            prepared_single = prepare_burn(ctx.guild.id, ctx.author.id, card_code=None)
+            if prepared_single.is_error:
+                await _reply(ctx, embed=italy_embed("Burn", prepared_single.error_message or "Burn failed."))
+                return
+            if (
+                prepared_single.instance_id is None
+                or prepared_single.card_id is None
+                or prepared_single.generation is None
+                or prepared_single.dupe_code is None
+            ):
+                await _reply(ctx, embed=italy_embed("Burn", "Burn failed."))
+                return
+            resolved_targets.append(
+                (
+                    prepared_single.instance_id,
+                    prepared_single.card_id,
+                    prepared_single.generation,
+                    prepared_single.dupe_code,
+                )
+            )
+        else:
+            for selector_type, selector_value in parsed_selectors:
+                selected_instances, selection_error = _resolve_burn_selector_instances(
+                    ctx.guild.id,
+                    ctx.author.id,
+                    selector_type=selector_type,
+                    selector_value=selector_value,
+                )
+                if selection_error is not None:
+                    await _reply(ctx, embed=italy_embed("Burn", selection_error))
+                    return
+                resolved_targets.extend(selected_instances)
+
+        deduped_targets: list[tuple[int, str, int, str]] = []
+        seen_instance_ids: set[int] = set()
+        for instance_id, card_id, generation, dupe_code in resolved_targets:
+            if instance_id in seen_instance_ids:
+                continue
+            seen_instance_ids.add(instance_id)
+            deduped_targets.append((instance_id, card_id, generation, dupe_code))
+
+        prepared = prepare_burn_batch(ctx.guild.id, ctx.author.id, deduped_targets)
         if prepared.is_error:
             await _reply(ctx, embed=italy_embed("Burn", prepared.error_message or "Burn failed."))
             return
 
-        if (
-            prepared.instance_id is None
-            or prepared.card_id is None
-            or prepared.generation is None
-            or prepared.dupe_code is None
-            or prepared.payout is None
-            or prepared.value is None
-            or prepared.base_value is None
-            or prepared.delta_range is None
-            or prepared.multiplier is None
-        ):
+        if not prepared.items or prepared.total_value is None or prepared.total_delta_range is None:
             await _reply(ctx, embed=italy_embed("Burn", "Burn failed."))
             return
 
-        instance_id = prepared.instance_id
-        burn_card_id = prepared.card_id
-        burn_generation = prepared.generation
-        burn_dupe_code = prepared.dupe_code
-        value = prepared.value
-        base_value = prepared.base_value
-        delta_range = prepared.delta_range
-        multiplier = prepared.multiplier
+        item_lines: list[str] = []
+        for item in prepared.items:
+            item_lines.append(
+                f"{card_dupe_display(item.card_id, item.generation, dupe_code=item.dupe_code)}\n"
+                f"Base: **{item.base_value}** | Generation: **x{item.multiplier:.2f}** | "
+                f"Value: **{item.value}** | Payout: **{item.value}** +- **{item.delta_range}**"
+            )
 
-        confirm_embed = italy_embed(
-            "Burn Confirmation",
-            burn_confirmation_description(
-                card_id=burn_card_id,
-                generation=burn_generation,
-                dupe_code=burn_dupe_code,
-                value=value,
-                base_value=base_value,
-                delta_range=delta_range,
-                multiplier=multiplier,
-            ),
+        total_count = len(prepared.items)
+        confirm_description = (
+            "Burn these cards?\n\n"
+            + "\n\n".join(item_lines)
+            + "\n\n"
+            + f"Cards: **{total_count}**\n"
+            + f"Total Value: **{prepared.total_value}**\n"
+            + f"Total Payout Range: **{prepared.total_value}** +- **{prepared.total_delta_range}**"
         )
-        image_url, image_file = embed_image_payload(
-            burn_card_id,
-            generation=burn_generation,
-            morph_key=get_instance_morph(ctx.guild.id, instance_id),
-            frame_key=get_instance_frame(ctx.guild.id, instance_id),
-            font_key=get_instance_font(ctx.guild.id, instance_id),
-        )
-        if image_url is not None:
-            confirm_embed.set_image(url=image_url)
+        confirm_embed = italy_embed("Burn Confirmation", confirm_description)
 
+        primary_item = prepared.items[0]
         view = BurnConfirmView(
             guild_id=ctx.guild.id,
             user_id=ctx.author.id,
-            instance_id=instance_id,
-            card_id=burn_card_id,
-            generation=burn_generation,
-            delta_range=delta_range,
+            instance_id=primary_item.instance_id,
+            card_id=primary_item.card_id,
+            generation=primary_item.generation,
+            delta_range=primary_item.delta_range,
+            burn_items=[(item.instance_id, item.delta_range) for item in prepared.items],
         )
+
         send_kwargs: dict[str, object] = {"embed": confirm_embed, "view": view}
-        if image_file is not None:
-            send_kwargs["file"] = image_file
+        if len(prepared.items) == 1:
+            image_url, image_file = embed_image_payload(
+                primary_item.card_id,
+                generation=primary_item.generation,
+                morph_key=get_instance_morph(ctx.guild.id, primary_item.instance_id),
+                frame_key=get_instance_frame(ctx.guild.id, primary_item.instance_id),
+                font_key=get_instance_font(ctx.guild.id, primary_item.instance_id),
+            )
+            if image_url is not None:
+                confirm_embed.set_image(url=image_url)
+            if image_file is not None:
+                send_kwargs["file"] = image_file
+
         message = await _reply(ctx, **send_kwargs)
         view.message = message
 
@@ -1850,6 +2294,7 @@ def register_commands(bot: commands.Bot) -> None:
 
         dough, _, married_instance_id = get_player_info(ctx.guild.id, target_member.id)
         starter = get_player_starter(ctx.guild.id, target_member.id)
+        drop_tickets = get_player_drop_tickets(ctx.guild.id, target_member.id)
         wishes_count = len(get_wishlist_cards(ctx.guild.id, target_member.id))
         married = "None"
         married_image_url: str | None = None
@@ -1872,6 +2317,7 @@ def register_commands(bot: commands.Bot) -> None:
         embed.add_field(name="Cards", value=str(get_total_cards(ctx.guild.id, target_member.id)), inline=True)
         embed.add_field(name="Dough", value=str(dough), inline=True)
         embed.add_field(name="Starter", value=str(starter), inline=True)
+        embed.add_field(name="Drop Tickets", value=str(drop_tickets), inline=True)
         embed.add_field(name="Wishes", value=str(wishes_count), inline=True)
         embed.add_field(name="Married Card", value=married, inline=False)
         if married_image_url is not None:
@@ -1936,6 +2382,47 @@ def register_commands(bot: commands.Bot) -> None:
             view=view,
         )
         view.message = message
+
+    @bot.command(name="gift", aliases=["g"])
+    async def gift(ctx: commands.Context, player: str, dough: int):
+        if ctx.guild is None:
+            await _reply(ctx, embed=italy_embed("Gift", "Use this command in a server."))
+            return
+
+        resolved_member, resolve_error = await resolve_member_argument(ctx, player)
+        if resolved_member is None:
+            await _reply(ctx, embed=italy_embed("Gift", resolve_error or "Could not resolve player."))
+            return
+
+        if resolved_member.bot:
+            await _reply(ctx, embed=italy_embed("Gift", "You cannot gift dough to bots."))
+            return
+
+        success, message, sender_balance, recipient_balance = execute_gift_dough(
+            ctx.guild.id,
+            ctx.author.id,
+            resolved_member.id,
+            dough,
+        )
+        if not success:
+            await _reply(ctx, embed=italy_embed("Gift", message or "Gift failed."))
+            return
+
+        if sender_balance is None or recipient_balance is None:
+            await _reply(ctx, embed=italy_embed("Gift", "Gift failed."))
+            return
+
+        await _reply(
+            ctx,
+            embed=italy_embed(
+                "Gift Sent",
+                (
+                    f"<@{ctx.author.id}> gifted **{dough} dough** to <@{resolved_member.id}>.\n\n"
+                    f"Your Balance: **{sender_balance}**\n"
+                    f"Their Balance: **{recipient_balance}**"
+                ),
+            ),
+        )
 
     @bot.command(name="battle", aliases=["bt"])
     async def battle(ctx: commands.Context, player: str, stake: int):

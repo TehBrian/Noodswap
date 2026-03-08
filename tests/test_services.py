@@ -29,6 +29,7 @@ class ServicesTests(unittest.TestCase):
         self.assertTrue(prepared.is_cooldown)
         self.assertEqual(prepared.choices, [])
         self.assertGreater(prepared.cooldown_remaining_seconds, 0)
+        self.assertFalse(prepared.used_drop_ticket)
 
     def test_prepare_drop_returns_choices_when_ready(self) -> None:
         guild_id = 1
@@ -40,6 +41,7 @@ class ServicesTests(unittest.TestCase):
         self.assertFalse(prepared.is_cooldown)
         self.assertEqual(len(prepared.choices), 3)
         self.assertEqual(prepared.cooldown_remaining_seconds, 0.0)
+        self.assertFalse(prepared.used_drop_ticket)
 
     def test_prepare_drop_cooldown_is_global_across_guilds_for_same_user(self) -> None:
         first_guild_id = 1
@@ -53,6 +55,30 @@ class ServicesTests(unittest.TestCase):
         second = services.prepare_drop(second_guild_id, user_id, now + 1)
         self.assertTrue(second.is_cooldown)
         self.assertGreater(second.cooldown_remaining_seconds, 0)
+        self.assertFalse(second.used_drop_ticket)
+
+    def test_prepare_drop_uses_drop_ticket_during_cooldown(self) -> None:
+        guild_id = 1
+        user_id = 112
+        now = time.time()
+
+        storage.set_last_drop_at(guild_id, user_id, now)
+        purchased, starter_balance, tickets, spent = storage.buy_drop_tickets_with_starter(guild_id, user_id, 1)
+        self.assertFalse(purchased)
+        self.assertEqual(starter_balance, 0)
+        self.assertEqual(tickets, 0)
+        self.assertEqual(spent, 0)
+
+        storage.add_starter(guild_id, user_id, 1)
+        purchased, _, tickets, spent = storage.buy_drop_tickets_with_starter(guild_id, user_id, 1)
+        self.assertTrue(purchased)
+        self.assertEqual(tickets, 1)
+        self.assertEqual(spent, 1)
+
+        prepared = services.prepare_drop(guild_id, user_id, now + 1)
+        self.assertFalse(prepared.is_cooldown)
+        self.assertTrue(prepared.used_drop_ticket)
+        self.assertEqual(storage.get_player_drop_tickets(guild_id, user_id), 0)
 
     def test_prepare_burn_errors_without_last_pulled(self) -> None:
         prepared = services.prepare_burn(guild_id=1, user_id=20, card_code=None)
@@ -122,6 +148,22 @@ class ServicesTests(unittest.TestCase):
             "That card is protected by locked tag(s): `safe`.",
         )
 
+    def test_prepare_burn_rejects_locked_folder_card(self) -> None:
+        guild_id = 1
+        user_id = 2311
+        instance_id = storage.add_card_to_player(guild_id, user_id, "SPG", 333)
+        storage.create_player_folder(guild_id, user_id, "vault", "📦")
+        storage.assign_instance_to_folder(guild_id, user_id, instance_id, "vault")
+        storage.set_player_folder_locked(guild_id, user_id, "vault", True)
+
+        prepared = services.prepare_burn(guild_id=guild_id, user_id=user_id, card_code=None)
+
+        self.assertTrue(prepared.is_error)
+        if prepared.error_message is None:
+            return
+        self.assertIn("locked folder", prepared.error_message)
+        self.assertIn("`vault`", prepared.error_message)
+
     def test_execute_burn_confirmation_returns_blocked_for_locked_tags(self) -> None:
         guild_id = 1
         user_id = 232
@@ -139,6 +181,24 @@ class ServicesTests(unittest.TestCase):
 
         self.assertTrue(result.is_blocked)
         self.assertEqual(result.locked_tags, ("safe",))
+
+    def test_execute_burn_confirmation_returns_blocked_for_locked_folder(self) -> None:
+        guild_id = 1
+        user_id = 2321
+        instance_id = storage.add_card_to_player(guild_id, user_id, "SPG", 333)
+        storage.create_player_folder(guild_id, user_id, "vault", "📦")
+        storage.assign_instance_to_folder(guild_id, user_id, instance_id, "vault")
+        storage.set_player_folder_locked(guild_id, user_id, "vault", True)
+
+        result = services.execute_burn_confirmation(
+            guild_id,
+            user_id,
+            instance_id=instance_id,
+            delta_range=8,
+        )
+
+        self.assertTrue(result.is_blocked)
+        self.assertEqual(result.locked_tags, ("folder:vault",))
 
     def test_execute_burn_confirmation_returns_failed_when_instance_missing(self) -> None:
         result = services.execute_burn_confirmation(1, 233, instance_id=999_999, delta_range=8)
@@ -167,6 +227,69 @@ class ServicesTests(unittest.TestCase):
         self.assertIsNone(storage.get_instance_by_id(guild_id, instance_id))
         dough_after, _, _ = storage.get_player_info(guild_id, user_id)
         self.assertEqual(dough_after, dough_before + int(result.payout or 0))
+
+    def test_prepare_burn_batch_rejects_when_any_target_locked(self) -> None:
+        guild_id = 1
+        user_id = 235
+        open_instance = storage.add_card_to_player(guild_id, user_id, "SPG", 333)
+        locked_instance = storage.add_card_to_player(guild_id, user_id, "PEN", 444)
+        storage.create_player_tag(guild_id, user_id, "safe")
+        storage.assign_tag_to_instance(guild_id, user_id, locked_instance, "safe")
+        storage.set_player_tag_locked(guild_id, user_id, "safe", True)
+
+        targets = [
+            (open_instance, "SPG", 333, "0"),
+            (locked_instance, "PEN", 444, "1"),
+        ]
+
+        prepared = services.prepare_burn_batch(guild_id, user_id, targets)
+
+        self.assertTrue(prepared.is_error)
+        self.assertIsNotNone(prepared.error_message)
+        if prepared.error_message is None:
+            return
+        self.assertIn("Burn blocked", prepared.error_message)
+
+    def test_execute_burn_batch_confirmation_blocks_all_when_any_locked(self) -> None:
+        guild_id = 1
+        user_id = 236
+        open_instance = storage.add_card_to_player(guild_id, user_id, "SPG", 333)
+        locked_instance = storage.add_card_to_player(guild_id, user_id, "PEN", 444)
+        storage.create_player_tag(guild_id, user_id, "safe")
+        storage.assign_tag_to_instance(guild_id, user_id, locked_instance, "safe")
+        storage.set_player_tag_locked(guild_id, user_id, "safe", True)
+
+        result = services.execute_burn_batch_confirmation(
+            guild_id,
+            user_id,
+            burn_targets=[(open_instance, 8), (locked_instance, 9)],
+        )
+
+        self.assertTrue(result.is_blocked)
+        self.assertEqual(len(result.burned_entries), 0)
+        self.assertIsNotNone(storage.get_instance_by_id(guild_id, open_instance))
+        self.assertIsNotNone(storage.get_instance_by_id(guild_id, locked_instance))
+
+    def test_execute_burn_batch_confirmation_burns_all_and_awards_dough(self) -> None:
+        guild_id = 1
+        user_id = 237
+        first_instance = storage.add_card_to_player(guild_id, user_id, "SPG", 333)
+        second_instance = storage.add_card_to_player(guild_id, user_id, "PEN", 444)
+        dough_before, _, _ = storage.get_player_info(guild_id, user_id)
+
+        result = services.execute_burn_batch_confirmation(
+            guild_id,
+            user_id,
+            burn_targets=[(first_instance, 8), (second_instance, 9)],
+        )
+
+        self.assertTrue(result.is_burned)
+        self.assertEqual(len(result.burned_entries), 2)
+        total_payout = sum(entry.payout for entry in result.burned_entries)
+        self.assertIsNone(storage.get_instance_by_id(guild_id, first_instance))
+        self.assertIsNone(storage.get_instance_by_id(guild_id, second_instance))
+        dough_after, _, _ = storage.get_player_info(guild_id, user_id)
+        self.assertEqual(dough_after, dough_before + total_payout)
 
     def test_prepare_morph_returns_preview_without_applying(self) -> None:
         guild_id = 1
