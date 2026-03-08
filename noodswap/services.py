@@ -456,7 +456,7 @@ def execute_burn_batch_confirmation(
         )
 
     instance_ids = [instance_id for instance_id, _delta_range in burn_targets]
-    delta_by_instance = {instance_id: delta_range for instance_id, delta_range in burn_targets}
+    delta_by_instance = dict(burn_targets)
 
     burned_rows, locked_by_instance = burn_instances(guild_id, user_id, instance_ids)
     if locked_by_instance:

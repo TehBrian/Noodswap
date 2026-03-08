@@ -358,7 +358,7 @@ class CommandsFolderTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(sent_embed.description, "That card is already in that folder.")
 
 
-class CommandsBurnTests(unittest.IsolatedAsyncioTestCase):
+class CommandsBurnSelectorTests(unittest.IsolatedAsyncioTestCase):
     def setUp(self) -> None:
         self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)
         register_commands(self.bot)

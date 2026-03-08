@@ -148,7 +148,12 @@ COMMAND_SYNTAX_BY_KEY: dict[str, str] = {
     "divorce": "ns divorce",
     "drop": "ns drop",
     "flip": "ns flip <stake> [heads|tails]",
-    "folder": "ns folder add <folder_name> [emoji], ns folder remove <folder_name>, ns folder list, ns folder lock <folder_name>, ns folder unlock <folder_name>, ns folder assign <folder_name> <card_code>, ns folder unassign <folder_name> <card_code>, ns folder cards <folder_name>, ns folder emoji <folder_name> <emoji>",
+    "folder": (
+        "ns folder add <folder_name> [emoji], ns folder remove <folder_name>, ns folder list, "
+        "ns folder lock <folder_name>, ns folder unlock <folder_name>, "
+        "ns folder assign <folder_name> <card_code>, ns folder unassign <folder_name> <card_code>, "
+        "ns folder cards <folder_name>, ns folder emoji <folder_name> <emoji>"
+    ),
     "folder add": "ns folder add <folder_name> [emoji]",
     "folder assign": "ns folder assign <folder_name> <card_code>",
     "folder cards": "ns folder cards <folder_name>",
@@ -169,7 +174,12 @@ COMMAND_SYNTAX_BY_KEY: dict[str, str] = {
     "marry": "ns marry [card_code]",
     "morph": "ns morph [card_code]",
     "slots": "ns slots",
-    "tag": "ns tag add <tag_name>, ns tag remove <tag_name>, ns tag list, ns tag lock <tag_name>, ns tag unlock <tag_name>, ns tag assign <tag_name> <card_code>, ns tag unassign <tag_name> <card_code>, ns tag cards <tag_name>",
+    "tag": (
+        "ns tag add <tag_name>, ns tag remove <tag_name>, ns tag list, "
+        "ns tag lock <tag_name>, ns tag unlock <tag_name>, "
+        "ns tag assign <tag_name> <card_code>, ns tag unassign <tag_name> <card_code>, "
+        "ns tag cards <tag_name>"
+    ),
     "tag add": "ns tag add <tag_name>",
     "tag assign": "ns tag assign <tag_name> <card_code>",
     "tag cards": "ns tag cards <tag_name>",
@@ -178,7 +188,11 @@ COMMAND_SYNTAX_BY_KEY: dict[str, str] = {
     "tag remove": "ns tag remove <tag_name>",
     "tag unassign": "ns tag unassign <tag_name> <card_code>",
     "tag unlock": "ns tag unlock <tag_name>",
-    "team": "ns team add <team_name>, ns team remove <team_name>, ns team list, ns team assign <team_name> <card_code>, ns team unassign <team_name> <card_code>, ns team cards <team_name>, ns team active [team_name]",
+    "team": (
+        "ns team add <team_name>, ns team remove <team_name>, ns team list, "
+        "ns team assign <team_name> <card_code>, ns team unassign <team_name> <card_code>, "
+        "ns team cards <team_name>, ns team active [team_name]"
+    ),
     "team active": "ns team active [team_name]",
     "team add": "ns team add <team_name>",
     "team assign": "ns team assign <team_name> <card_code>",

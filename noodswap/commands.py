@@ -1162,7 +1162,7 @@ async def _battle(ctx: commands.Context, player: str, stake: int) -> None:
     view.message = message
 
 
-def register_commands(bot: commands.Bot) -> None:
+def register_commands(bot: commands.Bot) -> None:  # pylint: disable=too-many-statements,too-many-locals
     @bot.group(name="wish", aliases=["w"], invoke_without_command=True)
     async def wish(ctx: commands.Context):
         await _reply(ctx,
@@ -1688,14 +1688,13 @@ def register_commands(bot: commands.Bot) -> None:
         view.message = message
 
     @bot.command(name="burn", aliases=["b"])
-    async def burn(ctx: commands.Context, card_code: str | None = None, *targets: str):
+    async def burn(ctx: commands.Context, *targets: str):
         if ctx.guild is None:
             await _reply(ctx, embed=italy_embed("Burn", "Use this command in a server."))
             return
 
         resolved_targets: list[tuple[int, str, int, str]] = []
-        raw_targets = ((card_code,) + targets) if card_code is not None else targets
-        parsed_selectors, parse_error = _parse_burn_selector_tokens(raw_targets)
+        parsed_selectors, parse_error = _parse_burn_selector_tokens(targets)
         if parse_error is not None:
             await _reply(ctx, embed=italy_embed("Burn", parse_error))
             return
