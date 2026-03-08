@@ -2,7 +2,7 @@ from collections.abc import Callable
 import sqlite3
 
 
-TARGET_SCHEMA_VERSION = 15
+TARGET_SCHEMA_VERSION = 16
 _BASE36_ALPHABET = "0123456789abcdefghijklmnopqrstuvwxyz"
 
 
@@ -531,6 +531,53 @@ def _apply_migration_v15(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE players ADD COLUMN last_flip_at REAL NOT NULL DEFAULT 0")
 
 
+def _apply_migration_v16(conn: sqlite3.Connection) -> None:
+    battle_sessions_table_exists = conn.execute(
+        """
+        SELECT 1
+        FROM sqlite_master
+        WHERE type = 'table' AND name = 'battle_sessions'
+        LIMIT 1
+        """
+    ).fetchone() is not None
+    if not battle_sessions_table_exists:
+        return
+
+    conn.executescript(
+        """
+        CREATE TABLE IF NOT EXISTS battle_combatants (
+            battle_id INTEGER NOT NULL,
+            guild_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            side TEXT NOT NULL,
+            slot_index INTEGER NOT NULL,
+            instance_id INTEGER NOT NULL,
+            card_id TEXT NOT NULL,
+            generation INTEGER NOT NULL,
+            dupe_code TEXT NOT NULL,
+            max_hp INTEGER NOT NULL,
+            current_hp INTEGER NOT NULL,
+            is_active INTEGER NOT NULL DEFAULT 0 CHECK(is_active IN (0, 1)),
+            is_defending INTEGER NOT NULL DEFAULT 0 CHECK(is_defending IN (0, 1)),
+            is_knocked_out INTEGER NOT NULL DEFAULT 0 CHECK(is_knocked_out IN (0, 1)),
+            PRIMARY KEY (battle_id, side, slot_index),
+            FOREIGN KEY (battle_id)
+                REFERENCES battle_sessions(battle_id)
+                ON DELETE CASCADE,
+            FOREIGN KEY (instance_id)
+                REFERENCES card_instances(instance_id)
+                ON DELETE CASCADE
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_battle_combatants_battle
+            ON battle_combatants(battle_id, side, is_active, is_knocked_out);
+
+        CREATE INDEX IF NOT EXISTS idx_battle_combatants_user
+            ON battle_combatants(guild_id, user_id, battle_id);
+        """
+    )
+
+
 def run_migrations(
     conn: sqlite3.Connection,
     *,
@@ -614,6 +661,11 @@ def run_migrations(
         _apply_migration_v15(conn)
         _set_schema_version(conn, 15)
         current_version = 15
+
+    if current_version < 16:
+        _apply_migration_v16(conn)
+        _set_schema_version(conn, 16)
+        current_version = 16
 
     if current_version > target_schema_version:
         raise RuntimeError(

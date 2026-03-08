@@ -207,7 +207,7 @@ Card identity terms:
 - `team active <team_name>` sets the team used for battles.
 - `team active` (without team name) shows the current active team.
 
-## Battle UX (Current Foundation)
+## Battle UX
 
 - `battle <player> <stake>` creates a proposal requiring challenged player accept/deny.
 - Stake must be at least `1` dough.
@@ -215,7 +215,11 @@ Card identity terms:
 - Both players must have enough dough for the stake at proposal and accept time.
 - A player can only be in one pending/active battle at a time.
 - Proposal timeout is `60` seconds.
-- Accept/deny currently handles proposal lifecycle and arena setup; turn-by-turn combat controls are the next implementation phase.
+- On acceptance, both players are charged the stake and battle state is initialized from active teams.
+- Turn timeout is `45` seconds; timeout auto-skips the current turn.
+- Turn actions: `Attack`, `Defend`, `Switch`, `Surrender`.
+- `Switch` currently auto-selects the first available alive reserve card.
+- Winner receives the full stake pot (`2x stake`).
 
 ## Wishlist UX
 

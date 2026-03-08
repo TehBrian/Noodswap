@@ -958,6 +958,124 @@ class StorageTests(unittest.TestCase):
         self.assertEqual(battle["status"], "active")
         self.assertEqual(battle["acting_user_id"], challenger_id)
 
+        challenger_dough, _, _ = storage.get_player_info(guild_id, challenger_id)
+        challenged_dough, _, _ = storage.get_player_info(guild_id, challenged_id)
+        self.assertEqual(challenger_dough, 75)
+        self.assertEqual(challenged_dough, 75)
+
+        state = storage.get_battle_state(guild_id, battle_id)
+        self.assertIsNotNone(state)
+        if state is None:
+            return
+        challenger_combatants = state["challenger_combatants"]
+        challenged_combatants = state["challenged_combatants"]
+        self.assertTrue(isinstance(challenger_combatants, list))
+        self.assertTrue(isinstance(challenged_combatants, list))
+        if isinstance(challenger_combatants, list):
+            self.assertEqual(len(challenger_combatants), 1)
+            self.assertTrue(bool(challenger_combatants[0]["is_active"]))
+        if isinstance(challenged_combatants, list):
+            self.assertEqual(len(challenged_combatants), 1)
+            self.assertTrue(bool(challenged_combatants[0]["is_active"]))
+
+    def test_battle_attack_advances_turn(self) -> None:
+        guild_id = 1
+        challenger_id = 1411
+        challenged_id = 1412
+
+        storage.init_db()
+        storage.add_dough(guild_id, challenger_id, 100)
+        storage.add_dough(guild_id, challenged_id, 100)
+
+        storage.create_player_team(guild_id, challenger_id, "a")
+        storage.create_player_team(guild_id, challenged_id, "b")
+        storage.set_active_team(guild_id, challenger_id, "a")
+        storage.set_active_team(guild_id, challenged_id, "b")
+
+        storage.assign_instance_to_team(
+            guild_id,
+            challenger_id,
+            storage.add_card_to_player(guild_id, challenger_id, "SPG", 120),
+            "a",
+        )
+        storage.assign_instance_to_team(
+            guild_id,
+            challenged_id,
+            storage.add_card_to_player(guild_id, challenged_id, "PEN", 340),
+            "b",
+        )
+
+        created, _msg, battle_id, _a, _b = storage.create_battle_proposal(guild_id, challenger_id, challenged_id, 10)
+        self.assertTrue(created)
+        self.assertIsNotNone(battle_id)
+        if battle_id is None:
+            return
+        status, _accept_msg = storage.resolve_battle_proposal(guild_id, battle_id, challenged_id, accepted=True)
+        self.assertEqual(status, "accepted")
+
+        action_status, _action_message, _winner_id, next_actor_id = storage.execute_battle_turn_action(
+            guild_id,
+            battle_id,
+            challenger_id,
+            "attack",
+        )
+        self.assertIn(action_status, {"advanced", "finished"})
+        if action_status == "advanced":
+            self.assertEqual(next_actor_id, challenged_id)
+            battle = storage.get_battle_session(guild_id, battle_id)
+            self.assertIsNotNone(battle)
+            if battle is not None:
+                self.assertEqual(battle["acting_user_id"], challenged_id)
+
+    def test_battle_surrender_pays_winner(self) -> None:
+        guild_id = 1
+        challenger_id = 1421
+        challenged_id = 1422
+
+        storage.init_db()
+        storage.add_dough(guild_id, challenger_id, 100)
+        storage.add_dough(guild_id, challenged_id, 100)
+
+        storage.create_player_team(guild_id, challenger_id, "a")
+        storage.create_player_team(guild_id, challenged_id, "b")
+        storage.set_active_team(guild_id, challenger_id, "a")
+        storage.set_active_team(guild_id, challenged_id, "b")
+
+        storage.assign_instance_to_team(
+            guild_id,
+            challenger_id,
+            storage.add_card_to_player(guild_id, challenger_id, "SPG", 120),
+            "a",
+        )
+        storage.assign_instance_to_team(
+            guild_id,
+            challenged_id,
+            storage.add_card_to_player(guild_id, challenged_id, "PEN", 340),
+            "b",
+        )
+
+        created, _msg, battle_id, _a, _b = storage.create_battle_proposal(guild_id, challenger_id, challenged_id, 25)
+        self.assertTrue(created)
+        self.assertIsNotNone(battle_id)
+        if battle_id is None:
+            return
+        status, _accept_msg = storage.resolve_battle_proposal(guild_id, battle_id, challenged_id, accepted=True)
+        self.assertEqual(status, "accepted")
+
+        action_status, _action_message, winner_id, _next_actor = storage.execute_battle_turn_action(
+            guild_id,
+            battle_id,
+            challenger_id,
+            "surrender",
+        )
+        self.assertEqual(action_status, "finished")
+        self.assertEqual(winner_id, challenged_id)
+
+        challenger_dough, _, _ = storage.get_player_info(guild_id, challenger_id)
+        challenged_dough, _, _ = storage.get_player_info(guild_id, challenged_id)
+        self.assertEqual(challenger_dough, 75)
+        self.assertEqual(challenged_dough, 125)
+
     def test_create_battle_proposal_rejects_player_with_open_battle(self) -> None:
         guild_id = 1
         challenger_id = 1501

@@ -30,7 +30,7 @@ from ..view_pagination import FIRST_PAGE_EMOJI, LAST_PAGE_EMOJI, NEXT_PAGE_EMOJI
 from ..view_sortable_lists import SortableCardListView, SortableCollectionView
 from ..view_text import PaginatedLinesView, PlayerLeaderboardView
 from ..view_trade import TradeView
-from ..view_battle import BattleProposalView
+from ..view_battle import BattleProposalView, BattleTurnView
 
 __all__ = [
     "discord",
@@ -71,4 +71,5 @@ __all__ = [
     "PlayerLeaderboardView",
     "TradeView",
     "BattleProposalView",
+    "BattleTurnView",
 ]

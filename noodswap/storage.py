@@ -1,12 +1,15 @@
 import sqlite3
 import time
+import random
 from collections.abc import Iterator
 from contextlib import contextmanager
 from typing import Optional
 
 from .cards import card_value, random_generation, split_card_code
+from .battle_engine import build_battle_card, resolve_attack
 from .migrations import TARGET_SCHEMA_VERSION, run_migrations
 from .repositories import (
+    BattleCombatantRepository,
     BattleSessionRepository,
     CardInstanceRepository,
     CardInstanceTagRepository,
@@ -311,6 +314,49 @@ def get_battle_session(guild_id: int, battle_id: int) -> Optional[dict[str, int 
         return battles.get_by_id(guild_id, battle_id)
 
 
+def get_battle_state(guild_id: int, battle_id: int) -> Optional[dict[str, object]]:
+    guild_id = _scope_guild_id(guild_id)
+    with get_db_connection() as conn:
+        battles = BattleSessionRepository(conn)
+        combatants = BattleCombatantRepository(conn)
+        battle = battles.get_by_id(guild_id, battle_id)
+        if battle is None:
+            return None
+        roster = combatants.list_for_battle(battle_id)
+        return {
+            "battle": battle,
+            "combatants": roster,
+            "challenger_combatants": [row for row in roster if row["side"] == "challenger"],
+            "challenged_combatants": [row for row in roster if row["side"] == "challenged"],
+        }
+
+
+def _first_alive_slot(rows: list[dict[str, int | str | bool]]) -> Optional[int]:
+    for row in rows:
+        is_knocked_out = bool(row["is_knocked_out"])
+        current_hp = int(row["current_hp"])
+        if not is_knocked_out and current_hp > 0:
+            return int(row["slot_index"])
+    return None
+
+
+def _active_row(rows: list[dict[str, int | str | bool]]) -> Optional[dict[str, int | str | bool]]:
+    for row in rows:
+        if bool(row["is_active"]):
+            return row
+    return None
+
+
+def _battle_sides(battle: dict[str, int | float | str | None], actor_id: int) -> tuple[Optional[str], Optional[int], Optional[int]]:
+    challenger_id = int(battle["challenger_id"])
+    challenged_id = int(battle["challenged_id"])
+    if actor_id == challenger_id:
+        return "challenger", challenged_id, challenger_id
+    if actor_id == challenged_id:
+        return "challenged", challenger_id, challenged_id
+    return None, None, None
+
+
 def resolve_battle_proposal(
     guild_id: int,
     battle_id: int,
@@ -324,6 +370,7 @@ def resolve_battle_proposal(
         players = PlayerRepository(conn, STARTING_DOUGH)
         members = TeamMemberRepository(conn)
         battles = BattleSessionRepository(conn)
+        combatants = BattleCombatantRepository(conn)
         battle = battles.get_by_id(guild_id, battle_id)
         if battle is None:
             return "failed", "Battle proposal not found."
@@ -358,10 +405,296 @@ def resolve_battle_proposal(
         if players.get_dough(guild_id, challenged_id) < stake:
             return "failed", "Battle failed: challenged player no longer has enough dough for stake."
 
+        challenger_instances = members.list_team_instances(guild_id, challenger_id, challenger_team_name)[:TEAM_MAX_CARDS]
+        challenged_instances = members.list_team_instances(guild_id, challenged_id, challenged_team_name)[:TEAM_MAX_CARDS]
+        if not challenger_instances:
+            return "failed", "Challenger active team has no cards."
+        if not challenged_instances:
+            return "failed", "Your active team has no cards."
+
+        combatant_rows: list[tuple[int, int, str, int, int, str, int, str, int, int, bool, bool, bool]] = []
+        for slot_index, (instance_id, card_id, generation, dupe_code) in enumerate(challenger_instances):
+            battle_card = build_battle_card(instance_id, card_id, generation, dupe_code)
+            combatant_rows.append(
+                (
+                    guild_id,
+                    challenger_id,
+                    "challenger",
+                    slot_index,
+                    instance_id,
+                    card_id,
+                    generation,
+                    dupe_code,
+                    battle_card.max_hp,
+                    battle_card.max_hp,
+                    slot_index == 0,
+                    False,
+                    False,
+                )
+            )
+        for slot_index, (instance_id, card_id, generation, dupe_code) in enumerate(challenged_instances):
+            battle_card = build_battle_card(instance_id, card_id, generation, dupe_code)
+            combatant_rows.append(
+                (
+                    guild_id,
+                    challenged_id,
+                    "challenged",
+                    slot_index,
+                    instance_id,
+                    card_id,
+                    generation,
+                    dupe_code,
+                    battle_card.max_hp,
+                    battle_card.max_hp,
+                    slot_index == 0,
+                    False,
+                    False,
+                )
+            )
+
         marked = battles.mark_active(guild_id, battle_id, challenger_id, time.time())
         if not marked:
             return "failed", "Could not start the battle."
+
+        combatants.replace_for_battle(battle_id, combatant_rows)
+        players.add_dough(guild_id, challenger_id, -stake)
+        players.add_dough(guild_id, challenged_id, -stake)
         return "accepted", "Battle accepted. The battle arena is now active."
+
+
+def execute_battle_turn_action(
+    guild_id: int,
+    battle_id: int,
+    actor_id: int,
+    action: str,
+) -> tuple[str, str, Optional[int], Optional[int]]:
+    guild_id = _scope_guild_id(guild_id)
+    allowed_actions = {"attack", "defend", "switch", "surrender", "timeout_skip"}
+    if action not in allowed_actions:
+        return "failed", "Unknown battle action.", None, None
+
+    with get_db_connection() as conn:
+        _begin_immediate(conn)
+        players = PlayerRepository(conn, STARTING_DOUGH)
+        battles = BattleSessionRepository(conn)
+        combatants = BattleCombatantRepository(conn)
+        battle = battles.get_by_id(guild_id, battle_id)
+        if battle is None:
+            return "failed", "Battle not found.", None, None
+        if str(battle["status"]) != "active":
+            return "failed", "Battle is not active.", None, None
+
+        acting_user_id = int(battle["acting_user_id"]) if battle["acting_user_id"] is not None else None
+        if acting_user_id is None:
+            return "failed", "Battle has no active turn owner.", None, None
+        if actor_id != acting_user_id:
+            return "failed", "It is not your turn.", None, None
+
+        actor_side, opponent_user_id, _ = _battle_sides(battle, actor_id)
+        if actor_side is None or opponent_user_id is None:
+            return "failed", "You are not part of this battle.", None, None
+        opponent_side = "challenged" if actor_side == "challenger" else "challenger"
+
+        roster = combatants.list_for_battle(battle_id)
+        actor_rows = [row for row in roster if row["side"] == actor_side]
+        opponent_rows = [row for row in roster if row["side"] == opponent_side]
+        actor_active = _active_row(actor_rows)
+        opponent_active = _active_row(opponent_rows)
+
+        if actor_active is None:
+            candidate_slot = _first_alive_slot(actor_rows)
+            if candidate_slot is None:
+                winner = opponent_user_id
+                payout = int(battle["stake"]) * 2
+                players.add_dough(guild_id, winner, payout)
+                battles.mark_finished(
+                    guild_id,
+                    battle_id,
+                    winner_user_id=winner,
+                    finished_at=time.time(),
+                    last_action="Battle ended: no active card available.",
+                )
+                return "finished", "Battle ended.", winner, None
+            combatants.set_active_slot(battle_id, actor_side, candidate_slot)
+            roster = combatants.list_for_battle(battle_id)
+            actor_rows = [row for row in roster if row["side"] == actor_side]
+            actor_active = _active_row(actor_rows)
+
+        if actor_active is None:
+            return "failed", "Could not resolve active card.", None, None
+
+        if action == "surrender":
+            winner = opponent_user_id
+            payout = int(battle["stake"]) * 2
+            players.add_dough(guild_id, winner, payout)
+            battles.mark_finished(
+                guild_id,
+                battle_id,
+                winner_user_id=winner,
+                finished_at=time.time(),
+                last_action=f"<@{actor_id}> surrendered.",
+            )
+            return "finished", "Battle ended by surrender.", winner, None
+
+        if action == "defend":
+            combatants.clear_defending_for_side(battle_id, actor_side)
+            combatants.set_defending_for_active(battle_id, actor_side, True)
+            turn_number = int(battle["turn_number"]) + 1
+            last_action = f"<@{actor_id}> defended."
+            battles.update_turn_state(
+                guild_id,
+                battle_id,
+                acting_user_id=opponent_user_id,
+                turn_number=turn_number,
+                last_action=last_action,
+            )
+            return "advanced", last_action, None, opponent_user_id
+
+        if action == "switch":
+            reserve_slot = None
+            for row in actor_rows:
+                if bool(row["is_active"]):
+                    continue
+                if bool(row["is_knocked_out"]):
+                    continue
+                if int(row["current_hp"]) <= 0:
+                    continue
+                reserve_slot = int(row["slot_index"])
+                break
+            if reserve_slot is None:
+                return "failed", "No reserve card available to switch.", None, None
+
+            combatants.clear_defending_for_side(battle_id, actor_side)
+            combatants.set_active_slot(battle_id, actor_side, reserve_slot)
+            roster = combatants.list_for_battle(battle_id)
+            actor_rows = [row for row in roster if row["side"] == actor_side]
+            switched_active = _active_row(actor_rows)
+            switched_name = "new card"
+            if switched_active is not None:
+                switched_name = f"{switched_active['card_id']}#{switched_active['dupe_code']}"
+
+            turn_number = int(battle["turn_number"]) + 1
+            last_action = f"<@{actor_id}> switched to **{switched_name}**."
+            battles.update_turn_state(
+                guild_id,
+                battle_id,
+                acting_user_id=opponent_user_id,
+                turn_number=turn_number,
+                last_action=last_action,
+            )
+            return "advanced", last_action, None, opponent_user_id
+
+        if action in {"attack", "timeout_skip"}:
+            if action == "timeout_skip":
+                combatants.clear_defending_for_side(battle_id, actor_side)
+                turn_number = int(battle["turn_number"]) + 1
+                last_action = f"<@{actor_id}> timed out and skipped their turn."
+                battles.update_turn_state(
+                    guild_id,
+                    battle_id,
+                    acting_user_id=opponent_user_id,
+                    turn_number=turn_number,
+                    last_action=last_action,
+                )
+                return "advanced", last_action, None, opponent_user_id
+
+            if opponent_active is None:
+                fallback_slot = _first_alive_slot(opponent_rows)
+                if fallback_slot is None:
+                    winner = actor_id
+                    payout = int(battle["stake"]) * 2
+                    players.add_dough(guild_id, winner, payout)
+                    battles.mark_finished(
+                        guild_id,
+                        battle_id,
+                        winner_user_id=winner,
+                        finished_at=time.time(),
+                        last_action="Battle ended: opposing side has no active card.",
+                    )
+                    return "finished", "Battle ended.", winner, None
+                combatants.set_active_slot(battle_id, opponent_side, fallback_slot)
+                roster = combatants.list_for_battle(battle_id)
+                opponent_rows = [row for row in roster if row["side"] == opponent_side]
+                opponent_active = _active_row(opponent_rows)
+
+            if opponent_active is None:
+                return "failed", "Could not resolve opponent active card.", None, None
+
+            attacker = build_battle_card(
+                int(actor_active["instance_id"]),
+                str(actor_active["card_id"]),
+                int(actor_active["generation"]),
+                str(actor_active["dupe_code"]),
+            )
+            defender = build_battle_card(
+                int(opponent_active["instance_id"]),
+                str(opponent_active["card_id"]),
+                int(opponent_active["generation"]),
+                str(opponent_active["dupe_code"]),
+            )
+
+            combatants.clear_defending_for_side(battle_id, actor_side)
+            hit = resolve_attack(
+                attacker,
+                defender,
+                defender_is_defending=bool(opponent_active["is_defending"]),
+                rng=random,
+            )
+            if hit.missed:
+                turn_number = int(battle["turn_number"]) + 1
+                last_action = f"<@{actor_id}> attacked but missed."
+                battles.update_turn_state(
+                    guild_id,
+                    battle_id,
+                    acting_user_id=opponent_user_id,
+                    turn_number=turn_number,
+                    last_action=last_action,
+                )
+                return "advanced", last_action, None, opponent_user_id
+
+            damage_row = combatants.apply_damage_to_active(battle_id, opponent_side, hit.damage)
+            if damage_row is None:
+                return "failed", "Could not apply damage.", None, None
+
+            defeated = bool(damage_row["is_knocked_out"])
+            if defeated:
+                refreshed = combatants.list_for_battle(battle_id)
+                opponent_rows = [row for row in refreshed if row["side"] == opponent_side]
+                replacement_slot = _first_alive_slot(opponent_rows)
+                if replacement_slot is None:
+                    winner = actor_id
+                    payout = int(battle["stake"]) * 2
+                    players.add_dough(guild_id, winner, payout)
+                    action_text = (
+                        f"<@{actor_id}> dealt **{hit.damage}** and knocked out the last opposing card."
+                    )
+                    battles.mark_finished(
+                        guild_id,
+                        battle_id,
+                        winner_user_id=winner,
+                        finished_at=time.time(),
+                        last_action=action_text,
+                    )
+                    return "finished", action_text, winner, None
+
+                combatants.set_active_slot(battle_id, opponent_side, replacement_slot)
+                action_text = (
+                    f"<@{actor_id}> dealt **{hit.damage}** ({hit.effectiveness:.2f}x) and forced a switch."
+                )
+            else:
+                action_text = f"<@{actor_id}> dealt **{hit.damage}** ({hit.effectiveness:.2f}x)."
+
+            turn_number = int(battle["turn_number"]) + 1
+            battles.update_turn_state(
+                guild_id,
+                battle_id,
+                acting_user_id=opponent_user_id,
+                turn_number=turn_number,
+                last_action=action_text,
+            )
+            return "advanced", action_text, None, opponent_user_id
+
+        return "failed", "Action not handled.", None, None
 
 
 def create_player_tag(guild_id: int, user_id: int, tag_name: str) -> bool:

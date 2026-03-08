@@ -865,6 +865,231 @@ class BattleSessionRepository:
         )
         return int(cursor.rowcount) > 0
 
+    def update_turn_state(
+        self,
+        guild_id: int,
+        battle_id: int,
+        *,
+        acting_user_id: int,
+        turn_number: int,
+        last_action: str,
+    ) -> bool:
+        cursor = self.conn.execute(
+            """
+            UPDATE battle_sessions
+            SET acting_user_id = ?,
+                turn_number = ?,
+                last_action = ?
+            WHERE guild_id = ? AND battle_id = ? AND status = 'active'
+            """,
+            (acting_user_id, turn_number, last_action, guild_id, battle_id),
+        )
+        return int(cursor.rowcount) > 0
+
+    def mark_finished(
+        self,
+        guild_id: int,
+        battle_id: int,
+        *,
+        winner_user_id: int,
+        finished_at: float,
+        last_action: str,
+    ) -> bool:
+        cursor = self.conn.execute(
+            """
+            UPDATE battle_sessions
+            SET status = 'finished',
+                winner_user_id = ?,
+                finished_at = ?,
+                acting_user_id = NULL,
+                last_action = ?
+            WHERE guild_id = ? AND battle_id = ? AND status = 'active'
+            """,
+            (winner_user_id, finished_at, last_action, guild_id, battle_id),
+        )
+        return int(cursor.rowcount) > 0
+
+
+class BattleCombatantRepository:
+    def __init__(self, conn: sqlite3.Connection):
+        self.conn = conn
+
+    def replace_for_battle(self, battle_id: int, rows: list[tuple[int, int, str, int, int, str, int, str, int, int, bool, bool, bool]]) -> None:
+        self.conn.execute(
+            """
+            DELETE FROM battle_combatants
+            WHERE battle_id = ?
+            """,
+            (battle_id,),
+        )
+        self.conn.executemany(
+            """
+            INSERT INTO battle_combatants (
+                battle_id,
+                guild_id,
+                user_id,
+                side,
+                slot_index,
+                instance_id,
+                card_id,
+                generation,
+                dupe_code,
+                max_hp,
+                current_hp,
+                is_active,
+                is_defending,
+                is_knocked_out
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            [
+                (
+                    battle_id,
+                    guild_id,
+                    user_id,
+                    side,
+                    slot_index,
+                    instance_id,
+                    card_id,
+                    generation,
+                    dupe_code,
+                    max_hp,
+                    current_hp,
+                    1 if is_active else 0,
+                    1 if is_defending else 0,
+                    1 if is_knocked_out else 0,
+                )
+                for (
+                    guild_id,
+                    user_id,
+                    side,
+                    slot_index,
+                    instance_id,
+                    card_id,
+                    generation,
+                    dupe_code,
+                    max_hp,
+                    current_hp,
+                    is_active,
+                    is_defending,
+                    is_knocked_out,
+                ) in rows
+            ],
+        )
+
+    def list_for_battle(self, battle_id: int) -> list[dict[str, int | str | bool]]:
+        rows = self.conn.execute(
+            """
+            SELECT battle_id, guild_id, user_id, side, slot_index, instance_id, card_id,
+                   generation, dupe_code, max_hp, current_hp, is_active, is_defending, is_knocked_out
+            FROM battle_combatants
+            WHERE battle_id = ?
+            ORDER BY side ASC, slot_index ASC
+            """,
+            (battle_id,),
+        ).fetchall()
+        return [
+            {
+                "battle_id": int(row["battle_id"]),
+                "guild_id": int(row["guild_id"]),
+                "user_id": int(row["user_id"]),
+                "side": str(row["side"]),
+                "slot_index": int(row["slot_index"]),
+                "instance_id": int(row["instance_id"]),
+                "card_id": str(row["card_id"]),
+                "generation": int(row["generation"]),
+                "dupe_code": str(row["dupe_code"]),
+                "max_hp": int(row["max_hp"]),
+                "current_hp": int(row["current_hp"]),
+                "is_active": bool(int(row["is_active"])),
+                "is_defending": bool(int(row["is_defending"])),
+                "is_knocked_out": bool(int(row["is_knocked_out"])),
+            }
+            for row in rows
+        ]
+
+    def clear_defending_for_side(self, battle_id: int, side: str) -> None:
+        self.conn.execute(
+            """
+            UPDATE battle_combatants
+            SET is_defending = 0
+            WHERE battle_id = ? AND side = ?
+            """,
+            (battle_id, side),
+        )
+
+    def set_defending_for_active(self, battle_id: int, side: str, defending: bool) -> bool:
+        cursor = self.conn.execute(
+            """
+            UPDATE battle_combatants
+            SET is_defending = ?
+            WHERE battle_id = ? AND side = ? AND is_active = 1
+            """,
+            (1 if defending else 0, battle_id, side),
+        )
+        return int(cursor.rowcount) > 0
+
+    def set_active_slot(self, battle_id: int, side: str, slot_index: int) -> bool:
+        self.conn.execute(
+            """
+            UPDATE battle_combatants
+            SET is_active = 0
+            WHERE battle_id = ? AND side = ?
+            """,
+            (battle_id, side),
+        )
+        cursor = self.conn.execute(
+            """
+            UPDATE battle_combatants
+            SET is_active = 1,
+                is_defending = 0
+            WHERE battle_id = ?
+                AND side = ?
+                AND slot_index = ?
+                AND is_knocked_out = 0
+                AND current_hp > 0
+            """,
+            (battle_id, side, slot_index),
+        )
+        return int(cursor.rowcount) > 0
+
+    def apply_damage_to_active(self, battle_id: int, side: str, damage: int) -> Optional[dict[str, int | str | bool]]:
+        row = self.conn.execute(
+            """
+            SELECT side, slot_index, current_hp
+            FROM battle_combatants
+            WHERE battle_id = ? AND side = ? AND is_active = 1
+            LIMIT 1
+            """,
+            (battle_id, side),
+        ).fetchone()
+        if row is None:
+            return None
+
+        slot_index = int(row["slot_index"])
+        current_hp = int(row["current_hp"])
+        next_hp = max(0, current_hp - damage)
+        is_knocked_out = next_hp <= 0
+
+        self.conn.execute(
+            """
+            UPDATE battle_combatants
+            SET current_hp = ?,
+                is_knocked_out = ?,
+                is_active = CASE WHEN ? = 1 THEN 0 ELSE is_active END,
+                is_defending = 0
+            WHERE battle_id = ? AND side = ? AND slot_index = ?
+            """,
+            (next_hp, 1 if is_knocked_out else 0, 1 if is_knocked_out else 0, battle_id, side, slot_index),
+        )
+
+        return {
+            "side": side,
+            "slot_index": slot_index,
+            "current_hp": next_hp,
+            "is_knocked_out": is_knocked_out,
+        }
+
 
 class CardInstanceRepository:
     def __init__(self, conn: sqlite3.Connection):

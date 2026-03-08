@@ -75,6 +75,64 @@ Stake: **{stake}** dough each
 
 Accept to start the arena setup."""
 
+
+def _hp_bar(current_hp: int, max_hp: int, width: int = 12) -> str:
+    if max_hp <= 0:
+        return "░" * width
+    ratio = max(0.0, min(1.0, current_hp / max_hp))
+    filled = int(round(ratio * width))
+    return ("█" * filled) + ("░" * (width - filled))
+
+
+def _combatant_line(row: dict[str, int | str | bool]) -> str:
+    card_id = str(row["card_id"])
+    dupe_code = str(row["dupe_code"])
+    current_hp = int(row["current_hp"])
+    max_hp = int(row["max_hp"])
+    defending = bool(row["is_defending"])
+    knocked_out = bool(row["is_knocked_out"])
+    active = bool(row["is_active"])
+    state_bits: list[str] = []
+    if active:
+        state_bits.append("ACTIVE")
+    if defending:
+        state_bits.append("DEFEND")
+    if knocked_out:
+        state_bits.append("KO")
+    state_text = f" ({', '.join(state_bits)})" if state_bits else ""
+    return f"`{card_id}#{dupe_code}`{state_text} {current_hp}/{max_hp} {_hp_bar(current_hp, max_hp)}"
+
+
+def battle_arena_description(
+    *,
+    challenger_mention: str,
+    challenged_mention: str,
+    stake: int,
+    turn_number: int,
+    acting_user_id: int | None,
+    winner_user_id: int | None,
+    challenger_team_name: str,
+    challenged_team_name: str,
+    challenger_rows: tuple[dict[str, int | str | bool], ...],
+    challenged_rows: tuple[dict[str, int | str | bool], ...],
+    last_action: str,
+) -> str:
+    actor_text = f"<@{acting_user_id}>" if acting_user_id is not None else "None"
+    winner_text = f"<@{winner_user_id}>" if winner_user_id is not None else "-"
+    challenger_lines = [_combatant_line(row) for row in challenger_rows] or ["(no cards)"]
+    challenged_lines = [_combatant_line(row) for row in challenged_rows] or ["(no cards)"]
+    return (
+        f"Turn: **{turn_number}**\n"
+        f"Acting: {actor_text}\n"
+        f"Winner: {winner_text}\n"
+        f"Stake Pot: **{stake * 2}** dough\n\n"
+        f"{challenger_mention} Team `{challenger_team_name}`\n"
+        f"{multiline_text(challenger_lines)}\n\n"
+        f"{challenged_mention} Team `{challenged_team_name}`\n"
+        f"{multiline_text(challenged_lines)}\n\n"
+        f"Last Action: {last_action}"
+    )
+
 HELP_CATEGORY_PAGES: tuple[tuple[str, str, str], ...] = (
     (
         "overview",

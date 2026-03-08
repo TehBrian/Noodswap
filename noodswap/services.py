@@ -19,7 +19,9 @@ from .storage import (
     divorce_card,
     execute_trade,
     create_battle_proposal,
+    execute_battle_turn_action,
     get_battle_session,
+    get_battle_state,
     get_instance_by_id,
     get_instance_font,
     get_instance_frame,
@@ -1421,4 +1423,88 @@ def resolve_battle_offer(
         stake=stake,
         challenger_id=challenger_id,
         challenged_id=challenged_id,
+    )
+
+
+@dataclass(frozen=True)
+class BattleSnapshot:
+    battle_id: int
+    status: str
+    challenger_id: int
+    challenged_id: int
+    acting_user_id: Optional[int]
+    winner_user_id: Optional[int]
+    turn_number: int
+    stake: int
+    last_action: str
+    challenger_team_name: str
+    challenged_team_name: str
+    challenger_combatants: tuple[dict[str, int | str | bool], ...]
+    challenged_combatants: tuple[dict[str, int | str | bool], ...]
+
+
+def get_battle_snapshot(guild_id: int, battle_id: int) -> Optional[BattleSnapshot]:
+    state = get_battle_state(guild_id, battle_id)
+    if state is None:
+        return None
+    battle = state["battle"]
+    assert isinstance(battle, dict)
+    challenger_rows = state["challenger_combatants"]
+    challenged_rows = state["challenged_combatants"]
+    assert isinstance(challenger_rows, list)
+    assert isinstance(challenged_rows, list)
+
+    return BattleSnapshot(
+        battle_id=int(battle["battle_id"]),
+        status=str(battle["status"]),
+        challenger_id=int(battle["challenger_id"]),
+        challenged_id=int(battle["challenged_id"]),
+        acting_user_id=int(battle["acting_user_id"]) if battle["acting_user_id"] is not None else None,
+        winner_user_id=int(battle["winner_user_id"]) if battle["winner_user_id"] is not None else None,
+        turn_number=int(battle["turn_number"]),
+        stake=int(battle["stake"]),
+        last_action=str(battle["last_action"] or "Battle started."),
+        challenger_team_name=str(battle["challenger_team_name"]),
+        challenged_team_name=str(battle["challenged_team_name"]),
+        challenger_combatants=tuple(challenger_rows),
+        challenged_combatants=tuple(challenged_rows),
+    )
+
+
+@dataclass(frozen=True)
+class BattleTurnResolution:
+    status: str
+    message: str
+    winner_user_id: Optional[int]
+    next_actor_id: Optional[int]
+    snapshot: Optional[BattleSnapshot]
+
+    @property
+    def is_failed(self) -> bool:
+        return self.status == "failed"
+
+    @property
+    def is_finished(self) -> bool:
+        return self.status == "finished"
+
+
+def resolve_battle_turn_action(
+    guild_id: int,
+    battle_id: int,
+    actor_id: int,
+    action: str,
+) -> BattleTurnResolution:
+    status, message, winner_user_id, next_actor_id = execute_battle_turn_action(
+        guild_id,
+        battle_id,
+        actor_id,
+        action,
+    )
+    snapshot = get_battle_snapshot(guild_id, battle_id)
+    return BattleTurnResolution(
+        status=status,
+        message=message,
+        winner_user_id=winner_user_id,
+        next_actor_id=next_actor_id,
+        snapshot=snapshot,
     )

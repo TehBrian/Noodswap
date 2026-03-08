@@ -168,6 +168,31 @@ Purpose:
 - Tracks battle proposal lifecycle and active battle session state
 - Supports one pending/active battle per player rule checks
 
+### battle_combatants
+
+Primary key:
+- `(battle_id, side, slot_index)`
+
+Columns:
+- `battle_id INTEGER NOT NULL`
+- `guild_id INTEGER NOT NULL`
+- `user_id INTEGER NOT NULL`
+- `side TEXT NOT NULL` (`challenger` or `challenged`)
+- `slot_index INTEGER NOT NULL`
+- `instance_id INTEGER NOT NULL`
+- `card_id TEXT NOT NULL`
+- `generation INTEGER NOT NULL`
+- `dupe_code TEXT NOT NULL`
+- `max_hp INTEGER NOT NULL`
+- `current_hp INTEGER NOT NULL`
+- `is_active INTEGER NOT NULL DEFAULT 0`
+- `is_defending INTEGER NOT NULL DEFAULT 0`
+- `is_knocked_out INTEGER NOT NULL DEFAULT 0`
+
+Purpose:
+- Persists per-card battle combat state for each session.
+- Tracks active card, HP, defend stance, and KO state across turns/timeouts.
+
 ## Migration behavior
 
 `init_db()` performs versioned startup migration:
@@ -217,6 +242,10 @@ Current migration set:
 	- Adds `players.active_team_name` for active battle team selection.
 	- Adds `player_teams` and `team_members` for team management.
 	- Adds `battle_sessions` for battle proposal/state tracking.
+- `v15`:
+	- Adds `players.last_flip_at` for flip cooldown tracking.
+- `v16`:
+	- Adds `battle_combatants` for persisted turn-based combat state.
 
 Notes:
 - Startup migration is in-code (`noodswap/migrations.py`) and invoked by `storage.init_db()` using incremental version checks.

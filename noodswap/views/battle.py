@@ -1,3 +1,3 @@
-from ..view_battle import BattleProposalView
+from ..view_battle import BattleProposalView, BattleTurnView
 
-__all__ = ["BattleProposalView"]
+__all__ = ["BattleProposalView", "BattleTurnView"]
