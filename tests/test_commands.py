@@ -336,7 +336,7 @@ class CommandsAliasRegistrationTests(unittest.TestCase):
         self.assertIn("le", _get_command(self.bot, "leaderboard").aliases)
         self.assertIn("i", _get_command(self.bot, "info").aliases)
         self.assertIn("v", _get_command(self.bot, "vote").aliases)
-        self.assertIn("s", _get_command(self.bot, "slots").aliases)
+        self.assertIn("sl", _get_command(self.bot, "slots").aliases)
         self.assertIn("f", _get_command(self.bot, "flip").aliases)
         self.assertIn("tg", _get_command(self.bot, "tag").aliases)
 

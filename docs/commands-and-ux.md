@@ -16,7 +16,7 @@ This document defines behavior and presentation for commands and interaction flo
 - `lookuphd <card_id|card_code|query>` / `lhd <card_id|card_code|query>`
 - `help` / `h`
 - `drop` / `d`
-- `slots` / `s`
+- `slots` / `sl`
 - `flip <stake> [heads|tails]` / `f <stake> [heads|tails]`
 - `vote` / `v`
 - `cooldown [player]` / `cd [player]`
