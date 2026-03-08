@@ -22,6 +22,7 @@ from .cards import (
 )
 from .images import (
     DEFAULT_CARD_RENDER_SIZE,
+    DROP_CARD_BODY_SCALE,
     HD_CARD_RENDER_SIZE,
     embed_image_payload,
     morph_transition_image_payload,
@@ -212,7 +213,12 @@ def _build_drop_preview_blocking(choices: list[tuple[str, int]]) -> bytes | None
     card_w, card_h = DEFAULT_CARD_RENDER_SIZE
     card_surfaces: list[Image.Image] = []
     for card_id, generation in choices:
-        surface = render_card_surface(card_id, generation=generation, size=(card_w, card_h))
+        surface = render_card_surface(
+            card_id,
+            generation=generation,
+            body_scale=DROP_CARD_BODY_SCALE,
+            size=(card_w, card_h),
+        )
         if surface is None:
             return None
         card_surfaces.append(surface)

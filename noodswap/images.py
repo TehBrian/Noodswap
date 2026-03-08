@@ -36,9 +36,14 @@ CARD_ASPECT_HEIGHT = 7
 DEFAULT_CARD_RENDER_SIZE = (350, 490)
 HD_CARD_RENDER_SIZE = (1000, 1400)
 OVERLAY_TEXT_SCALE = 1.5
-# Draw the card body smaller than the full render canvas to preserve
-# transparent space for richer frame/effect compositing.
-CARD_BODY_SCALE = 0.72
+# Unframed cards can use tighter margins by default.
+CARD_BODY_SCALE = 0.96
+# Keep extra transparent space when a frame overlay is present.
+FRAMED_CARD_BODY_SCALE = 0.72
+# Drop previews currently render without frame overlays.
+DROP_CARD_BODY_SCALE = 0.96
+# Higher supersampling gives smoother rounded border edges.
+BORDER_MASK_SUPERSAMPLE_SCALE = 6
 
 RARITY_BORDER_COLORS: dict[str, tuple[int, int, int]] = {
     "common": (132, 132, 132),
@@ -678,6 +683,7 @@ def render_card_surface(
     morph_key: str | None = None,
     frame_key: str | None = None,
     font_key: str | None = None,
+    body_scale: float = CARD_BODY_SCALE,
     size: tuple[int, int] = DEFAULT_CARD_RENDER_SIZE,
 ):
     try:
@@ -685,9 +691,15 @@ def render_card_surface(
     except ImportError:
         return None
 
+    normalized_frame_key = normalize_frame_key(frame_key)
+
     width, height = _normalized_card_size(size)
-    max_body_width = max(40, int(round(width * CARD_BODY_SCALE)))
-    max_body_height = max(56, int(round(height * CARD_BODY_SCALE)))
+    resolved_body_scale = body_scale
+    if normalized_frame_key is not None and body_scale == CARD_BODY_SCALE:
+        resolved_body_scale = FRAMED_CARD_BODY_SCALE
+    clamped_body_scale = min(max(resolved_body_scale, 0.0), 1.0)
+    max_body_width = max(40, int(round(width * clamped_body_scale)))
+    max_body_height = max(56, int(round(height * clamped_body_scale)))
     body_target_ratio = 1.0 / CARD_BODY_ASPECT_RATIO if CARD_BODY_ASPECT_RATIO > 0 else (1.0 / 1.6)
     if (max_body_width / max_body_height) > body_target_ratio:
         body_height = max_body_height
@@ -753,12 +765,20 @@ def render_card_surface(
 
     # Build border using an anti-aliased rounded alpha mask for smoother edges.
     border_layer = Image.new("RGBA", (body_width, body_height), rarity_border_color(normalized_card_id) + (255,))
-    outer_mask = _antialiased_rounded_mask((body_width, body_height), outer_radius)
+    outer_mask = _antialiased_rounded_mask(
+        (body_width, body_height),
+        outer_radius,
+        scale=BORDER_MASK_SUPERSAMPLE_SCALE,
+    )
     if outer_mask is not None:
         border_layer.putalpha(outer_mask)
 
     art_layer = Image.new("RGBA", (body_width, body_height), (0, 0, 0, 0))
-    inner_mask = _antialiased_rounded_mask((inner_width, inner_height), inner_radius)
+    inner_mask = _antialiased_rounded_mask(
+        (inner_width, inner_height),
+        inner_radius,
+        scale=BORDER_MASK_SUPERSAMPLE_SCALE,
+    )
     if inner_mask is None:
         inner_mask = Image.new("L", (inner_width, inner_height), 255)
     art_layer.paste(fitted, (border_px, border_px), mask=inner_mask)
@@ -768,7 +788,6 @@ def render_card_surface(
     card_surface = Image.new("RGBA", (width, height), (0, 0, 0, 0))
     card_surface.paste(card_body, (body_x, body_y), card_body)
 
-    normalized_frame_key = normalize_frame_key(frame_key)
     if normalized_frame_key is not None:
         overlay = _load_frame_overlay_image(normalized_frame_key, (width, height))
         if overlay is not None:
