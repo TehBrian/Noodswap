@@ -18,6 +18,8 @@ from .storage import (
     consume_pull_cooldown_if_ready,
     divorce_card,
     execute_trade,
+    create_battle_proposal,
+    get_battle_session,
     get_instance_by_id,
     get_instance_font,
     get_instance_frame,
@@ -27,6 +29,7 @@ from .storage import (
     get_instance_by_code,
     get_last_pulled_instance,
     get_player_info,
+    resolve_battle_proposal,
     marry_card_instance,
     set_last_drop_at,
 )
@@ -1321,3 +1324,101 @@ def prepare_trade_offer(
     _, candidate_card_id, generation, dupe_code = candidate
 
     return TradeOfferPreparation(error_message=None, card_id=candidate_card_id, generation=generation, dupe_code=dupe_code)
+
+
+@dataclass(frozen=True)
+class BattleOfferPreparation:
+    error_message: Optional[str]
+    battle_id: Optional[int]
+    challenger_team_name: Optional[str]
+    challenged_team_name: Optional[str]
+
+    @property
+    def is_error(self) -> bool:
+        return self.error_message is not None
+
+
+def prepare_battle_offer(
+    guild_id: int,
+    challenger_id: int,
+    challenged_id: int,
+    challenged_is_bot: bool,
+    stake: int,
+) -> BattleOfferPreparation:
+    if challenged_is_bot:
+        return BattleOfferPreparation(
+            error_message="You cannot battle bots.",
+            battle_id=None,
+            challenger_team_name=None,
+            challenged_team_name=None,
+        )
+
+    success, message, battle_id, challenger_team_name, challenged_team_name = create_battle_proposal(
+        guild_id,
+        challenger_id,
+        challenged_id,
+        stake,
+    )
+    if not success:
+        return BattleOfferPreparation(
+            error_message=message,
+            battle_id=None,
+            challenger_team_name=None,
+            challenged_team_name=None,
+        )
+
+    return BattleOfferPreparation(
+        error_message=None,
+        battle_id=battle_id,
+        challenger_team_name=challenger_team_name,
+        challenged_team_name=challenged_team_name,
+    )
+
+
+@dataclass(frozen=True)
+class BattleOfferResolution:
+    status: str
+    message: str
+    battle_id: int
+    stake: Optional[int]
+    challenger_id: Optional[int]
+    challenged_id: Optional[int]
+
+    @property
+    def is_accepted(self) -> bool:
+        return self.status == "accepted"
+
+    @property
+    def is_denied(self) -> bool:
+        return self.status == "denied"
+
+    @property
+    def is_failed(self) -> bool:
+        return self.status == "failed"
+
+
+def resolve_battle_offer(
+    guild_id: int,
+    battle_id: int,
+    responder_id: int,
+    *,
+    accepted: bool,
+) -> BattleOfferResolution:
+    status, message = resolve_battle_proposal(
+        guild_id,
+        battle_id,
+        responder_id,
+        accepted=accepted,
+    )
+    battle = get_battle_session(guild_id, battle_id)
+    stake = int(battle["stake"]) if battle is not None and battle["stake"] is not None else None
+    challenger_id = int(battle["challenger_id"]) if battle is not None and battle["challenger_id"] is not None else None
+    challenged_id = int(battle["challenged_id"]) if battle is not None and battle["challenged_id"] is not None else None
+    return BattleOfferResolution(
+        status=status,
+        message=message,
+        battle_id=battle_id,
+        stake=stake,
+        challenger_id=challenger_id,
+        challenged_id=challenged_id,
+    )

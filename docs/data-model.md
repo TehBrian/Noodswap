@@ -27,6 +27,7 @@ Columns:
 - `married_card_id TEXT`
 - `married_instance_id INTEGER` (current marriage reference)
 - `last_dropped_instance_id INTEGER` (stores last pulled instance for arg-less `burn`/`marry`)
+- `active_team_name TEXT` (currently selected team for battles)
 
 Purpose:
 - Player economy and cooldown state in the global Noodswap scope
@@ -110,6 +111,63 @@ Purpose:
 - Links owned card instances to player tag collections
 - Supports many-to-many tagging (a card can have multiple tags)
 
+### player_teams
+
+Primary key:
+- `(guild_id, user_id, team_name)`
+
+Columns:
+- `guild_id INTEGER NOT NULL`
+- `user_id INTEGER NOT NULL`
+- `team_name TEXT NOT NULL`
+- `created_at REAL NOT NULL DEFAULT 0`
+
+Purpose:
+- Stores named teams owned by players
+- Teams are used as battle rosters and active battle loadout selection
+
+### team_members
+
+Primary key:
+- `(guild_id, user_id, team_name, instance_id)`
+
+Columns:
+- `guild_id INTEGER NOT NULL`
+- `user_id INTEGER NOT NULL`
+- `team_name TEXT NOT NULL`
+- `instance_id INTEGER NOT NULL`
+- `created_at REAL NOT NULL DEFAULT 0`
+
+Purpose:
+- Links owned card instances to player teams
+- Supports many-to-many assignment across teams (same instance may appear in multiple teams)
+
+### battle_sessions
+
+Primary key:
+- `battle_id INTEGER PRIMARY KEY AUTOINCREMENT`
+
+Columns:
+- `battle_id`
+- `guild_id INTEGER NOT NULL`
+- `challenger_id INTEGER NOT NULL`
+- `challenged_id INTEGER NOT NULL`
+- `stake INTEGER NOT NULL`
+- `status TEXT NOT NULL` (e.g. `pending`, `active`, `denied`)
+- `challenger_team_name TEXT NOT NULL`
+- `challenged_team_name TEXT NOT NULL`
+- `created_at REAL NOT NULL DEFAULT 0`
+- `accepted_at REAL`
+- `finished_at REAL`
+- `acting_user_id INTEGER`
+- `turn_number INTEGER NOT NULL DEFAULT 1`
+- `winner_user_id INTEGER`
+- `last_action TEXT`
+
+Purpose:
+- Tracks battle proposal lifecycle and active battle session state
+- Supports one pending/active battle per player rule checks
+
 ## Migration behavior
 
 `init_db()` performs versioned startup migration:
@@ -155,6 +213,10 @@ Current migration set:
 	- Adds `players.last_vote_reward_at` for vote reward cooldown tracking.
 - `v13`:
 	- Adds `players.last_slots_at` for slots cooldown tracking.
+- `v14`:
+	- Adds `players.active_team_name` for active battle team selection.
+	- Adds `player_teams` and `team_members` for team management.
+	- Adds `battle_sessions` for battle proposal/state tracking.
 
 Notes:
 - Startup migration is in-code (`noodswap/migrations.py`) and invoked by `storage.init_db()` using incremental version checks.

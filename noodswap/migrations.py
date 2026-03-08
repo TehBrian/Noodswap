@@ -2,7 +2,7 @@ from collections.abc import Callable
 import sqlite3
 
 
-TARGET_SCHEMA_VERSION = 13
+TARGET_SCHEMA_VERSION = 15
 _BASE36_ALPHABET = "0123456789abcdefghijklmnopqrstuvwxyz"
 
 
@@ -419,6 +419,118 @@ def _apply_migration_v13(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE players ADD COLUMN last_slots_at REAL NOT NULL DEFAULT 0")
 
 
+def _apply_migration_v14(conn: sqlite3.Connection) -> None:
+    players_table_exists = conn.execute(
+        """
+        SELECT 1
+        FROM sqlite_master
+        WHERE type = 'table' AND name = 'players'
+        LIMIT 1
+        """
+    ).fetchone() is not None
+    if not players_table_exists:
+        return
+
+    if not _has_column(conn, "players", "active_team_name"):
+        conn.execute("ALTER TABLE players ADD COLUMN active_team_name TEXT")
+
+    conn.executescript(
+        """
+        CREATE TABLE IF NOT EXISTS player_teams (
+            guild_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            team_name TEXT NOT NULL,
+            created_at REAL NOT NULL DEFAULT 0,
+            PRIMARY KEY (guild_id, user_id, team_name),
+            FOREIGN KEY (guild_id, user_id)
+                REFERENCES players(guild_id, user_id)
+                ON DELETE CASCADE
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_player_teams_owner
+            ON player_teams(guild_id, user_id, team_name);
+
+        CREATE TABLE IF NOT EXISTS team_members (
+            guild_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            team_name TEXT NOT NULL,
+            instance_id INTEGER NOT NULL,
+            created_at REAL NOT NULL DEFAULT 0,
+            PRIMARY KEY (guild_id, user_id, team_name, instance_id),
+            FOREIGN KEY (guild_id, user_id, team_name)
+                REFERENCES player_teams(guild_id, user_id, team_name)
+                ON DELETE CASCADE,
+            FOREIGN KEY (instance_id)
+                REFERENCES card_instances(instance_id)
+                ON DELETE CASCADE
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_team_members_owner
+            ON team_members(guild_id, user_id, team_name, instance_id);
+
+        CREATE INDEX IF NOT EXISTS idx_team_members_instance
+            ON team_members(instance_id);
+
+        CREATE TABLE IF NOT EXISTS battle_sessions (
+            battle_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            guild_id INTEGER NOT NULL,
+            challenger_id INTEGER NOT NULL,
+            challenged_id INTEGER NOT NULL,
+            stake INTEGER NOT NULL,
+            status TEXT NOT NULL,
+            challenger_team_name TEXT NOT NULL,
+            challenged_team_name TEXT NOT NULL,
+            created_at REAL NOT NULL DEFAULT 0,
+            accepted_at REAL,
+            finished_at REAL,
+            acting_user_id INTEGER,
+            turn_number INTEGER NOT NULL DEFAULT 1,
+            winner_user_id INTEGER,
+            last_action TEXT,
+            FOREIGN KEY (guild_id, challenger_id)
+                REFERENCES players(guild_id, user_id)
+                ON DELETE CASCADE,
+            FOREIGN KEY (guild_id, challenged_id)
+                REFERENCES players(guild_id, user_id)
+                ON DELETE CASCADE
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_battle_sessions_status
+            ON battle_sessions(guild_id, status, created_at);
+
+        CREATE INDEX IF NOT EXISTS idx_battle_sessions_challenger
+            ON battle_sessions(guild_id, challenger_id, status);
+
+        CREATE INDEX IF NOT EXISTS idx_battle_sessions_challenged
+            ON battle_sessions(guild_id, challenged_id, status);
+
+        CREATE INDEX IF NOT EXISTS idx_battle_sessions_open_challenger
+            ON battle_sessions(guild_id, challenger_id)
+            WHERE status IN ('pending', 'active');
+
+        CREATE INDEX IF NOT EXISTS idx_battle_sessions_open_challenged
+            ON battle_sessions(guild_id, challenged_id)
+            WHERE status IN ('pending', 'active');
+        """
+    )
+
+
+def _apply_migration_v15(conn: sqlite3.Connection) -> None:
+    players_table_exists = conn.execute(
+        """
+        SELECT 1
+        FROM sqlite_master
+        WHERE type = 'table' AND name = 'players'
+        LIMIT 1
+        """
+    ).fetchone() is not None
+    if not players_table_exists:
+        return
+
+    if not _has_column(conn, "players", "last_flip_at"):
+        conn.execute("ALTER TABLE players ADD COLUMN last_flip_at REAL NOT NULL DEFAULT 0")
+
+
 def run_migrations(
     conn: sqlite3.Connection,
     *,
@@ -492,6 +604,16 @@ def run_migrations(
         _apply_migration_v13(conn)
         _set_schema_version(conn, 13)
         current_version = 13
+
+    if current_version < 14:
+        _apply_migration_v14(conn)
+        _set_schema_version(conn, 14)
+        current_version = 14
+
+    if current_version < 15:
+        _apply_migration_v15(conn)
+        _set_schema_version(conn, 15)
+        current_version = 15
 
     if current_version > target_schema_version:
         raise RuntimeError(

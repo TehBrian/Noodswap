@@ -33,6 +33,7 @@ from .fonts import font_label
 from .frames import frame_label
 from .morphs import morph_label
 from .presentation import (
+    battle_offer_description,
     burn_confirmation_description,
     drop_choices_description,
     italy_embed,
@@ -47,12 +48,15 @@ from .services import (
     prepare_font,
     prepare_frame,
     prepare_morph,
+    prepare_battle_offer,
     prepare_trade_offer,
 )
 from .settings import (
     DB_PATH,
     DROP_COOLDOWN_SECONDS,
     DROP_TIMEOUT_SECONDS,
+    FLIP_COOLDOWN_SECONDS,
+    FLIP_WIN_PROBABILITY,
     PULL_COOLDOWN_SECONDS,
     SLOTS_COOLDOWN_SECONDS,
     VOTE_COOLDOWN_SECONDS,
@@ -60,10 +64,14 @@ from .settings import (
 )
 from .storage import (
     add_starter,
+    assign_instance_to_team,
     assign_tag_to_instance,
     claim_vote_reward_if_ready,
     consume_slots_cooldown_if_ready,
+    execute_flip_wager,
     create_player_tag,
+    create_player_team,
+    delete_player_team,
     delete_player_tag,
     get_instance_by_code,
     get_instance_by_id,
@@ -72,18 +80,25 @@ from .storage import (
     get_instance_frame,
     get_instance_morph,
     get_instances_by_tag,
+    get_instances_by_team,
     get_locked_instance_ids,
     is_tag_assigned_to_instance,
     get_player_cooldown_timestamps,
     get_player_card_instances,
+    get_player_flip_timestamp,
     get_player_leaderboard_info,
     get_player_slots_timestamp,
     list_player_tags,
+    list_player_teams,
     get_player_starter,
     get_player_info,
     get_player_vote_reward_timestamp,
     get_total_cards,
     set_player_tag_locked,
+    set_active_team,
+    get_active_team_name,
+    is_instance_assigned_to_team,
+    unassign_instance_from_team,
     unassign_tag_from_instance,
     add_card_to_wishlist,
     get_card_wish_counts,
@@ -103,6 +118,7 @@ from .views import (
     PlayerLeaderboardView,
     SortableCardListView,
     SortableCollectionView,
+    BattleProposalView,
     TradeView,
 )
 
@@ -603,6 +619,222 @@ async def _tag_cards(ctx: commands.Context, tag_name: str) -> None:
     view.message = message
 
 
+async def _team_add(ctx: commands.Context, team_name: str) -> None:
+    if ctx.guild is None:
+        await _reply(ctx, embed=italy_embed("Teams", "Use this command in a server."))
+        return
+
+    created = create_player_team(ctx.guild.id, ctx.author.id, team_name)
+    normalized = team_name.strip().lower()
+    if not created:
+        await _reply(
+            ctx,
+            embed=italy_embed(
+                "Teams",
+                "Could not create that team. Team names must be unique, non-empty, and up to 32 characters.",
+            ),
+        )
+        return
+
+    await _reply(ctx, embed=italy_embed("Teams", f"Created team: `{normalized}`"))
+
+
+async def _team_remove(ctx: commands.Context, team_name: str) -> None:
+    if ctx.guild is None:
+        await _reply(ctx, embed=italy_embed("Teams", "Use this command in a server."))
+        return
+
+    normalized = team_name.strip().lower()
+    removed = delete_player_team(ctx.guild.id, ctx.author.id, team_name)
+    if not removed:
+        await _reply(ctx, embed=italy_embed("Teams", f"Team not found: `{normalized}`"))
+        return
+
+    await _reply(ctx, embed=italy_embed("Teams", f"Deleted team: `{normalized}`"))
+
+
+async def _team_list(ctx: commands.Context) -> None:
+    if ctx.guild is None:
+        await _reply(ctx, embed=italy_embed("Teams", "Use this command in a server."))
+        return
+
+    teams = list_player_teams(ctx.guild.id, ctx.author.id)
+    if not teams:
+        await _reply(ctx, embed=italy_embed("Your Teams", "No teams yet. Create one with `ns team add <team_name>`."))
+        return
+
+    lines = [
+        f"{'\u2b50 ' if is_active else '`  ` '} `{team_name}` - {card_count}/3 card(s)"
+        for team_name, card_count, is_active in teams
+    ]
+    await _reply(ctx, embed=italy_embed("Your Teams", multiline_text(lines)))
+
+
+async def _team_assign(ctx: commands.Context, team_name: str, card_code: str) -> None:
+    if ctx.guild is None:
+        await _reply(ctx, embed=italy_embed("Teams", "Use this command in a server."))
+        return
+
+    selected = get_instance_by_code(ctx.guild.id, ctx.author.id, card_code)
+    if selected is None:
+        await _reply(ctx, embed=italy_embed("Teams", "You do not own that card code."))
+        return
+
+    instance_id, card_id, generation, dupe_code = selected
+    if is_instance_assigned_to_team(ctx.guild.id, ctx.author.id, instance_id, team_name):
+        await _reply(ctx, embed=italy_embed("Teams", "That card is already on this team."))
+        return
+
+    success, message = assign_instance_to_team(ctx.guild.id, ctx.author.id, instance_id, team_name)
+    normalized = team_name.strip().lower()
+    if not success:
+        await _reply(ctx, embed=italy_embed("Teams", message or "Could not assign that card to this team."))
+        return
+
+    await _reply(
+        ctx,
+        embed=italy_embed(
+            "Teams",
+            f"Assigned {card_dupe_display(card_id, generation, dupe_code=dupe_code)} to `{normalized}`.",
+        ),
+    )
+
+
+async def _team_unassign(ctx: commands.Context, team_name: str, card_code: str) -> None:
+    if ctx.guild is None:
+        await _reply(ctx, embed=italy_embed("Teams", "Use this command in a server."))
+        return
+
+    selected = get_instance_by_code(ctx.guild.id, ctx.author.id, card_code)
+    if selected is None:
+        await _reply(ctx, embed=italy_embed("Teams", "You do not own that card code."))
+        return
+
+    instance_id, card_id, generation, dupe_code = selected
+    removed = unassign_instance_from_team(ctx.guild.id, ctx.author.id, instance_id, team_name)
+    normalized = team_name.strip().lower()
+    if not removed:
+        await _reply(ctx, embed=italy_embed("Teams", f"That card is not assigned to `{normalized}`."))
+        return
+
+    await _reply(
+        ctx,
+        embed=italy_embed(
+            "Teams",
+            f"Removed {card_dupe_display(card_id, generation, dupe_code=dupe_code)} from `{normalized}`.",
+        ),
+    )
+
+
+async def _team_cards(ctx: commands.Context, team_name: str) -> None:
+    if ctx.guild is None:
+        await _reply(ctx, embed=italy_embed("Teams", "Use this command in a server."))
+        return
+
+    normalized = team_name.strip().lower()
+    team_instances = get_instances_by_team(ctx.guild.id, ctx.author.id, normalized)
+    if not team_instances:
+        await _reply(ctx, embed=italy_embed("Teams", f"No cards found for team `{normalized}`."))
+        return
+
+    view = SortableCollectionView(
+        user_id=ctx.author.id,
+        title=f"Team: `{normalized}`",
+        instances=team_instances,
+        locked_instance_ids=get_locked_instance_ids(
+            ctx.guild.id,
+            ctx.author.id,
+            [instance_id for instance_id, _card_id, _generation, _dupe_code in team_instances],
+        ),
+        wish_counts=get_card_wish_counts(ctx.guild.id),
+        instance_styles={
+            instance_id: (
+                get_instance_morph(ctx.guild.id, instance_id),
+                get_instance_frame(ctx.guild.id, instance_id),
+                get_instance_font(ctx.guild.id, instance_id),
+            )
+            for instance_id, _card_id, _generation, _dupe_code in team_instances
+        },
+        guard_title="Teams",
+    )
+    message = await _reply(ctx, embed=view.build_embed(), view=view)
+    view.message = message
+
+
+async def _team_active(ctx: commands.Context, team_name: str | None) -> None:
+    if ctx.guild is None:
+        await _reply(ctx, embed=italy_embed("Teams", "Use this command in a server."))
+        return
+
+    if team_name is None:
+        active_team_name = get_active_team_name(ctx.guild.id, ctx.author.id)
+        if active_team_name is None:
+            await _reply(ctx, embed=italy_embed("Teams", "No active team set. Use `ns team active <team_name>`."))
+            return
+        await _reply(ctx, embed=italy_embed("Teams", f"Active team: `{active_team_name}`"))
+        return
+
+    normalized = team_name.strip().lower()
+    updated = set_active_team(ctx.guild.id, ctx.author.id, team_name)
+    if not updated:
+        await _reply(ctx, embed=italy_embed("Teams", f"Team not found: `{normalized}`"))
+        return
+    await _reply(ctx, embed=italy_embed("Teams", f"Active team set to `{normalized}`."))
+
+
+async def _battle(ctx: commands.Context, player: str, stake: int) -> None:
+    if ctx.guild is None:
+        await _reply(ctx, embed=italy_embed("Battle", "Use this command in a server."))
+        return
+
+    resolved_member, resolve_error = await resolve_member_argument(ctx, player)
+    if resolved_member is None:
+        await _reply(ctx, embed=italy_embed("Battle", resolve_error or "Could not resolve player."))
+        return
+
+    prepared = prepare_battle_offer(
+        guild_id=ctx.guild.id,
+        challenger_id=ctx.author.id,
+        challenged_id=resolved_member.id,
+        challenged_is_bot=resolved_member.bot,
+        stake=stake,
+    )
+    if prepared.is_error:
+        await _reply(ctx, embed=italy_embed("Battle", prepared.error_message or "Could not create battle proposal."))
+        return
+
+    if (
+        prepared.battle_id is None
+        or prepared.challenger_team_name is None
+        or prepared.challenged_team_name is None
+    ):
+        await _reply(ctx, embed=italy_embed("Battle", "Could not create battle proposal."))
+        return
+
+    view = BattleProposalView(
+        guild_id=ctx.guild.id,
+        battle_id=prepared.battle_id,
+        challenger_id=ctx.author.id,
+        challenged_id=resolved_member.id,
+    )
+
+    message = await _reply(
+        ctx,
+        embed=italy_embed(
+            "Battle Proposal",
+            battle_offer_description(
+                challenged_mention=resolved_member.mention,
+                challenger_mention=ctx.author.mention,
+                stake=stake,
+                challenger_team_name=prepared.challenger_team_name,
+                challenged_team_name=prepared.challenged_team_name,
+            ),
+        ),
+        view=view,
+    )
+    view.message = message
+
+
 def register_commands(bot: commands.Bot) -> None:
     @bot.group(name="wish", aliases=["w"], invoke_without_command=True)
     async def wish(ctx: commands.Context):
@@ -692,6 +924,48 @@ def register_commands(bot: commands.Bot) -> None:
     @tag.command(name="cards", aliases=["c"])
     async def tag_cards(ctx: commands.Context, tag_name: str):
         await _tag_cards(ctx, tag_name)
+
+    @bot.group(name="team", aliases=["tm"], invoke_without_command=True)
+    async def team(ctx: commands.Context):
+        await _reply(
+            ctx,
+            embed=italy_embed(
+                "Teams",
+                (
+                    "Usage: `ns team add <team_name>`, `ns team remove <team_name>`, `ns team list`, "
+                    "`ns team assign <team_name> <card_code>`, `ns team unassign <team_name> <card_code>`, "
+                    "`ns team cards <team_name>`, `ns team active [team_name]`."
+                ),
+            ),
+        )
+
+    @team.command(name="add", aliases=["a", "create"])
+    async def team_add(ctx: commands.Context, team_name: str):
+        await _team_add(ctx, team_name)
+
+    @team.command(name="remove", aliases=["r", "delete"])
+    async def team_remove(ctx: commands.Context, team_name: str):
+        await _team_remove(ctx, team_name)
+
+    @team.command(name="list", aliases=["l"])
+    async def team_list(ctx: commands.Context):
+        await _team_list(ctx)
+
+    @team.command(name="assign", aliases=["as"])
+    async def team_assign(ctx: commands.Context, team_name: str, card_code: str):
+        await _team_assign(ctx, team_name, card_code)
+
+    @team.command(name="unassign", aliases=["u"])
+    async def team_unassign(ctx: commands.Context, team_name: str, card_code: str):
+        await _team_unassign(ctx, team_name, card_code)
+
+    @team.command(name="cards", aliases=["c"])
+    async def team_cards(ctx: commands.Context, team_name: str):
+        await _team_cards(ctx, team_name)
+
+    @team.command(name="active")
+    async def team_active(ctx: commands.Context, team_name: str | None = None):
+        await _team_active(ctx, team_name)
 
     @bot.command(name="cards", aliases=["ca"])
     async def cards(ctx: commands.Context):
@@ -1370,6 +1644,92 @@ def register_commands(bot: commands.Bot) -> None:
             embed=_slots_embed(final_lines),
         )
 
+    @bot.command(name="flip", aliases=["f"])
+    async def flip(ctx: commands.Context, stake_str: str):
+        if ctx.guild is None:
+            await _reply(ctx, embed=italy_embed("Flip", "Use this command in a server."))
+            return
+
+        try:
+            stake = int(stake_str)
+        except ValueError:
+            await _reply(ctx, embed=italy_embed("Flip", "Stake must be a positive integer."))
+            return
+
+        if stake <= 0:
+            await _reply(ctx, embed=italy_embed("Flip", "Stake must be a positive integer."))
+            return
+
+        now = time.time()
+        did_win = random.random() < FLIP_WIN_PROBABILITY
+        status, cooldown_remaining_seconds, dough_total = execute_flip_wager(
+            ctx.guild.id,
+            ctx.author.id,
+            stake=stake,
+            now=now,
+            cooldown_seconds=FLIP_COOLDOWN_SECONDS,
+            did_win=did_win,
+        )
+
+        if status == "cooldown":
+            await _reply(
+                ctx,
+                embed=italy_embed(
+                    "Flip Cooldown",
+                    (
+                        "You need to wait before flipping again "
+                        f"(**{format_cooldown(cooldown_remaining_seconds)}** remaining)."
+                    ),
+                ),
+            )
+            return
+
+        if status == "insufficient_dough":
+            await _reply(
+                ctx,
+                embed=italy_embed(
+                    "Flip",
+                    multiline_text(
+                        [
+                            f"Stake: **{stake}** dough",
+                            f"Balance: **{dough_total}** dough",
+                            "You do not have enough dough.",
+                        ]
+                    ),
+                ),
+            )
+            return
+
+        if status == "won":
+            await _reply(
+                ctx,
+                embed=italy_embed(
+                    "Flip",
+                    multiline_text(
+                        [
+                            "Result: **Heads**",
+                            f"Payout: **+{stake}** dough",
+                            f"Balance: **{dough_total}** dough",
+                        ]
+                    ),
+                ),
+            )
+            return
+
+        await _reply(
+            ctx,
+            embed=italy_embed(
+                "Flip",
+                multiline_text(
+                    [
+                        "Result: **Tails**",
+                        f"Lost: **-{stake}** dough",
+                        f"Balance: **{dough_total}** dough",
+                    ]
+                ),
+            ),
+        )
+
     @bot.command(name="cooldown", aliases=["cd"])
     async def cooldown(ctx: commands.Context, player: str | None = None):
         if ctx.guild is None:
@@ -1385,11 +1745,13 @@ def register_commands(bot: commands.Bot) -> None:
         last_drop_at, last_pull_at = get_player_cooldown_timestamps(ctx.guild.id, target_member.id)
         last_vote_reward_at = get_player_vote_reward_timestamp(ctx.guild.id, target_member.id)
         last_slots_at = get_player_slots_timestamp(ctx.guild.id, target_member.id)
+        last_flip_at = get_player_flip_timestamp(ctx.guild.id, target_member.id)
         now = time.time()
         drop_elapsed = now - last_drop_at
         pull_elapsed = now - last_pull_at
         vote_elapsed = now - last_vote_reward_at
         slots_elapsed = now - last_slots_at
+        flip_elapsed = now - last_flip_at
 
         description = multiline_text(
             [
@@ -1397,6 +1759,7 @@ def register_commands(bot: commands.Bot) -> None:
                 _cooldown_status_line("Pull", pull_elapsed, PULL_COOLDOWN_SECONDS),
                 _cooldown_status_line("Vote", vote_elapsed, VOTE_COOLDOWN_SECONDS),
                 _cooldown_status_line("Slots", slots_elapsed, SLOTS_COOLDOWN_SECONDS),
+                _cooldown_status_line("Flip", flip_elapsed, FLIP_COOLDOWN_SECONDS),
             ]
         )
 
@@ -1522,6 +1885,10 @@ def register_commands(bot: commands.Bot) -> None:
             view=view,
         )
         view.message = message
+
+    @bot.command(name="battle", aliases=["bt"])
+    async def battle(ctx: commands.Context, player: str, stake: int):
+        await _battle(ctx, player, stake)
 
     @bot.command(name="help", aliases=["h"])
     async def help_command(ctx: commands.Context):

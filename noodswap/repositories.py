@@ -50,11 +50,12 @@ class PlayerRepository:
                 last_pull_at,
                 last_vote_reward_at,
                 last_slots_at,
+                last_flip_at,
                 married_card_id,
                 married_instance_id,
                 last_dropped_instance_id
             )
-            VALUES (?, ?, ?, ?, 0, 0, 0, 0, NULL, NULL, NULL)
+            VALUES (?, ?, ?, ?, 0, 0, 0, 0, 0, NULL, NULL, NULL)
             ON CONFLICT(guild_id, user_id) DO NOTHING
             """,
             (guild_id, user_id, self.starting_dough, 0),
@@ -73,6 +74,29 @@ class PlayerRepository:
             return self.starting_dough, 0.0, None
         married_instance_id = row["married_instance_id"]
         return int(row["dough"]), float(row["last_pull_at"]), int(married_instance_id) if married_instance_id is not None else None
+
+    def get_active_team_name(self, guild_id: int, user_id: int) -> Optional[str]:
+        row = self.conn.execute(
+            """
+            SELECT active_team_name
+            FROM players
+            WHERE guild_id = ? AND user_id = ?
+            """,
+            (guild_id, user_id),
+        ).fetchone()
+        if row is None or row["active_team_name"] is None:
+            return None
+        return str(row["active_team_name"])
+
+    def set_active_team_name(self, guild_id: int, user_id: int, team_name: Optional[str]) -> None:
+        self.conn.execute(
+            """
+            UPDATE players
+            SET active_team_name = ?
+            WHERE guild_id = ? AND user_id = ?
+            """,
+            (team_name, guild_id, user_id),
+        )
 
     def set_last_drop_at(self, guild_id: int, user_id: int, timestamp: float) -> None:
         self.conn.execute(
@@ -349,6 +373,27 @@ class PlayerRepository:
             (timestamp, guild_id, user_id),
         )
 
+    def get_last_flip_at(self, guild_id: int, user_id: int) -> float:
+        row = self.conn.execute(
+            """
+            SELECT last_flip_at
+            FROM players
+            WHERE guild_id = ? AND user_id = ?
+            """,
+            (guild_id, user_id),
+        ).fetchone()
+        return float(row["last_flip_at"]) if row is not None else 0.0
+
+    def set_last_flip_at(self, guild_id: int, user_id: int, timestamp: float) -> None:
+        self.conn.execute(
+            """
+            UPDATE players
+            SET last_flip_at = ?
+            WHERE guild_id = ? AND user_id = ?
+            """,
+            (timestamp, guild_id, user_id),
+        )
+
 
 class WishlistRepository:
     def __init__(self, conn: sqlite3.Connection):
@@ -587,6 +632,238 @@ class CardInstanceTagRepository:
             (int(row["instance_id"]), str(row["card_id"]), int(row["generation"]), str(row["dupe_code"]))
             for row in rows
         ]
+
+
+class PlayerTeamRepository:
+    def __init__(self, conn: sqlite3.Connection):
+        self.conn = conn
+
+    def create(self, guild_id: int, user_id: int, team_name: str, created_at: float) -> bool:
+        cursor = self.conn.execute(
+            """
+            INSERT OR IGNORE INTO player_teams (guild_id, user_id, team_name, created_at)
+            VALUES (?, ?, ?, ?)
+            """,
+            (guild_id, user_id, team_name, created_at),
+        )
+        return int(cursor.rowcount) > 0
+
+    def exists(self, guild_id: int, user_id: int, team_name: str) -> bool:
+        row = self.conn.execute(
+            """
+            SELECT 1
+            FROM player_teams
+            WHERE guild_id = ? AND user_id = ? AND team_name = ?
+            LIMIT 1
+            """,
+            (guild_id, user_id, team_name),
+        ).fetchone()
+        return row is not None
+
+    def delete(self, guild_id: int, user_id: int, team_name: str) -> bool:
+        cursor = self.conn.execute(
+            """
+            DELETE FROM player_teams
+            WHERE guild_id = ? AND user_id = ? AND team_name = ?
+            """,
+            (guild_id, user_id, team_name),
+        )
+        return int(cursor.rowcount) > 0
+
+    def list_with_counts(self, guild_id: int, user_id: int) -> list[tuple[str, int]]:
+        rows = self.conn.execute(
+            """
+            SELECT pt.team_name, COUNT(tm.instance_id) AS card_count
+            FROM player_teams pt
+            LEFT JOIN team_members tm
+                ON tm.guild_id = pt.guild_id
+                AND tm.user_id = pt.user_id
+                AND tm.team_name = pt.team_name
+            WHERE pt.guild_id = ? AND pt.user_id = ?
+            GROUP BY pt.team_name
+            ORDER BY pt.team_name ASC
+            """,
+            (guild_id, user_id),
+        ).fetchall()
+        return [(str(row["team_name"]), int(row["card_count"])) for row in rows]
+
+
+class TeamMemberRepository:
+    def __init__(self, conn: sqlite3.Connection):
+        self.conn = conn
+
+    def count_members(self, guild_id: int, user_id: int, team_name: str) -> int:
+        row = self.conn.execute(
+            """
+            SELECT COUNT(*) AS c
+            FROM team_members
+            WHERE guild_id = ? AND user_id = ? AND team_name = ?
+            """,
+            (guild_id, user_id, team_name),
+        ).fetchone()
+        return int(row["c"]) if row is not None else 0
+
+    def is_assigned(self, guild_id: int, user_id: int, team_name: str, instance_id: int) -> bool:
+        row = self.conn.execute(
+            """
+            SELECT 1
+            FROM team_members
+            WHERE guild_id = ? AND user_id = ? AND team_name = ? AND instance_id = ?
+            LIMIT 1
+            """,
+            (guild_id, user_id, team_name, instance_id),
+        ).fetchone()
+        return row is not None
+
+    def add(self, guild_id: int, user_id: int, team_name: str, instance_id: int, created_at: float) -> bool:
+        cursor = self.conn.execute(
+            """
+            INSERT OR IGNORE INTO team_members (guild_id, user_id, team_name, instance_id, created_at)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (guild_id, user_id, team_name, instance_id, created_at),
+        )
+        return int(cursor.rowcount) > 0
+
+    def remove(self, guild_id: int, user_id: int, team_name: str, instance_id: int) -> bool:
+        cursor = self.conn.execute(
+            """
+            DELETE FROM team_members
+            WHERE guild_id = ? AND user_id = ? AND team_name = ? AND instance_id = ?
+            """,
+            (guild_id, user_id, team_name, instance_id),
+        )
+        return int(cursor.rowcount) > 0
+
+    def list_team_instances(self, guild_id: int, user_id: int, team_name: str) -> list[tuple[int, str, int, str]]:
+        rows = self.conn.execute(
+            """
+            SELECT ci.instance_id, ci.card_id, ci.generation, ci.dupe_code
+            FROM team_members tm
+            JOIN card_instances ci
+                ON ci.instance_id = tm.instance_id
+            WHERE tm.guild_id = ? AND tm.user_id = ? AND tm.team_name = ?
+                AND ci.guild_id = tm.guild_id
+                AND ci.user_id = tm.user_id
+            ORDER BY ci.generation ASC, ci.card_id ASC, ci.instance_id ASC
+            """,
+            (guild_id, user_id, team_name),
+        ).fetchall()
+        return [
+            (int(row["instance_id"]), str(row["card_id"]), int(row["generation"]), str(row["dupe_code"]))
+            for row in rows
+        ]
+
+
+class BattleSessionRepository:
+    def __init__(self, conn: sqlite3.Connection):
+        self.conn = conn
+
+    def create_pending(
+        self,
+        guild_id: int,
+        challenger_id: int,
+        challenged_id: int,
+        stake: int,
+        challenger_team_name: str,
+        challenged_team_name: str,
+        created_at: float,
+    ) -> Optional[int]:
+        cursor = self.conn.execute(
+            """
+            INSERT INTO battle_sessions (
+                guild_id,
+                challenger_id,
+                challenged_id,
+                stake,
+                status,
+                challenger_team_name,
+                challenged_team_name,
+                created_at,
+                acting_user_id,
+                turn_number
+            )
+            VALUES (?, ?, ?, ?, 'pending', ?, ?, ?, NULL, 1)
+            """,
+            (guild_id, challenger_id, challenged_id, stake, challenger_team_name, challenged_team_name, created_at),
+        )
+        if cursor.lastrowid is None:
+            return None
+        return int(cursor.lastrowid)
+
+    def get_by_id(self, guild_id: int, battle_id: int) -> Optional[dict[str, int | float | str | None]]:
+        row = self.conn.execute(
+            """
+            SELECT battle_id, guild_id, challenger_id, challenged_id, stake, status,
+                   challenger_team_name, challenged_team_name, created_at, accepted_at,
+                   finished_at, acting_user_id, turn_number, winner_user_id, last_action
+            FROM battle_sessions
+            WHERE guild_id = ? AND battle_id = ?
+            LIMIT 1
+            """,
+            (guild_id, battle_id),
+        ).fetchone()
+        if row is None:
+            return None
+        return {
+            "battle_id": int(row["battle_id"]),
+            "guild_id": int(row["guild_id"]),
+            "challenger_id": int(row["challenger_id"]),
+            "challenged_id": int(row["challenged_id"]),
+            "stake": int(row["stake"]),
+            "status": str(row["status"]),
+            "challenger_team_name": str(row["challenger_team_name"]),
+            "challenged_team_name": str(row["challenged_team_name"]),
+            "created_at": float(row["created_at"]),
+            "accepted_at": float(row["accepted_at"]) if row["accepted_at"] is not None else None,
+            "finished_at": float(row["finished_at"]) if row["finished_at"] is not None else None,
+            "acting_user_id": int(row["acting_user_id"]) if row["acting_user_id"] is not None else None,
+            "turn_number": int(row["turn_number"]),
+            "winner_user_id": int(row["winner_user_id"]) if row["winner_user_id"] is not None else None,
+            "last_action": str(row["last_action"]) if row["last_action"] is not None else None,
+        }
+
+    def has_open_battle_for_user(self, guild_id: int, user_id: int) -> bool:
+        row = self.conn.execute(
+            """
+            SELECT 1
+            FROM battle_sessions
+            WHERE guild_id = ?
+                AND status IN ('pending', 'active')
+                AND (challenger_id = ? OR challenged_id = ?)
+            LIMIT 1
+            """,
+            (guild_id, user_id, user_id),
+        ).fetchone()
+        return row is not None
+
+    def mark_denied(self, guild_id: int, battle_id: int, finished_at: float, last_action: str) -> bool:
+        cursor = self.conn.execute(
+            """
+            UPDATE battle_sessions
+            SET status = 'denied',
+                finished_at = ?,
+                last_action = ?
+            WHERE guild_id = ? AND battle_id = ? AND status = 'pending'
+            """,
+            (finished_at, last_action, guild_id, battle_id),
+        )
+        return int(cursor.rowcount) > 0
+
+    def mark_active(self, guild_id: int, battle_id: int, acting_user_id: int, accepted_at: float) -> bool:
+        cursor = self.conn.execute(
+            """
+            UPDATE battle_sessions
+            SET status = 'active',
+                accepted_at = ?,
+                acting_user_id = ?,
+                turn_number = 1,
+                last_action = 'Battle started.'
+            WHERE guild_id = ? AND battle_id = ? AND status = 'pending'
+            """,
+            (accepted_at, acting_user_id, guild_id, battle_id),
+        )
+        return int(cursor.rowcount) > 0
 
 
 class CardInstanceRepository:

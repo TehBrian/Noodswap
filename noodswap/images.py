@@ -7,12 +7,7 @@ import discord
 from .cards import CARD_CATALOG, normalize_card_id
 from .fonts import (
     CARD_FONTS_DIR,
-    FONT_MONO,
-    FONT_PIXEL,
-    FONT_PLAYFUL,
-    FONT_SCRIPT,
-    FONT_SERIF,
-    FONT_SPOOKY,
+    font_asset_files,
     normalize_font_key,
 )
 from .frames import frame_overlay_path, normalize_frame_key
@@ -193,166 +188,15 @@ def _load_overlay_font(size: int, *, bold: bool, font_key: str | None = None):
     from PIL import ImageFont
 
     normalized_font_key = normalize_font_key(font_key)
-    resolved_font_key = normalized_font_key or "classic"
+    regular_name, bold_name = font_asset_files(normalized_font_key)
 
+    # These filenames are style references: classic->Arial, serif->Times New Roman,
+    # mono->Courier New, script->SnellRoundhand, spooky->Papyrus,
+    # pixel->Menlo, playful->Comic Sans MS.
     candidate_paths: list[Path] = []
-    for extension in (".ttf", ".otf", ".ttc"):
-        custom_base = CARD_FONTS_DIR / f"{resolved_font_key}{extension}"
-        custom_bold = CARD_FONTS_DIR / f"{resolved_font_key}-bold{extension}"
-        if bold and custom_bold.exists():
-            candidate_paths.append(custom_bold)
-        if custom_base.exists():
-            candidate_paths.append(custom_base)
-
-    try:
-        import PIL
-
-        pil_dir = Path(PIL.__file__).resolve().parent
-        if normalized_font_key == FONT_SERIF:
-            if bold:
-                candidate_paths.append(pil_dir / "fonts" / "DejaVuSerif-Bold.ttf")
-            else:
-                candidate_paths.append(pil_dir / "fonts" / "DejaVuSerif.ttf")
-        elif normalized_font_key in (FONT_MONO, FONT_PIXEL):
-            if bold:
-                candidate_paths.append(pil_dir / "fonts" / "DejaVuSansMono-Bold.ttf")
-            else:
-                candidate_paths.append(pil_dir / "fonts" / "DejaVuSansMono.ttf")
-        elif normalized_font_key in (FONT_SCRIPT, FONT_SPOOKY):
-            if bold:
-                candidate_paths.append(pil_dir / "fonts" / "DejaVuSerif-Bold.ttf")
-            else:
-                candidate_paths.append(pil_dir / "fonts" / "DejaVuSerif.ttf")
-        elif normalized_font_key == FONT_PLAYFUL:
-            if bold:
-                candidate_paths.append(pil_dir / "fonts" / "DejaVuSans-Bold.ttf")
-            else:
-                candidate_paths.append(pil_dir / "fonts" / "DejaVuSans.ttf")
-        else:
-            if bold:
-                candidate_paths.append(pil_dir / "fonts" / "DejaVuSans-Bold.ttf")
-            else:
-                candidate_paths.append(pil_dir / "fonts" / "DejaVuSans.ttf")
-    except Exception:
-        pass
-
-    if normalized_font_key == FONT_SERIF:
-        if bold:
-            candidate_paths.extend(
-                [
-                    Path("/System/Library/Fonts/Supplemental/Times New Roman Bold.ttf"),
-                    Path("/Library/Fonts/Times New Roman Bold.ttf"),
-                ]
-            )
-        else:
-            candidate_paths.extend(
-                [
-                    Path("/System/Library/Fonts/Supplemental/Times New Roman.ttf"),
-                    Path("/Library/Fonts/Times New Roman.ttf"),
-                ]
-            )
-    elif normalized_font_key == FONT_MONO:
-        if bold:
-            candidate_paths.extend(
-                [
-                    Path("/System/Library/Fonts/Menlo.ttc"),
-                    Path("/System/Library/Fonts/Supplemental/Courier New Bold.ttf"),
-                    Path("/Library/Fonts/Courier New Bold.ttf"),
-                ]
-            )
-        else:
-            candidate_paths.extend(
-                [
-                    Path("/System/Library/Fonts/Menlo.ttc"),
-                    Path("/System/Library/Fonts/Supplemental/Courier New.ttf"),
-                    Path("/Library/Fonts/Courier New.ttf"),
-                ]
-            )
-    elif normalized_font_key == FONT_SCRIPT:
-        if bold:
-            candidate_paths.extend(
-                [
-                    Path("/System/Library/Fonts/Supplemental/SnellRoundhand.ttc"),
-                    Path("/System/Library/Fonts/Supplemental/Brush Script.ttf"),
-                    Path("/System/Library/Fonts/Supplemental/Zapfino.ttf"),
-                ]
-            )
-        else:
-            candidate_paths.extend(
-                [
-                    Path("/System/Library/Fonts/Supplemental/SnellRoundhand.ttc"),
-                    Path("/System/Library/Fonts/Supplemental/Brush Script.ttf"),
-                    Path("/System/Library/Fonts/Supplemental/Zapfino.ttf"),
-                ]
-            )
-    elif normalized_font_key == FONT_SPOOKY:
-        if bold:
-            candidate_paths.extend(
-                [
-                    Path("/System/Library/Fonts/Supplemental/Papyrus.ttc"),
-                    Path("/System/Library/Fonts/Supplemental/Copperplate.ttc"),
-                    Path("/System/Library/Fonts/Supplemental/Impact.ttf"),
-                ]
-            )
-        else:
-            candidate_paths.extend(
-                [
-                    Path("/System/Library/Fonts/Supplemental/Papyrus.ttc"),
-                    Path("/System/Library/Fonts/Supplemental/Copperplate.ttc"),
-                    Path("/System/Library/Fonts/Supplemental/Impact.ttf"),
-                ]
-            )
-    elif normalized_font_key == FONT_PIXEL:
-        if bold:
-            candidate_paths.extend(
-                [
-                    Path("/System/Library/Fonts/Menlo.ttc"),
-                    Path("/System/Library/Fonts/Supplemental/Courier New Bold.ttf"),
-                    Path("/Library/Fonts/Courier New Bold.ttf"),
-                ]
-            )
-        else:
-            candidate_paths.extend(
-                [
-                    Path("/System/Library/Fonts/Menlo.ttc"),
-                    Path("/System/Library/Fonts/Supplemental/Courier New.ttf"),
-                    Path("/Library/Fonts/Courier New.ttf"),
-                ]
-            )
-    elif normalized_font_key == FONT_PLAYFUL:
-        if bold:
-            candidate_paths.extend(
-                [
-                    Path("/System/Library/Fonts/Supplemental/Comic Sans MS Bold.ttf"),
-                    Path("/System/Library/Fonts/Supplemental/Chalkboard.ttc"),
-                    Path("/System/Library/Fonts/Supplemental/Marker Felt.ttc"),
-                ]
-            )
-        else:
-            candidate_paths.extend(
-                [
-                    Path("/System/Library/Fonts/Supplemental/Comic Sans MS.ttf"),
-                    Path("/System/Library/Fonts/Supplemental/Chalkboard.ttc"),
-                    Path("/System/Library/Fonts/Supplemental/Marker Felt.ttc"),
-                ]
-            )
-    else:
-        if bold:
-            candidate_paths.extend(
-                [
-                    Path("/System/Library/Fonts/Supplemental/Arial Bold.ttf"),
-                    Path("/System/Library/Fonts/Supplemental/Helvetica Bold.ttf"),
-                    Path("/Library/Fonts/Arial Bold.ttf"),
-                ]
-            )
-        else:
-            candidate_paths.extend(
-                [
-                    Path("/System/Library/Fonts/Supplemental/Arial.ttf"),
-                    Path("/System/Library/Fonts/Supplemental/Helvetica.ttf"),
-                    Path("/Library/Fonts/Arial.ttf"),
-                ]
-            )
+    if bold:
+        candidate_paths.append(CARD_FONTS_DIR / bold_name)
+    candidate_paths.append(CARD_FONTS_DIR / regular_name)
 
     for candidate in candidate_paths:
         if not candidate.exists():

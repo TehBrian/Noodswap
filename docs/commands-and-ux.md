@@ -17,6 +17,7 @@ This document defines behavior and presentation for commands and interaction flo
 - `help` / `h`
 - `drop` / `d`
 - `slots` / `s`
+- `flip <stake>` / `f <stake>`
 - `vote` / `v`
 - `cooldown [player]` / `cd [player]`
 - `burn [card_code]` / `b [card_code]`
@@ -24,6 +25,15 @@ This document defines behavior and presentation for commands and interaction flo
 - `frame [card_code]` / `fr [card_code]`
 - `font [card_code]` / `fo [card_code]`
 - `trade <player> <card_code> <amount>` / `t ...`
+- `team` / `tm`
+- `team add <team_name>` / `team a <team_name>`
+- `team remove <team_name>` / `team r <team_name>`
+- `team list` / `team l`
+- `team assign <team_name> <card_code>` / `team as ...`
+- `team unassign <team_name> <card_code>` / `team u ...`
+- `team cards <team_name>` / `team c <team_name>`
+- `team active [team_name]`
+- `battle <player> <stake>` / `bt ...`
 - `wish` / `w`
 - `wish add <card_id>` / `wish a <card_id>` / `w add <card_id>` / `w a <card_id>` / `wa <card_id>`
 - `wish remove <card_id>` / `wish r <card_id>` / `w remove <card_id>` / `w r <card_id>` / `wr <card_id>`
@@ -122,6 +132,16 @@ Burn result format should remain:
   - base + value + RNG lines
 - Burn confirmation and burn result both display the target card image
 
+## Flip UX
+
+- `flip <stake>` requires a positive integer stake
+- flip uses a 2-minute per-player cooldown
+- outcome odds are fixed at 46% win (`Heads`) and 54% loss (`Tails`)
+- on win, player gains `+stake` dough (net)
+- on loss, player loses `-stake` dough (net)
+- insufficient-dough responses should report stake and current balance
+- flip responses use the standard `italy_embed` style
+
 ## Morph UX
 
 - `morph` with no argument targets the player's most recently pulled card instance
@@ -177,6 +197,25 @@ Card identity terms:
 - Accept/deny edits same message into final state embed
 - Trade result should include card instance/generation when available
 - Trade player argument supports direct mention (e.g. `@Friend`) or exact username
+
+## Team UX
+
+- Team names are normalized to lowercase and limited to 32 chars.
+- Team membership is per-instance (uses card code ownership checks).
+- Team capacity is limited to `3` cards.
+- A player can have multiple teams.
+- `team active <team_name>` sets the team used for battles.
+- `team active` (without team name) shows the current active team.
+
+## Battle UX (Current Foundation)
+
+- `battle <player> <stake>` creates a proposal requiring challenged player accept/deny.
+- Stake must be at least `1` dough.
+- Both players must have an active team with at least one card.
+- Both players must have enough dough for the stake at proposal and accept time.
+- A player can only be in one pending/active battle at a time.
+- Proposal timeout is `60` seconds.
+- Accept/deny currently handles proposal lifecycle and arena setup; turn-by-turn combat controls are the next implementation phase.
 
 ## Wishlist UX
 

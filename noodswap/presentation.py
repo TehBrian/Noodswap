@@ -58,6 +58,23 @@ Seller: {seller_mention}
 Card: {card_dupe_display(card_id, generation, dupe_code=dupe_code)}
 Price: **{amount}** dough"""
 
+
+def battle_offer_description(
+    challenged_mention: str,
+    challenger_mention: str,
+    stake: int,
+    challenger_team_name: str,
+    challenged_team_name: str,
+) -> str:
+    return f"""Offered to: {challenged_mention}
+Challenger: {challenger_mention}
+
+Stake: **{stake}** dough each
+{challenger_mention} active team: `{challenger_team_name}`
+{challenged_mention} active team: `{challenged_team_name}`
+
+Accept to start the arena setup."""
+
 HELP_CATEGORY_PAGES: tuple[tuple[str, str, str], ...] = (
     (
         "overview",
@@ -75,10 +92,13 @@ HELP_CATEGORY_PAGES: tuple[tuple[str, str, str], ...] = (
         "Economy",
         """- `ns drop` (`ns d`, `nd`) — Open a drop with 3 cards and pull 1.
 - `ns slots` (`ns sl`, `ns`) — Spin 3 food reels; matching all 3 wins 1-3 starter.
+    - `ns flip <stake>` (`ns f`, `nf`) — Flip a coin wager (46% heads win / 54% tails lose), 2m cooldown.
 - `ns cooldown [player]` (`ns cd`) — Check a player's cooldowns; defaults to yourself or the replied user.
 - `ns vote` (`ns v`, `nv`) — Open top.gg vote link and claim starter reward if your vote is detected.
 - `ns burn [card_code]` (`ns b`, `nb`) — Burn a card for dough; defaults to last pulled card.
-- `ns trade <player> <card_code> <amount>` (`ns t`, `nt`) — Offer a card-for-dough trade.""",
+    - `ns trade <player> <card_code> <amount>` (`ns t`, `nt`) — Offer a card-for-dough trade.
+    - `ns team ...` (`ns tm ...`) — Manage battle teams and set your active team.
+    - `ns battle <player> <stake>` (`ns bt`) — Propose a stake battle to another player.""",
     ),
     (
         "cosmetics",

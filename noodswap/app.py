@@ -9,7 +9,7 @@ import discord
 from discord.ext import commands
 
 from .commands import register_commands
-from .fonts import AVAILABLE_FONTS
+from .fonts import AVAILABLE_FONTS, font_asset_files
 from .presentation import italy_embed
 from .settings import CARD_FONTS_DIR, COMMAND_PREFIX, SHORT_COMMAND_PREFIX
 from .storage import init_db
@@ -160,15 +160,19 @@ def _validate_runtime_font_assets() -> None:
 
     missing: list[str] = []
     for font_key in AVAILABLE_FONTS:
-        has_file = any((CARD_FONTS_DIR / f"{font_key}{extension}").is_file() for extension in (".ttf", ".otf", ".ttc"))
-        if not has_file:
-            missing.append(font_key)
+        regular_name, bold_name = font_asset_files(font_key)
+        regular_path = CARD_FONTS_DIR / regular_name
+        bold_path = CARD_FONTS_DIR / bold_name
+        if not regular_path.is_file():
+            missing.append(f"{font_key}: {regular_name}")
+        if not bold_path.is_file():
+            missing.append(f"{font_key}: {bold_name}")
 
     if missing:
         missing_display = ", ".join(sorted(missing))
         raise RuntimeError(
             "Runtime fonts are incomplete in "
-            f"{CARD_FONTS_DIR}. Missing base files for: {missing_display}. "
+            f"{CARD_FONTS_DIR}. Missing mapped files for: {missing_display}. "
             "Re-run scripts/init_runtime.py and verify runtime volume permissions."
         )
 

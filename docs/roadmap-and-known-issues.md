@@ -23,6 +23,10 @@
 - Rarity/value balancing currently hand-tuned.
 - Could add tooling for expected value simulation.
 
+6. Battle system is in staged rollout
+- Team persistence and battle proposal lifecycle are now implemented (`team` commands + proposal accept/deny).
+- Turn-by-turn combat actions (attack/defend/switch/surrender resolution loop) are not fully wired yet.
+
 ## Near-term roadmap
 
 1. Expand migration framework
@@ -82,6 +86,8 @@ Stage 3 implementation guide: `docs/refactor-phase-3.md`.
 
 - Updated deploy/runtime bootstrap flow so `deploy/update.sh` now runs `scripts/init_runtime.py` on-host during each deploy, ensuring runtime DB/image/font/frame seeds are initialized before container restart.
 - Added `slots` / `s` command with animated 3-reel food-emoji spins, jackpot starter payout (`+1..+3`), and a dedicated 22-minute cooldown tracked by `players.last_slots_at`.
+- Added `flip` / `f` command with dough wagering, a dedicated 2-minute cooldown (`players.last_flip_at`), and intentional house-edge odds (46% win / 54% lose) to keep long-run expected value negative.
+- Started team-battle foundation rollout: added migration `v14` (`players.active_team_name`, `player_teams`, `team_members`, `battle_sessions`), added `team` command group (`add/remove/list/assign/unassign/cards/active`), and added `battle <player> <stake>` proposal flow with accept/deny interaction view and one-open-battle-per-player guard.
 - Stage 3 kickoff (non-breaking): extracted pagination emoji resolution/constants from `views.py` into `noodswap/view_pagination.py`, and extracted card display-format helpers into `noodswap/card_display.py` while keeping `noodswap.cards` public functions as compatibility wrappers.
 - Continued Stage 3 (non-breaking): extracted help interaction classes (`HelpCategorySelect`, `HelpView`) into `noodswap/view_help.py` and kept `HelpView` available through `noodswap.views` for existing imports.
 - Continued Stage 3 (non-breaking): extracted `DropView` into `noodswap/view_drop.py` and `TradeView` into `noodswap/view_trade.py` while keeping both importable from `noodswap.views`.

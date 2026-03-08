@@ -337,6 +337,7 @@ class CommandsAliasRegistrationTests(unittest.TestCase):
         self.assertIn("i", _get_command(self.bot, "info").aliases)
         self.assertIn("v", _get_command(self.bot, "vote").aliases)
         self.assertIn("s", _get_command(self.bot, "slots").aliases)
+        self.assertIn("f", _get_command(self.bot, "flip").aliases)
         self.assertIn("tg", _get_command(self.bot, "tag").aliases)
 
 
@@ -836,6 +837,7 @@ class CommandsCooldownTests(unittest.IsolatedAsyncioTestCase):
             patch("noodswap.commands.get_player_cooldown_timestamps", return_value=(0.0, 0.0)),
             patch("noodswap.commands.get_player_vote_reward_timestamp", return_value=0.0),
             patch("noodswap.commands.get_player_slots_timestamp", return_value=0.0),
+            patch("noodswap.commands.get_player_flip_timestamp", return_value=0.0),
             patch("noodswap.commands.time.time", return_value=10_000.0),
         ):
             await cooldown_command.callback(ctx, player=None)
@@ -847,6 +849,7 @@ class CommandsCooldownTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("Pull:", sent_embed.description)
         self.assertIn("Vote:", sent_embed.description)
         self.assertIn("Slots:", sent_embed.description)
+        self.assertIn("Flip:", sent_embed.description)
         self.assertIn("Ready", sent_embed.description)
 
     async def test_cooldown_uses_resolved_player_when_argument_provided(self) -> None:
@@ -864,6 +867,7 @@ class CommandsCooldownTests(unittest.IsolatedAsyncioTestCase):
             patch("noodswap.commands.get_player_cooldown_timestamps", return_value=(9_800.0, 9_850.0)),
             patch("noodswap.commands.get_player_vote_reward_timestamp", return_value=9_900.0),
             patch("noodswap.commands.get_player_slots_timestamp", return_value=9_950.0),
+            patch("noodswap.commands.get_player_flip_timestamp", return_value=9_980.0),
             patch("noodswap.commands.time.time", return_value=10_000.0),
         ):
             await cooldown_command.callback(ctx, player="@Target")
@@ -876,6 +880,7 @@ class CommandsCooldownTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("Pull:", sent_embed.description)
         self.assertIn("Vote:", sent_embed.description)
         self.assertIn("Slots:", sent_embed.description)
+        self.assertIn("Flip:", sent_embed.description)
         self.assertIn("Cooling Down", sent_embed.description)
 
     async def test_cooldown_uses_replied_player_when_argument_omitted(self) -> None:
@@ -898,6 +903,7 @@ class CommandsCooldownTests(unittest.IsolatedAsyncioTestCase):
             patch("noodswap.commands.get_player_cooldown_timestamps", return_value=(9_800.0, 9_850.0)),
             patch("noodswap.commands.get_player_vote_reward_timestamp", return_value=9_900.0),
             patch("noodswap.commands.get_player_slots_timestamp", return_value=9_950.0),
+            patch("noodswap.commands.get_player_flip_timestamp", return_value=9_980.0),
             patch("noodswap.commands.time.time", return_value=10_000.0),
         ):
             await cooldown_command.callback(ctx, player=None)
@@ -961,6 +967,113 @@ class CommandsSlotsTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(final_embed.title, "Slots")
         self.assertIn("Jackpot", final_embed.description)
         self.assertIn("+2 starter", final_embed.description)
+
+
+class CommandsFlipTests(unittest.IsolatedAsyncioTestCase):
+    def setUp(self) -> None:
+        self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)
+        register_commands(self.bot)
+
+    async def test_flip_rejects_non_integer_stake(self) -> None:
+        flip_command = _get_command(self.bot, "flip")
+
+        ctx = AsyncMock()
+        ctx.guild = _FakeGuild(1)
+        ctx.author = _FakeMember(100, "Caller")
+        ctx.send = AsyncMock()
+        ctx.reply = ctx.send
+
+        await flip_command.callback(ctx, stake_str="abc")
+
+        ctx.send.assert_awaited_once()
+        sent_embed = ctx.send.await_args.kwargs["embed"]
+        self.assertEqual(sent_embed.title, "Flip")
+        self.assertIn("positive integer", sent_embed.description)
+
+    async def test_flip_shows_cooldown_message(self) -> None:
+        flip_command = _get_command(self.bot, "flip")
+
+        ctx = AsyncMock()
+        ctx.guild = _FakeGuild(1)
+        ctx.author = _FakeMember(100, "Caller")
+        ctx.send = AsyncMock()
+        ctx.reply = ctx.send
+
+        with patch(
+            "noodswap.commands.execute_flip_wager",
+            return_value=("cooldown", 30.0, 50),
+        ):
+            await flip_command.callback(ctx, stake_str="10")
+
+        ctx.send.assert_awaited_once()
+        sent_embed = ctx.send.await_args.kwargs["embed"]
+        self.assertEqual(sent_embed.title, "Flip Cooldown")
+        self.assertIn("remaining", sent_embed.description)
+
+    async def test_flip_shows_insufficient_dough_message(self) -> None:
+        flip_command = _get_command(self.bot, "flip")
+
+        ctx = AsyncMock()
+        ctx.guild = _FakeGuild(1)
+        ctx.author = _FakeMember(100, "Caller")
+        ctx.send = AsyncMock()
+        ctx.reply = ctx.send
+
+        with patch(
+            "noodswap.commands.execute_flip_wager",
+            return_value=("insufficient_dough", 0.0, 5),
+        ):
+            await flip_command.callback(ctx, stake_str="10")
+
+        ctx.send.assert_awaited_once()
+        sent_embed = ctx.send.await_args.kwargs["embed"]
+        self.assertEqual(sent_embed.title, "Flip")
+        self.assertIn("do not have enough dough", sent_embed.description)
+        self.assertIn("Balance: **5**", sent_embed.description)
+
+    async def test_flip_shows_heads_on_win(self) -> None:
+        flip_command = _get_command(self.bot, "flip")
+
+        ctx = AsyncMock()
+        ctx.guild = _FakeGuild(1)
+        ctx.author = _FakeMember(100, "Caller")
+        ctx.send = AsyncMock()
+        ctx.reply = ctx.send
+
+        with (
+            patch("noodswap.commands.random.random", return_value=0.1),
+            patch("noodswap.commands.execute_flip_wager", return_value=("won", 0.0, 60)) as execute_flip,
+        ):
+            await flip_command.callback(ctx, stake_str="10")
+
+        execute_flip.assert_called_once()
+        ctx.send.assert_awaited_once()
+        sent_embed = ctx.send.await_args.kwargs["embed"]
+        self.assertEqual(sent_embed.title, "Flip")
+        self.assertIn("Heads", sent_embed.description)
+        self.assertIn("+10", sent_embed.description)
+
+    async def test_flip_shows_tails_on_loss(self) -> None:
+        flip_command = _get_command(self.bot, "flip")
+
+        ctx = AsyncMock()
+        ctx.guild = _FakeGuild(1)
+        ctx.author = _FakeMember(100, "Caller")
+        ctx.send = AsyncMock()
+        ctx.reply = ctx.send
+
+        with (
+            patch("noodswap.commands.random.random", return_value=0.9),
+            patch("noodswap.commands.execute_flip_wager", return_value=("lost", 0.0, 40)) as execute_flip,
+        ):
+            await flip_command.callback(ctx, stake_str="10")
+
+        execute_flip.assert_called_once()
+        ctx.send.assert_awaited_once()
+        sent_embed = ctx.send.await_args.kwargs["embed"]
+        self.assertEqual(sent_embed.title, "Flip")
+        self.assertIn("Tails", sent_embed.description)
+        self.assertIn("-10", sent_embed.description)
 
 
 class CommandsSlotsAnimationTests(unittest.IsolatedAsyncioTestCase):
