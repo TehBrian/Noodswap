@@ -731,6 +731,12 @@
     "rarity": "divine",
     "series": "dessert"
   },
+  "KBR": {
+    "image": "runtime/card_images/KBR.jpg",
+    "name": "Kee's Brownies",
+    "rarity": "celestial",
+    "series": "dessert"
+  },
   "LAM": {
     "image": "runtime/card_images/LAM.jpg",
     "name": "Lambrusco",
