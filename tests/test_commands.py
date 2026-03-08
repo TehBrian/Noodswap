@@ -2095,6 +2095,40 @@ class CardRenderRegressionTests(unittest.TestCase):
 
         self.assertNotEqual(base_rendered, framed_rendered)
 
+    def test_render_card_image_bytes_scales_body_down_when_frame_enabled(self) -> None:
+        try:
+            from PIL import Image
+        except ImportError:
+            self.skipTest("Pillow is not installed")
+
+        def png_bytes(color: tuple[int, int, int]) -> bytes:
+            image = Image.new("RGB", (30, 30), color)
+            output = io.BytesIO()
+            image.save(output, format="PNG")
+            return output.getvalue()
+
+        transparent_overlay = Image.new("RGBA", DEFAULT_CARD_RENDER_SIZE, (0, 0, 0, 0))
+
+        with (
+            patch("noodswap.images.read_local_card_image_bytes", return_value=png_bytes((120, 140, 160))),
+            patch("noodswap.images._load_frame_overlay_image", return_value=transparent_overlay),
+        ):
+            base_rendered = render_card_image_bytes("SPG", generation=10)
+            framed_rendered = render_card_image_bytes("SPG", generation=10, frame_key="buttery")
+
+        self.assertIsNotNone(base_rendered)
+        self.assertIsNotNone(framed_rendered)
+        if base_rendered is None or framed_rendered is None:
+            self.fail("Expected rendered card image bytes")
+
+        base_image = Image.open(io.BytesIO(base_rendered)).convert("RGBA")
+        framed_image = Image.open(io.BytesIO(framed_rendered)).convert("RGBA")
+
+        sample_x = DEFAULT_CARD_RENDER_SIZE[0] // 2
+        sample_y = 12
+        self.assertGreater(base_image.getpixel((sample_x, sample_y))[3], 0)
+        self.assertEqual(framed_image.getpixel((sample_x, sample_y))[3], 0)
+
     def test_render_card_image_bytes_applies_black_and_white_morph(self) -> None:
         try:
             from PIL import Image
