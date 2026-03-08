@@ -234,7 +234,7 @@ HELP_CATEGORY_PAGES: tuple[tuple[str, str, str], ...] = (
     - `ns buy drop [quantity]` — Buy drop tickets for 1 starter each (default quantity: 1).
 - `ns cooldown [player]` (`ns cd`) — Check a player's cooldowns; defaults to yourself or the replied user.
 - `ns vote` (`ns v`, `nv`) — Open top.gg vote link and claim starter reward if your vote is detected.
-- `ns burn [targets...]` (`ns b`, `nb`) — Burn one or many targets for dough; supports card codes/IDs and `tag <name>`; defaults to last pulled card.
+- `ns burn [targets...]` (`ns b`, `nb`) — Burn one or many targets for dough; supports card codes/IDs plus `t:<tag_name>` and `f:<folder_name>` selectors; defaults to last pulled card.
     - `ns gift <player> <dough>` (`ns g`) — Send dough to another player.
     - `ns trade <player> <card_code> <amount>` (`ns t`, `nt`) — Offer a card-for-dough trade.""",
     ),

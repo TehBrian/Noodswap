@@ -124,8 +124,8 @@ Burn flow:
 - `burn` with no argument targets the player's most recently pulled card instance
 - `burn` accepts one or many targets in the same command
 - card targets can be provided as a card code (for an exact dupe) or as a base card id (burns the highest-generation owned copy)
-- tag targets can be provided as `tag <tag_name>` or `tag:<tag_name>`
-- folder targets can be provided as `folder <folder_name>` or `folder:<folder_name>`
+- tag targets are provided as `t:<tag_name>`
+- folder targets are provided as `f:<folder_name>`
 - all selected targets are confirmed together and listed individually in the confirmation embed
 - if any selected target is protected by locked tags or a locked folder, the full burn is blocked and no cards are burned
 - card code format is standalone base36 with optional leading `#` (examples: `0`, `a`, `10`, `#10`)

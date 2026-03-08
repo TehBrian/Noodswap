@@ -372,12 +372,12 @@ class CommandsBurnSelectorTests(unittest.IsolatedAsyncioTestCase):
         ctx.send = AsyncMock()
         ctx.reply = ctx.send
 
-        await burn_command.callback(ctx, "tag")
+        await burn_command.callback(ctx, "t:")
 
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
         self.assertEqual(sent_embed.title, "Burn")
-        self.assertIn("Missing value", sent_embed.description)
+        self.assertEqual(sent_embed.description, "Missing value for `t:` selector.")
 
     async def test_burn_supports_folder_selector(self) -> None:
         burn_command = _get_command(self.bot, "burn")
@@ -416,7 +416,7 @@ class CommandsBurnSelectorTests(unittest.IsolatedAsyncioTestCase):
             patch("noodswap.commands.get_instance_font", return_value=None),
             patch("noodswap.commands.embed_image_payload", return_value=(None, None)),
         ):
-            await burn_command.callback(ctx, "folder:vault")
+            await burn_command.callback(ctx, "f:vault")
 
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
@@ -472,7 +472,7 @@ class CommandsBurnSelectorTests(unittest.IsolatedAsyncioTestCase):
             patch("noodswap.commands.prepare_burn_batch", return_value=prepared),
             patch("noodswap.commands.BurnConfirmView", _FakeBurnView),
         ):
-            await burn_command.callback(ctx, "tag", "safe", "a")
+            await burn_command.callback(ctx, "t:safe", "a")
 
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
@@ -1716,7 +1716,7 @@ class CommandsBurnTests(unittest.IsolatedAsyncioTestCase):
             patch("noodswap.commands.get_instance_font", return_value=None),
             patch("noodswap.commands.embed_image_payload", return_value=(None, None)),
         ):
-            await burn_command.callback(ctx, "folder:vault")
+            await burn_command.callback(ctx, "f:vault")
 
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]

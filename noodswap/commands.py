@@ -353,16 +353,24 @@ def _parse_burn_selector_tokens(raw_targets: tuple[str, ...]) -> tuple[list[tupl
         lowered = token.casefold()
         if ":" in token:
             prefix, value = token.split(":", 1)
-            selector_type = prefix.strip().casefold()
+            selector_prefix = prefix.strip().casefold()
             selector_value = value.strip()
-            if selector_type in {"card", "tag", "folder"}:
+            selector_type = {
+                "c": "card",
+                "card": "card",
+                "t": "tag",
+                "f": "folder",
+            }.get(selector_prefix)
+            if selector_type is not None:
                 if not selector_value:
-                    return [], f"Missing value for `{selector_type}` selector."
+                    return [], f"Missing value for `{selector_prefix}:` selector."
                 selectors.append((selector_type, selector_value))
                 index += 1
                 continue
+            if selector_prefix in {"tag", "folder"}:
+                return [], "Use `t:<tag_name>` and `f:<folder_name>` for burn selectors."
 
-        if lowered in {"card", "tag", "folder"}:
+        if lowered == "card":
             if index + 1 >= len(raw_targets):
                 return [], f"Missing value after `{token}`."
             selector_value = raw_targets[index + 1].strip()
@@ -371,6 +379,9 @@ def _parse_burn_selector_tokens(raw_targets: tuple[str, ...]) -> tuple[list[tupl
             selectors.append((lowered, selector_value))
             index += 2
             continue
+
+        if lowered in {"tag", "folder"}:
+            return [], "Use `t:<tag_name>` and `f:<folder_name>` for burn selectors."
 
         selectors.append(("card", token))
         index += 1

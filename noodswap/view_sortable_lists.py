@@ -237,30 +237,6 @@ class SortableCardListView(discord.ui.View):
         self._set_sort_select_defaults()
         await self._update_message(interaction)
 
-    @discord.ui.button(label="▲", style=discord.ButtonStyle.secondary)
-    async def sort_direction_button(self, interaction: discord.Interaction, _button: discord.ui.Button):
-        if not await self._guard_user(interaction):
-            return
-        self.sort_descending = not self.sort_descending
-        self.page_index = 0
-        self._sorted_card_ids = self._sorted_entries_for_mode(self.sort_mode, descending=self.sort_descending)
-        await self._update_message(interaction)
-
-    @discord.ui.button(label="Gallery: Off", style=discord.ButtonStyle.primary)
-    async def gallery_toggle_button(self, interaction: discord.Interaction, _button: discord.ui.Button):
-        if not await self._guard_user(interaction):
-            return
-        if self.gallery_mode:
-            current_gallery_index = self.page_index
-            self.gallery_mode = False
-            self.page_index = self._list_page_for_gallery_index(current_gallery_index)
-        else:
-            current_list_first_index = self.page_index * self.default_page_size
-            self.gallery_mode = True
-            self.page_index = current_list_first_index
-        self._set_gallery_button_label()
-        await self._update_message(interaction)
-
     @discord.ui.button(label="First", emoji=FIRST_PAGE_EMOJI, style=discord.ButtonStyle.secondary)
     async def first_page_button(self, interaction: discord.Interaction, _button: discord.ui.Button):
         if not await self._guard_user(interaction):
@@ -287,6 +263,30 @@ class SortableCardListView(discord.ui.View):
         if not await self._guard_user(interaction):
             return
         self.page_index = self.total_pages - 1
+        await self._update_message(interaction)
+
+    @discord.ui.button(label="▲", style=discord.ButtonStyle.primary)
+    async def sort_direction_button(self, interaction: discord.Interaction, _button: discord.ui.Button):
+        if not await self._guard_user(interaction):
+            return
+        self.sort_descending = not self.sort_descending
+        self.page_index = 0
+        self._sorted_card_ids = self._sorted_entries_for_mode(self.sort_mode, descending=self.sort_descending)
+        await self._update_message(interaction)
+
+    @discord.ui.button(label="Gallery: Off", style=discord.ButtonStyle.primary)
+    async def gallery_toggle_button(self, interaction: discord.Interaction, _button: discord.ui.Button):
+        if not await self._guard_user(interaction):
+            return
+        if self.gallery_mode:
+            current_gallery_index = self.page_index
+            self.gallery_mode = False
+            self.page_index = self._list_page_for_gallery_index(current_gallery_index)
+        else:
+            current_list_first_index = self.page_index * self.default_page_size
+            self.gallery_mode = True
+            self.page_index = current_list_first_index
+        self._set_gallery_button_label()
         await self._update_message(interaction)
 
     async def on_timeout(self) -> None:
@@ -536,9 +536,8 @@ class SortableCollectionView(discord.ui.View):
     def _instance_marker(self, instance_id: int) -> str:
         lock_marker = "🔒 " if instance_id in self.locked_instance_ids else "`  ` "
         folder_emoji = self.folder_emojis_by_instance.get(instance_id)
-        if folder_emoji is None:
-            return lock_marker
-        return f"{folder_emoji} {lock_marker}"
+        folder_marker = f"{folder_emoji} " if folder_emoji is not None else "`  ` "
+        return f"{folder_marker}{lock_marker}"
 
     def build_embed(self) -> discord.Embed:
         embed, _file = self._build_embed_and_file()
@@ -596,30 +595,6 @@ class SortableCollectionView(discord.ui.View):
         self._set_sort_select_defaults()
         await self._update_message(interaction)
 
-    @discord.ui.button(label="▲", style=discord.ButtonStyle.secondary)
-    async def sort_direction_button(self, interaction: discord.Interaction, _button: discord.ui.Button):
-        if not await self._guard_user(interaction):
-            return
-        self.sort_descending = not self.sort_descending
-        self.page_index = 0
-        self._sorted_instances = self._sorted_entries_for_mode(self.sort_mode, descending=self.sort_descending)
-        await self._update_message(interaction)
-
-    @discord.ui.button(label="Gallery: Off", style=discord.ButtonStyle.primary)
-    async def gallery_toggle_button(self, interaction: discord.Interaction, _button: discord.ui.Button):
-        if not await self._guard_user(interaction):
-            return
-        if self.gallery_mode:
-            current_gallery_index = self.page_index
-            self.gallery_mode = False
-            self.page_index = self._list_page_for_gallery_index(current_gallery_index)
-        else:
-            current_list_first_index = self.page_index * self.default_page_size
-            self.gallery_mode = True
-            self.page_index = current_list_first_index
-        self._set_gallery_button_label()
-        await self._update_message(interaction)
-
     @discord.ui.button(label="First", emoji=FIRST_PAGE_EMOJI, style=discord.ButtonStyle.secondary)
     async def first_page_button(self, interaction: discord.Interaction, _button: discord.ui.Button):
         if not await self._guard_user(interaction):
@@ -646,6 +621,30 @@ class SortableCollectionView(discord.ui.View):
         if not await self._guard_user(interaction):
             return
         self.page_index = self.total_pages - 1
+        await self._update_message(interaction)
+
+    @discord.ui.button(label="▲", style=discord.ButtonStyle.primary)
+    async def sort_direction_button(self, interaction: discord.Interaction, _button: discord.ui.Button):
+        if not await self._guard_user(interaction):
+            return
+        self.sort_descending = not self.sort_descending
+        self.page_index = 0
+        self._sorted_instances = self._sorted_entries_for_mode(self.sort_mode, descending=self.sort_descending)
+        await self._update_message(interaction)
+
+    @discord.ui.button(label="Gallery: Off", style=discord.ButtonStyle.primary)
+    async def gallery_toggle_button(self, interaction: discord.Interaction, _button: discord.ui.Button):
+        if not await self._guard_user(interaction):
+            return
+        if self.gallery_mode:
+            current_gallery_index = self.page_index
+            self.gallery_mode = False
+            self.page_index = self._list_page_for_gallery_index(current_gallery_index)
+        else:
+            current_list_first_index = self.page_index * self.default_page_size
+            self.gallery_mode = True
+            self.page_index = current_list_first_index
+        self._set_gallery_button_label()
         await self._update_message(interaction)
 
     async def on_timeout(self) -> None:
