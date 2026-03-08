@@ -675,7 +675,7 @@ async def _tag_assign(ctx: commands.Context, tag_name: str, card_code: str) -> N
 
     instance_id, card_id, generation, dupe_code = selected
     if is_tag_assigned_to_instance(ctx.guild.id, ctx.author.id, instance_id, tag_name):
-        await _reply(ctx, embed=italy_embed("Tags", "You have already assigned that card that tag."))
+        await _reply(ctx, embed=italy_embed("Tags", "That card is already assigned to this tag."))
         return
 
     assigned = assign_tag_to_instance(ctx.guild.id, ctx.author.id, instance_id, tag_name)
@@ -853,7 +853,7 @@ async def _folder_assign(ctx: commands.Context, folder_name: str, card_code: str
 
     instance_id, card_id, generation, dupe_code = selected
     if is_instance_assigned_to_folder(ctx.guild.id, ctx.author.id, instance_id, folder_name):
-        await _reply(ctx, embed=italy_embed("Folders", "That card is already in that folder."))
+        await _reply(ctx, embed=italy_embed("Folders", "That card is already assigned to this folder."))
         return
 
     assigned = assign_instance_to_folder(ctx.guild.id, ctx.author.id, instance_id, folder_name)
@@ -863,7 +863,7 @@ async def _folder_assign(ctx: commands.Context, folder_name: str, card_code: str
             ctx,
             embed=italy_embed(
                 "Folders",
-                "Could not folder that card. Make sure the folder exists and the card is yours.",
+                "Could not assign that card to this folder. Make sure the folder exists and the card is yours.",
             ),
         )
         return
@@ -872,7 +872,7 @@ async def _folder_assign(ctx: commands.Context, folder_name: str, card_code: str
         ctx,
         embed=italy_embed(
             "Folders",
-            f"Placed {card_dupe_display(card_id, generation, dupe_code=dupe_code)} into `{normalized}`.",
+            f"Assigned {card_dupe_display(card_id, generation, dupe_code=dupe_code)} to `{normalized}`.",
         ),
     )
 
@@ -891,7 +891,7 @@ async def _folder_unassign(ctx: commands.Context, folder_name: str, card_code: s
     removed = unassign_instance_from_folder(ctx.guild.id, ctx.author.id, instance_id, folder_name)
     normalized = folder_name.strip().lower()
     if not removed:
-        await _reply(ctx, embed=italy_embed("Folders", f"That card is not in folder `{normalized}`."))
+        await _reply(ctx, embed=italy_embed("Folders", f"That card is not assigned to `{normalized}`."))
         return
 
     await _reply(

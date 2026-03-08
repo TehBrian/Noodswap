@@ -256,7 +256,7 @@ class CommandsTagTests(unittest.IsolatedAsyncioTestCase):
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
         self.assertEqual(sent_embed.title, "Tags")
-        self.assertEqual(sent_embed.description, "You have already assigned that card that tag.")
+        self.assertEqual(sent_embed.description, "That card is already assigned to this tag.")
 
     async def test_tag_cards_shows_sortable_collection_view(self) -> None:
         tag_cards_command = _get_group_command(self.bot, "tag", "cards")
@@ -355,7 +355,7 @@ class CommandsFolderTests(unittest.IsolatedAsyncioTestCase):
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
         self.assertEqual(sent_embed.title, "Folders")
-        self.assertEqual(sent_embed.description, "That card is already in that folder.")
+        self.assertEqual(sent_embed.description, "That card is already assigned to this folder.")
 
 
 class CommandsBurnSelectorTests(unittest.IsolatedAsyncioTestCase):
@@ -1672,7 +1672,7 @@ class CommandsBurnTests(unittest.IsolatedAsyncioTestCase):
             patch("noodswap.commands.get_instance_by_code", return_value=(77, "SPG", 321, "a")),
             patch("noodswap.commands.prepare_burn_batch", return_value=prepared),
         ):
-            await burn_command.callback(ctx, card_code="a")
+            await burn_command.callback(ctx, "a")
 
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
@@ -1716,7 +1716,7 @@ class CommandsBurnTests(unittest.IsolatedAsyncioTestCase):
             patch("noodswap.commands.get_instance_font", return_value=None),
             patch("noodswap.commands.embed_image_payload", return_value=(None, None)),
         ):
-            await burn_command.callback(ctx, card_code="folder:vault")
+            await burn_command.callback(ctx, "folder:vault")
 
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]

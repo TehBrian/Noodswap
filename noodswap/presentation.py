@@ -267,7 +267,7 @@ HELP_CATEGORY_PAGES: tuple[tuple[str, str, str], ...] = (
     ),
     (
         "tags",
-        "Tags",
+        "Tags & Folders",
         """- `ns tag` (`ns tg`) — Tag command group.
 - `ns tag add <tag_name>` (`ns ... a`) — Create a personal tag collection.
 - `ns tag remove <tag_name>` (`ns ... r`) — Delete one of your tags.
@@ -275,7 +275,16 @@ HELP_CATEGORY_PAGES: tuple[tuple[str, str, str], ...] = (
 - `ns tag lock <tag_name>` / `ns tag unlock <tag_name>` — Toggle burn protection for that tag.
 - `ns tag assign <tag_name> <card_code>` (`ns ... as`) — Add one of your dupes to a tag.
 - `ns tag unassign <tag_name> <card_code>` (`ns ... u`) — Remove a tagged dupe from a tag.
-- `ns tag cards <tag_name>` (`ns ... c`) — Show cards currently in that tag.""",
+- `ns tag cards <tag_name>` (`ns ... c`) — Show cards currently in that tag.
+- `ns folder` (`ns fd`) — Folder command group.
+- `ns folder add <folder_name> [emoji]` (`ns ... a`) — Create a personal folder (default emoji: `📁`).
+- `ns folder remove <folder_name>` (`ns ... r`) — Delete one of your folders.
+- `ns folder list` (`ns ... l`) — List your folders with emoji, lock state, and card counts.
+- `ns folder lock <folder_name>` / `ns folder unlock <folder_name>` — Toggle burn protection for that folder.
+- `ns folder assign <folder_name> <card_code>` (`ns ... as`) — Assign one owned card instance to a folder.
+- `ns folder unassign <folder_name> <card_code>` (`ns ... u`) — Remove a card from a folder.
+- `ns folder cards <folder_name>` (`ns ... c`) — Show cards currently in that folder.
+- `ns folder emoji <folder_name> <emoji>` (`ns ... e`) — Update a folder emoji.""",
     ),
     (
         "relationship",
