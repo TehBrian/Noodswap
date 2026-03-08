@@ -990,6 +990,23 @@ class CommandsFlipTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(sent_embed.title, "Flip")
         self.assertIn("positive integer", sent_embed.description)
 
+    async def test_flip_rejects_invalid_side(self) -> None:
+        flip_command = _get_command(self.bot, "flip")
+
+        ctx = AsyncMock()
+        ctx.guild = _FakeGuild(1)
+        ctx.author = _FakeMember(100, "Caller")
+        ctx.send = AsyncMock()
+        ctx.reply = ctx.send
+
+        await flip_command.callback(ctx, stake_str="10", side_str="left")
+
+        ctx.send.assert_awaited_once()
+        sent_embed = ctx.send.await_args.kwargs["embed"]
+        self.assertEqual(sent_embed.title, "Flip")
+        self.assertIn("heads", sent_embed.description)
+        self.assertIn("tails", sent_embed.description)
+
     async def test_flip_shows_cooldown_message(self) -> None:
         flip_command = _get_command(self.bot, "flip")
 
@@ -1031,49 +1048,111 @@ class CommandsFlipTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("do not have enough dough", sent_embed.description)
         self.assertIn("Balance: **5**", sent_embed.description)
 
-    async def test_flip_shows_heads_on_win(self) -> None:
+    async def test_flip_shows_heads_on_win_after_delay(self) -> None:
         flip_command = _get_command(self.bot, "flip")
 
+        message = AsyncMock()
         ctx = AsyncMock()
         ctx.guild = _FakeGuild(1)
         ctx.author = _FakeMember(100, "Caller")
-        ctx.send = AsyncMock()
+        ctx.send = AsyncMock(return_value=message)
         ctx.reply = ctx.send
 
         with (
             patch("noodswap.commands.random.random", return_value=0.1),
+            patch("noodswap.commands.random.choice", return_value="rolling"),
             patch("noodswap.commands.execute_flip_wager", return_value=("won", 0.0, 60)) as execute_flip,
+            patch("noodswap.commands.asyncio.sleep", new=AsyncMock()) as sleep_mock,
         ):
             await flip_command.callback(ctx, stake_str="10")
 
         execute_flip.assert_called_once()
         ctx.send.assert_awaited_once()
-        sent_embed = ctx.send.await_args.kwargs["embed"]
-        self.assertEqual(sent_embed.title, "Flip")
-        self.assertIn("Heads", sent_embed.description)
-        self.assertIn("+10", sent_embed.description)
+        first_embed = ctx.send.await_args.kwargs["embed"]
+        self.assertEqual(first_embed.title, "Flip")
+        self.assertIn("coin is", first_embed.description)
+        self.assertNotIn("Result", first_embed.description)
+        sleep_mock.assert_awaited_once_with(3.0)
 
-    async def test_flip_shows_tails_on_loss(self) -> None:
+        message.edit.assert_awaited_once()
+        final_embed = message.edit.await_args.kwargs["embed"]
+        self.assertIn("Heads", final_embed.description)
+        self.assertIn("+10", final_embed.description)
+
+    async def test_flip_shows_tails_on_loss_after_delay(self) -> None:
         flip_command = _get_command(self.bot, "flip")
 
+        message = AsyncMock()
         ctx = AsyncMock()
         ctx.guild = _FakeGuild(1)
         ctx.author = _FakeMember(100, "Caller")
-        ctx.send = AsyncMock()
+        ctx.send = AsyncMock(return_value=message)
         ctx.reply = ctx.send
 
         with (
             patch("noodswap.commands.random.random", return_value=0.9),
+            patch("noodswap.commands.random.choice", return_value="spinning"),
             patch("noodswap.commands.execute_flip_wager", return_value=("lost", 0.0, 40)) as execute_flip,
+            patch("noodswap.commands.asyncio.sleep", new=AsyncMock()) as sleep_mock,
         ):
             await flip_command.callback(ctx, stake_str="10")
 
         execute_flip.assert_called_once()
         ctx.send.assert_awaited_once()
-        sent_embed = ctx.send.await_args.kwargs["embed"]
-        self.assertEqual(sent_embed.title, "Flip")
-        self.assertIn("Tails", sent_embed.description)
-        self.assertIn("-10", sent_embed.description)
+        first_embed = ctx.send.await_args.kwargs["embed"]
+        self.assertIn("coin is", first_embed.description)
+        sleep_mock.assert_awaited_once_with(3.0)
+
+        message.edit.assert_awaited_once()
+        final_embed = message.edit.await_args.kwargs["embed"]
+        self.assertIn("Tails", final_embed.description)
+        self.assertIn("-10", final_embed.description)
+
+    async def test_flip_respects_heads_call_illusion(self) -> None:
+        flip_command = _get_command(self.bot, "flip")
+
+        message = AsyncMock()
+        ctx = AsyncMock()
+        ctx.guild = _FakeGuild(1)
+        ctx.author = _FakeMember(100, "Caller")
+        ctx.send = AsyncMock(return_value=message)
+        ctx.reply = ctx.send
+
+        with (
+            patch("noodswap.commands.random.random", return_value=0.1),
+            patch("noodswap.commands.random.choice", return_value="whirling"),
+            patch("noodswap.commands.execute_flip_wager", return_value=("won", 0.0, 60)),
+            patch("noodswap.commands.asyncio.sleep", new=AsyncMock()),
+        ):
+            await flip_command.callback(ctx, stake_str="10", side_str="heads")
+
+        first_embed = ctx.send.await_args.kwargs["embed"]
+        self.assertIn("Call: **Heads**", first_embed.description)
+        final_embed = message.edit.await_args.kwargs["embed"]
+        self.assertIn("Result: **Heads**", final_embed.description)
+
+    async def test_flip_respects_t_alias_call_illusion(self) -> None:
+        flip_command = _get_command(self.bot, "flip")
+
+        message = AsyncMock()
+        ctx = AsyncMock()
+        ctx.guild = _FakeGuild(1)
+        ctx.author = _FakeMember(100, "Caller")
+        ctx.send = AsyncMock(return_value=message)
+        ctx.reply = ctx.send
+
+        with (
+            patch("noodswap.commands.random.random", return_value=0.1),
+            patch("noodswap.commands.random.choice", return_value="tumbling"),
+            patch("noodswap.commands.execute_flip_wager", return_value=("won", 0.0, 60)),
+            patch("noodswap.commands.asyncio.sleep", new=AsyncMock()),
+        ):
+            await flip_command.callback(ctx, stake_str="10", side_str="t")
+
+        first_embed = ctx.send.await_args.kwargs["embed"]
+        self.assertIn("Call: **Tails**", first_embed.description)
+        final_embed = message.edit.await_args.kwargs["embed"]
+        self.assertIn("Result: **Tails**", final_embed.description)
 
 
 class CommandsSlotsAnimationTests(unittest.IsolatedAsyncioTestCase):

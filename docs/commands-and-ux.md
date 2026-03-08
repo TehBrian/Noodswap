@@ -17,7 +17,7 @@ This document defines behavior and presentation for commands and interaction flo
 - `help` / `h`
 - `drop` / `d`
 - `slots` / `s`
-- `flip <stake>` / `f <stake>`
+- `flip <stake> [heads|tails]` / `f <stake> [heads|tails]`
 - `vote` / `v`
 - `cooldown [player]` / `cd [player]`
 - `burn [card_code]` / `b [card_code]`
@@ -135,12 +135,15 @@ Burn result format should remain:
 ## Flip UX
 
 - `flip <stake>` requires a positive integer stake
+- `flip <stake> [heads|tails]` accepts an optional side call
+- side call aliases `h`/`t` are accepted
 - flip uses a 2-minute per-player cooldown
 - outcome odds are fixed at 46% win (`Heads`) and 54% loss (`Tails`)
 - on win, player gains `+stake` dough (net)
 - on loss, player loses `-stake` dough (net)
 - insufficient-dough responses should report stake and current balance
 - flip responses use the standard `italy_embed` style
+- successful flips use a delayed reveal: initial embed shows a randomized "coin is ..." suspense line, then edits to reveal the result after 3 seconds
 
 ## Morph UX
 

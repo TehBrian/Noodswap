@@ -287,6 +287,15 @@ SLOTS_SPIN_FRAME_MIN_DELAY_SECONDS = 0.7
 SLOTS_SPIN_FRAME_MAX_DELAY_SECONDS = 1.5
 SLOTS_MIN_REWARD = 1
 SLOTS_MAX_REWARD = 3
+FLIP_REVEAL_DELAY_SECONDS = 3.0
+FLIP_ACTIVITY_PHRASES: tuple[str, ...] = (
+    "spinning",
+    "flipping",
+    "rolling",
+    "tumbling",
+    "whirling",
+    "somersaulting",
+)
 
 
 def _slots_reel_line(symbols: list[str]) -> str:
@@ -297,6 +306,29 @@ def _slots_reel_content(symbols: list[str], result_emoji: str | None = None) -> 
     line = _slots_reel_line(symbols)
     status_emoji = result_emoji if result_emoji is not None else ""
     return f"{line}{status_emoji}"
+
+
+def _normalize_flip_side(side_raw: str | None) -> str | None:
+    if side_raw is None:
+        return None
+    normalized = side_raw.strip().casefold()
+    if normalized in {"heads", "h"}:
+        return "heads"
+    if normalized in {"tails", "t"}:
+        return "tails"
+    return None
+
+
+def _opposite_flip_side(side: str) -> str:
+    return "tails" if side == "heads" else "heads"
+
+
+def _revealed_flip_side(did_win: bool, selected_side: str | None) -> str:
+    if selected_side is None:
+        return "heads" if did_win else "tails"
+    if did_win:
+        return selected_side
+    return _opposite_flip_side(selected_side)
 
 
 def _slots_embed(status_lines: list[str]) -> discord.Embed:
@@ -1645,7 +1677,7 @@ def register_commands(bot: commands.Bot) -> None:
         )
 
     @bot.command(name="flip", aliases=["f"])
-    async def flip(ctx: commands.Context, stake_str: str):
+    async def flip(ctx: commands.Context, stake_str: str, side_str: str | None = None):
         if ctx.guild is None:
             await _reply(ctx, embed=italy_embed("Flip", "Use this command in a server."))
             return
@@ -1658,6 +1690,14 @@ def register_commands(bot: commands.Bot) -> None:
 
         if stake <= 0:
             await _reply(ctx, embed=italy_embed("Flip", "Stake must be a positive integer."))
+            return
+
+        selected_side = _normalize_flip_side(side_str)
+        if side_str is not None and selected_side is None:
+            await _reply(
+                ctx,
+                embed=italy_embed("Flip", "Side must be `heads`/`tails` (or `h`/`t`)."),
+            )
             return
 
         now = time.time()
@@ -1700,33 +1740,39 @@ def register_commands(bot: commands.Bot) -> None:
             )
             return
 
-        if status == "won":
-            await _reply(
-                ctx,
-                embed=italy_embed(
-                    "Flip",
-                    multiline_text(
-                        [
-                            "Result: **Heads**",
-                            f"Payout: **+{stake}** dough",
-                            f"Balance: **{dough_total}** dough",
-                        ]
-                    ),
-                ),
-            )
-            return
+        did_player_win = status == "won"
+        result_side = _revealed_flip_side(did_player_win, selected_side)
+        activity = random.choice(FLIP_ACTIVITY_PHRASES)
+        suspense_lines = [f"The coin is **{activity}**..."]
+        if selected_side is not None:
+            suspense_lines.append(f"Call: **{selected_side.capitalize()}**")
 
-        await _reply(
+        message = await _reply(
             ctx,
             embed=italy_embed(
                 "Flip",
-                multiline_text(
-                    [
-                        "Result: **Tails**",
-                        f"Lost: **-{stake}** dough",
-                        f"Balance: **{dough_total}** dough",
-                    ]
-                ),
+                multiline_text(suspense_lines),
+            ),
+        )
+        await asyncio.sleep(FLIP_REVEAL_DELAY_SECONDS)
+
+        if did_player_win:
+            final_lines = [
+                f"Result: **{result_side.capitalize()}**",
+                f"Payout: **+{stake}** dough",
+                f"Balance: **{dough_total}** dough",
+            ]
+        else:
+            final_lines = [
+                f"Result: **{result_side.capitalize()}**",
+                f"Lost: **-{stake}** dough",
+                f"Balance: **{dough_total}** dough",
+            ]
+
+        await message.edit(
+            embed=italy_embed(
+                "Flip",
+                multiline_text(final_lines),
             ),
         )
 

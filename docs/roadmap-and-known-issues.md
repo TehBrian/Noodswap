@@ -84,6 +84,7 @@ Stage 3 implementation guide: `docs/refactor-phase-3.md`.
 
 ## Decision log (recent)
 
+- Updated `flip` / `f` UX to support optional side calls (`heads`/`tails`, `h`/`t`) while preserving house-edge odds (46/54) and added a suspense-first reveal flow that posts "The coin is ..." then edits in the result after 3 seconds.
 - Updated deploy/runtime bootstrap flow so `deploy/update.sh` now runs `scripts/init_runtime.py` on-host during each deploy, ensuring runtime DB/image/font/frame seeds are initialized before container restart.
 - Added `slots` / `s` command with animated 3-reel food-emoji spins, jackpot starter payout (`+1..+3`), and a dedicated 22-minute cooldown tracked by `players.last_slots_at`.
 - Added `flip` / `f` command with dough wagering, a dedicated 2-minute cooldown (`players.last_flip_at`), and intentional house-edge odds (46% win / 54% lose) to keep long-run expected value negative.
