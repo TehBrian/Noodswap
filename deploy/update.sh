@@ -67,14 +67,12 @@ RUNTIME_DIR="$REPO_ROOT/runtime"
 RUNTIME_DB_DIR="$RUNTIME_DIR/db"
 RUNTIME_IMAGE_DIR="$RUNTIME_DIR/card_images"
 RUNTIME_LOG_DIR="$RUNTIME_DIR/logs"
-RUNTIME_CACHE_DIR="$RUNTIME_DIR/cache"
 SEED_DB_PATH="$REPO_ROOT/assets/noodswap.seed.db"
 SEED_IMAGE_DIR="$REPO_ROOT/assets/card_images"
 
 mkdir -p "$RUNTIME_DB_DIR"
 mkdir -p "$RUNTIME_IMAGE_DIR"
 mkdir -p "$RUNTIME_LOG_DIR"
-mkdir -p "$RUNTIME_CACHE_DIR"
 
 DB_PATH="$RUNTIME_DB_DIR/noodswap.db"
 
@@ -113,13 +111,11 @@ chmod 664 "$DB_PATH" 2>/dev/null || true
 chmod 775 "$RUNTIME_DB_DIR" 2>/dev/null || true
 chmod 775 "$RUNTIME_IMAGE_DIR" 2>/dev/null || true
 chmod 775 "$RUNTIME_LOG_DIR" 2>/dev/null || true
-chmod 775 "$RUNTIME_CACHE_DIR" 2>/dev/null || true
 
 # Fail fast before container startup if runtime state cannot be written.
 assert_writable_path "$RUNTIME_DB_DIR"
 assert_writable_path "$RUNTIME_IMAGE_DIR"
 assert_writable_path "$RUNTIME_LOG_DIR"
-assert_writable_path "$RUNTIME_CACHE_DIR"
 if ! [ -w "$DB_PATH" ]; then
   echo "ERROR: database file is not writable: $DB_PATH" >&2
   exit 1

@@ -56,7 +56,7 @@ Use a deploy path such as `/home/noodswap-user/noodswap` owned by a dedicated Li
 ```bash
 sudo useradd --system --create-home --home-dir /home/noodswap-user --shell /usr/sbin/nologin noodswap-user
 sudo -u noodswap-user mkdir -p /home/noodswap-user/noodswap
-sudo -u noodswap-user bash -lc 'cd /home/noodswap-user/noodswap/deploy && cp .env.example .env && cp runtime.env.example runtime.env && mkdir -p ../runtime/db ../runtime/card_images ../runtime/logs ../runtime/cache'
+sudo -u noodswap-user bash -lc 'cd /home/noodswap-user/noodswap/deploy && cp .env.example .env && cp runtime.env.example runtime.env && mkdir -p ../runtime/db ../runtime/card_images ../runtime/logs'
 ```
 
 Set required values:
@@ -98,7 +98,7 @@ Behavior notes:
 - Deploy resolves target SHA and deploys `IMAGE_REPOSITORY:<that-sha>`.
 - The workflow waits for that exact GHCR tag to become available before running the deploy step, avoiding stale `latest` races.
 - After deploy, workflow verifies `noodswap-bot` is running and that its configured image exactly equals `IMAGE_REPOSITORY:<that-sha>`.
-- `deploy/update.sh` now performs a runtime writability preflight and fails before container startup if `runtime/{db,card_images,logs,cache}` is not writable.
+- `deploy/update.sh` now performs a runtime writability preflight and fails before container startup if `runtime/{db,card_images,logs}` is not writable.
 - Production compose includes a SQLite healthcheck (`PRAGMA quick_check`) against `runtime/db/noodswap.db`.
 
 Full Actions deploy instructions: `docs/deploy-github-actions.md`.
@@ -129,7 +129,7 @@ This bot uses privileged intents. Enable these for your application in Discord D
 - `ns lookuphd <card_id|card_code|query>` / `ns lhd <card_id|card_code|query>` — same as lookup, but renders the card image at `1000x1400`.
 - `ns help` / `ns h` — show command help.
 - `ns drop` / `ns d` — open a drop with 3 random cards; anyone can claim unclaimed cards via buttons.
-- `ns slots` / `ns s` — spin 3 food reels; matching all 3 awards 1-3 `starter`.
+- `ns slots` / `ns sl` — spin 3 food reels; matching all 3 awards 1-3 `starter`.
 - `ns vote` / `ns v` — open the top.gg vote page and claim `starter` reward when your vote is detected.
 - `ns cooldown [player]` / `ns cd [player]` — show drop (6m), pull (4m), slots (22m), and vote reward (24h) cooldowns for yourself or another player.
 - `ns burn [card_code]` / `ns b [card_code]` — burn a specific dupe for dough (randomized around base). If omitted, defaults to your most recently pulled card. Burn is blocked for cards in locked tags.

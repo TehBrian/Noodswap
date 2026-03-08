@@ -261,7 +261,8 @@ SLOTS_REEL_EMOJIS: tuple[str, ...] = ("🍞", "🍷", "🧀", "🍕", "🍇", "�
 SLOTS_REEL_COUNT = 3
 SLOTS_SPIN_MIN_STEPS = 4
 SLOTS_SPIN_MAX_STEPS = 7
-SLOTS_SPIN_FRAME_DELAY_SECONDS = 0.15
+SLOTS_SPIN_FRAME_MIN_DELAY_SECONDS = 0.7
+SLOTS_SPIN_FRAME_MAX_DELAY_SECONDS = 1.5
 SLOTS_MIN_REWARD = 1
 SLOTS_MAX_REWARD = 3
 
@@ -270,13 +271,9 @@ def _slots_reel_line(symbols: list[str]) -> str:
     return "".join(symbols)
 
 
-def _slots_match_emoji(symbols: list[str]) -> str:
-    return "✅" if len(set(symbols)) == 1 else "❌"
-
-
 def _slots_reel_content(symbols: list[str], result_emoji: str | None = None) -> str:
     line = _slots_reel_line(symbols)
-    status_emoji = result_emoji if result_emoji is not None else _slots_match_emoji(symbols)
+    status_emoji = result_emoji if result_emoji is not None else ""
     return f"{line}{status_emoji}"
 
 
@@ -301,7 +298,15 @@ async def _animate_slots_spin(message: discord.Message, final_symbols: list[str]
                 frame_symbols.append(random.choice(SLOTS_REEL_EMOJIS))
 
         await message.edit(content=_slots_reel_content(frame_symbols))
-        await asyncio.sleep(SLOTS_SPIN_FRAME_DELAY_SECONDS)
+        if spin_steps <= 1:
+            delay_seconds = SLOTS_SPIN_FRAME_MAX_DELAY_SECONDS
+        else:
+            progress = step / (spin_steps - 1)
+            delay_seconds = (
+                SLOTS_SPIN_FRAME_MIN_DELAY_SECONDS
+                + (SLOTS_SPIN_FRAME_MAX_DELAY_SECONDS - SLOTS_SPIN_FRAME_MIN_DELAY_SECONDS) * progress
+            )
+        await asyncio.sleep(delay_seconds)
 
 
 async def _reply(ctx: commands.Context, **kwargs):
@@ -1303,7 +1308,7 @@ def register_commands(bot: commands.Bot) -> None:
 
         await _reply(ctx, embed=italy_embed("Vote", multiline_text(lines)), view=_vote_link_view(vote_url))
 
-    @bot.command(name="slots", aliases=["s"])
+    @bot.command(name="slots", aliases=["sl"])
     async def slots(ctx: commands.Context):
         if ctx.guild is None:
             await _reply(ctx, embed=italy_embed("Slots", "Use this command in a server."))

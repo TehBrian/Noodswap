@@ -7,21 +7,21 @@ __pycache__/
 
 # Generated local analysis artifacts
 .VSCodeCounter/
-card_image_distinct_report.json
-card_image_pull_report.json
-card_image_pull_report_desserts.json
 
 # Runtime/persistent SQLite data
 noodswap.db
 
 # Mutable runtime state (host-mounted; never committed)
-runtime/db/*.db
-runtime/logs/*
-runtime/cache/*
+runtime/**/*
 
 # Keep runtime structure placeholders
-!runtime/.gitignore
+!runtime/db/
 !runtime/db/.gitkeep
+!runtime/card_images/
 !runtime/card_images/.gitkeep
+!runtime/frame_overlays/
+!runtime/frame_overlays/.gitkeep
+!runtime/fonts/
+!runtime/fonts/.gitkeep
+!runtime/logs/
 !runtime/logs/.gitkeep
-!runtime/cache/.gitkeep

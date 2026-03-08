@@ -10,7 +10,15 @@ import discord
 from discord.ext import commands
 
 from noodswap import storage
-from noodswap.commands import _build_drop_preview_blocking, _get_card_image_bytes, register_commands
+from noodswap.commands import (
+    SLOTS_SPIN_FRAME_MAX_DELAY_SECONDS,
+    SLOTS_SPIN_FRAME_MIN_DELAY_SECONDS,
+    _animate_slots_spin,
+    _build_drop_preview_blocking,
+    _get_card_image_bytes,
+    _slots_reel_content,
+    register_commands,
+)
 from noodswap.images import DEFAULT_CARD_RENDER_SIZE, HD_CARD_RENDER_SIZE, RARITY_BORDER_COLORS, render_card_image_bytes
 from noodswap.views import HelpView, PlayerLeaderboardView, SortableCardListView, SortableCollectionView
 
@@ -953,6 +961,34 @@ class CommandsSlotsTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(final_embed.title, "Slots")
         self.assertIn("Jackpot", final_embed.description)
         self.assertIn("+2 starter", final_embed.description)
+
+
+class CommandsSlotsAnimationTests(unittest.IsolatedAsyncioTestCase):
+    async def test_slots_reel_content_hides_status_emoji_until_result(self) -> None:
+        symbols = ["🍞", "🍞", "🍞"]
+        self.assertEqual(_slots_reel_content(symbols), "🍞🍞🍞")
+        self.assertEqual(_slots_reel_content(symbols, result_emoji="🎉"), "🍞🍞🍞🎉")
+
+    async def test_animate_slots_spin_uses_tapered_frame_delays(self) -> None:
+        message = AsyncMock()
+
+        with (
+            patch("noodswap.commands.random.randint", return_value=4),
+            patch("noodswap.commands.random.choice", return_value="🍞"),
+            patch("noodswap.commands.asyncio.sleep", new=AsyncMock()) as sleep_mock,
+        ):
+            await _animate_slots_spin(message, ["🍇", "🍝", "🧀"])
+
+        self.assertEqual(message.edit.await_count, 4)
+
+        observed_delays = [call.args[0] for call in sleep_mock.await_args_list]
+        self.assertEqual(len(observed_delays), 4)
+        self.assertAlmostEqual(observed_delays[0], SLOTS_SPIN_FRAME_MIN_DELAY_SECONDS)
+        self.assertAlmostEqual(observed_delays[-1], SLOTS_SPIN_FRAME_MAX_DELAY_SECONDS)
+        self.assertTrue(all(left <= right for left, right in zip(observed_delays, observed_delays[1:])))
+
+        intermediate_contents = [call.kwargs["content"] for call in message.edit.await_args_list]
+        self.assertTrue(all("✅" not in text and "❌" not in text and "🎉" not in text for text in intermediate_contents))
 
 
 class CommandsInfoTests(unittest.IsolatedAsyncioTestCase):

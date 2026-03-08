@@ -420,7 +420,7 @@ def _apply_text_legibility_overlay(
     text_height = title_height + line_gap + subtitle_height
     text_y = max(0, height - bottom_padding - text_height)
 
-    cool_text = (24, 38, 62, 255)
+    cool_text = (0, 0, 0, 255)
 
     draw.text(
         (left_padding, text_y),

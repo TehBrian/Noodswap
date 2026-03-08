@@ -45,7 +45,6 @@ def main() -> None:
     runtime_fonts_dir = runtime_dir / "fonts"
     runtime_frames_dir = runtime_dir / "frame_overlays"
     runtime_log_dir = runtime_dir / "logs"
-    runtime_cache_dir = runtime_dir / "cache"
 
     seed_dir = repo_root / "assets"
     seed_db_path = seed_dir / "noodswap.seed.db"
@@ -55,7 +54,6 @@ def main() -> None:
 
     runtime_db_dir.mkdir(parents=True, exist_ok=True)
     runtime_log_dir.mkdir(parents=True, exist_ok=True)
-    runtime_cache_dir.mkdir(parents=True, exist_ok=True)
 
     runtime_db_path = runtime_db_dir / "noodswap.db"
     if not runtime_db_path.exists() or args.force_db:
