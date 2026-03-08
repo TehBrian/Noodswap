@@ -33,8 +33,6 @@ HD_CARD_RENDER_SIZE = (1000, 1400)
 OVERLAY_TEXT_SCALE = 1.5
 # Unframed cards can use tighter margins by default.
 CARD_BODY_SCALE = 0.96
-# Keep extra transparent space when a frame overlay is present.
-FRAMED_CARD_BODY_SCALE = 0.72
 # Drop previews currently render without frame overlays.
 DROP_CARD_BODY_SCALE = 0.96
 # Higher supersampling gives smoother rounded border edges.
@@ -545,10 +543,7 @@ def render_card_surface(
     normalized_frame_key = normalize_frame_key(frame_key)
 
     width, height = _normalized_card_size(size)
-    resolved_body_scale = body_scale
-    if normalized_frame_key is not None and body_scale == CARD_BODY_SCALE:
-        resolved_body_scale = FRAMED_CARD_BODY_SCALE
-    clamped_body_scale = min(max(resolved_body_scale, 0.0), 1.0)
+    clamped_body_scale = min(max(body_scale, 0.0), 1.0)
     max_body_width = max(40, int(round(width * clamped_body_scale)))
     max_body_height = max(56, int(round(height * clamped_body_scale)))
     body_target_ratio = 1.0 / CARD_BODY_ASPECT_RATIO if CARD_BODY_ASPECT_RATIO > 0 else (1.0 / 1.6)
