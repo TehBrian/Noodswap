@@ -138,6 +138,15 @@ This bot uses privileged intents. Enable these for your application in Discord D
 - `ns frame [card_code]` / `ns fr [card_code]` — pay 20% of card value (rounded up) to apply a random cosmetic frame from available overlays (`buttery`, `gilded`, `drizzled`) in `assets/frame_overlays/`.
 - `ns font [card_code]` / `ns fo [card_code]` — pay 20% of card value (rounded up) to apply a random cosmetic font (`serif`, `mono`, `storybook`, `spooky`, `pixel`, `playful`). `Classic` is now the default baseline style (not a modifier).
 - `ns trade <player> <card_code> <amount>` / `ns t ...` — offer a specific dupe-for-dough trade.
+- `ns team` / `ns tm` — team command group.
+- `ns team add <team_name>` / `ns team a <team_name>` — create a team (max 32 chars, normalized lowercase).
+- `ns team remove <team_name>` / `ns team r <team_name>` — delete one of your teams.
+- `ns team list` / `ns team l` — list your teams and card counts.
+- `ns team assign <team_name> <card_code>` / `ns team as ...` — assign one owned card instance to a team.
+- `ns team unassign <team_name> <card_code>` / `ns team u ...` — remove a card instance from a team.
+- `ns team cards <team_name>` / `ns team c <team_name>` — view a team's cards.
+- `ns team active [team_name]` — show current active team, or set one for battles.
+- `ns battle <player> <stake>` / `ns bt ...` — propose a stake battle; challenged player can accept or deny.
 - `ns wish` / `ns w` — wishlist command group.
 - `ns wish add <card_id>` / `ns wish a <card_id>` / `ns w add <card_id>` / `ns w a <card_id>` / `ns wa <card_id>` — add a card to your wishlist.
 - `ns wish remove <card_id>` / `ns wish r <card_id>` / `ns w remove <card_id>` / `ns w r <card_id>` / `ns wr <card_id>` — remove a card from your wishlist.
@@ -197,6 +206,8 @@ Machine-readable output is available with `--json`.
 - Player state is global across all guilds: inventories, dough, marriages, and wishlist are shared across every server where the bot is installed.
 - `starter` is a higher-tier currency earned from verified top.gg votes.
 - `burn` includes an explicit confirm/cancel interaction before destruction.
+- Team capacity is capped at 3 cards per team, and battles consume each player's active team.
+- Battles are turn-based (`Attack`, `Defend`, `Switch`, `Surrender`) and include miss chance, effectiveness multipliers by series, and roll variance.
 
 ## Architecture
 
