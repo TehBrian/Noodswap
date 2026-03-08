@@ -231,6 +231,7 @@ def _apply_text_legibility_overlay(
     # Bottom-to-top rarity-tinted overlay keeps text readable while preserving art detail.
     gradient_layer = Image.new("RGBA", (width, height), (0, 0, 0, 0))
     gradient_pixels = gradient_layer.load()
+    assert gradient_pixels is not None
     for y in range(fade_start, height):
         if y >= solid_start:
             alpha = solid_alpha
@@ -347,6 +348,8 @@ def _apply_buttery_frame_effect(
     gradient_layer = Image.new("RGBA", surface.size, (0, 0, 0, 0))
     gradient_pixels = gradient_layer.load()
     mask_pixels = ring_mask.load()
+    assert gradient_pixels is not None
+    assert mask_pixels is not None
     top = outer_box[1]
     bottom = outer_box[3]
     span = max(1, bottom - top)
@@ -364,7 +367,11 @@ def _apply_buttery_frame_effect(
             b = int(round(68 + (30 - 68) * mix))
 
         for x in range(max(0, outer_box[0]), min(surface.width, outer_box[2] + 1)):
-            mask_alpha = mask_pixels[x, y]
+            mask_alpha_raw = mask_pixels[x, y]
+            if isinstance(mask_alpha_raw, tuple):
+                mask_alpha = int(mask_alpha_raw[0]) if mask_alpha_raw else 0
+            else:
+                mask_alpha = int(mask_alpha_raw)
             if mask_alpha > 0:
                 gradient_pixels[x, y] = (r, g, b, int(round(228 * (mask_alpha / 255))))
 

@@ -4,6 +4,7 @@ import inspect
 import os
 import random
 import time
+from typing import Awaitable, Callable, cast
 
 asyncio.iscoroutinefunction = inspect.iscoroutinefunction  # type: ignore[assignment]
 
@@ -161,7 +162,7 @@ async def resolve_member_argument(ctx: commands.Context, raw_member: str) -> tup
 async def resolve_optional_player_argument(
     ctx: commands.Context,
     player: str | None,
-) -> tuple[discord.Member | None, str | None]:
+) -> tuple[discord.abc.User | None, str | None]:
     if player is not None:
         return await resolve_member_argument(ctx, player)
 
@@ -192,7 +193,8 @@ async def resolve_optional_player_argument(
         fetch_message = getattr(channel, "fetch_message", None)
         if callable(fetch_message):
             try:
-                referenced_message = await fetch_message(reference_message_id)
+                fetch_message_coro = cast(Callable[[int], Awaitable[discord.Message]], fetch_message)
+                referenced_message = await fetch_message_coro(reference_message_id)
                 fetched_author_id = getattr(referenced_message.author, "id", None)
                 if isinstance(fetched_author_id, int):
                     replied_author_id = fetched_author_id
@@ -209,7 +211,8 @@ async def resolve_optional_player_argument(
     fetch_member = getattr(ctx.guild, "fetch_member", None)
     if callable(fetch_member):
         try:
-            return await fetch_member(replied_author_id), None
+            fetch_member_coro = cast(Callable[[int], Awaitable[discord.Member]], fetch_member)
+            return await fetch_member_coro(replied_author_id), None
         except (discord.NotFound, discord.Forbidden, discord.HTTPException):
             return ctx.author, None
 
@@ -463,7 +466,7 @@ async def _wish_remove(ctx: commands.Context, card_id: str) -> None:
     await _reply(ctx, embed=italy_embed("Wishlist", f"Removed from wishlist: {card_base_display(resolved_card_id)}"))
 
 
-async def _wish_list(ctx: commands.Context, target_member: discord.Member | None = None) -> None:
+async def _wish_list(ctx: commands.Context, target_member: discord.abc.User | None = None) -> None:
     if ctx.guild is None:
         await _reply(ctx, embed=italy_embed("Wishlist", "Use this command in a server."))
         return
@@ -1166,13 +1169,14 @@ def register_commands(bot: commands.Bot) -> None:
         morph_key = None
         frame_key = None
         font_key = None
+        married_instance_id: int | None = None
         if result.dupe_code is not None:
             married_instance = get_instance_by_code(ctx.guild.id, ctx.author.id, result.dupe_code)
             if married_instance is not None:
                 married_instance_id, _, _, _ = married_instance
                 morph_key = get_instance_morph(ctx.guild.id, married_instance_id)
                 frame_key = get_instance_frame(ctx.guild.id, married_instance_id)
-            font_key = get_instance_font(ctx.guild.id, married_instance_id)
+                font_key = get_instance_font(ctx.guild.id, married_instance_id)
 
         image_url, image_file = embed_image_payload(
             result.card_id,
@@ -1210,13 +1214,14 @@ def register_commands(bot: commands.Bot) -> None:
         morph_key = None
         frame_key = None
         font_key = None
+        divorced_instance_id: int | None = None
         if result.dupe_code is not None:
             divorced_instance = get_instance_by_code(ctx.guild.id, ctx.author.id, result.dupe_code)
             if divorced_instance is not None:
                 divorced_instance_id, _, _, _ = divorced_instance
                 morph_key = get_instance_morph(ctx.guild.id, divorced_instance_id)
                 frame_key = get_instance_frame(ctx.guild.id, divorced_instance_id)
-            font_key = get_instance_font(ctx.guild.id, divorced_instance_id)
+                font_key = get_instance_font(ctx.guild.id, divorced_instance_id)
 
         image_url, image_file = embed_image_payload(
             result.card_id,
@@ -1620,7 +1625,7 @@ def register_commands(bot: commands.Bot) -> None:
 
         await _reply(ctx, embed=italy_embed("Vote", multiline_text(lines)), view=_vote_link_view(vote_url))
 
-    @bot.command(name="slots", aliases=["sl"])
+    @bot.command(name="slots", aliases=["sl", "s"])
     async def slots(ctx: commands.Context):
         if ctx.guild is None:
             await _reply(ctx, embed=italy_embed("Slots", "Use this command in a server."))

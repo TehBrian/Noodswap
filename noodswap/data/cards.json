@@ -1304,6 +1304,11 @@
     "rarity": "epic",
     "series": "entree"
   },
+  "SSS": {
+    "name": "Sisi's Shit",
+    "rarity": "mythic",
+    "series": "entree"
+  },
   "SLA": {
     "image": "runtime/card_images/SLA.jpg",
     "name": "Sicilian Linguine Arc",
