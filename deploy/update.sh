@@ -66,30 +66,22 @@ fi
 RUNTIME_DIR="$REPO_ROOT/runtime"
 RUNTIME_DB_DIR="$RUNTIME_DIR/db"
 RUNTIME_IMAGE_DIR="$RUNTIME_DIR/card_images"
+RUNTIME_FONTS_DIR="$RUNTIME_DIR/fonts"
+RUNTIME_FRAMES_DIR="$RUNTIME_DIR/frame_overlays"
 RUNTIME_LOG_DIR="$RUNTIME_DIR/logs"
-SEED_DB_PATH="$REPO_ROOT/assets/noodswap.seed.db"
-SEED_IMAGE_DIR="$REPO_ROOT/assets/card_images"
-
-mkdir -p "$RUNTIME_DB_DIR"
-mkdir -p "$RUNTIME_IMAGE_DIR"
-mkdir -p "$RUNTIME_LOG_DIR"
-
 DB_PATH="$RUNTIME_DB_DIR/noodswap.db"
 
-if [ ! -f "$DB_PATH" ]; then
-  if [ -s "$SEED_DB_PATH" ]; then
-    cp "$SEED_DB_PATH" "$DB_PATH"
-    echo "No existing DB found; seeded runtime DB from $SEED_DB_PATH"
-  else
-    touch "$DB_PATH"
-    echo "No existing DB found; created new empty DB at $DB_PATH"
-  fi
+if command -v python3 >/dev/null 2>&1; then
+  PYTHON_BIN="python3"
+elif command -v python >/dev/null 2>&1; then
+  PYTHON_BIN="python"
+else
+  echo "ERROR: Python interpreter not found (required for scripts/init_runtime.py)." >&2
+  exit 1
 fi
 
-if [ -d "$SEED_IMAGE_DIR" ] && ! find "$RUNTIME_IMAGE_DIR" -mindepth 1 -not -name '.gitkeep' -print -quit | grep -q .; then
-  cp -R "$SEED_IMAGE_DIR"/. "$RUNTIME_IMAGE_DIR"/
-  echo "Runtime card image cache initialized from $SEED_IMAGE_DIR"
-fi
+# Keep runtime assets aligned with versioned seeds before (re)starting the container.
+"$PYTHON_BIN" "$REPO_ROOT/scripts/init_runtime.py" --repo-root "$REPO_ROOT"
 
 if [ ! -s "$DB_PATH" ]; then
   echo "Warning: $DB_PATH is empty. If this is not a fresh install, restore your previous noodswap.db backup." >&2
@@ -110,6 +102,8 @@ fi
 chmod 664 "$DB_PATH" 2>/dev/null || true
 chmod 775 "$RUNTIME_DB_DIR" 2>/dev/null || true
 chmod 775 "$RUNTIME_IMAGE_DIR" 2>/dev/null || true
+chmod 775 "$RUNTIME_FONTS_DIR" 2>/dev/null || true
+chmod 775 "$RUNTIME_FRAMES_DIR" 2>/dev/null || true
 chmod 775 "$RUNTIME_LOG_DIR" 2>/dev/null || true
 
 # Fail fast before container startup if runtime state cannot be written.

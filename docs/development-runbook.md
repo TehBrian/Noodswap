@@ -111,7 +111,7 @@ Notes:
 - Initialize runtime seeds locally (replaces runtime copies from `assets/`):
   - `.venv/bin/python scripts/init_runtime.py`
   - Replaces `runtime/card_images/`, `runtime/fonts/`, and `runtime/frame_overlays/`
-- Production deploys use `deploy/update.sh` to seed runtime images from `assets/card_images/` when `runtime/card_images/` is empty.
+- Production deploys use `deploy/update.sh`, which runs `scripts/init_runtime.py` on-host before container restart.
 
 ## Migration validation helper
 

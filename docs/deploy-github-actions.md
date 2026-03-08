@@ -6,7 +6,7 @@ This setup keeps CI/build/publish/deploy fully in GitHub Actions using GitHub-ho
 
 1. `CI` workflow validates code.
 2. `CD` workflow builds and pushes GHCR images (`:latest` + commit SHA) when CI succeeds on `main`.
-3. `Deploy` workflow runs on GitHub-hosted `ubuntu-latest`, SSHes into your Ubuntu server, runs `deploy/update.sh`, then verifies the running container image matches.
+3. `Deploy` workflow runs on GitHub-hosted `ubuntu-latest`, SSHes into your Ubuntu server, runs `deploy/update.sh` (which runs `scripts/init_runtime.py` on-host), then verifies the running container image matches.
 
 ## One-time server prep
 
