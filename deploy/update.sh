@@ -109,6 +109,8 @@ chmod 775 "$RUNTIME_LOG_DIR" 2>/dev/null || true
 # Fail fast before container startup if runtime state cannot be written.
 assert_writable_path "$RUNTIME_DB_DIR"
 assert_writable_path "$RUNTIME_IMAGE_DIR"
+assert_writable_path "$RUNTIME_FONTS_DIR"
+assert_writable_path "$RUNTIME_FRAMES_DIR"
 assert_writable_path "$RUNTIME_LOG_DIR"
 if ! [ -w "$DB_PATH" ]; then
   echo "ERROR: database file is not writable: $DB_PATH" >&2

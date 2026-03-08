@@ -9,8 +9,9 @@ import discord
 from discord.ext import commands
 
 from .commands import register_commands
+from .fonts import AVAILABLE_FONTS
 from .presentation import italy_embed
-from .settings import COMMAND_PREFIX, SHORT_COMMAND_PREFIX
+from .settings import CARD_FONTS_DIR, COMMAND_PREFIX, SHORT_COMMAND_PREFIX
 from .storage import init_db
 
 logger = logging.getLogger(__name__)
@@ -150,10 +151,33 @@ def create_bot() -> commands.Bot:
     return bot
 
 
+def _validate_runtime_font_assets() -> None:
+    if not CARD_FONTS_DIR.is_dir():
+        raise RuntimeError(
+            "Font directory is missing: "
+            f"{CARD_FONTS_DIR}. Run scripts/init_runtime.py before starting the bot."
+        )
+
+    missing: list[str] = []
+    for font_key in AVAILABLE_FONTS:
+        has_file = any((CARD_FONTS_DIR / f"{font_key}{extension}").is_file() for extension in (".ttf", ".otf", ".ttc"))
+        if not has_file:
+            missing.append(font_key)
+
+    if missing:
+        missing_display = ", ".join(sorted(missing))
+        raise RuntimeError(
+            "Runtime fonts are incomplete in "
+            f"{CARD_FONTS_DIR}. Missing base files for: {missing_display}. "
+            "Re-run scripts/init_runtime.py and verify runtime volume permissions."
+        )
+
+
 def main() -> None:
     logging.basicConfig(level=logging.INFO)
     token = resolve_discord_token()
 
+    _validate_runtime_font_assets()
     init_db()
     bot = create_bot()
     try:
