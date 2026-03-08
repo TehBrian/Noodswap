@@ -1620,7 +1620,7 @@ def register_commands(bot: commands.Bot) -> None:
 
         await _reply(ctx, embed=italy_embed("Vote", multiline_text(lines)), view=_vote_link_view(vote_url))
 
-    @bot.command(name="slots", aliases=["sl", "s"])
+    @bot.command(name="slots", aliases=["sl"])
     async def slots(ctx: commands.Context):
         if ctx.guild is None:
             await _reply(ctx, embed=italy_embed("Slots", "Use this command in a server."))
