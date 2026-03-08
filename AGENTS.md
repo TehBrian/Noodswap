@@ -91,8 +91,6 @@ When making non-trivial changes:
 - **Tune pull odds:** edit `RARITY_WEIGHTS` in `noodswap/rarities.py`.
 - **Change cooldown:** edit `PULL_COOLDOWN_SECONDS` in `noodswap/settings.py`.
 - **Adjust embed theme:** edit `ITALY_RED` and helper in `noodswap/presentation.py`.
-- **Reset data:** `ns dbreset` (owner-only).
-- **Export DB:** `ns dbexport` (owner-only).
 
 ## 9) Current Known Gaps
 

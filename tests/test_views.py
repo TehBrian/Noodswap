@@ -273,7 +273,13 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(interaction.response.edited_messages), 1)
         battle_embed = interaction.response.edited_messages[0]["embed"]
         self.assertEqual(battle_embed.title, "Help: Battle")
-        self.assertIn("ns team", battle_embed.description)
+        self.assertIn("ns team add", battle_embed.description)
+        self.assertIn("ns team remove", battle_embed.description)
+        self.assertIn("ns team list", battle_embed.description)
+        self.assertIn("ns team assign", battle_embed.description)
+        self.assertIn("ns team unassign", battle_embed.description)
+        self.assertIn("ns team cards", battle_embed.description)
+        self.assertIn("ns team active", battle_embed.description)
         self.assertIn("ns battle", battle_embed.description)
 
     async def test_help_view_category_option_order_includes_gambling_and_battle(self) -> None:

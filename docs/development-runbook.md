@@ -181,4 +181,3 @@ Use extra caution when editing:
 - `ns cooldown [player]` shows correct pull cooldown status for self/target
 - `ns info` shows correct dough/married display
 - `ns help` displays grouped command sections with descriptions
-- `ns dbexport` and `ns dbreset` work for owner

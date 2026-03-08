@@ -173,11 +173,6 @@ This bot uses privileged intents. Enable these for your application in Discord D
 - `ns marry [card_code]` / `ns m [card_code]` — marry a specific owned dupe by code.
 - `ns divorce` / `ns dv` — divorce your currently married card.
 
-### Owner-only admin commands
-
-- `ns dbexport` — upload the SQLite file (`noodswap.db`) to Discord.
-- `ns dbreset` — delete all persisted player/card data.
-
 ### Optional: runtime asset initialization
 
 Card rendering is local-only and expects runtime assets under `runtime/`.

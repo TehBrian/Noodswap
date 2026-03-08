@@ -50,13 +50,12 @@ This document defines behavior and presentation for commands and interaction flo
 - `wish list [player]` / `wish l [player]` / `w list [player]` / `w l [player]` / `wl [player]`
 - `marry [card_code]` / `m [card_code]`
 - `divorce` / `dv`
-- owner-only: `dbexport`, `dbreset`
 
 ## Help UX
 
 - `help` / `h` opens a brief bot overview embed instead of a full command dump
 - Help embed includes a category dropdown for command pages
-- Categories are: `Overview`, `Economy`, `Cosmetics`, `Wishlist`, `Tags`, `Relationship`, `Owner-only`
+- Categories are: `Overview`, `Economy`, `Gambling`, `Battle`, `Cosmetics`, `Wishlist`, `Tags`, `Folders`, `Relationship`
 - Selecting a category edits the same message to show that category's commands
 - Help dropdown interactions are restricted to the command invoker
 

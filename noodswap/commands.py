@@ -55,7 +55,6 @@ from .services import (
     prepare_trade_offer,
 )
 from .settings import (
-    DB_PATH,
     DROP_COOLDOWN_SECONDS,
     DROP_TIMEOUT_SECONDS,
     FLIP_COOLDOWN_SECONDS,
@@ -121,7 +120,6 @@ from .storage import (
     get_card_wish_counts,
     get_wishlist_cards,
     remove_card_from_wishlist,
-    reset_db_data,
 )
 from .utils import format_cooldown, multiline_text
 from .views import (
@@ -2443,26 +2441,3 @@ def register_commands(bot: commands.Bot) -> None:  # pylint: disable=too-many-st
         view = HelpView(user_id=ctx.author.id)
         message = await _reply(ctx, embed=view.build_overview_embed(), view=view)
         view.message = message
-
-    @bot.command(name="dbexport")
-    @commands.is_owner()
-    async def dbexport(ctx: commands.Context):
-        if not DB_PATH.exists():
-            await _reply(ctx, embed=italy_embed("DB Export", "No database file found yet."))
-            return
-
-        await _reply(ctx,
-            embed=italy_embed("DB Export", "Exporting current `noodswap.db`."),
-            file=discord.File(DB_PATH, filename="noodswap.db"),
-        )
-
-    @bot.command(name="dbreset")
-    @commands.is_owner()
-    async def dbreset(ctx: commands.Context):
-        reset_db_data()
-        await _reply(ctx,
-            embed=italy_embed(
-                "DB Reset",
-                "Database reset complete. All persisted Noodswap data has been deleted.",
-            )
-        )
