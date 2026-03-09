@@ -27,7 +27,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--tau",
         type=float,
-        default=1.0,
+        default=0.95,
         help="Exponent for inverse-value target distribution: P(gen) ∝ 1 / multiplier(gen)^tau",
     )
     parser.add_argument(

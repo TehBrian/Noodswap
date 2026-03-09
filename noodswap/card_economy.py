@@ -1,6 +1,14 @@
+import bisect
+import math
 import random
 from collections import Counter
+from functools import lru_cache
 from typing import Callable, Mapping, TypedDict
+
+from .settings import GENERATION_MAX, GENERATION_MIN
+
+
+GENERATION_ROLL_TAU = 0.95
 
 
 class CardEconomyRecord(TypedDict):
@@ -90,8 +98,48 @@ def random_card_id(
 
 
 def random_generation(*, generation_min: int, generation_max: int) -> int:
-    x = random.betavariate(1.6, 1.04)
-    return int(max(generation_min, min(generation_max, generation_max * x)))
+    if generation_min >= generation_max:
+        return int(generation_min)
+
+    generations, cdf = _generation_sampler(
+        generation_min,
+        generation_max,
+        GENERATION_ROLL_TAU,
+    )
+    if not generations or not cdf:
+        return random.randint(generation_min, generation_max)
+
+    index = bisect.bisect_left(cdf, random.random())
+    if index >= len(generations):
+        index = len(generations) - 1
+    return generations[index]
+
+
+@lru_cache(maxsize=16)
+def _generation_sampler(generation_min: int, generation_max: int, tau: float) -> tuple[tuple[int, ...], tuple[float, ...]]:
+    if generation_min >= generation_max:
+        return (int(generation_min),), (1.0,)
+
+    generations = tuple(range(generation_min, generation_max + 1))
+    multipliers = tuple(
+        generation_value_multiplier(generation, generation_min=generation_min, generation_max=generation_max)
+        for generation in generations
+    )
+    weights = tuple(1.0 / (multiplier ** tau) for multiplier in multipliers)
+    total = sum(weights)
+    if total <= 0 or not math.isfinite(total):
+        return (), ()
+
+    running = 0.0
+    cdf: list[float] = []
+    for weight in weights:
+        running += weight / total
+        cdf.append(running)
+    cdf[-1] = 1.0
+    return generations, tuple(cdf)
+
+
+_generation_sampler(GENERATION_MIN, GENERATION_MAX, GENERATION_ROLL_TAU)
 
 
 def make_drop_choices(

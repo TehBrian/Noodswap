@@ -202,7 +202,7 @@ The local image manifest lives at `runtime/card_images/manifest.json`.
 To compare your target inverse-value generation odds (`tau`) against the live inventory snapshot:
 
 ```bash
-.venv/bin/python scripts/generation_economy_report.py --tau 1.0 --active-days 7
+.venv/bin/python scripts/generation_economy_report.py --tau 0.95 --active-days 7
 ```
 
 Machine-readable output is available with `--json`.
@@ -217,7 +217,7 @@ Machine-readable output is available with `--json`.
   - `dv` for `divorce`
 - Card catalog is a constant dict in code for now, including `series` values (`noodle`, `grain`, `ingredient`, `cheese`, `wine`, `bread`, `entree`, `dessert`).
 - Card ownership is instance-based: each acquired card gets a generated `G-####` value (1-2000), where lower generations are rarer.
-- Generation rolls are sampled with a right-skewed beta distribution (`betavariate(1.6, 1.04)`) scaled to the 1-2000 range, making low-generation pulls ~1 in 48k while maintaining a stable median around 1270.
+- Generation rolls are sampled from an inverse-value discrete distribution (`P(gen) ∝ 1 / multiplier(gen)^0.95`) over the 1-2000 range, directly tying top-end supply to the generation multiplier curve.
 - Drop buttons use card names for readability.
 - Each drop card can only be claimed once; claimed cards are locked to their claimant.
 - Drop preview generation prefers locally cached images when available.

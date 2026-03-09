@@ -299,7 +299,7 @@ Notes:
 3. Lower generation means rarer copy.
 4. Marriage points to a specific instance (`married_instance_id`).
 5. Trade/burn/marry selection policies rely on generation ordering.
-6. New generations are assigned by a right-skewed beta draw (`betavariate(1.6, 1.04)`) scaled to the configured generation bounds, making high generation values far more common than low generation values (gen-1 ≈ 1 in 48k).
+6. New generations are assigned by an inverse-value discrete draw (`P(gen) ∝ 1 / generation_multiplier(gen)^0.95`) across the configured generation bounds, making high generation values far more common than low generation values while keeping supply tied to value scaling.
 
 ## Identity terminology (critical)
 
@@ -315,7 +315,7 @@ Notes:
 - `trade <card_code>`: transfers the exact referenced instance
 - card code format is standalone base36 (`0-9a-z`) with optional leading `#` and without card-id prefix
 - arg-less `marry` / `burn`: default to the last pulled instance (`last_dropped_instance_id` column)
-- per-instance generation is sampled in `cards.random_generation()` using a right-skewed beta distribution and scaled to `[GENERATION_MIN, GENERATION_MAX]`
+- per-instance generation is sampled in `cards.random_generation()` from an inverse-value discrete distribution across `[GENERATION_MIN, GENERATION_MAX]`
 
 ## Terminology (explicit)
 

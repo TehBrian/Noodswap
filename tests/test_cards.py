@@ -1,6 +1,9 @@
 import unittest
+from collections import Counter
 
 from noodswap.cards import CARD_CATALOG, SERIES_CATALOG, default_card_image
+from noodswap.card_economy import random_generation
+from noodswap.settings import GENERATION_MAX, GENERATION_MIN
 
 
 class CardsImageTests(unittest.TestCase):
@@ -38,6 +41,44 @@ class CardsSeriesTests(unittest.TestCase):
             if not isinstance(series_meta.get("emoji"), str) or not series_meta["emoji"].strip()
         )
         self.assertEqual(missing_emojis, [])
+
+
+class GenerationSamplerTests(unittest.TestCase):
+    def test_random_generation_within_default_bounds(self) -> None:
+        for _ in range(5000):
+            generation = random_generation(
+                generation_min=GENERATION_MIN,
+                generation_max=GENERATION_MAX,
+            )
+            self.assertIsInstance(generation, int)
+            self.assertGreaterEqual(generation, GENERATION_MIN)
+            self.assertLessEqual(generation, GENERATION_MAX)
+
+    def test_random_generation_respects_custom_bounds(self) -> None:
+        lower = 100
+        upper = 150
+        for _ in range(1000):
+            generation = random_generation(generation_min=lower, generation_max=upper)
+            self.assertGreaterEqual(generation, lower)
+            self.assertLessEqual(generation, upper)
+
+    def test_random_generation_is_right_skewed_toward_high_generations(self) -> None:
+        sample_size = 20000
+        rolls = [
+            random_generation(generation_min=GENERATION_MIN, generation_max=GENERATION_MAX)
+            for _ in range(sample_size)
+        ]
+        bucket_counts = Counter()
+        for generation in rolls:
+            if generation <= 100:
+                bucket_counts["low"] += 1
+            elif generation <= 500:
+                bucket_counts["mid_low"] += 1
+            elif generation >= 1500:
+                bucket_counts["high"] += 1
+
+        self.assertGreater(bucket_counts["high"], bucket_counts["mid_low"])
+        self.assertGreater(bucket_counts["mid_low"], bucket_counts["low"])
 
 
 if __name__ == "__main__":
