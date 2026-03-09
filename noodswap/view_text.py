@@ -113,7 +113,7 @@ class PlayerLeaderboardView(discord.ui.View):
         *,
         user_id: int,
         title: str,
-        entries: list[tuple[int, int, int, int, int, int]],
+        entries: list[tuple[int, int, int, int, int, int, int]],
         guard_title: str,
         page_size: int = 10,
     ):
@@ -130,13 +130,14 @@ class PlayerLeaderboardView(discord.ui.View):
         self._set_criteria_select_defaults()
         self._refresh_button_state()
 
-    def _metric_value(self, entry: tuple[int, int, int, int, int, int], criteria: str) -> int:
-        _user_id, cards, wishes, dough, starter, total_value = entry
+    def _metric_value(self, entry: tuple[int, int, int, int, int, int, int], criteria: str) -> int:
+        _user_id, cards, wishes, dough, starter, votes, total_value = entry
         metric_by_criteria = {
             "cards": cards,
             "wishes": wishes,
             "dough": dough,
             "starter": starter,
+            "votes": votes,
             "value": total_value,
         }
         return metric_by_criteria.get(criteria, cards)
@@ -147,15 +148,16 @@ class PlayerLeaderboardView(discord.ui.View):
             "wishes": "Wishes",
             "dough": "Dough",
             "starter": "Starter",
+            "votes": "Votes",
             "value": "Collection Value",
         }.get(criteria, "Cards")
 
-    def _sorted_entries_for_criteria(self, criteria: str) -> list[tuple[int, int, int, int, int, int]]:
+    def _sorted_entries_for_criteria(self, criteria: str) -> list[tuple[int, int, int, int, int, int, int]]:
         return sorted(
             self.entries,
             key=lambda entry: (
                 -self._metric_value(entry, criteria),
-                -entry[5],
+                -entry[6],
                 -entry[3],
                 entry[0],
             ),
@@ -192,8 +194,11 @@ class PlayerLeaderboardView(discord.ui.View):
             description = "No players available."
         else:
             lines = []
-            for rank, (player_id, cards, wishes, dough, starter, total_value) in enumerate(page_entries, start=start + 1):
-                value = self._metric_value((player_id, cards, wishes, dough, starter, total_value), self.criteria)
+            for rank, (player_id, cards, wishes, dough, starter, votes, total_value) in enumerate(
+                page_entries,
+                start=start + 1,
+            ):
+                value = self._metric_value((player_id, cards, wishes, dough, starter, votes, total_value), self.criteria)
                 lines.append(f"{rank}. {criteria_label}: **{value}** • <@{player_id}>")
             description = multiline_text(lines)
 
@@ -224,6 +229,7 @@ class PlayerLeaderboardView(discord.ui.View):
             discord.SelectOption(label="Wishes", value="wishes", description="Most wishlisted cards"),
             discord.SelectOption(label="Dough", value="dough", description="Most dough"),
             discord.SelectOption(label="Starter", value="starter", description="Most starter"),
+            discord.SelectOption(label="Votes", value="votes", description="Most top.gg votes"),
             discord.SelectOption(label="Collection Value", value="value", description="Highest total card value"),
         ],
     )

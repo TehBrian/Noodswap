@@ -18,12 +18,21 @@ Discord trading-card style bot using `discord.py`.
    ```bash
    export DISCORD_TOKEN=your-token
    ```
-   - Optional top.gg vote verification and rewards:
+   - Optional top.gg vote rewards webhook:
    ```bash
-   export TOPGG_API_TOKEN=your-topgg-api-token
+   export TOPGG_WEBHOOK_SECRET=your-topgg-webhook-secret
    export TOPGG_BOT_ID=your-discord-bot-id
+   export TOPGG_WEBHOOK_HOST=0.0.0.0
+   export TOPGG_WEBHOOK_PORT=8080
+   export TOPGG_WEBHOOK_PATH=/noodswap/topgg-vote-webhook
+   export TOPGG_WEBHOOK_MAX_BODY_BYTES=16384
+   export TOPGG_WEBHOOK_REQUIRE_JSON_CONTENT_TYPE=true
+   export TOPGG_WEBHOOK_ALLOWED_IPS=203.0.113.0/24
    ```
-   `TOPGG_API_TOKEN` is required for vote verification (`top.gg` API v1). `TOPGG_BOT_ID` is optional and only used if the bot id cannot be resolved at runtime for the vote-link URL.
+   `TOPGG_WEBHOOK_SECRET` is required to accept vote events from top.gg. `TOPGG_BOT_ID` is optional and only used as a vote-link fallback (and optional webhook payload bot-id validation).
+   
+   **Webhook deployment note**: The bot listens on container port `8080` by default. The production Docker Compose maps this to host port `14151`. For production, route webhook traffic through your reverse proxy (recommended for HTTPS termination and security). Configure your top.gg webhook URL to point to your public-facing endpoint at path `/noodswap/topgg-vote-webhook`.
+   
    - Production (recommended): inject secret from your platform secret manager as either `DISCORD_TOKEN` or a mounted file path in `DISCORD_TOKEN_FILE`.
 4. Initialize local runtime state:
    ```bash
@@ -68,8 +77,14 @@ If startup fails with `401 Unauthorized` / `Improper token has been passed`, ver
 
 Optional runtime values:
 
-- `TOPGG_API_TOKEN`
+- `TOPGG_WEBHOOK_SECRET`
 - `TOPGG_BOT_ID`
+- `TOPGG_WEBHOOK_HOST` (default `0.0.0.0`)
+- `TOPGG_WEBHOOK_PORT` (default `8080`)
+- `TOPGG_WEBHOOK_PATH` (default `/noodswap/topgg-vote-webhook`)
+- `TOPGG_WEBHOOK_MAX_BODY_BYTES` (default `16384`)
+- `TOPGG_WEBHOOK_REQUIRE_JSON_CONTENT_TYPE` (default `true`)
+- `TOPGG_WEBHOOK_ALLOWED_IPS` (optional comma-separated CIDRs, e.g. `203.0.113.0/24,2001:db8::/32`)
 
 ### Manual deploy/update
 
@@ -132,7 +147,7 @@ This bot uses privileged intents. Enable these for your application in Discord D
 - `ns buy drop [quantity]` — buy drop tickets using `starter` (cost: 1 starter per ticket; default quantity is 1).
 - `ns slots` / `ns sl` — spin 3 food reels; matching all 3 awards 1-3 `starter`.
 - `ns flip <stake>` / `ns f <stake>` — coin flip wager with 46% win / 54% lose odds; heads wins `+stake`, tails loses `-stake` (2m cooldown).
-- `ns vote` / `ns v` — open the top.gg vote page and claim `starter` reward when your vote is detected.
+- `ns vote` / `ns v` — open the top.gg vote page; rewards are registered automatically from top.gg webhook vote events.
 - `ns cooldown [player]` / `ns cd [player]` — show drop (6m), pull (4m), flip (2m), slots (22m), and vote reward (24h) cooldowns for yourself or another player.
 - `ns burn [targets...]` / `ns b [targets...]` — burn one or more targets for dough. Supports card codes/IDs plus selectors `t:<tag_name>` and `f:<folder_name>`. If any selected card is in a locked tag or locked folder, the entire burn is blocked.
 - `ns gift <player> <dough>` / `ns g <player> <dough>` — send dough to another player.

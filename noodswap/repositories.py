@@ -334,10 +334,10 @@ class PlayerRepository:
             (amount, guild_id, user_id),
         )
 
-    def list_balances(self, guild_id: int) -> list[tuple[int, int, int]]:
+    def list_balances(self, guild_id: int) -> list[tuple[int, int, int, int]]:
         rows = self.conn.execute(
             """
-            SELECT user_id, dough, starter
+            SELECT user_id, dough, starter, votes
             FROM players
             WHERE guild_id = ?
             ORDER BY user_id ASC
@@ -349,9 +349,31 @@ class PlayerRepository:
                 int(row["user_id"]),
                 int(row["dough"]),
                 int(row["starter"]),
+                int(row["votes"]),
             )
             for row in rows
         ]
+
+    def get_votes(self, guild_id: int, user_id: int) -> int:
+        row = self.conn.execute(
+            """
+            SELECT votes
+            FROM players
+            WHERE guild_id = ? AND user_id = ?
+            """,
+            (guild_id, user_id),
+        ).fetchone()
+        return int(row["votes"]) if row is not None else 0
+
+    def add_votes(self, guild_id: int, user_id: int, amount: int) -> None:
+        self.conn.execute(
+            """
+            UPDATE players
+            SET votes = votes + ?
+            WHERE guild_id = ? AND user_id = ?
+            """,
+            (amount, guild_id, user_id),
+        )
 
     def get_last_vote_reward_at(self, guild_id: int, user_id: int) -> float:
         row = self.conn.execute(

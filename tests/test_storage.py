@@ -32,6 +32,7 @@ class StorageTests(unittest.TestCase):
             self.assertIn("last_dropped_instance_id", column_names)
             self.assertIn("starter", column_names)
             self.assertIn("drop_tickets", column_names)
+            self.assertIn("votes", column_names)
             self.assertIn("last_vote_reward_at", column_names)
             self.assertIn("last_slots_at", column_names)
             self.assertIn("last_flip_at", column_names)
@@ -125,6 +126,7 @@ class StorageTests(unittest.TestCase):
         self.assertTrue(claimed)
         self.assertEqual(remaining, 0.0)
         self.assertEqual(starter_total, 1)
+        self.assertEqual(storage.get_player_votes(guild_id, user_id), 1)
 
         claimed, remaining, starter_total = storage.claim_vote_reward_if_ready(
             guild_id=guild_id,
@@ -136,6 +138,7 @@ class StorageTests(unittest.TestCase):
         self.assertFalse(claimed)
         self.assertGreater(remaining, 0.0)
         self.assertEqual(starter_total, 1)
+        self.assertEqual(storage.get_player_votes(guild_id, user_id), 1)
 
     def test_slots_cooldown_and_starter_award(self) -> None:
         guild_id = 1
@@ -498,13 +501,15 @@ class StorageTests(unittest.TestCase):
         self.assertEqual(first[2], 2)
         self.assertEqual(first[3], 25)
         self.assertEqual(first[4], 2)
-        self.assertGreater(first[5], 0)
+        self.assertEqual(first[5], 1)
+        self.assertGreater(first[6], 0)
 
         self.assertEqual(second[1], 1)
         self.assertEqual(second[2], 1)
         self.assertEqual(second[3], 80)
         self.assertEqual(second[4], 0)
-        self.assertGreater(second[5], 0)
+        self.assertEqual(second[5], 0)
+        self.assertGreater(second[6], 0)
 
     def test_marry_fails_if_card_already_married_by_another_player(self) -> None:
         guild_id = 1

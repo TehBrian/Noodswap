@@ -12,8 +12,21 @@ from .commands import register_commands
 from .fonts import AVAILABLE_FONTS, font_asset_files
 from .presentation import command_syntax_for_error, italy_embed
 from .services import end_open_battles_for_shutdown
-from .settings import CARD_FONTS_DIR, COMMAND_PREFIX, SHORT_COMMAND_PREFIX
+from .settings import (
+    CARD_FONTS_DIR,
+    COMMAND_PREFIX,
+    SHORT_COMMAND_PREFIX,
+    TOPGG_BOT_ID,
+    TOPGG_WEBHOOK_ALLOWED_IPS,
+    TOPGG_WEBHOOK_HOST,
+    TOPGG_WEBHOOK_MAX_BODY_BYTES,
+    TOPGG_WEBHOOK_PATH,
+    TOPGG_WEBHOOK_PORT,
+    TOPGG_WEBHOOK_REQUIRE_JSON_CONTENT_TYPE,
+    TOPGG_WEBHOOK_SECRET,
+)
 from .storage import init_db
+from .topgg_webhook import TopggWebhookConfig, TopggWebhookServer
 
 logger = logging.getLogger(__name__)
 
@@ -109,7 +122,26 @@ def _resolve_command_prefix(bot: commands.Bot, message: discord.Message) -> list
 
 def create_bot() -> commands.Bot:
     class NoodswapBot(commands.Bot):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self._topgg_webhook_server = TopggWebhookServer(
+                TopggWebhookConfig(
+                    secret=TOPGG_WEBHOOK_SECRET,
+                    host=TOPGG_WEBHOOK_HOST,
+                    port=TOPGG_WEBHOOK_PORT,
+                    path=TOPGG_WEBHOOK_PATH,
+                    expected_bot_id=TOPGG_BOT_ID,
+                    max_body_bytes=TOPGG_WEBHOOK_MAX_BODY_BYTES,
+                    require_json_content_type=TOPGG_WEBHOOK_REQUIRE_JSON_CONTENT_TYPE,
+                    allowed_ip_networks=TOPGG_WEBHOOK_ALLOWED_IPS,
+                )
+            )
+
+        async def setup_hook(self) -> None:
+            await self._topgg_webhook_server.start()
+
         async def close(self) -> None:
+            await self._topgg_webhook_server.stop()
             try:
                 ended_battles = end_open_battles_for_shutdown()
                 if ended_battles > 0:

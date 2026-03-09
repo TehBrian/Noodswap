@@ -572,8 +572,8 @@ class CommandsLeaderboardTests(unittest.IsolatedAsyncioTestCase):
         ctx.reply = ctx.send
 
         leaderboard_rows = [
-            (100, 2, 1, 20, 0, 40),
-            (200, 5, 3, 50, 2, 120),
+            (100, 2, 1, 20, 0, 4, 40),
+            (200, 5, 3, 50, 2, 7, 120),
         ]
         with patch("noodswap.commands.get_player_leaderboard_info", return_value=leaderboard_rows):
             await leaderboard_command.callback(ctx)
@@ -1490,6 +1490,7 @@ class CommandsInfoTests(unittest.IsolatedAsyncioTestCase):
         with (
             patch("noodswap.commands.get_player_info", return_value=(123, 0.0, None)),
             patch("noodswap.commands.get_player_starter", return_value=9),
+            patch("noodswap.commands.get_player_votes", return_value=6),
             patch("noodswap.commands.get_player_drop_tickets", return_value=4),
             patch("noodswap.commands.get_total_cards", return_value=7),
             patch("noodswap.commands.get_wishlist_cards", return_value=["SPG", "PEN", "FUS"]),
@@ -1502,6 +1503,7 @@ class CommandsInfoTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(field_values.get("Cards"), "7")
         self.assertEqual(field_values.get("Dough"), "123")
         self.assertEqual(field_values.get("Starter"), "9")
+        self.assertEqual(field_values.get("Votes"), "6")
         self.assertEqual(field_values.get("Drop Tickets"), "4")
         self.assertEqual(field_values.get("Wishes"), "3")
 
@@ -1524,6 +1526,7 @@ class CommandsInfoTests(unittest.IsolatedAsyncioTestCase):
         with (
             patch("noodswap.commands.get_player_info", return_value=(999, 0.0, None)),
             patch("noodswap.commands.get_player_starter", return_value=2),
+            patch("noodswap.commands.get_player_votes", return_value=5),
             patch("noodswap.commands.get_player_drop_tickets", return_value=0),
             patch("noodswap.commands.get_total_cards", return_value=4),
             patch("noodswap.commands.get_wishlist_cards", return_value=["SPG"]),
@@ -1593,7 +1596,7 @@ class CommandsVoteTests(unittest.IsolatedAsyncioTestCase):
         self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)
         register_commands(self.bot)
 
-    async def test_vote_shows_configuration_message_when_topgg_token_missing(self) -> None:
+    async def test_vote_shows_webhook_auto_claim_message(self) -> None:
         vote_command = _get_command(self.bot, "vote")
 
         ctx = AsyncMock()
@@ -1609,11 +1612,11 @@ class CommandsVoteTests(unittest.IsolatedAsyncioTestCase):
         sent_embed = ctx.send.await_args.kwargs["embed"]
         sent_view = ctx.send.await_args.kwargs["view"]
         self.assertEqual(sent_embed.title, "Vote")
-        self.assertIn("Automatic vote verification is not configured", sent_embed.description)
-        self.assertIn("Set `TOPGG_API_TOKEN` to enable reward claims", sent_embed.description)
+        self.assertIn("Vote rewards are registered automatically", sent_embed.description)
+        self.assertIn("top.gg webhook", sent_embed.description)
         self.assertIsInstance(sent_view, discord.ui.View)
 
-    async def test_vote_claims_starter_when_topgg_vote_detected(self) -> None:
+    async def test_vote_uses_configured_bot_id_for_vote_url_fallback(self) -> None:
         vote_command = _get_command(self.bot, "vote")
 
         ctx = AsyncMock()
@@ -1622,17 +1625,13 @@ class CommandsVoteTests(unittest.IsolatedAsyncioTestCase):
         ctx.send = AsyncMock()
         ctx.reply = ctx.send
 
-        with (
-            patch.dict("os.environ", {"TOPGG_API_TOKEN": "token", "TOPGG_BOT_ID": "123"}, clear=True),
-            patch("noodswap.commands._topgg_recent_vote_status", new=AsyncMock(return_value=(True, None))),
-            patch("noodswap.commands.claim_vote_reward_if_ready", return_value=(True, 0.0, 5)),
-        ):
+        with patch.dict("os.environ", {"TOPGG_BOT_ID": "123"}, clear=True):
             await vote_command.callback(ctx)
 
         ctx.send.assert_awaited_once()
-        sent_embed = ctx.send.await_args.kwargs["embed"]
-        self.assertIn("Claimed:", sent_embed.description)
-        self.assertIn("Starter Balance: **5**", sent_embed.description)
+        sent_view = ctx.send.await_args.kwargs["view"]
+        self.assertIsInstance(sent_view, discord.ui.View)
+        self.assertEqual(sent_view.children[0].url, "https://top.gg/bot/123/vote")
 
 
 class CommandsBurnTests(unittest.IsolatedAsyncioTestCase):

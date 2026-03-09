@@ -7,6 +7,8 @@ services:
     stop_grace_period: 20s
     env_file:
       - ./runtime.env
+    ports:
+      - "14151:8080"
     healthcheck:
       test:
         - CMD

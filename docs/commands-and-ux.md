@@ -287,6 +287,7 @@ Shows:
 - total cards
 - dough
 - starter
+- votes
 - drop tickets
 - total wishes
 - married card instance display
@@ -304,7 +305,7 @@ Shows:
 ## Leaderboard UX
 
 - `leaderboard` / `le` shows a paginated leaderboard of players
-- Includes criteria dropdown options: `Cards`, `Wishes`, `Dough`, `Starter`, `Collection Value`
+- Includes criteria dropdown options: `Cards`, `Wishes`, `Dough`, `Starter`, `Votes`, `Collection Value`
 - Each leaderboard row shows the selected criterion value for the ranked player
 - Footer format: `Page X/Y • Ranked by <Criterion>`
 - Leaderboard interactions are restricted to the command invoker
@@ -329,10 +330,9 @@ Shows:
 ## Vote UX
 
 - `vote` / `v` sends an embed with top.gg voting info and a link button
-- if top.gg API v1 verification is configured, running `vote` after voting attempts to claim `starter` immediately
-- successful claim grants `starter` and sets the vote cooldown
-- if no recent vote is detected by top.gg, command should instruct user to vote and retry
-- if top.gg API config is missing (`TOPGG_API_TOKEN`), command still sends vote link plus setup hint
+- vote rewards are granted from signed top.gg webhook vote events (no polling from command path)
+- successful webhook claim grants `starter` and sets the vote cooldown
+- `vote` should state that registration is automatic and may lag briefly while top.gg processes event delivery
 - `TOPGG_BOT_ID` is optional and only used as a vote-link fallback
 
 ## Marriage UX

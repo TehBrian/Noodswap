@@ -8,7 +8,6 @@ from typing import Awaitable, Callable, cast
 
 asyncio.iscoroutinefunction = inspect.iscoroutinefunction  # type: ignore[assignment]
 
-import aiohttp
 import discord
 from discord.ext import commands
 
@@ -70,7 +69,6 @@ from .storage import (
     assign_instance_to_folder,
     assign_instance_to_team,
     assign_tag_to_instance,
-    claim_vote_reward_if_ready,
     consume_slots_cooldown_if_ready,
     execute_flip_wager,
     create_player_folder,
@@ -103,6 +101,7 @@ from .storage import (
     list_player_tags,
     list_player_teams,
     get_player_starter,
+    get_player_votes,
     get_player_info,
     get_player_drop_tickets,
     get_player_vote_reward_timestamp,
@@ -469,43 +468,6 @@ async def _animate_slots_spin(message: discord.Message, final_symbols: list[str]
 async def _reply(ctx: commands.Context, **kwargs):
     """Reply to the invoking command message without pinging the author."""
     return await ctx.reply(mention_author=False, **kwargs)
-
-
-def _topgg_auth_header(api_token: str) -> str:
-    token = api_token.strip()
-    if token.lower().startswith("bearer "):
-        return token
-    return f"Bearer {token}"
-
-
-async def _topgg_recent_vote_status(user_id: int, api_token: str) -> tuple[bool | None, str | None]:
-    # top.gg v1 endpoint for checking a single user's vote status on the authenticated project.
-    check_url = f"https://top.gg/api/v1/projects/@me/votes/{user_id}?source=discord"
-    headers = {"Authorization": _topgg_auth_header(api_token)}
-    timeout = aiohttp.ClientTimeout(total=8)
-
-    try:
-        async with aiohttp.ClientSession(timeout=timeout) as session:
-            async with session.get(check_url, headers=headers) as response:
-                if response.status == 404:
-                    return False, None
-
-                if response.status != 200:
-                    return None, f"top.gg API responded with status {response.status}."
-
-                payload = await response.json(content_type=None)
-    except aiohttp.ClientError as exc:
-        return None, f"top.gg request failed: {exc}"
-    except asyncio.TimeoutError:
-        return None, "top.gg request timed out."
-    except ValueError:
-        return None, "top.gg response was not valid JSON."
-
-    created_at = payload.get("created_at")
-    expires_at = payload.get("expires_at")
-    if created_at is None and expires_at is None:
-        return None, "top.gg response did not include vote status fields."
-    return True, None
 
 
 async def _wish_add(ctx: commands.Context, card_id: str) -> None:
@@ -2020,60 +1982,12 @@ def register_commands(bot: commands.Bot) -> None:  # pylint: disable=too-many-st
 
         lines: list[str] = [
             "Support Noodswap by voting on top.gg.",
-            f"Reward: **{VOTE_STARTER_REWARD} starter** per successful vote claim.",
+            f"Reward: **{VOTE_STARTER_REWARD} starter** per confirmed vote.",
             f"Vote Reward Cooldown: **{format_cooldown(VOTE_COOLDOWN_SECONDS)}**",
             "",
-            "After voting, run `ns vote` again to claim your reward.",
+            "Vote rewards are registered automatically through the top.gg webhook.",
+            "If your reward does not appear right away, top.gg may still be processing the event.",
         ]
-
-        api_token = os.getenv("TOPGG_API_TOKEN", "").strip()
-        if not api_token:
-            lines.extend(
-                [
-                    "",
-                    "Automatic vote verification is not configured yet.",
-                    "Set `TOPGG_API_TOKEN` to enable reward claims.",
-                    "`TOPGG_BOT_ID` is optional and only used as a vote-link fallback.",
-                ]
-            )
-            await _reply(ctx, embed=italy_embed("Vote", multiline_text(lines)), view=_vote_link_view(vote_url))
-            return
-
-        voted, vote_error = await _topgg_recent_vote_status(ctx.author.id, api_token)
-        if voted:
-            claimed, remaining_seconds, starter_total = claim_vote_reward_if_ready(
-                guild_id=ctx.guild.id,
-                user_id=ctx.author.id,
-                now=time.time(),
-                cooldown_seconds=VOTE_COOLDOWN_SECONDS,
-                reward_amount=VOTE_STARTER_REWARD,
-            )
-            if claimed:
-                lines.extend(
-                    [
-                        "",
-                        f"Claimed: **+{VOTE_STARTER_REWARD} starter**",
-                        f"Starter Balance: **{starter_total}**",
-                    ]
-                )
-            else:
-                lines.extend(
-                    [
-                        "",
-                        "Vote detected, but your vote reward cooldown is still active.",
-                        f"Time remaining: **{format_cooldown(remaining_seconds)}**",
-                    ]
-                )
-        elif voted is False:
-            lines.extend(
-                [
-                    "",
-                    "No recent top.gg vote detected for your account yet.",
-                    "Cast your vote using the button, then try `ns vote` again.",
-                ]
-            )
-        else:
-            lines.extend(["", f"Could not verify your top.gg vote right now: {vote_error or 'unknown error'}"])
 
         await _reply(ctx, embed=italy_embed("Vote", multiline_text(lines)), view=_vote_link_view(vote_url))
 
@@ -2302,6 +2216,7 @@ def register_commands(bot: commands.Bot) -> None:  # pylint: disable=too-many-st
 
         dough, _, married_instance_id = get_player_info(ctx.guild.id, target_member.id)
         starter = get_player_starter(ctx.guild.id, target_member.id)
+        votes = get_player_votes(ctx.guild.id, target_member.id)
         drop_tickets = get_player_drop_tickets(ctx.guild.id, target_member.id)
         wishes_count = len(get_wishlist_cards(ctx.guild.id, target_member.id))
         married = "None"
@@ -2325,6 +2240,7 @@ def register_commands(bot: commands.Bot) -> None:  # pylint: disable=too-many-st
         embed.add_field(name="Cards", value=str(get_total_cards(ctx.guild.id, target_member.id)), inline=True)
         embed.add_field(name="Dough", value=str(dough), inline=True)
         embed.add_field(name="Starter", value=str(starter), inline=True)
+        embed.add_field(name="Votes", value=str(votes), inline=True)
         embed.add_field(name="Drop Tickets", value=str(drop_tickets), inline=True)
         embed.add_field(name="Wishes", value=str(wishes_count), inline=True)
         embed.add_field(name="Married Card", value=married, inline=False)

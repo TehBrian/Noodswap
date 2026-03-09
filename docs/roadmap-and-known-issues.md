@@ -49,13 +49,7 @@
 - anti-abuse controls and audit logging
 - add lightweight economy event ledger tables for pull/burn/trade telemetry so balancing reports can use true time-window flow metrics instead of ownership snapshots
 
-6. top.gg push vote confirmations
-- Add a signed top.gg webhook endpoint for vote events (no polling loop).
-- Verify webhook secret header before processing payloads.
-- Auto-claim vote rewards from webhook events using existing cooldown safeguards.
-- Document deployment requirements (public HTTPS route, secret config, reverse-proxy wiring).
-
-7. Deploy-state automation
+6. Deploy-state automation
 - Add automated SQLite backup/restore workflow (scheduled backup to remote object storage + restore-on-empty bootstrap for `runtime/db/noodswap.db`).
 - Publish/import a versioned card-image cache artifact so new hosts can bootstrap `runtime/card_images` without manual copy steps.
 
@@ -84,6 +78,7 @@ Stage 3 implementation guide: `docs/refactor-phase-3.md`.
 
 ## Decision log (recent)
 
+- Added persistent `players.votes` tracking for successful top.gg webhook claims, surfaced the count in `info`, and added `Votes` as a sortable `leaderboard` criterion.
 - Added per-player folders (`player_folders` + `card_instance_folders`) with one-folder-per-instance assignment, folder emoji metadata, and lock inheritance that treats locked tags and locked folders as equivalent burn blockers.
 - Added `drop tickets` currency with `buy drop [quantity]` starter purchases (1:1 cost), auto-ticket substitution when `drop` is on cooldown (cooldown timestamp unchanged), and info-surface visibility for ticket balances.
 - Updated `flip` / `f` UX to support optional side calls (`heads`/`tails`, `h`/`t`) while preserving house-edge odds (46/54) and added a suspense-first reveal flow that posts "The coin is ..." then edits in the result after 3 seconds.
@@ -107,8 +102,9 @@ Stage 3 implementation guide: `docs/refactor-phase-3.md`.
 - Completed Stage 3 callback slimming by moving burn confirmation execution into `services.py` (`execute_burn_confirmation`), removing remaining `noodswap.views` callback indirection in view modules, and updating view tests to patch canonical module-level symbols.
 - Added follow-up roadmap item to automate deploy-state bootstrap (SQLite backup/restore and card-image cache artifact import) so host migrations do not require manual DB/image copy steps.
 - Added `leaderboard` / `le` with invoker-scoped pagination + criterion dropdown (`Cards`, `Wishes`, `Dough`, `Starter`, `Collection Value`) to rank players by global player metrics.
-- Added `vote` / `v` command with top.gg link-button UX, top.gg API vote verification (`TOPGG_API_TOKEN` + `TOPGG_BOT_ID`), and `starter` reward claims with a 24-hour cooldown surfaced in both `info` and `cooldown`.
-- Planned follow-up: switch vote confirmation from pull-based checks to top.gg push webhooks so rewards can be granted immediately after vote events.
+- Added webhook-only top.gg vote registration with signed event intake, automatic `starter` reward claiming, and 24-hour cooldown enforcement via existing storage safeguards.
+- Hardened top.gg webhook intake with optional source IP allowlisting (`TOPGG_WEBHOOK_ALLOWED_IPS`), strict JSON content-type enforcement, and bounded request size controls (`TOPGG_WEBHOOK_MAX_BODY_BYTES`) to reduce spoofing/DoS surface.
+- Updated `vote` / `v` command copy to reflect automatic webhook registration and removed pull-based top.gg polling from the command path.
 - Changed `help` to send a brief bot overview plus an invoker-scoped category dropdown (`Overview`, `Economy`, `Gambling`, `Battle`, `Cosmetics`, `Wishlist`, `Tags`, `Folders`, `Relationship`) that edits the same embed to the selected command page.
 - Updated `scripts/init_runtime.py` to use replacement semantics for seeded runtime assets, refreshing `runtime/card_images/`, `runtime/fonts/`, and `runtime/frame_overlays/` from `assets/` on each run.
 - Added `frame` / `fr` confirmation flow with before/after transition previews and per-instance frame persistence (`card_instances.frame_key`), initially shipping a `buttery` golden dripping-border frame.

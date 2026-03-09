@@ -1139,6 +1139,14 @@ def get_player_starter(guild_id: int, user_id: int) -> int:
         return players.get_starter(guild_id, user_id)
 
 
+def get_player_votes(guild_id: int, user_id: int) -> int:
+    guild_id = _scope_guild_id(guild_id)
+    with get_db_connection() as conn:
+        players = PlayerRepository(conn, STARTING_DOUGH)
+        players.ensure_player(guild_id, user_id)
+        return players.get_votes(guild_id, user_id)
+
+
 def get_player_drop_tickets(guild_id: int, user_id: int) -> int:
     guild_id = _scope_guild_id(guild_id)
     with get_db_connection() as conn:
@@ -1363,6 +1371,7 @@ def claim_vote_reward_if_ready(
 
         players.set_last_vote_reward_at(guild_id, user_id, now)
         players.add_starter(guild_id, user_id, reward_amount)
+        players.add_votes(guild_id, user_id, 1)
         return True, 0.0, players.get_starter(guild_id, user_id)
 
 
@@ -1577,7 +1586,7 @@ def get_total_cards(guild_id: int, user_id: int) -> int:
         return instances.count_by_owner(guild_id, user_id)
 
 
-def get_player_leaderboard_info(guild_id: int) -> list[tuple[int, int, int, int, int, int]]:
+def get_player_leaderboard_info(guild_id: int) -> list[tuple[int, int, int, int, int, int, int]]:
     guild_id = _scope_guild_id(guild_id)
     with get_db_connection() as conn:
         players = PlayerRepository(conn, STARTING_DOUGH)
@@ -1594,15 +1603,15 @@ def get_player_leaderboard_info(guild_id: int) -> list[tuple[int, int, int, int,
         cards_count_by_user[owner_id] = cards_count_by_user.get(owner_id, 0) + 1
         total_value_by_user[owner_id] = total_value_by_user.get(owner_id, 0) + card_value(card_id, generation)
 
-    users: dict[int, tuple[int, int]] = {
-        user_id: (dough, starter)
-        for user_id, dough, starter in balances
+    users: dict[int, tuple[int, int, int]] = {
+        user_id: (dough, starter, votes)
+        for user_id, dough, starter, votes in balances
     }
     all_user_ids = set(users.keys()) | set(wish_counts.keys()) | set(cards_count_by_user.keys())
 
-    rows: list[tuple[int, int, int, int, int, int]] = []
+    rows: list[tuple[int, int, int, int, int, int, int]] = []
     for user_id in sorted(all_user_ids):
-        dough, starter = users.get(user_id, (STARTING_DOUGH, 0))
+        dough, starter, votes = users.get(user_id, (STARTING_DOUGH, 0, 0))
         rows.append(
             (
                 user_id,
@@ -1610,6 +1619,7 @@ def get_player_leaderboard_info(guild_id: int) -> list[tuple[int, int, int, int,
                 wish_counts.get(user_id, 0),
                 dough,
                 starter,
+                votes,
                 total_value_by_user.get(user_id, 0),
             )
         )

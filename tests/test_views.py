@@ -196,9 +196,9 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
             user_id=10,
             title="Leaderboard",
             entries=[
-                (1, 3, 8, 12, 2, 120),
-                (2, 9, 1, 30, 1, 300),
-                (3, 1, 5, 100, 0, 20),
+                (1, 3, 8, 12, 2, 5, 120),
+                (2, 9, 1, 30, 1, 1, 300),
+                (3, 1, 5, 100, 0, 9, 20),
             ],
             guard_title="Leaderboard",
             page_size=10,
@@ -218,11 +218,20 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("Wishes: **8**", edited_embed.description)
         self.assertIn("Wishes: **8** • <@1>", edited_embed.description)
 
+        interaction_votes = _FakeInteraction(user_id=10)
+        view.criteria_select._values = ["votes"]
+        await view.criteria_select.callback(interaction_votes)
+
+        votes_embed = interaction_votes.response.edited_messages[0]["embed"]
+        self.assertIn("<@3>", votes_embed.description)
+        self.assertIn("Votes: **9**", votes_embed.description)
+        self.assertIn("Votes: **9** • <@3>", votes_embed.description)
+
     async def test_player_leaderboard_view_rejects_unauthorized_user(self) -> None:
         view = PlayerLeaderboardView(
             user_id=10,
             title="Leaderboard",
-            entries=[(1, 3, 2, 10, 1, 50)],
+            entries=[(1, 3, 2, 10, 1, 4, 50)],
             guard_title="Leaderboard",
         )
 
