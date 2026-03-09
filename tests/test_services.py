@@ -228,7 +228,7 @@ class ServicesTests(unittest.TestCase):
         dough_after, _, _ = storage.get_player_info(guild_id, user_id)
         self.assertEqual(dough_after, dough_before + int(result.payout or 0))
 
-    def test_prepare_burn_batch_rejects_when_any_target_locked(self) -> None:
+    def test_prepare_burn_batch_skips_locked_targets(self) -> None:
         guild_id = 1
         user_id = 235
         open_instance = storage.add_card_to_player(guild_id, user_id, "SPG", 333)
@@ -244,13 +244,13 @@ class ServicesTests(unittest.TestCase):
 
         prepared = services.prepare_burn_batch(guild_id, user_id, targets)
 
-        self.assertTrue(prepared.is_error)
-        self.assertIsNotNone(prepared.error_message)
-        if prepared.error_message is None:
-            return
-        self.assertIn("Burn blocked", prepared.error_message)
+        self.assertFalse(prepared.is_error)
+        self.assertEqual(len(prepared.items), 1)
+        self.assertEqual(prepared.items[0].instance_id, open_instance)
+        self.assertEqual(len(prepared.skipped_items), 1)
+        self.assertIn("locked tag(s)", prepared.skipped_items[0])
 
-    def test_execute_burn_batch_confirmation_blocks_all_when_any_locked(self) -> None:
+    def test_execute_burn_batch_confirmation_burns_available_and_skips_locked(self) -> None:
         guild_id = 1
         user_id = 236
         open_instance = storage.add_card_to_player(guild_id, user_id, "SPG", 333)
@@ -265,10 +265,12 @@ class ServicesTests(unittest.TestCase):
             burn_targets=[(open_instance, 8), (locked_instance, 9)],
         )
 
-        self.assertTrue(result.is_blocked)
-        self.assertEqual(len(result.burned_entries), 0)
-        self.assertIsNotNone(storage.get_instance_by_id(guild_id, open_instance))
+        self.assertTrue(result.is_partial)
+        self.assertEqual(len(result.burned_entries), 1)
+        self.assertIsNone(storage.get_instance_by_id(guild_id, open_instance))
         self.assertIsNotNone(storage.get_instance_by_id(guild_id, locked_instance))
+        self.assertEqual(len(result.skipped_instances), 1)
+        self.assertEqual(result.skipped_instances[0][0], locked_instance)
 
     def test_execute_burn_batch_confirmation_burns_all_and_awards_dough(self) -> None:
         guild_id = 1

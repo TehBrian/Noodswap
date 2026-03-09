@@ -1,3 +1,4 @@
+from difflib import get_close_matches
 from typing import Mapping, TypedDict
 
 
@@ -10,13 +11,17 @@ def normalize_card_id(card_id: str) -> str:
     return card_id.strip().upper()
 
 
+def _normalize_for_search(value: str) -> str:
+    return "".join(char for char in value.casefold() if char.isalnum())
+
+
 def search_card_ids(
     query: str,
     *,
     card_catalog: Mapping[str, CardSearchRecord],
     include_series: bool = False,
 ) -> list[str]:
-    cleaned_query = query.strip().casefold()
+    cleaned_query = _normalize_for_search(query.strip())
     if not cleaned_query:
         return []
 
@@ -27,9 +32,14 @@ def search_card_ids(
     prefix_series_matches: list[str] = []
     contains_series_matches: list[str] = []
 
+    search_names: dict[str, list[str]] = {}
+    search_series: dict[str, list[str]] = {}
+
     for card_id, card in card_catalog.items():
         card_name = card["name"]
-        normalized_name = card_name.casefold()
+        normalized_name = _normalize_for_search(card_name)
+        if normalized_name:
+            search_names.setdefault(normalized_name, []).append(card_id)
         if normalized_name == cleaned_query:
             exact_name_matches.append(card_id)
         elif normalized_name.startswith(cleaned_query):
@@ -38,7 +48,9 @@ def search_card_ids(
             contains_name_matches.append(card_id)
 
         if include_series:
-            normalized_series = card["series"].casefold()
+            normalized_series = _normalize_for_search(card["series"])
+            if normalized_series:
+                search_series.setdefault(normalized_series, []).append(card_id)
             if normalized_series == cleaned_query:
                 exact_series_matches.append(card_id)
             elif normalized_series.startswith(cleaned_query):
@@ -62,6 +74,32 @@ def search_card_ids(
                 sorted(contains_series_matches, key=sort_key),
             ]
         )
+
+    if not exact_name_matches and not exact_series_matches:
+        fuzzy_match_keys = get_close_matches(cleaned_query, list(search_names), n=10, cutoff=0.75)
+        fuzzy_name_matches = sorted(
+            {
+                card_id
+                for match_key in fuzzy_match_keys
+                for card_id in search_names.get(match_key, [])
+            },
+            key=sort_key,
+        )
+        if fuzzy_name_matches:
+            ordered_groups.append(fuzzy_name_matches)
+
+        if include_series:
+            fuzzy_series_keys = get_close_matches(cleaned_query, list(search_series), n=10, cutoff=0.75)
+            fuzzy_series_matches = sorted(
+                {
+                    card_id
+                    for match_key in fuzzy_series_keys
+                    for card_id in search_series.get(match_key, [])
+                },
+                key=sort_key,
+            )
+            if fuzzy_series_matches:
+                ordered_groups.append(fuzzy_series_matches)
 
     seen: set[str] = set()
     results: list[str] = []

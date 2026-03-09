@@ -1678,7 +1678,7 @@ def burn_instance(guild_id: int, user_id: int, instance_id: int) -> Optional[tup
         return burned
 
 
-def burn_instances(guild_id: int, user_id: int, instance_ids: list[int]) -> tuple[list[tuple[int, str, int, str]] | None, dict[int, list[str]]]:
+def burn_instances(guild_id: int, user_id: int, instance_ids: list[int]) -> tuple[list[tuple[int, str, int, str]], dict[int, list[str]]]:
     guild_id = _scope_guild_id(guild_id)
     unique_instance_ids: list[int] = []
     seen: set[int] = set()
@@ -1699,11 +1699,13 @@ def burn_instances(guild_id: int, user_id: int, instance_ids: list[int]) -> tupl
         folders = PlayerFolderRepository(conn)
         players.ensure_player(guild_id, user_id)
 
-        locked_by_instance: dict[int, list[str]] = {}
+        skipped_by_instance: dict[int, list[str]] = {}
+        burnable_instance_ids: list[int] = []
         for instance_id in unique_instance_ids:
             owned = instances.get_owned_instance_for_marry(guild_id, user_id, instance_id)
             if owned is None:
-                return None, {}
+                skipped_by_instance[instance_id] = ["unavailable"]
+                continue
 
             locked_tags = tags.list_locked_for_instance(guild_id, user_id, instance_id)
             locked_folder = folders.get_locked_for_instance(guild_id, user_id, instance_id)
@@ -1711,23 +1713,23 @@ def burn_instances(guild_id: int, user_id: int, instance_ids: list[int]) -> tupl
             if locked_folder is not None:
                 lock_reasons.append(f"folder:{locked_folder[0]}")
             if lock_reasons:
-                locked_by_instance[instance_id] = lock_reasons
-
-        if locked_by_instance:
-            return None, locked_by_instance
+                skipped_by_instance[instance_id] = lock_reasons
+                continue
+            burnable_instance_ids.append(instance_id)
 
         burned_rows: list[tuple[int, str, int, str]] = []
-        for instance_id in unique_instance_ids:
+        for instance_id in burnable_instance_ids:
             burned = instances.burn_owned_instance(guild_id, user_id, instance_id)
             if burned is None:
-                return None, {}
+                skipped_by_instance[instance_id] = ["unavailable"]
+                continue
 
             burned_card_id, burned_generation, burned_dupe_code = burned
             players.clear_marriage_if_matches(guild_id, user_id, instance_id)
             players.clear_last_pulled_if_matches(guild_id, user_id, instance_id)
             burned_rows.append((instance_id, burned_card_id, burned_generation, burned_dupe_code))
 
-        return burned_rows, {}
+        return burned_rows, skipped_by_instance
 
 
 def _select_instance_for_marry(

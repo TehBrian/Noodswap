@@ -386,6 +386,42 @@ def _parse_burn_selector_tokens(raw_targets: tuple[str, ...]) -> tuple[list[tupl
     return selectors, None
 
 
+def _dedupe_nonempty_tokens(raw_tokens: tuple[str, ...]) -> list[str]:
+    deduped_tokens: list[str] = []
+    seen_tokens: set[str] = set()
+    for raw_token in raw_tokens:
+        token = raw_token.strip()
+        if not token or token in seen_tokens:
+            continue
+        seen_tokens.add(token)
+        deduped_tokens.append(token)
+    return deduped_tokens
+
+
+def _resolve_card_code_targets(
+    guild_id: int,
+    user_id: int,
+    card_codes: list[str],
+) -> tuple[list[tuple[int, str, int, str]], list[str]]:
+    resolved_targets: list[tuple[int, str, int, str]] = []
+    invalid_codes: list[str] = []
+    seen_instance_ids: set[int] = set()
+
+    for card_code in card_codes:
+        selected = get_instance_by_code(guild_id, user_id, card_code)
+        if selected is None:
+            invalid_codes.append(card_code)
+            continue
+
+        instance_id, card_id, generation, dupe_code = selected
+        if instance_id in seen_instance_ids:
+            continue
+        seen_instance_ids.add(instance_id)
+        resolved_targets.append((instance_id, card_id, generation, dupe_code))
+
+    return resolved_targets, invalid_codes
+
+
 def _resolve_burn_selector_instances(
     guild_id: int,
     user_id: int,
@@ -470,33 +506,46 @@ async def _reply(ctx: commands.Context, **kwargs):
     return await ctx.reply(mention_author=False, **kwargs)
 
 
-async def _wish_add(ctx: commands.Context, card_id: str) -> None:
+async def _wish_add(ctx: commands.Context, *card_ids: str) -> None:
     if ctx.guild is None:
         await _reply(ctx, embed=italy_embed("Wishlist", "Use this command in a server."))
         return
 
-    normalized_card_id = normalize_card_id(card_id)
-    matched_card_ids = [normalized_card_id] if normalized_card_id in CARD_CATALOG else search_card_ids_by_name(card_id)
-    if not matched_card_ids:
-        await _reply(ctx, embed=italy_embed("Wishlist", "Unknown card id."))
+    deduped_card_tokens = _dedupe_nonempty_tokens(card_ids)
+    if not deduped_card_tokens:
+        await _reply(ctx, embed=italy_embed("Wishlist", "Usage: `ns wish add <card_id> [card_id ...]`."))
         return
 
-    if len(matched_card_ids) > 1:
-        match_lines = [
-            f"{index}. {card_base_display(matched_card_id)}"
-            for index, matched_card_id in enumerate(matched_card_ids, start=1)
-        ]
-        await _reply(ctx, embed=italy_embed("Wishlist Matches", multiline_text(match_lines)))
-        return
+    resolved_card_ids: list[str] = []
+    unknown_card_ids: list[str] = []
+    for token in deduped_card_tokens:
+        normalized_card_id = normalize_card_id(token)
+        if normalized_card_id in CARD_CATALOG:
+            resolved_card_ids.append(normalized_card_id)
+        else:
+            unknown_card_ids.append(token)
 
-    resolved_card_id = matched_card_ids[0]
+    added_lines: list[str] = []
+    already_lines: list[str] = []
+    for resolved_card_id in resolved_card_ids:
+        was_added = add_card_to_wishlist(ctx.guild.id, ctx.author.id, resolved_card_id)
+        if was_added:
+            added_lines.append(card_base_display(resolved_card_id))
+        else:
+            already_lines.append(card_base_display(resolved_card_id))
 
-    was_added = add_card_to_wishlist(ctx.guild.id, ctx.author.id, resolved_card_id)
-    if not was_added:
-        await _reply(ctx, embed=italy_embed("Wishlist", f"Already wishlisted: {card_base_display(resolved_card_id)}"))
-        return
+    description_lines: list[str] = []
+    if added_lines:
+        description_lines.append("Added:")
+        description_lines.extend(f"- {line}" for line in added_lines)
+    if already_lines:
+        description_lines.append("Already wishlisted:")
+        description_lines.extend(f"- {line}" for line in already_lines)
+    if unknown_card_ids:
+        unknown_text = ", ".join(f"`{card_id}`" for card_id in unknown_card_ids)
+        description_lines.append(f"Unknown card id(s): {unknown_text}")
 
-    await _reply(ctx, embed=italy_embed("Wishlist", f"Added to wishlist: {card_base_display(resolved_card_id)}"))
+    await _reply(ctx, embed=italy_embed("Wishlist", multiline_text(description_lines)))
 
 
 async def _wish_remove(ctx: commands.Context, card_id: str) -> None:
@@ -634,63 +683,96 @@ async def _tag_lock(ctx: commands.Context, tag_name: str, locked: bool) -> None:
     await _reply(ctx, embed=italy_embed("Tags", f"Tag `{normalized}` is now **{state}**."))
 
 
-async def _tag_assign(ctx: commands.Context, tag_name: str, card_code: str) -> None:
+async def _tag_assign(ctx: commands.Context, tag_name: str, *card_codes: str) -> None:
     if ctx.guild is None:
         await _reply(ctx, embed=italy_embed("Tags", "Use this command in a server."))
         return
 
-    selected = get_instance_by_code(ctx.guild.id, ctx.author.id, card_code)
-    if selected is None:
-        await _reply(ctx, embed=italy_embed("Tags", "You do not own that card code."))
-        return
-
-    instance_id, card_id, generation, dupe_code = selected
-    if is_tag_assigned_to_instance(ctx.guild.id, ctx.author.id, instance_id, tag_name):
-        await _reply(ctx, embed=italy_embed("Tags", "That card is already assigned to this tag."))
-        return
-
-    assigned = assign_tag_to_instance(ctx.guild.id, ctx.author.id, instance_id, tag_name)
     normalized = tag_name.strip().lower()
-    if not assigned:
-        await _reply(ctx,
-            embed=italy_embed(
-                "Tags",
-                "Could not tag that card. Make sure the tag exists and the card is yours.",
-            )
-        )
+    if normalized not in {tag for tag, _is_locked, _count in list_player_tags(ctx.guild.id, ctx.author.id)}:
+        await _reply(ctx, embed=italy_embed("Tags", f"Tag not found: `{normalized}`"))
         return
 
-    await _reply(ctx,
-        embed=italy_embed(
-            "Tags",
-            f"Tagged {card_dupe_display(card_id, generation, dupe_code=dupe_code)} with `{normalized}`.",
-        )
-    )
+    deduped_card_codes = _dedupe_nonempty_tokens(card_codes)
+    if not deduped_card_codes:
+        await _reply(ctx, embed=italy_embed("Tags", "Usage: `ns tag assign <tag_name> <card_code> [card_code ...]`."))
+        return
+
+    resolved_targets, invalid_codes = _resolve_card_code_targets(ctx.guild.id, ctx.author.id, deduped_card_codes)
+
+    assigned_lines: list[str] = []
+    already_lines: list[str] = []
+    failed_lines: list[str] = []
+
+    for instance_id, card_id, generation, dupe_code in resolved_targets:
+        if is_tag_assigned_to_instance(ctx.guild.id, ctx.author.id, instance_id, tag_name):
+            already_lines.append(card_dupe_display(card_id, generation, dupe_code=dupe_code))
+            continue
+
+        assigned = assign_tag_to_instance(ctx.guild.id, ctx.author.id, instance_id, tag_name)
+        if assigned:
+            assigned_lines.append(card_dupe_display(card_id, generation, dupe_code=dupe_code))
+        else:
+            failed_lines.append(card_dupe_display(card_id, generation, dupe_code=dupe_code))
+
+    lines: list[str] = []
+    if assigned_lines:
+        lines.append(f"Assigned to `{normalized}`:")
+        lines.extend(f"- {line}" for line in assigned_lines)
+    if already_lines:
+        lines.append("Already assigned:")
+        lines.extend(f"- {line}" for line in already_lines)
+    if invalid_codes:
+        lines.append("Unknown card code(s): " + ", ".join(f"`{code}`" for code in invalid_codes))
+    if failed_lines:
+        lines.append("Failed to assign:")
+        lines.extend(f"- {line}" for line in failed_lines)
+
+    await _reply(ctx, embed=italy_embed("Tags", multiline_text(lines)))
+    return
 
 
-async def _tag_unassign(ctx: commands.Context, tag_name: str, card_code: str) -> None:
+async def _tag_unassign(ctx: commands.Context, tag_name: str, *card_codes: str) -> None:
     if ctx.guild is None:
         await _reply(ctx, embed=italy_embed("Tags", "Use this command in a server."))
         return
 
-    selected = get_instance_by_code(ctx.guild.id, ctx.author.id, card_code)
-    if selected is None:
-        await _reply(ctx, embed=italy_embed("Tags", "You do not own that card code."))
-        return
-
-    instance_id, card_id, generation, dupe_code = selected
-    unassigned = unassign_tag_from_instance(ctx.guild.id, ctx.author.id, instance_id, tag_name)
     normalized = tag_name.strip().lower()
-    if not unassigned:
-        await _reply(ctx, embed=italy_embed("Tags", f"That card is not tagged with `{normalized}`."))
+    if normalized not in {tag for tag, _is_locked, _count in list_player_tags(ctx.guild.id, ctx.author.id)}:
+        await _reply(ctx, embed=italy_embed("Tags", f"Tag not found: `{normalized}`"))
         return
 
-    await _reply(ctx,
-        embed=italy_embed(
-            "Tags",
-            f"Removed `{normalized}` from {card_dupe_display(card_id, generation, dupe_code=dupe_code)}.",
+    deduped_card_codes = _dedupe_nonempty_tokens(card_codes)
+    if not deduped_card_codes:
+        await _reply(
+            ctx,
+            embed=italy_embed("Tags", "Usage: `ns tag unassign <tag_name> <card_code> [card_code ...]`."),
         )
-    )
+        return
+
+    resolved_targets, invalid_codes = _resolve_card_code_targets(ctx.guild.id, ctx.author.id, deduped_card_codes)
+
+    removed_lines: list[str] = []
+    not_assigned_lines: list[str] = []
+    for instance_id, card_id, generation, dupe_code in resolved_targets:
+        unassigned = unassign_tag_from_instance(ctx.guild.id, ctx.author.id, instance_id, tag_name)
+        display = card_dupe_display(card_id, generation, dupe_code=dupe_code)
+        if unassigned:
+            removed_lines.append(display)
+        else:
+            not_assigned_lines.append(display)
+
+    lines: list[str] = []
+    if removed_lines:
+        lines.append(f"Removed from `{normalized}`:")
+        lines.extend(f"- {line}" for line in removed_lines)
+    if not_assigned_lines:
+        lines.append("Not assigned to this tag:")
+        lines.extend(f"- {line}" for line in not_assigned_lines)
+    if invalid_codes:
+        lines.append("Unknown card code(s): " + ", ".join(f"`{code}`" for code in invalid_codes))
+
+    await _reply(ctx, embed=italy_embed("Tags", multiline_text(lines)))
 
 
 async def _tag_cards(ctx: commands.Context, tag_name: str) -> None:
@@ -812,66 +894,99 @@ async def _folder_emoji(ctx: commands.Context, folder_name: str, emoji: str) -> 
     await _reply(ctx, embed=italy_embed("Folders", f"Updated emoji for `{normalized}`."))
 
 
-async def _folder_assign(ctx: commands.Context, folder_name: str, card_code: str) -> None:
+async def _folder_assign(ctx: commands.Context, folder_name: str, *card_codes: str) -> None:
     if ctx.guild is None:
         await _reply(ctx, embed=italy_embed("Folders", "Use this command in a server."))
         return
 
-    selected = get_instance_by_code(ctx.guild.id, ctx.author.id, card_code)
-    if selected is None:
-        await _reply(ctx, embed=italy_embed("Folders", "You do not own that card code."))
-        return
-
-    instance_id, card_id, generation, dupe_code = selected
-    if is_instance_assigned_to_folder(ctx.guild.id, ctx.author.id, instance_id, folder_name):
-        await _reply(ctx, embed=italy_embed("Folders", "That card is already assigned to this folder."))
-        return
-
-    assigned = assign_instance_to_folder(ctx.guild.id, ctx.author.id, instance_id, folder_name)
     normalized = folder_name.strip().lower()
-    if not assigned:
+    if normalized not in {name for name, _emoji, _is_locked, _count in list_player_folders(ctx.guild.id, ctx.author.id)}:
+        await _reply(ctx, embed=italy_embed("Folders", f"Folder not found: `{normalized}`"))
+        return
+
+    deduped_card_codes = _dedupe_nonempty_tokens(card_codes)
+    if not deduped_card_codes:
         await _reply(
             ctx,
-            embed=italy_embed(
-                "Folders",
-                "Could not assign that card to this folder. Make sure the folder exists and the card is yours.",
-            ),
+            embed=italy_embed("Folders", "Usage: `ns folder assign <folder_name> <card_code> [card_code ...]`."),
         )
         return
 
-    await _reply(
-        ctx,
-        embed=italy_embed(
-            "Folders",
-            f"Assigned {card_dupe_display(card_id, generation, dupe_code=dupe_code)} to `{normalized}`.",
-        ),
-    )
+    resolved_targets, invalid_codes = _resolve_card_code_targets(ctx.guild.id, ctx.author.id, deduped_card_codes)
+
+    assigned_lines: list[str] = []
+    already_lines: list[str] = []
+    failed_lines: list[str] = []
+
+    for instance_id, card_id, generation, dupe_code in resolved_targets:
+        if is_instance_assigned_to_folder(ctx.guild.id, ctx.author.id, instance_id, folder_name):
+            already_lines.append(card_dupe_display(card_id, generation, dupe_code=dupe_code))
+            continue
+
+        assigned = assign_instance_to_folder(ctx.guild.id, ctx.author.id, instance_id, folder_name)
+        if assigned:
+            assigned_lines.append(card_dupe_display(card_id, generation, dupe_code=dupe_code))
+        else:
+            failed_lines.append(card_dupe_display(card_id, generation, dupe_code=dupe_code))
+
+    lines: list[str] = []
+    if assigned_lines:
+        lines.append(f"Assigned to `{normalized}`:")
+        lines.extend(f"- {line}" for line in assigned_lines)
+    if already_lines:
+        lines.append("Already assigned:")
+        lines.extend(f"- {line}" for line in already_lines)
+    if invalid_codes:
+        lines.append("Unknown card code(s): " + ", ".join(f"`{code}`" for code in invalid_codes))
+    if failed_lines:
+        lines.append("Failed to assign:")
+        lines.extend(f"- {line}" for line in failed_lines)
+
+    await _reply(ctx, embed=italy_embed("Folders", multiline_text(lines)))
+    return
 
 
-async def _folder_unassign(ctx: commands.Context, folder_name: str, card_code: str) -> None:
+async def _folder_unassign(ctx: commands.Context, folder_name: str, *card_codes: str) -> None:
     if ctx.guild is None:
         await _reply(ctx, embed=italy_embed("Folders", "Use this command in a server."))
         return
 
-    selected = get_instance_by_code(ctx.guild.id, ctx.author.id, card_code)
-    if selected is None:
-        await _reply(ctx, embed=italy_embed("Folders", "You do not own that card code."))
-        return
-
-    instance_id, card_id, generation, dupe_code = selected
-    removed = unassign_instance_from_folder(ctx.guild.id, ctx.author.id, instance_id, folder_name)
     normalized = folder_name.strip().lower()
-    if not removed:
-        await _reply(ctx, embed=italy_embed("Folders", f"That card is not assigned to `{normalized}`."))
+    if normalized not in {name for name, _emoji, _is_locked, _count in list_player_folders(ctx.guild.id, ctx.author.id)}:
+        await _reply(ctx, embed=italy_embed("Folders", f"Folder not found: `{normalized}`"))
         return
 
-    await _reply(
-        ctx,
-        embed=italy_embed(
-            "Folders",
-            f"Removed {card_dupe_display(card_id, generation, dupe_code=dupe_code)} from `{normalized}`.",
-        ),
-    )
+    deduped_card_codes = _dedupe_nonempty_tokens(card_codes)
+    if not deduped_card_codes:
+        await _reply(
+            ctx,
+            embed=italy_embed("Folders", "Usage: `ns folder unassign <folder_name> <card_code> [card_code ...]`."),
+        )
+        return
+
+    resolved_targets, invalid_codes = _resolve_card_code_targets(ctx.guild.id, ctx.author.id, deduped_card_codes)
+
+    removed_lines: list[str] = []
+    not_assigned_lines: list[str] = []
+    for instance_id, card_id, generation, dupe_code in resolved_targets:
+        removed = unassign_instance_from_folder(ctx.guild.id, ctx.author.id, instance_id, folder_name)
+        display = card_dupe_display(card_id, generation, dupe_code=dupe_code)
+        if removed:
+            removed_lines.append(display)
+        else:
+            not_assigned_lines.append(display)
+
+    lines: list[str] = []
+    if removed_lines:
+        lines.append(f"Removed from `{normalized}`:")
+        lines.extend(f"- {line}" for line in removed_lines)
+    if not_assigned_lines:
+        lines.append("Not assigned to this folder:")
+        lines.extend(f"- {line}" for line in not_assigned_lines)
+    if invalid_codes:
+        lines.append("Unknown card code(s): " + ", ".join(f"`{code}`" for code in invalid_codes))
+
+    await _reply(ctx, embed=italy_embed("Folders", multiline_text(lines)))
 
 
 async def _folder_cards(ctx: commands.Context, folder_name: str) -> None:
@@ -961,60 +1076,108 @@ async def _team_list(ctx: commands.Context) -> None:
     await _reply(ctx, embed=italy_embed("Your Teams", multiline_text(lines)))
 
 
-async def _team_assign(ctx: commands.Context, team_name: str, card_code: str) -> None:
+async def _team_assign(ctx: commands.Context, team_name: str, *card_codes: str) -> None:
     if ctx.guild is None:
         await _reply(ctx, embed=italy_embed("Teams", "Use this command in a server."))
         return
 
-    selected = get_instance_by_code(ctx.guild.id, ctx.author.id, card_code)
-    if selected is None:
-        await _reply(ctx, embed=italy_embed("Teams", "You do not own that card code."))
-        return
-
-    instance_id, card_id, generation, dupe_code = selected
-    if is_instance_assigned_to_team(ctx.guild.id, ctx.author.id, instance_id, team_name):
-        await _reply(ctx, embed=italy_embed("Teams", "That card is already on this team."))
-        return
-
-    success, message = assign_instance_to_team(ctx.guild.id, ctx.author.id, instance_id, team_name)
     normalized = team_name.strip().lower()
-    if not success:
-        await _reply(ctx, embed=italy_embed("Teams", message or "Could not assign that card to this team."))
+    teams = list_player_teams(ctx.guild.id, ctx.author.id)
+    team_counts = {name: count for name, count, _is_active in teams}
+    if normalized not in team_counts:
+        await _reply(ctx, embed=italy_embed("Teams", f"Team not found: `{normalized}`"))
         return
 
-    await _reply(
-        ctx,
-        embed=italy_embed(
-            "Teams",
-            f"Assigned {card_dupe_display(card_id, generation, dupe_code=dupe_code)} to `{normalized}`.",
-        ),
-    )
+    deduped_card_codes = _dedupe_nonempty_tokens(card_codes)
+    if not deduped_card_codes:
+        await _reply(ctx, embed=italy_embed("Teams", "Usage: `ns team assign <team_name> <card_code> [card_code ...]`."))
+        return
+
+    resolved_targets, invalid_codes = _resolve_card_code_targets(ctx.guild.id, ctx.author.id, deduped_card_codes)
+
+    assigned_lines: list[str] = []
+    already_lines: list[str] = []
+    failed_lines: list[str] = []
+    skipped_capacity_lines: list[str] = []
+
+    before_slots = max(0, 3 - team_counts[normalized])
+    remaining_slots = before_slots
+    for instance_id, card_id, generation, dupe_code in resolved_targets:
+        display = card_dupe_display(card_id, generation, dupe_code=dupe_code)
+        if is_instance_assigned_to_team(ctx.guild.id, ctx.author.id, instance_id, team_name):
+            already_lines.append(display)
+            continue
+        if remaining_slots <= 0:
+            skipped_capacity_lines.append(display)
+            continue
+
+        success, _message = assign_instance_to_team(ctx.guild.id, ctx.author.id, instance_id, team_name)
+        if success:
+            assigned_lines.append(display)
+            remaining_slots -= 1
+        else:
+            failed_lines.append(display)
+
+    lines: list[str] = []
+    lines.append(f"Remaining slots: **{before_slots} -> {remaining_slots}**")
+    if assigned_lines:
+        lines.append(f"Assigned to `{normalized}`:")
+        lines.extend(f"- {line}" for line in assigned_lines)
+    if already_lines:
+        lines.append("Already assigned:")
+        lines.extend(f"- {line}" for line in already_lines)
+    if skipped_capacity_lines:
+        lines.append("Skipped (team capacity reached):")
+        lines.extend(f"- {line}" for line in skipped_capacity_lines)
+    if invalid_codes:
+        lines.append("Unknown card code(s): " + ", ".join(f"`{code}`" for code in invalid_codes))
+    if failed_lines:
+        lines.append("Failed to assign:")
+        lines.extend(f"- {line}" for line in failed_lines)
+
+    await _reply(ctx, embed=italy_embed("Teams", multiline_text(lines)))
+    return
 
 
-async def _team_unassign(ctx: commands.Context, team_name: str, card_code: str) -> None:
+async def _team_unassign(ctx: commands.Context, team_name: str, *card_codes: str) -> None:
     if ctx.guild is None:
         await _reply(ctx, embed=italy_embed("Teams", "Use this command in a server."))
         return
 
-    selected = get_instance_by_code(ctx.guild.id, ctx.author.id, card_code)
-    if selected is None:
-        await _reply(ctx, embed=italy_embed("Teams", "You do not own that card code."))
-        return
-
-    instance_id, card_id, generation, dupe_code = selected
-    removed = unassign_instance_from_team(ctx.guild.id, ctx.author.id, instance_id, team_name)
     normalized = team_name.strip().lower()
-    if not removed:
-        await _reply(ctx, embed=italy_embed("Teams", f"That card is not assigned to `{normalized}`."))
+    teams = list_player_teams(ctx.guild.id, ctx.author.id)
+    if normalized not in {name for name, _count, _is_active in teams}:
+        await _reply(ctx, embed=italy_embed("Teams", f"Team not found: `{normalized}`"))
         return
 
-    await _reply(
-        ctx,
-        embed=italy_embed(
-            "Teams",
-            f"Removed {card_dupe_display(card_id, generation, dupe_code=dupe_code)} from `{normalized}`.",
-        ),
-    )
+    deduped_card_codes = _dedupe_nonempty_tokens(card_codes)
+    if not deduped_card_codes:
+        await _reply(ctx, embed=italy_embed("Teams", "Usage: `ns team unassign <team_name> <card_code> [card_code ...]`."))
+        return
+
+    resolved_targets, invalid_codes = _resolve_card_code_targets(ctx.guild.id, ctx.author.id, deduped_card_codes)
+
+    removed_lines: list[str] = []
+    not_assigned_lines: list[str] = []
+    for instance_id, card_id, generation, dupe_code in resolved_targets:
+        removed = unassign_instance_from_team(ctx.guild.id, ctx.author.id, instance_id, team_name)
+        display = card_dupe_display(card_id, generation, dupe_code=dupe_code)
+        if removed:
+            removed_lines.append(display)
+        else:
+            not_assigned_lines.append(display)
+
+    lines: list[str] = []
+    if removed_lines:
+        lines.append(f"Removed from `{normalized}`:")
+        lines.extend(f"- {line}" for line in removed_lines)
+    if not_assigned_lines:
+        lines.append("Not assigned to this team:")
+        lines.extend(f"- {line}" for line in not_assigned_lines)
+    if invalid_codes:
+        lines.append("Unknown card code(s): " + ", ".join(f"`{code}`" for code in invalid_codes))
+
+    await _reply(ctx, embed=italy_embed("Teams", multiline_text(lines)))
 
 
 async def _team_cards(ctx: commands.Context, team_name: str) -> None:
@@ -1139,13 +1302,13 @@ def register_commands(bot: commands.Bot) -> None:  # pylint: disable=too-many-st
         await _reply(ctx,
             embed=italy_embed(
                 "Wishlist",
-                "Usage: `ns wish add <card_id>`, `ns wish remove <card_id>`, or `ns wish list [player]`.",
+                "Usage: `ns wish add <card_id> [card_id ...]`, `ns wish remove <card_id>`, or `ns wish list [player]`.",
             )
         )
 
     @wish.command(name="add", aliases=["a"])
-    async def wish_add(ctx: commands.Context, card_id: str):
-        await _wish_add(ctx, card_id)
+    async def wish_add(ctx: commands.Context, *card_ids: str):
+        await _wish_add(ctx, *card_ids)
 
     @wish.command(name="remove", aliases=["r"])
     async def wish_remove(ctx: commands.Context, card_id: str):
@@ -1161,8 +1324,8 @@ def register_commands(bot: commands.Bot) -> None:  # pylint: disable=too-many-st
         await _wish_list(ctx, target_member)
 
     @bot.command(name="wa")
-    async def wish_add_short(ctx: commands.Context, card_id: str):
-        await _wish_add(ctx, card_id)
+    async def wish_add_short(ctx: commands.Context, *card_ids: str):
+        await _wish_add(ctx, *card_ids)
 
     @bot.command(name="wr")
     async def wish_remove_short(ctx: commands.Context, card_id: str):
@@ -1185,7 +1348,7 @@ def register_commands(bot: commands.Bot) -> None:  # pylint: disable=too-many-st
                 (
                     "Usage: `ns tag add <tag_name>`, `ns tag remove <tag_name>`, `ns tag list`, "
                     "`ns tag lock <tag_name>`, `ns tag unlock <tag_name>`, "
-                    "`ns tag assign <tag_name> <card_code>`, `ns tag unassign <tag_name> <card_code>`, "
+                    "`ns tag assign <tag_name> <card_code> [card_code ...]`, `ns tag unassign <tag_name> <card_code> [card_code ...]`, "
                     "`ns tag cards <tag_name>`."
                 ),
             )
@@ -1212,12 +1375,12 @@ def register_commands(bot: commands.Bot) -> None:  # pylint: disable=too-many-st
         await _tag_lock(ctx, tag_name, False)
 
     @tag.command(name="assign", aliases=["as"])
-    async def tag_assign(ctx: commands.Context, tag_name: str, card_code: str):
-        await _tag_assign(ctx, tag_name, card_code)
+    async def tag_assign(ctx: commands.Context, tag_name: str, *card_codes: str):
+        await _tag_assign(ctx, tag_name, *card_codes)
 
     @tag.command(name="unassign", aliases=["u"])
-    async def tag_unassign(ctx: commands.Context, tag_name: str, card_code: str):
-        await _tag_unassign(ctx, tag_name, card_code)
+    async def tag_unassign(ctx: commands.Context, tag_name: str, *card_codes: str):
+        await _tag_unassign(ctx, tag_name, *card_codes)
 
     @tag.command(name="cards", aliases=["c"])
     async def tag_cards(ctx: commands.Context, tag_name: str):
@@ -1232,7 +1395,7 @@ def register_commands(bot: commands.Bot) -> None:  # pylint: disable=too-many-st
                 (
                     "Usage: `ns folder add <folder_name> [emoji]`, `ns folder remove <folder_name>`, "
                     "`ns folder list`, `ns folder lock <folder_name>`, `ns folder unlock <folder_name>`, "
-                    "`ns folder assign <folder_name> <card_code>`, `ns folder unassign <folder_name> <card_code>`, "
+                    "`ns folder assign <folder_name> <card_code> [card_code ...]`, `ns folder unassign <folder_name> <card_code> [card_code ...]`, "
                     "`ns folder cards <folder_name>`, `ns folder emoji <folder_name> <emoji>`."
                 ),
             ),
@@ -1259,12 +1422,12 @@ def register_commands(bot: commands.Bot) -> None:  # pylint: disable=too-many-st
         await _folder_lock(ctx, folder_name, False)
 
     @folder.command(name="assign", aliases=["as"])
-    async def folder_assign(ctx: commands.Context, folder_name: str, card_code: str):
-        await _folder_assign(ctx, folder_name, card_code)
+    async def folder_assign(ctx: commands.Context, folder_name: str, *card_codes: str):
+        await _folder_assign(ctx, folder_name, *card_codes)
 
     @folder.command(name="unassign", aliases=["u"])
-    async def folder_unassign(ctx: commands.Context, folder_name: str, card_code: str):
-        await _folder_unassign(ctx, folder_name, card_code)
+    async def folder_unassign(ctx: commands.Context, folder_name: str, *card_codes: str):
+        await _folder_unassign(ctx, folder_name, *card_codes)
 
     @folder.command(name="cards", aliases=["c"])
     async def folder_cards(ctx: commands.Context, folder_name: str):
@@ -1282,7 +1445,7 @@ def register_commands(bot: commands.Bot) -> None:  # pylint: disable=too-many-st
                 "Teams",
                 (
                     "Usage: `ns team add <team_name>`, `ns team remove <team_name>`, `ns team list`, "
-                    "`ns team assign <team_name> <card_code>`, `ns team unassign <team_name> <card_code>`, "
+                    "`ns team assign <team_name> <card_code> [card_code ...]`, `ns team unassign <team_name> <card_code> [card_code ...]`, "
                     "`ns team cards <team_name>`, `ns team active [team_name]`."
                 ),
             ),
@@ -1301,12 +1464,12 @@ def register_commands(bot: commands.Bot) -> None:  # pylint: disable=too-many-st
         await _team_list(ctx)
 
     @team.command(name="assign", aliases=["as"])
-    async def team_assign(ctx: commands.Context, team_name: str, card_code: str):
-        await _team_assign(ctx, team_name, card_code)
+    async def team_assign(ctx: commands.Context, team_name: str, *card_codes: str):
+        await _team_assign(ctx, team_name, *card_codes)
 
     @team.command(name="unassign", aliases=["u"])
-    async def team_unassign(ctx: commands.Context, team_name: str, card_code: str):
-        await _team_unassign(ctx, team_name, card_code)
+    async def team_unassign(ctx: commands.Context, team_name: str, *card_codes: str):
+        await _team_unassign(ctx, team_name, *card_codes)
 
     @team.command(name="cards", aliases=["c"])
     async def team_cards(ctx: commands.Context, team_name: str):
@@ -1665,6 +1828,7 @@ def register_commands(bot: commands.Bot) -> None:  # pylint: disable=too-many-st
             return
 
         resolved_targets: list[tuple[int, str, int, str]] = []
+        skipped_selector_errors: list[str] = []
         parsed_selectors, parse_error = _parse_burn_selector_tokens(targets)
         if parse_error is not None:
             await _reply(ctx, embed=italy_embed("Burn", parse_error))
@@ -1700,9 +1864,25 @@ def register_commands(bot: commands.Bot) -> None:  # pylint: disable=too-many-st
                     selector_value=selector_value,
                 )
                 if selection_error is not None:
-                    await _reply(ctx, embed=italy_embed("Burn", selection_error))
-                    return
+                    skipped_selector_errors.append(selection_error)
+                    continue
                 resolved_targets.extend(selected_instances)
+
+            if not resolved_targets:
+                if skipped_selector_errors:
+                    await _reply(
+                        ctx,
+                        embed=italy_embed(
+                            "Burn",
+                            multiline_text([
+                                "No burnable targets were found.",
+                                *[f"- {error}" for error in skipped_selector_errors],
+                            ]),
+                        ),
+                    )
+                    return
+                await _reply(ctx, embed=italy_embed("Burn", "No burn targets found."))
+                return
 
         deduped_targets: list[tuple[int, str, int, str]] = []
         seen_instance_ids: set[int] = set()
@@ -1738,6 +1918,11 @@ def register_commands(bot: commands.Bot) -> None:  # pylint: disable=too-many-st
             + f"Total Value: **{prepared.total_value}**\n"
             + f"Total Payout Range: **{prepared.total_value}** +- **{prepared.total_delta_range}**"
         )
+        preconfirm_skips: list[str] = [*skipped_selector_errors, *prepared.skipped_items]
+        if preconfirm_skips:
+            confirm_description += "\n\nSkipped before confirmation:\n" + "\n".join(
+                f"- {error}" for error in preconfirm_skips
+            )
         confirm_embed = italy_embed("Burn Confirmation", confirm_description)
 
         primary_item = prepared.items[0]

@@ -3,7 +3,7 @@ import math
 import random
 from typing import Optional
 
-from .cards import card_value, get_burn_payout, make_drop_choices, split_card_code
+from .cards import card_dupe_display, card_value, get_burn_payout, make_drop_choices, split_card_code
 from .fonts import AVAILABLE_FONTS, FONT_COST_FRACTION, font_label
 from .frames import FRAME_COST_FRACTION, available_frame_keys, frame_label
 from .morphs import AVAILABLE_MORPHS, MORPH_COST_FRACTION, morph_label
@@ -35,6 +35,7 @@ from .storage import (
     resolve_battle_proposal,
     marry_card_instance,
 )
+from .utils import multiline_text
 
 
 @dataclass(frozen=True)
@@ -332,6 +333,7 @@ class BurnPreviewItem:
 class BurnBatchPreparation:
     error_message: Optional[str]
     items: tuple[BurnPreviewItem, ...]
+    skipped_items: tuple[str, ...]
     total_value: Optional[int]
     total_delta_range: Optional[int]
 
@@ -354,11 +356,15 @@ class BurnBatchConfirmationExecution:
     status: str
     message: str
     burned_entries: tuple[BurnBatchConfirmationEntry, ...]
-    locked_instances: tuple[tuple[int, tuple[str, ...]], ...]
+    skipped_instances: tuple[tuple[int, tuple[str, ...]], ...]
 
     @property
     def is_blocked(self) -> bool:
         return self.status == "blocked"
+
+    @property
+    def is_partial(self) -> bool:
+        return self.status == "partial"
 
     @property
     def is_failed(self) -> bool:
@@ -378,6 +384,7 @@ def prepare_burn_batch(
         return BurnBatchPreparation(
             error_message="No burn targets found.",
             items=(),
+            skipped_items=(),
             total_value=None,
             total_delta_range=None,
         )
@@ -390,7 +397,7 @@ def prepare_burn_batch(
         seen_instance_ids.add(instance_id)
         unique_targets.append((instance_id, card_id, generation, dupe_code))
 
-    locked_cards: list[str] = []
+    skipped_items: list[str] = []
     preview_items: list[BurnPreviewItem] = []
     total_value = 0
     total_delta_range = 0
@@ -403,7 +410,7 @@ def prepare_burn_batch(
                 details.append("locked tag(s): " + ", ".join(f"`{tag}`" for tag in locked_tags))
             if locked_folder_name is not None:
                 details.append(f"locked folder: `{locked_folder_name}`")
-            locked_cards.append(f"`{dupe_code}` ({'; '.join(details)})")
+            skipped_items.append(f"{card_dupe_display(card_id, generation, dupe_code=dupe_code)} ({'; '.join(details)})")
             continue
 
         _payout, value, base_value, _delta, multiplier, delta_range = get_burn_payout(card_id, generation)
@@ -422,13 +429,15 @@ def prepare_burn_batch(
             )
         )
 
-    if locked_cards:
+    if not preview_items:
+        description_lines = ["No burnable targets were found."]
+        if skipped_items:
+            description_lines.append("Skipped:")
+            description_lines.extend(f"- {item}" for item in skipped_items)
         return BurnBatchPreparation(
-            error_message=(
-                "Burn blocked because at least one target is protected by lock(s):\n"
-                + "\n".join(f"- {card_line}" for card_line in locked_cards)
-            ),
+            error_message=multiline_text(description_lines),
             items=(),
+            skipped_items=tuple(skipped_items),
             total_value=None,
             total_delta_range=None,
         )
@@ -436,6 +445,7 @@ def prepare_burn_batch(
     return BurnBatchPreparation(
         error_message=None,
         items=tuple(preview_items),
+        skipped_items=tuple(skipped_items),
         total_value=total_value,
         total_delta_range=total_delta_range,
     )
@@ -452,32 +462,13 @@ def execute_burn_batch_confirmation(
             status="failed",
             message="No burn targets were provided.",
             burned_entries=(),
-            locked_instances=(),
+            skipped_instances=(),
         )
 
     instance_ids = [instance_id for instance_id, _delta_range in burn_targets]
     delta_by_instance = dict(burn_targets)
 
-    burned_rows, locked_by_instance = burn_instances(guild_id, user_id, instance_ids)
-    if locked_by_instance:
-        locked_instances = tuple(
-            (instance_id, tuple(tags))
-            for instance_id, tags in sorted(locked_by_instance.items(), key=lambda entry: entry[0])
-        )
-        return BurnBatchConfirmationExecution(
-            status="blocked",
-            message="Burn blocked: at least one selected card is protected by lock(s).",
-            burned_entries=(),
-            locked_instances=locked_instances,
-        )
-
-    if burned_rows is None:
-        return BurnBatchConfirmationExecution(
-            status="failed",
-            message="One or more selected cards are no longer available.",
-            burned_entries=(),
-            locked_instances=(),
-        )
+    burned_rows, skipped_by_instance = burn_instances(guild_id, user_id, instance_ids)
 
     burned_entries: list[BurnBatchConfirmationEntry] = []
     total_payout = 0
@@ -499,12 +490,35 @@ def execute_burn_batch_confirmation(
             )
         )
 
-    add_dough(guild_id, user_id, total_payout)
+    if total_payout > 0:
+        add_dough(guild_id, user_id, total_payout)
+
+    skipped_instances = tuple(
+        (instance_id, tuple(reasons))
+        for instance_id, reasons in sorted(skipped_by_instance.items(), key=lambda entry: entry[0])
+    )
+
+    if burned_entries and skipped_instances:
+        return BurnBatchConfirmationExecution(
+            status="partial",
+            message="Some cards were burned and some were skipped.",
+            burned_entries=tuple(burned_entries),
+            skipped_instances=skipped_instances,
+        )
+
+    if skipped_instances and not burned_entries:
+        return BurnBatchConfirmationExecution(
+            status="failed",
+            message="No selected cards could be burned.",
+            burned_entries=(),
+            skipped_instances=skipped_instances,
+        )
+
     return BurnBatchConfirmationExecution(
         status="burned",
         message="",
         burned_entries=tuple(burned_entries),
-        locked_instances=(),
+        skipped_instances=(),
     )
 
 
@@ -521,17 +535,30 @@ def execute_burn_confirmation(
         burn_targets=[(instance_id, delta_range)],
     )
 
-    if batch_result.is_blocked:
-        locked_tags = tuple(batch_result.locked_instances[0][1]) if batch_result.locked_instances else tuple()
+    if batch_result.skipped_instances and not batch_result.burned_entries:
+        skipped_reasons = batch_result.skipped_instances[0][1]
+        lock_reasons = tuple(reason for reason in skipped_reasons if reason != "unavailable")
+        if lock_reasons:
+            return BurnConfirmationExecution(
+                status="blocked",
+                message="Card is protected by lock(s).",
+                card_id=None,
+                generation=None,
+                dupe_code=None,
+                payout=None,
+                delta=None,
+                locked_tags=lock_reasons,
+            )
+
         return BurnConfirmationExecution(
-            status="blocked",
-            message="Card is protected by lock(s).",
+            status="failed",
+            message="That card instance is no longer available.",
             card_id=None,
             generation=None,
             dupe_code=None,
             payout=None,
             delta=None,
-            locked_tags=locked_tags,
+            locked_tags=(),
         )
 
     if batch_result.is_failed or not batch_result.burned_entries:

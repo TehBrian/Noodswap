@@ -160,7 +160,7 @@ This bot uses privileged intents. Enable these for your application in Discord D
 - `ns team remove <team_name>` / `ns team r <team_name>` — delete one of your teams.
 - `ns team list` / `ns team l` — list your teams and card counts.
 - `ns team assign <team_name> <card_code>` / `ns team as ...` — assign one owned card instance to a team.
-- `ns team unassign <team_name> <card_code>` / `ns team u ...` — remove a card instance from a team.
+- `ns team unassign <team_name> <card_code> [card_code ...]` / `ns team u ...` — remove one or more card instances from a team.
 - `ns team cards <team_name>` / `ns team c <team_name>` — view a team's cards.
 - `ns team active [team_name]` — show current active team, or set one for battles.
 - `ns battle <player> <stake>` / `ns bt ...` — propose a stake battle; challenged player can accept or deny.
@@ -174,7 +174,7 @@ This bot uses privileged intents. Enable these for your application in Discord D
 - `ns tag list` / `ns tag l` — list your tags, lock status, and card counts.
 - `ns tag lock <tag_name>` / `ns tag unlock <tag_name>` — toggle burn protection for that tag.
 - `ns tag assign <tag_name> <card_code>` / `ns tag as ...` — tag one of your owned dupes.
-- `ns tag unassign <tag_name> <card_code>` / `ns tag u ...` — remove a card from a tag.
+- `ns tag unassign <tag_name> <card_code> [card_code ...]` / `ns tag u ...` — remove one or more cards from a tag.
 - `ns tag cards <tag_name>` / `ns tag c <tag_name>` — list cards in a specific tag.
 - `ns folder` / `ns fd` — folder command group.
 - `ns folder add <folder_name> [emoji]` / `ns folder a ...` — create a personal folder with optional emoji (default `📁`).
@@ -182,7 +182,7 @@ This bot uses privileged intents. Enable these for your application in Discord D
 - `ns folder list` / `ns folder l` — list your folders, emoji, lock status, and card counts.
 - `ns folder lock <folder_name>` / `ns folder unlock <folder_name>` — toggle burn protection for that folder.
 - `ns folder assign <folder_name> <card_code>` / `ns folder as ...` — place one owned card instance into a folder (moves it if it already had one).
-- `ns folder unassign <folder_name> <card_code>` / `ns folder u ...` — remove a card from that folder.
+- `ns folder unassign <folder_name> <card_code> [card_code ...]` / `ns folder u ...` — remove one or more cards from that folder.
 - `ns folder cards <folder_name>` / `ns folder c <folder_name>` — list cards in a specific folder.
 - `ns folder emoji <folder_name> <emoji>` / `ns folder e ...` — update a folder's emoji.
 - `ns marry [card_code]` / `ns m [card_code]` — marry a specific owned dupe by code.

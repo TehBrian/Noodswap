@@ -24,6 +24,18 @@ def _format_lock_reasons(reasons: tuple[str, ...] | list[str]) -> str:
     return ", ".join(_format_lock_reason(reason) for reason in reasons)
 
 
+def _format_skip_reasons(reasons: tuple[str, ...] | list[str]) -> str:
+    if not reasons:
+        return "unknown reason"
+    formatted: list[str] = []
+    for reason in reasons:
+        if reason == "unavailable":
+            formatted.append("no longer available")
+            continue
+        formatted.append(_format_lock_reason(reason))
+    return ", ".join(formatted)
+
+
 class BurnConfirmView(discord.ui.View):
     def __init__(
         self,
@@ -142,28 +154,6 @@ Payout: **{burn_result.payout} dough**
             self.user_id,
             burn_targets=self.burn_items,
         )
-        if burn_result.is_blocked:
-            self.finished = True
-            self._disable_buttons()
-            await interaction.response.edit_message(view=self)
-            if interaction.message is not None:
-                blocked_lines: list[str] = []
-                for instance_id, lock_reasons in burn_result.locked_instances:
-                    lock_reason_text = _format_lock_reasons(lock_reasons)
-                    blocked_lines.append(f"`#{instance_id}`: {lock_reason_text}")
-                await interaction.message.reply(
-                    embed=italy_embed(
-                        "Burn Blocked",
-                        (
-                            "Burn failed because at least one selected card is protected by lock(s). "
-                            "No cards were burned.\n\n"
-                            + "\n".join(blocked_lines)
-                        ),
-                    ),
-                    mention_author=False,
-                )
-            return
-
         if burn_result.is_failed:
             self.finished = True
             self._disable_buttons()
@@ -171,6 +161,16 @@ Payout: **{burn_result.payout} dough**
                 view=self,
             )
             if interaction.message is not None:
+                if burn_result.skipped_instances:
+                    skipped_lines = [
+                        f"`#{instance_id}`: {_format_skip_reasons(reasons)}"
+                        for instance_id, reasons in burn_result.skipped_instances
+                    ]
+                    await interaction.message.reply(
+                        embed=italy_embed("Burn Failed", "\n".join(skipped_lines)),
+                        mention_author=False,
+                    )
+                    return
                 await interaction.message.reply(
                     embed=italy_embed("Burn Failed", burn_result.message),
                     mention_author=False,
@@ -186,9 +186,21 @@ Payout: **{burn_result.payout} dough**
                 f"Payout: **{entry.payout} dough** | RNG: **{entry.delta:+}**"
             )
 
+        description_blocks: list[str] = []
+        if burned_lines:
+            description_blocks.append("\n\n".join(burned_lines))
+            description_blocks.append(f"Total Payout: **{total_payout} dough**")
+
+        if burn_result.skipped_instances:
+            skipped_lines = [
+                f"`#{instance_id}`: {_format_skip_reasons(reasons)}"
+                for instance_id, reasons in burn_result.skipped_instances
+            ]
+            description_blocks.append("Skipped:\n" + "\n".join(skipped_lines))
+
         burned_embed = italy_embed(
-            "**Cards Burned**",
-            "\n\n".join(burned_lines) + f"\n\nTotal Payout: **{total_payout} dough**",
+            "**Cards Burned**" if not burn_result.skipped_instances else "**Cards Burned (Partial)**",
+            "\n\n".join(description_blocks),
         )
 
         self.finished = True

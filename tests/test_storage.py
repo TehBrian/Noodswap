@@ -963,7 +963,7 @@ class StorageTests(unittest.TestCase):
         still_owned = storage.get_instance_by_id(guild_id, instance_id)
         self.assertIsNotNone(still_owned)
 
-    def test_burn_instances_blocks_all_when_any_locked(self) -> None:
+    def test_burn_instances_burns_available_and_skips_locked(self) -> None:
         guild_id = 1
         user_id = 1204
 
@@ -974,11 +974,12 @@ class StorageTests(unittest.TestCase):
         storage.assign_tag_to_instance(guild_id, user_id, locked_instance, "keep")
         storage.set_player_tag_locked(guild_id, user_id, "keep", True)
 
-        burned_rows, locked_by_instance = storage.burn_instances(guild_id, user_id, [open_instance, locked_instance])
+        burned_rows, skipped_by_instance = storage.burn_instances(guild_id, user_id, [open_instance, locked_instance])
 
-        self.assertIsNone(burned_rows)
-        self.assertIn(locked_instance, locked_by_instance)
-        self.assertIsNotNone(storage.get_instance_by_id(guild_id, open_instance))
+        self.assertEqual(len(burned_rows), 1)
+        self.assertEqual(burned_rows[0][0], open_instance)
+        self.assertIn(locked_instance, skipped_by_instance)
+        self.assertIsNone(storage.get_instance_by_id(guild_id, open_instance))
         self.assertIsNotNone(storage.get_instance_by_id(guild_id, locked_instance))
 
     def test_deleting_tag_cascades_instance_assignments(self) -> None:

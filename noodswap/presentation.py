@@ -113,8 +113,8 @@ def battle_arena_description(
     winner_user_id: int | None,
     challenger_team_name: str,
     challenged_team_name: str,
-    challenger_rows: tuple[dict[str, int | str | bool], ...],
-    challenged_rows: tuple[dict[str, int | str | bool], ...],
+    challenger_rows: tuple[dict[str, int | str | bool],...],
+    challenged_rows: tuple[dict[str, int | str | bool],...],
     last_action: str,
 ) -> str:
     actor_text = f"<@{acting_user_id}>" if acting_user_id is not None else "None"
@@ -137,7 +137,7 @@ def battle_arena_description(
 # Canonical command syntax used in command error embeds.
 COMMAND_SYNTAX_BY_KEY: dict[str, str] = {
     "battle": "ns battle <player> <stake>",
-    "burn": "ns burn [targets...]",
+    "burn": "ns burn [target...]",
     "buy": "ns buy drop [quantity]",
     "buy drop": "ns buy drop [quantity]",
     "cards": "ns cards",
@@ -149,7 +149,7 @@ COMMAND_SYNTAX_BY_KEY: dict[str, str] = {
     "folder": (
         "ns folder add <folder_name> [emoji], ns folder remove <folder_name>, ns folder list, "
         "ns folder lock <folder_name>, ns folder unlock <folder_name>, "
-        "ns folder assign <folder_name> <card_code>, ns folder unassign <folder_name> <card_code>, "
+        "ns folder assign <folder_name> <card_code> [card_code...], ns folder unassign <folder_name> <card_code> [card_code...], "
         "ns folder cards <folder_name>, ns folder emoji <folder_name> <emoji>"
     ),
     "folder add": "ns folder add <folder_name> [emoji]",
@@ -159,7 +159,7 @@ COMMAND_SYNTAX_BY_KEY: dict[str, str] = {
     "folder list": "ns folder list",
     "folder lock": "ns folder lock <folder_name>",
     "folder remove": "ns folder remove <folder_name>",
-    "folder unassign": "ns folder unassign <folder_name> <card_code>",
+    "folder unassign": "ns folder unassign <folder_name> <card_code> [card_code...]",
     "folder unlock": "ns folder unlock <folder_name>",
     "font": "ns font [card_code]",
     "frame": "ns frame [card_code]",
@@ -175,7 +175,7 @@ COMMAND_SYNTAX_BY_KEY: dict[str, str] = {
     "tag": (
         "ns tag add <tag_name>, ns tag remove <tag_name>, ns tag list, "
         "ns tag lock <tag_name>, ns tag unlock <tag_name>, "
-        "ns tag assign <tag_name> <card_code>, ns tag unassign <tag_name> <card_code>, "
+        "ns tag assign <tag_name> <card_code> [card_code...], ns tag unassign <tag_name> <card_code> [card_code...], "
         "ns tag cards <tag_name>"
     ),
     "tag add": "ns tag add <tag_name>",
@@ -184,11 +184,11 @@ COMMAND_SYNTAX_BY_KEY: dict[str, str] = {
     "tag list": "ns tag list",
     "tag lock": "ns tag lock <tag_name>",
     "tag remove": "ns tag remove <tag_name>",
-    "tag unassign": "ns tag unassign <tag_name> <card_code>",
+    "tag unassign": "ns tag unassign <tag_name> <card_code> [card_code...]",
     "tag unlock": "ns tag unlock <tag_name>",
     "team": (
         "ns team add <team_name>, ns team remove <team_name>, ns team list, "
-        "ns team assign <team_name> <card_code>, ns team unassign <team_name> <card_code>, "
+        "ns team assign <team_name> <card_code> [card_code...], ns team unassign <team_name> <card_code> [card_code...], "
         "ns team cards <team_name>, ns team active [team_name]"
     ),
     "team active": "ns team active [team_name]",
@@ -197,7 +197,7 @@ COMMAND_SYNTAX_BY_KEY: dict[str, str] = {
     "team cards": "ns team cards <team_name>",
     "team list": "ns team list",
     "team remove": "ns team remove <team_name>",
-    "team unassign": "ns team unassign <team_name> <card_code>",
+    "team unassign": "ns team unassign <team_name> <card_code> [card_code...]",
     "trade": "ns trade <player> <card_code> <amount>",
     "vote": "ns vote",
     "wa": "ns wish add <card_id>",
@@ -213,7 +213,7 @@ COMMAND_SYNTAX_BY_KEY: dict[str, str] = {
 def command_syntax_for_error(command_key: str) -> str | None:
     return COMMAND_SYNTAX_BY_KEY.get(command_key)
 
-HELP_CATEGORY_PAGES: tuple[tuple[str, str, str], ...] = (
+HELP_CATEGORY_PAGES: tuple[tuple[str, str, str],...] = (
     (
         "overview",
         "Overview",
@@ -232,7 +232,7 @@ HELP_CATEGORY_PAGES: tuple[tuple[str, str, str], ...] = (
 - `ns buy drop [quantity]` — Buy drop tickets for 1 starter each. Defaults to 1.
 - `ns cooldown [player]` (`ns cd`) — Check a player's cooldowns. Defaults to yourself or the replied user.
 - `ns vote` (`ns v`, `nv`) — Vote for rewards.
-- `ns burn [targets...]` (`ns b`, `nb`) — Burn targets for dough. Supports card codes plus
+- `ns burn [target...]` (`ns b`, `nb`) — Burn a target for dough. Supports card codes plus
     `t:<tag>` and `f:<folder>` selectors. Defaults to last pulled card.
 - `ns gift <player> <dough>` (`ns g`) — Send dough to another player.
 - `ns trade <player> <card_code> <amount>` (`ns t`, `nt`) — Offer a card-for-dough trade.""",
@@ -250,7 +250,7 @@ HELP_CATEGORY_PAGES: tuple[tuple[str, str, str], ...] = (
 - `ns team remove <team_name>` (`ns tm r`) — Delete one of your teams.
 - `ns team list` (`ns tm l`) — List your teams.
 - `ns team assign <team_name> <card_code>` (`ns tm as`) — Assign a card to a team.
-- `ns team unassign <team_name> <card_code>` (`ns tm u`) — Remove a card from a team.
+- `ns team unassign <team_name> <card_code> [card_code...]` (`ns tm u`) — Remove one or more cards from a team.
 - `ns team cards <team_name>` (`ns tm c`) — Show cards in a team.
 - `ns team active [team_name]` — Show or set your active battle team.
 - `ns battle <player> <stake>` (`ns bt`) — Propose a battle to another player.""",
@@ -277,7 +277,7 @@ HELP_CATEGORY_PAGES: tuple[tuple[str, str, str], ...] = (
 - `ns tag list` (`ns ... l`) — List your tags.
 - `ns tag lock <tag_name>` / `ns tag unlock <tag_name>` — Toggle burn protection for that tag.
 - `ns tag assign <tag_name> <card_code>` (`ns ... as`) — Add one of your cards to a tag.
-- `ns tag unassign <tag_name> <card_code>` (`ns ... u`) — Remove a dupe from a tag.
+- `ns tag unassign <tag_name> <card_code> [card_code...]` (`ns ... u`) — Remove one or more dupes from a tag.
 - `ns tag cards <tag_name>` (`ns ... c`) — Show cards currently in that tag.""",
     ),
     (
@@ -288,7 +288,7 @@ HELP_CATEGORY_PAGES: tuple[tuple[str, str, str], ...] = (
 - `ns folder list` (`ns ... l`) — List your folders with emoji, lock state, and card counts.
 - `ns folder lock <folder_name>` / `ns folder unlock <folder_name>` — Toggle burn protection for that folder.
 - `ns folder assign <folder_name> <card_code>` (`ns ... as`) — Add one of your cards to a folder.
-- `ns folder unassign <folder_name> <card_code>` (`ns ... u`) — Remove a card from a folder.
+- `ns folder unassign <folder_name> <card_code> [card_code...]` (`ns ... u`) — Remove one or more cards from a folder.
 - `ns folder cards <folder_name>` (`ns ... c`) — Show cards currently in that folder.
 - `ns folder emoji <folder_name> <emoji>` (`ns ... e`) — Update a folder emoji.""",
     ),
@@ -307,7 +307,7 @@ def help_overview_description() -> str:
 Use the dropdown below to browse help by category."""
 
 
-def help_category_pages() -> tuple[tuple[str, str, str], ...]:
+def help_category_pages() -> tuple[tuple[str, str, str],...]:
     return HELP_CATEGORY_PAGES
 
 

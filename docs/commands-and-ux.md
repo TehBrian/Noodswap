@@ -30,8 +30,8 @@ This document defines behavior and presentation for commands and interaction flo
 - `team add <team_name>` / `team a <team_name>`
 - `team remove <team_name>` / `team r <team_name>`
 - `team list` / `team l`
-- `team assign <team_name> <card_code>` / `team as ...`
-- `team unassign <team_name> <card_code>` / `team u ...`
+- `team assign <team_name> <card_code> [card_code ...]` / `team as ...`
+- `team unassign <team_name> <card_code> [card_code ...]` / `team u ...`
 - `team cards <team_name>` / `team c <team_name>`
 - `team active [team_name]`
 - `folder` / `fd`
@@ -39,13 +39,13 @@ This document defines behavior and presentation for commands and interaction flo
 - `folder remove <folder_name>` / `folder r ...`
 - `folder list` / `folder l`
 - `folder lock <folder_name>` / `folder unlock <folder_name>`
-- `folder assign <folder_name> <card_code>` / `folder as ...`
-- `folder unassign <folder_name> <card_code>` / `folder u ...`
+- `folder assign <folder_name> <card_code> [card_code ...]` / `folder as ...`
+- `folder unassign <folder_name> <card_code> [card_code ...]` / `folder u ...`
 - `folder cards <folder_name>` / `folder c ...`
 - `folder emoji <folder_name> <emoji>` / `folder e ...`
 - `battle <player> <stake>` / `bt ...`
 - `wish` / `w`
-- `wish add <card_id>` / `wish a <card_id>` / `w add <card_id>` / `w a <card_id>` / `wa <card_id>`
+- `wish add <card_id> [card_id ...]` / `wish a <card_id> [card_id ...]` / `w add <card_id> [card_id ...]` / `w a <card_id> [card_id ...]` / `wa <card_id> [card_id ...]`
 - `wish remove <card_id>` / `wish r <card_id>` / `w remove <card_id>` / `w r <card_id>` / `wr <card_id>`
 - `wish list [player]` / `wish l [player]` / `w list [player]` / `w l [player]` / `wl [player]`
 - `marry [card_code]` / `m [card_code]`
@@ -126,7 +126,7 @@ Burn flow:
 - tag targets are provided as `t:<tag_name>`
 - folder targets are provided as `f:<folder_name>`
 - all selected targets are confirmed together and listed individually in the confirmation embed
-- if any selected target is protected by locked tags or a locked folder, the full burn is blocked and no cards are burned
+- burn executes per selected target; locked or unavailable targets are skipped while remaining targets are burned
 - card code format is standalone base36 with optional leading `#` (examples: `0`, `a`, `10`, `#10`)
 - Burn always requires confirm/cancel interaction before destruction
 - Burn payout includes a generation multiplier (lower generation = higher payout)
@@ -250,7 +250,7 @@ Card identity terms:
 
 ## Wishlist UX
 
-- `wish add <card_id>` / `w add <card_id>` adds a base card id to the invoker's wishlist
+- `wish add <card_id> [card_id ...]` / `w add <card_id> [card_id ...]` adds one or more base card ids to the invoker's wishlist
 - `wish remove <card_id>` / `w remove <card_id>` removes a base card id from the invoker's wishlist
 - `wish list` / `w list` returns the invoker's wishlist as embed lines
 - `wish list` / `w list` includes a sort dropdown with modes: `Wishes`, `Rarity`, `Series`, `Base Value`, `Alphabetical`

@@ -78,6 +78,7 @@ Stage 3 implementation guide: `docs/refactor-phase-3.md`.
 
 ## Decision log (recent)
 
+- Updated `wish add`, `tag/folder/team assign`, and `tag/folder/team unassign` to accept multiple space-separated targets with dedupe + mixed-result feedback (including team remaining-slot `before -> after` reporting), and changed batch burn semantics to partial execution (burn eligible targets, report skipped locked/unavailable targets) instead of all-or-nothing lock blocking.
 - Added persistent `players.votes` tracking for successful top.gg webhook claims, surfaced the count in `info`, and added `Votes` as a sortable `leaderboard` criterion.
 - Added per-player folders (`player_folders` + `card_instance_folders`) with one-folder-per-instance assignment, folder emoji metadata, and lock inheritance that treats locked tags and locked folders as equivalent burn blockers.
 - Added `drop tickets` currency with `buy drop [quantity]` starter purchases (1:1 cost), auto-ticket substitution when `drop` is on cooldown (cooldown timestamp unchanged), and info-surface visibility for ticket balances.
