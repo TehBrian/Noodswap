@@ -103,9 +103,10 @@ Stage 3 implementation guide: `docs/refactor-phase-3.md`.
 - Completed Stage 3 callback slimming by moving burn confirmation execution into `services.py` (`execute_burn_confirmation`), removing remaining `noodswap.views` callback indirection in view modules, and updating view tests to patch canonical module-level symbols.
 - Added follow-up roadmap item to automate deploy-state bootstrap (SQLite backup/restore and card-image cache artifact import) so host migrations do not require manual DB/image copy steps.
 - Added `leaderboard` / `le` with invoker-scoped pagination + criterion dropdown (`Cards`, `Wishes`, `Dough`, `Starter`, `Collection Value`) to rank players by global player metrics.
-- Added webhook-only top.gg vote registration with signed event intake, automatic `starter` reward claiming, and 24-hour cooldown enforcement via existing storage safeguards.
+- Added webhook-only top.gg vote registration with signed event intake and automatic `starter` reward claiming.
 - Hardened top.gg webhook intake with optional source IP allowlisting (`TOPGG_WEBHOOK_ALLOWED_IPS`), strict JSON content-type enforcement, and bounded request size controls (`TOPGG_WEBHOOK_MAX_BODY_BYTES`) to reduce spoofing/DoS surface.
 - Updated `vote` / `v` command copy to reflect automatic webhook registration and removed pull-based top.gg polling from the command path.
+- Removed vote reward cooldown enforcement and removed vote-cooldown visibility from `cooldown` UX so vote rewards now claim whenever a vote is detected.
 - Changed `help` to send a brief bot overview plus an invoker-scoped category dropdown (`Overview`, `Economy`, `Gambling`, `Battle`, `Cosmetics`, `Wishlist`, `Tags`, `Folders`, `Relationship`) that edits the same embed to the selected command page.
 - Updated `scripts/init_runtime.py` to use replacement semantics for seeded runtime assets, refreshing `runtime/card_images/`, `runtime/fonts/`, and `runtime/frame_overlays/` from `assets/` on each run.
 - Added `frame` / `fr` confirmation flow with before/after transition previews and per-instance frame persistence (`card_instances.frame_key`), initially shipping a `buttery` golden dripping-border frame.

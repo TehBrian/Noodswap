@@ -275,6 +275,10 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(gambling_embed.title, "Help: Gambling")
         self.assertIn("ns slots", gambling_embed.description)
         self.assertIn("ns flip", gambling_embed.description)
+        self.assertIn("ns monopoly roll", gambling_embed.description)
+        self.assertIn("ns monopoly fine confirm", gambling_embed.description)
+        self.assertIn("ns monopoly board", gambling_embed.description)
+        self.assertIn("ns monopoly pot", gambling_embed.description)
 
         interaction.response.edited_messages.clear()
         view.category_select._values = ["battle"]

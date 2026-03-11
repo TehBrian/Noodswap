@@ -399,9 +399,6 @@ def _apply_migration_v12(conn: sqlite3.Connection) -> None:
     if not _has_column(conn, "players", "starter"):
         conn.execute("ALTER TABLE players ADD COLUMN starter INTEGER NOT NULL DEFAULT 0")
 
-    if not _has_column(conn, "players", "last_vote_reward_at"):
-        conn.execute("ALTER TABLE players ADD COLUMN last_vote_reward_at REAL NOT NULL DEFAULT 0")
-
 
 def _apply_migration_v13(conn: sqlite3.Connection) -> None:
     players_table_exists = conn.execute(

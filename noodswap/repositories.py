@@ -49,14 +49,13 @@ class PlayerRepository:
                 drop_tickets,
                 last_drop_at,
                 last_pull_at,
-                last_vote_reward_at,
                 last_slots_at,
                 last_flip_at,
                 married_card_id,
                 married_instance_id,
                 last_dropped_instance_id
             )
-            VALUES (?, ?, ?, ?, ?, 0, 0, 0, 0, 0, NULL, NULL, NULL)
+            VALUES (?, ?, ?, ?, ?, 0, 0, 0, 0, NULL, NULL, NULL)
             ON CONFLICT(guild_id, user_id) DO NOTHING
             """,
             (guild_id, user_id, self.starting_dough, 0, 0),
@@ -373,27 +372,6 @@ class PlayerRepository:
             WHERE guild_id = ? AND user_id = ?
             """,
             (amount, guild_id, user_id),
-        )
-
-    def get_last_vote_reward_at(self, guild_id: int, user_id: int) -> float:
-        row = self.conn.execute(
-            """
-            SELECT last_vote_reward_at
-            FROM players
-            WHERE guild_id = ? AND user_id = ?
-            """,
-            (guild_id, user_id),
-        ).fetchone()
-        return float(row["last_vote_reward_at"]) if row is not None else 0.0
-
-    def set_last_vote_reward_at(self, guild_id: int, user_id: int, timestamp: float) -> None:
-        self.conn.execute(
-            """
-            UPDATE players
-            SET last_vote_reward_at = ?
-            WHERE guild_id = ? AND user_id = ?
-            """,
-            (timestamp, guild_id, user_id),
         )
 
     def get_last_slots_at(self, guild_id: int, user_id: int) -> float:

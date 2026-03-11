@@ -1051,7 +1051,6 @@ class CommandsCooldownTests(unittest.IsolatedAsyncioTestCase):
 
         with (
             patch("noodswap.commands.get_player_cooldown_timestamps", return_value=(0.0, 0.0)),
-            patch("noodswap.commands.get_player_vote_reward_timestamp", return_value=0.0),
             patch("noodswap.commands.get_player_slots_timestamp", return_value=0.0),
             patch("noodswap.commands.get_player_flip_timestamp", return_value=0.0),
             patch("noodswap.commands.time.time", return_value=10_000.0),
@@ -1063,7 +1062,6 @@ class CommandsCooldownTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(sent_embed.title, "Caller's Cooldowns")
         self.assertIn("Drop:", sent_embed.description)
         self.assertIn("Pull:", sent_embed.description)
-        self.assertIn("Vote:", sent_embed.description)
         self.assertIn("Slots:", sent_embed.description)
         self.assertIn("Flip:", sent_embed.description)
         self.assertIn("Ready", sent_embed.description)
@@ -1081,7 +1079,6 @@ class CommandsCooldownTests(unittest.IsolatedAsyncioTestCase):
         with (
             patch("noodswap.commands.resolve_member_argument", new=AsyncMock(return_value=(target, None))) as resolve_member,
             patch("noodswap.commands.get_player_cooldown_timestamps", return_value=(9_800.0, 9_850.0)),
-            patch("noodswap.commands.get_player_vote_reward_timestamp", return_value=9_900.0),
             patch("noodswap.commands.get_player_slots_timestamp", return_value=9_950.0),
             patch("noodswap.commands.get_player_flip_timestamp", return_value=9_980.0),
             patch("noodswap.commands.time.time", return_value=10_000.0),
@@ -1191,7 +1188,6 @@ class CommandsCooldownReplyTargetTests(unittest.IsolatedAsyncioTestCase):
 
         with (
             patch("noodswap.commands.get_player_cooldown_timestamps", return_value=(9_800.0, 9_850.0)),
-            patch("noodswap.commands.get_player_vote_reward_timestamp", return_value=9_900.0),
             patch("noodswap.commands.get_player_slots_timestamp", return_value=9_950.0),
             patch("noodswap.commands.get_player_flip_timestamp", return_value=9_980.0),
             patch("noodswap.commands.time.time", return_value=10_000.0),
@@ -1609,8 +1605,8 @@ class CommandsVoteTests(unittest.IsolatedAsyncioTestCase):
         sent_embed = ctx.send.await_args.kwargs["embed"]
         sent_view = ctx.send.await_args.kwargs["view"]
         self.assertEqual(sent_embed.title, "Vote")
-        self.assertIn("Automatic vote verification is not configured", sent_embed.description)
-        self.assertIn("Set `TOPGG_API_TOKEN` to enable reward claims", sent_embed.description)
+        self.assertIn("Vote checking is temporarily unavailable", sent_embed.description)
+        self.assertIn("vote using the button below", sent_embed.description)
         self.assertIsInstance(sent_view, discord.ui.View)
 
     async def test_vote_claims_starter_when_topgg_vote_detected(self) -> None:
@@ -1625,7 +1621,7 @@ class CommandsVoteTests(unittest.IsolatedAsyncioTestCase):
         with (
             patch.dict("os.environ", {"TOPGG_API_TOKEN": "token", "TOPGG_BOT_ID": "123"}, clear=True),
             patch("noodswap.commands._topgg_recent_vote_status", new=AsyncMock(return_value=(True, None))),
-            patch("noodswap.commands.claim_vote_reward_if_ready", return_value=(True, 0.0, 5)),
+            patch("noodswap.commands.claim_vote_reward", return_value=5),
         ):
             await vote_command.callback(ctx)
 

@@ -32,10 +32,19 @@ class StorageTests(unittest.TestCase):
             self.assertIn("last_dropped_instance_id", column_names)
             self.assertIn("starter", column_names)
             self.assertIn("drop_tickets", column_names)
-            self.assertIn("last_vote_reward_at", column_names)
             self.assertIn("last_slots_at", column_names)
             self.assertIn("last_flip_at", column_names)
             self.assertIn("active_team_name", column_names)
+            self.assertIn("monopoly_position", column_names)
+            self.assertIn("last_monopoly_roll_at", column_names)
+            self.assertIn("monopoly_in_jail", column_names)
+            self.assertIn("monopoly_jail_roll_attempts", column_names)
+            self.assertIn("monopoly_consecutive_doubles", column_names)
+
+            pot_row = conn.execute(
+                "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'gambling_pot'"
+            ).fetchone()
+            self.assertIsNotNone(pot_row)
 
             instance_columns = conn.execute("PRAGMA table_info(card_instances)").fetchall()
             instance_column_names = {str(column[1]) for column in instance_columns}
@@ -99,33 +108,25 @@ class StorageTests(unittest.TestCase):
         self.assertEqual(married_instance_id, instance_b)
         self.assertNotEqual(married_instance_id, instance_a)
 
-    def test_claim_vote_reward_enforces_cooldown_and_adds_starter(self) -> None:
+    def test_claim_vote_reward_always_adds_starter(self) -> None:
         guild_id = 1
         user_id = 1234
 
         storage.init_db()
 
-        claimed, remaining, starter_total = storage.claim_vote_reward_if_ready(
+        starter_total = storage.claim_vote_reward(
             guild_id=guild_id,
             user_id=user_id,
-            now=100_000.0,
-            cooldown_seconds=86_400.0,
             reward_amount=1,
         )
-        self.assertTrue(claimed)
-        self.assertEqual(remaining, 0.0)
         self.assertEqual(starter_total, 1)
 
-        claimed, remaining, starter_total = storage.claim_vote_reward_if_ready(
+        starter_total = storage.claim_vote_reward(
             guild_id=guild_id,
             user_id=user_id,
-            now=100_001.0,
-            cooldown_seconds=86_400.0,
             reward_amount=1,
         )
-        self.assertFalse(claimed)
-        self.assertGreater(remaining, 0.0)
-        self.assertEqual(starter_total, 1)
+        self.assertEqual(starter_total, 2)
 
     def test_slots_cooldown_and_starter_award(self) -> None:
         guild_id = 1
@@ -245,6 +246,69 @@ class StorageTests(unittest.TestCase):
             did_win=True,
         )
         self.assertEqual(status, "insufficient_dough")
+
+    def test_flip_loss_adds_to_gambling_pot(self) -> None:
+        guild_id = 1
+        user_id = 1247
+        storage.init_db()
+        storage.add_dough(guild_id, user_id, 100)
+
+        status, remaining, balance = storage.execute_flip_wager(
+            guild_id,
+            user_id,
+            stake=25,
+            now=4_000.0,
+            cooldown_seconds=1.0,
+            did_win=False,
+        )
+
+        self.assertEqual(status, "lost")
+        self.assertEqual(remaining, 0.0)
+        self.assertEqual(balance, 75)
+        pot_dough, pot_starter, pot_tickets = storage.get_gambling_pot(guild_id)
+        self.assertEqual(pot_dough, 25)
+        self.assertEqual(pot_starter, 0)
+        self.assertEqual(pot_tickets, 0)
+
+    def test_monopoly_roll_sets_cooldown_when_not_doubles(self) -> None:
+        guild_id = 1
+        user_id = 1248
+        storage.init_db()
+
+        with patch("noodswap.storage.roll_dice", return_value=(1, 2, False)):
+            result = storage.execute_monopoly_roll(
+                guild_id,
+                user_id,
+                now=10_000.0,
+                cooldown_seconds=660.0,
+            )
+
+        self.assertEqual(result.status, "ok")
+        self.assertFalse(result.doubles)
+        _position, last_roll_at, in_jail, _jail_attempts, doubles_count = storage.get_monopoly_state(guild_id, user_id)
+        self.assertEqual(last_roll_at, 10_000.0)
+        self.assertFalse(in_jail)
+        self.assertEqual(doubles_count, 0)
+
+    def test_monopoly_roll_doubles_does_not_consume_cooldown(self) -> None:
+        guild_id = 1
+        user_id = 1249
+        storage.init_db()
+
+        with patch("noodswap.storage.roll_dice", return_value=(3, 3, True)):
+            result = storage.execute_monopoly_roll(
+                guild_id,
+                user_id,
+                now=20_000.0,
+                cooldown_seconds=660.0,
+            )
+
+        self.assertEqual(result.status, "ok")
+        self.assertTrue(result.doubles)
+        _position, last_roll_at, in_jail, _jail_attempts, doubles_count = storage.get_monopoly_state(guild_id, user_id)
+        self.assertEqual(last_roll_at, 0.0)
+        self.assertFalse(in_jail)
+        self.assertEqual(doubles_count, 1)
         self.assertEqual(remaining, 0.0)
         self.assertEqual(balance, 0)
 
@@ -428,7 +492,7 @@ class StorageTests(unittest.TestCase):
 
         storage.add_dough(guild_id, first_user, 25)
         storage.add_dough(guild_id, second_user, 80)
-        storage.claim_vote_reward_if_ready(guild_id, first_user, now=1000.0, cooldown_seconds=1.0, reward_amount=2)
+        storage.claim_vote_reward(guild_id, first_user, reward_amount=2)
 
         storage.add_card_to_wishlist(guild_id, first_user, "SPG")
         storage.add_card_to_wishlist(guild_id, first_user, "PEN")

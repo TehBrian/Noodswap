@@ -133,7 +133,7 @@ This bot uses privileged intents. Enable these for your application in Discord D
 - `ns slots` / `ns sl` — spin 3 food reels; matching all 3 awards 1-3 `starter`.
 - `ns flip <stake>` / `ns f <stake>` — coin flip wager with 46% win / 54% lose odds; heads wins `+stake`, tails loses `-stake` (2m cooldown).
 - `ns vote` / `ns v` — open the top.gg vote page and claim `starter` reward when your vote is detected.
-- `ns cooldown [player]` / `ns cd [player]` — show drop (6m), pull (4m), flip (2m), slots (22m), and vote reward (24h) cooldowns for yourself or another player.
+- `ns cooldown [player]` / `ns cd [player]` — show drop (6m), pull (4m), flip (2m), slots (22m), and monopoly (11m) cooldowns for yourself or another player.
 - `ns burn [targets...]` / `ns b [targets...]` — burn one or more targets for dough. Supports card codes/IDs plus selectors `t:<tag_name>` and `f:<folder_name>`. If any selected card is in a locked tag or locked folder, the entire burn is blocked.
 - `ns gift <player> <dough>` / `ns g <player> <dough>` — send dough to another player.
 - `ns morph [card_code]` / `ns mo [card_code]` — pay 20% of card value (rounded up) to apply a random visual morph; currently supports `black_and_white`.

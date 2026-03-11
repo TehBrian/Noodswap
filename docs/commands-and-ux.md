@@ -312,11 +312,12 @@ Shows:
 
 ## Cooldown UX
 
-- `cooldown [player]` / `cd [player]` shows drop, pull, vote, and slots cooldown status for yourself or another player
+- `cooldown [player]` / `cd [player]` shows drop, pull, slots, flip, and monopoly cooldown status for yourself or another player
 - Drop cooldown is 6 minutes and applies to `ns drop`
 - Pull cooldown is 4 minutes and applies to claiming cards from drops
-- Vote cooldown is 24 hours and applies to claiming top.gg vote rewards
 - Slots cooldown is 22 minutes and applies to `ns slots`
+- Flip cooldown is 2 minutes and applies to `ns flip`
+- Monopoly cooldown is 11 minutes and applies to `ns monopoly roll`
 - Embed title format is `{Player}'s Cooldowns`
 
 ## Slots UX
@@ -331,10 +332,9 @@ Shows:
 
 - `vote` / `v` sends an embed with top.gg voting info and a link button
 - if top.gg API v1 verification is configured, running `vote` after voting attempts to claim `starter` immediately
-- successful claim grants `starter` and sets the vote cooldown
+- successful claim grants `starter`
 - if no recent vote is detected by top.gg, command should instruct user to vote and retry
-- if top.gg API config is missing (`TOPGG_API_TOKEN`), command still sends vote link plus setup hint
-- `TOPGG_BOT_ID` is optional and only used as a vote-link fallback
+- if top.gg API config is missing, command still sends the vote link and a player-facing retry hint without deployment/config details
 
 ## Marriage UX
 

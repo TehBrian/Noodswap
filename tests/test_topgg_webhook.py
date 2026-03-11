@@ -102,14 +102,13 @@ class TopggWebhookHandlerTests(unittest.IsolatedAsyncioTestCase):
         )
         request.json = AsyncMock(return_value={"user": "123"})
 
-        with patch("noodswap.topgg_webhook.time.time", return_value=100_000.0):
-            response = await self.server._handle_vote(request)
+        response = await self.server._handle_vote(request)
 
         self.assertEqual(response.status, 200)
         self.assertEqual(storage.get_player_starter(0, 123), 1)
         self.assertEqual(storage.get_player_votes(0, 123), 1)
 
-    async def test_duplicate_vote_inside_cooldown_does_not_double_claim(self) -> None:
+    async def test_duplicate_vote_claims_reward_each_time(self) -> None:
         first_request = make_mocked_request(
             "POST",
             "/noodswap/topgg-vote-webhook",
@@ -124,16 +123,14 @@ class TopggWebhookHandlerTests(unittest.IsolatedAsyncioTestCase):
         )
         second_request.json = AsyncMock(return_value={"user": "456"})
 
-        with patch("noodswap.topgg_webhook.time.time", return_value=200_000.0):
-            first_response = await self.server._handle_vote(first_request)
+        first_response = await self.server._handle_vote(first_request)
 
-        with patch("noodswap.topgg_webhook.time.time", return_value=200_001.0):
-            second_response = await self.server._handle_vote(second_request)
+        second_response = await self.server._handle_vote(second_request)
 
         self.assertEqual(first_response.status, 200)
         self.assertEqual(second_response.status, 200)
-        self.assertEqual(storage.get_player_starter(0, 456), 1)
-        self.assertEqual(storage.get_player_votes(0, 456), 1)
+        self.assertEqual(storage.get_player_starter(0, 456), 2)
+        self.assertEqual(storage.get_player_votes(0, 456), 2)
 
     async def test_rejects_non_json_content_type_when_enforced(self) -> None:
         request = make_mocked_request(

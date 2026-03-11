@@ -24,7 +24,6 @@ Columns:
 - `votes INTEGER NOT NULL DEFAULT 0`
 - `last_drop_at REAL NOT NULL DEFAULT 0` (tracks last `drop` command usage timestamp)
 - `last_pull_at REAL NOT NULL DEFAULT 0` (tracks last successful drop-card claim timestamp)
-- `last_vote_reward_at REAL NOT NULL DEFAULT 0` (tracks last successful starter claim from top.gg vote)
 - `last_slots_at REAL NOT NULL DEFAULT 0` (tracks last successful `slots` spin timestamp)
 - `married_card_id TEXT`
 - `married_instance_id INTEGER` (current marriage reference)
@@ -269,7 +268,6 @@ Current migration set:
 	- Reserved migration step (no schema changes).
 - `v12`:
 	- Adds `players.starter` for top.gg vote rewards.
-	- Adds `players.last_vote_reward_at` for vote reward cooldown tracking.
 - `v13`:
 	- Adds `players.last_slots_at` for slots cooldown tracking.
 - `v14`:

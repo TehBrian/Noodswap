@@ -172,6 +172,11 @@ COMMAND_SYNTAX_BY_KEY: dict[str, str] = {
     "lookup": "ns lookup <card_id|card_code|query>",
     "lookuphd": "ns lookuphd <card_id|card_code|query>",
     "marry": "ns marry [card_code]",
+    "monopoly": "ns monopoly <roll|fine|board|pot>",
+    "monopoly board": "ns monopoly board",
+    "monopoly fine": "ns monopoly fine confirm",
+    "monopoly pot": "ns monopoly pot",
+    "monopoly roll": "ns monopoly roll",
     "morph": "ns morph [card_code]",
     "slots": "ns slots",
     "tag": (
@@ -242,7 +247,11 @@ HELP_CATEGORY_PAGES: tuple[tuple[str, str, str], ...] = (
         "gambling",
         "Gambling",
         """- `ns slots` (`ns sl`) — Spin 3 food reels; matching all 3 wins 1-3 starter.
-- `ns flip <stake> [heads|tails]` (`ns f`, `nf`) — Flip a coin wager (46% heads win / 54% tails lose), 2m cooldown.""",
+- `ns flip <stake> [heads|tails]` (`ns f`, `nf`) — Flip a coin to double a wager.
+- `ns monopoly roll` (`ns mp roll`) — Roll two dice and move on the Monopoly board.
+- `ns monopoly fine confirm` (`ns mp fine confirm`) — Pay the jail fine to get out.
+- `ns monopoly board` (`ns mp board`) — View the board and your marker.
+- `ns monopoly pot` (`ns mp pot`) — View the Free Parking jackpot pot.""",
     ),
     (
         "battle",

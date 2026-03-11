@@ -6,7 +6,7 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from typing import Optional
 
-from .cards import card_value, random_generation, split_card_code
+from .cards import CARD_CATALOG, card_value, random_generation, split_card_code
 from .battle_engine import build_battle_card, resolve_attack
 from .migrations import TARGET_SCHEMA_VERSION, run_migrations
 from .monopoly import (
@@ -20,9 +20,11 @@ from .monopoly import (
 from .repositories import (
     BattleCombatantRepository,
     BattleSessionRepository,
+    CardInstanceFolderRepository,
     CardInstanceRepository,
     CardInstanceTagRepository,
     GamblingPotRepository,
+    PlayerFolderRepository,
     PlayerRepository,
     PlayerTagRepository,
     PlayerTeamRepository,
@@ -44,6 +46,7 @@ from .settings import (
 
 
 GLOBAL_GUILD_ID = 0
+DEFAULT_FOLDER_EMOJI = "📁"
 
 
 @dataclass(frozen=True)
@@ -125,6 +128,189 @@ def _normalize_team_name(team_name: str) -> Optional[str]:
     if len(normalized) > 32:
         return None
     return normalized
+
+
+def _normalize_folder_name(folder_name: str) -> Optional[str]:
+    normalized = folder_name.strip().lower()
+    if not normalized:
+        return None
+    if len(normalized) > 32:
+        return None
+    return normalized
+
+
+def _normalize_folder_emoji(emoji: str | None) -> Optional[str]:
+    if emoji is None:
+        return DEFAULT_FOLDER_EMOJI
+    normalized = emoji.strip()
+    if not normalized:
+        return None
+    if len(normalized) > 64:
+        return None
+    return normalized
+
+
+def create_player_folder(guild_id: int, user_id: int, folder_name: str, emoji: str | None = None) -> bool:
+    guild_id = _scope_guild_id(guild_id)
+    normalized_name = _normalize_folder_name(folder_name)
+    normalized_emoji = _normalize_folder_emoji(emoji)
+    if normalized_name is None or normalized_emoji is None:
+        return False
+
+    with get_db_connection() as conn:
+        _begin_immediate(conn)
+        players = PlayerRepository(conn, STARTING_DOUGH)
+        folders = PlayerFolderRepository(conn)
+        players.ensure_player(guild_id, user_id)
+        return folders.create(guild_id, user_id, normalized_name, normalized_emoji)
+
+
+def delete_player_folder(guild_id: int, user_id: int, folder_name: str) -> bool:
+    guild_id = _scope_guild_id(guild_id)
+    normalized_name = _normalize_folder_name(folder_name)
+    if normalized_name is None:
+        return False
+
+    with get_db_connection() as conn:
+        _begin_immediate(conn)
+        players = PlayerRepository(conn, STARTING_DOUGH)
+        folders = PlayerFolderRepository(conn)
+        players.ensure_player(guild_id, user_id)
+        return folders.delete(guild_id, user_id, normalized_name)
+
+
+def list_player_folders(guild_id: int, user_id: int) -> list[tuple[str, str, bool, int]]:
+    guild_id = _scope_guild_id(guild_id)
+    with get_db_connection() as conn:
+        players = PlayerRepository(conn, STARTING_DOUGH)
+        folders = PlayerFolderRepository(conn)
+        players.ensure_player(guild_id, user_id)
+        return folders.list_with_counts(guild_id, user_id)
+
+
+def set_player_folder_locked(guild_id: int, user_id: int, folder_name: str, locked: bool) -> bool:
+    guild_id = _scope_guild_id(guild_id)
+    normalized_name = _normalize_folder_name(folder_name)
+    if normalized_name is None:
+        return False
+
+    with get_db_connection() as conn:
+        _begin_immediate(conn)
+        players = PlayerRepository(conn, STARTING_DOUGH)
+        folders = PlayerFolderRepository(conn)
+        players.ensure_player(guild_id, user_id)
+        return folders.set_locked(guild_id, user_id, normalized_name, locked)
+
+
+def set_player_folder_emoji(guild_id: int, user_id: int, folder_name: str, emoji: str | None) -> bool:
+    guild_id = _scope_guild_id(guild_id)
+    normalized_name = _normalize_folder_name(folder_name)
+    normalized_emoji = _normalize_folder_emoji(emoji)
+    if normalized_name is None or normalized_emoji is None:
+        return False
+
+    with get_db_connection() as conn:
+        _begin_immediate(conn)
+        players = PlayerRepository(conn, STARTING_DOUGH)
+        folders = PlayerFolderRepository(conn)
+        players.ensure_player(guild_id, user_id)
+        return folders.set_emoji(guild_id, user_id, normalized_name, normalized_emoji)
+
+
+def assign_instance_to_folder(guild_id: int, user_id: int, instance_id: int, folder_name: str) -> tuple[bool, str]:
+    guild_id = _scope_guild_id(guild_id)
+    normalized_name = _normalize_folder_name(folder_name)
+    if normalized_name is None:
+        return False, "Invalid folder name."
+
+    with get_db_connection() as conn:
+        _begin_immediate(conn)
+        players = PlayerRepository(conn, STARTING_DOUGH)
+        instances = CardInstanceRepository(conn)
+        folders = PlayerFolderRepository(conn)
+        instance_folders = CardInstanceFolderRepository(conn)
+        players.ensure_player(guild_id, user_id)
+
+        if instances.get_owned_instance_for_marry(guild_id, user_id, instance_id) is None:
+            return False, "You do not own that card code."
+        if not folders.exists(guild_id, user_id, normalized_name):
+            return False, "Folder not found."
+
+        if not instance_folders.set_folder(guild_id, user_id, instance_id, normalized_name):
+            return False, "Could not assign that card to the folder."
+        return True, ""
+
+
+def is_instance_assigned_to_folder(guild_id: int, user_id: int, instance_id: int, folder_name: str) -> bool:
+    guild_id = _scope_guild_id(guild_id)
+    normalized_name = _normalize_folder_name(folder_name)
+    if normalized_name is None:
+        return False
+
+    with get_db_connection() as conn:
+        players = PlayerRepository(conn, STARTING_DOUGH)
+        folders = PlayerFolderRepository(conn)
+        instance_folders = CardInstanceFolderRepository(conn)
+        players.ensure_player(guild_id, user_id)
+        if not folders.exists(guild_id, user_id, normalized_name):
+            return False
+        return instance_folders.is_assigned(guild_id, user_id, instance_id, normalized_name)
+
+
+def unassign_instance_from_folder(guild_id: int, user_id: int, instance_id: int, folder_name: str | None = None) -> bool:
+    guild_id = _scope_guild_id(guild_id)
+    normalized_name = _normalize_folder_name(folder_name) if folder_name is not None else None
+
+    with get_db_connection() as conn:
+        _begin_immediate(conn)
+        players = PlayerRepository(conn, STARTING_DOUGH)
+        folders = PlayerFolderRepository(conn)
+        instance_folders = CardInstanceFolderRepository(conn)
+        players.ensure_player(guild_id, user_id)
+        if normalized_name is not None and not folders.exists(guild_id, user_id, normalized_name):
+            return False
+        return instance_folders.clear_folder(guild_id, user_id, instance_id, normalized_name)
+
+
+def get_instances_by_folder(guild_id: int, user_id: int, folder_name: str) -> list[tuple[int, str, int, str]]:
+    guild_id = _scope_guild_id(guild_id)
+    normalized_name = _normalize_folder_name(folder_name)
+    if normalized_name is None:
+        return []
+
+    with get_db_connection() as conn:
+        players = PlayerRepository(conn, STARTING_DOUGH)
+        folders = PlayerFolderRepository(conn)
+        instance_folders = CardInstanceFolderRepository(conn)
+        players.ensure_player(guild_id, user_id)
+        if not folders.exists(guild_id, user_id, normalized_name):
+            return []
+        return instance_folders.list_foldered_instances(guild_id, user_id, normalized_name)
+
+
+def get_locked_instance_ids(guild_id: int, user_id: int, instance_ids: list[int] | None = None) -> set[int]:
+    guild_id = _scope_guild_id(guild_id)
+    with get_db_connection() as conn:
+        players = PlayerRepository(conn, STARTING_DOUGH)
+        folders = PlayerFolderRepository(conn)
+        tags = PlayerTagRepository(conn)
+        players.ensure_player(guild_id, user_id)
+        locked_by_folder = folders.list_locked_instance_ids(guild_id, user_id, instance_ids)
+        locked_by_tag = tags.list_locked_instance_ids(guild_id, user_id, instance_ids)
+        return locked_by_folder | locked_by_tag
+
+
+def get_folder_emojis_for_instances(
+    guild_id: int,
+    user_id: int,
+    instance_ids: list[int],
+) -> dict[int, str]:
+    guild_id = _scope_guild_id(guild_id)
+    with get_db_connection() as conn:
+        players = PlayerRepository(conn, STARTING_DOUGH)
+        instance_folders = CardInstanceFolderRepository(conn)
+        players.ensure_player(guild_id, user_id)
+        return instance_folders.list_for_instances(guild_id, user_id, instance_ids)
 
 
 def create_player_team(guild_id: int, user_id: int, team_name: str) -> bool:
@@ -955,6 +1141,14 @@ def get_player_drop_tickets(guild_id: int, user_id: int) -> int:
         return players.get_drop_tickets(guild_id, user_id)
 
 
+def get_player_votes(guild_id: int, user_id: int) -> int:
+    guild_id = _scope_guild_id(guild_id)
+    with get_db_connection() as conn:
+        players = PlayerRepository(conn, STARTING_DOUGH)
+        players.ensure_player(guild_id, user_id)
+        return players.get_votes(guild_id, user_id)
+
+
 def get_instance_by_id(guild_id: int, instance_id: int) -> Optional[tuple[int, str, int, str]]:
     guild_id = _scope_guild_id(guild_id)
     with get_db_connection() as conn:
@@ -1127,14 +1321,6 @@ def get_player_cooldown_timestamps(guild_id: int, user_id: int) -> tuple[float, 
         return players.get_last_drop_at(guild_id, user_id), players.get_last_pull_at(guild_id, user_id)
 
 
-def get_player_vote_reward_timestamp(guild_id: int, user_id: int) -> float:
-    guild_id = _scope_guild_id(guild_id)
-    with get_db_connection() as conn:
-        players = PlayerRepository(conn, STARTING_DOUGH)
-        players.ensure_player(guild_id, user_id)
-        return players.get_last_vote_reward_at(guild_id, user_id)
-
-
 def get_player_slots_timestamp(guild_id: int, user_id: int) -> float:
     guild_id = _scope_guild_id(guild_id)
     with get_db_connection() as conn:
@@ -1151,27 +1337,370 @@ def get_player_flip_timestamp(guild_id: int, user_id: int) -> float:
         return players.get_last_flip_at(guild_id, user_id)
 
 
-def claim_vote_reward_if_ready(
+def get_monopoly_state(guild_id: int, user_id: int) -> tuple[int, float, bool, int, int]:
+    guild_id = _scope_guild_id(guild_id)
+    with get_db_connection() as conn:
+        players = PlayerRepository(conn, STARTING_DOUGH)
+        players.ensure_player(guild_id, user_id)
+        return players.get_monopoly_state(guild_id, user_id)
+
+
+def get_gambling_pot(guild_id: int) -> tuple[int, int, int]:
+    guild_id = _scope_guild_id(guild_id)
+    with get_db_connection() as conn:
+        pot = GamblingPotRepository(conn)
+        pot.ensure_row(guild_id)
+        return pot.get_balances(guild_id)
+
+
+def get_monopoly_board_state(guild_id: int, user_id: int) -> tuple[int, bool, int, int, str]:
+    position, _last_roll, in_jail, jail_attempts, doubles_count = get_monopoly_state(guild_id, user_id)
+    return position, in_jail, jail_attempts, doubles_count, render_board(position)
+
+
+def _deduct_up_to(players: PlayerRepository, guild_id: int, user_id: int, amount: int) -> int:
+    if amount <= 0:
+        return 0
+    current = players.get_dough(guild_id, user_id)
+    paid = min(current, amount)
+    if paid > 0:
+        players.add_dough(guild_id, user_id, -paid)
+    return paid
+
+
+def _apply_random_cooldown_reset(players: PlayerRepository, guild_id: int, user_id: int, now: float) -> str:
+    cooldown_key = random.choice(["drop", "pull", "slots", "flip"])
+    if cooldown_key == "drop":
+        players.set_last_drop_at(guild_id, user_id, now)
+    elif cooldown_key == "pull":
+        players.set_last_pull_at(guild_id, user_id, now)
+    elif cooldown_key == "slots":
+        players.set_last_slots_at(guild_id, user_id, now)
+    else:
+        players.set_last_flip_at(guild_id, user_id, now)
+    return cooldown_key
+
+
+def execute_monopoly_fine(
     guild_id: int,
     user_id: int,
+) -> MonopolyFineResult:
+    guild_id = _scope_guild_id(guild_id)
+    with get_db_connection() as conn:
+        _begin_immediate(conn)
+        players = PlayerRepository(conn, STARTING_DOUGH)
+        pot = GamblingPotRepository(conn)
+        players.ensure_player(guild_id, user_id)
+        pot.ensure_row(guild_id)
+
+        in_jail = players.get_monopoly_in_jail(guild_id, user_id)
+        if not in_jail:
+            return MonopolyFineResult(
+                status="not_in_jail",
+                paid=0,
+                remaining_dough=players.get_dough(guild_id, user_id),
+                in_jail=False,
+                lines=("You are not in jail.",),
+            )
+
+        paid = _deduct_up_to(players, guild_id, user_id, MONOPOLY_JAIL_FINE_DOUGH)
+        if paid > 0:
+            pot.add(guild_id, dough=paid)
+
+        players.set_monopoly_in_jail(guild_id, user_id, False)
+        players.set_monopoly_jail_roll_attempts(guild_id, user_id, 0)
+        players.set_monopoly_consecutive_doubles(guild_id, user_id, 0)
+        remaining = players.get_dough(guild_id, user_id)
+
+        lines = [
+            f"Fine paid: **{paid}** dough.",
+            "You are out of jail.",
+            f"Balance: **{remaining}** dough",
+        ]
+        return MonopolyFineResult(
+            status="released",
+            paid=paid,
+            remaining_dough=remaining,
+            in_jail=False,
+            lines=tuple(lines),
+        )
+
+
+def execute_monopoly_roll(
+    guild_id: int,
+    user_id: int,
+    *,
     now: float,
     cooldown_seconds: float,
+) -> MonopolyRollResult:
+    guild_id = _scope_guild_id(guild_id)
+    with get_db_connection() as conn:
+        _begin_immediate(conn)
+        players = PlayerRepository(conn, STARTING_DOUGH)
+        instances = CardInstanceRepository(conn)
+        pot = GamblingPotRepository(conn)
+        players.ensure_player(guild_id, user_id)
+        pot.ensure_row(guild_id)
+
+        position, last_roll_at, in_jail, jail_attempts, doubles_count = players.get_monopoly_state(guild_id, user_id)
+        elapsed = now - last_roll_at
+        if elapsed < cooldown_seconds:
+            return MonopolyRollResult(
+                status="cooldown",
+                cooldown_remaining=cooldown_seconds - elapsed,
+                die_a=None,
+                die_b=None,
+                position=position,
+                in_jail=in_jail,
+                doubles=False,
+                lines=("Monopoly roll is on cooldown.",),
+            )
+
+        die_a, die_b, is_doubles = roll_dice()
+        rolled_spaces = die_a + die_b
+        lines: list[str] = [f"Dice: **{die_a} + {die_b} = {rolled_spaces}**"]
+
+        if in_jail:
+            if is_doubles:
+                players.set_monopoly_in_jail(guild_id, user_id, False)
+                players.set_monopoly_jail_roll_attempts(guild_id, user_id, 0)
+                lines.append("Doubles rolled in jail. You are free and move by the roll.")
+            else:
+                jail_attempts += 1
+                players.set_monopoly_jail_roll_attempts(guild_id, user_id, jail_attempts)
+                players.set_monopoly_consecutive_doubles(guild_id, user_id, 0)
+                players.set_last_monopoly_roll_at(guild_id, user_id, now)
+                if jail_attempts >= 3:
+                    paid = _deduct_up_to(players, guild_id, user_id, MONOPOLY_JAIL_FINE_DOUGH)
+                    if paid > 0:
+                        pot.add(guild_id, dough=paid)
+                    players.set_monopoly_in_jail(guild_id, user_id, False)
+                    players.set_monopoly_jail_roll_attempts(guild_id, user_id, 0)
+                    lines.append(f"Third failed jail roll. Auto-paid **{paid}** dough fine and released.")
+                else:
+                    return MonopolyRollResult(
+                        status="jail_stay",
+                        cooldown_remaining=0.0,
+                        die_a=die_a,
+                        die_b=die_b,
+                        position=position,
+                        in_jail=True,
+                        doubles=False,
+                        lines=tuple(lines + [f"Still in jail ({jail_attempts}/3 failed rolls)."]),
+                    )
+
+        if is_doubles:
+            doubles_count += 1
+        else:
+            doubles_count = 0
+
+        if doubles_count >= 3:
+            players.set_monopoly_position(guild_id, user_id, 10)
+            players.set_monopoly_in_jail(guild_id, user_id, True)
+            players.set_monopoly_jail_roll_attempts(guild_id, user_id, 0)
+            players.set_monopoly_consecutive_doubles(guild_id, user_id, 0)
+            players.set_last_monopoly_roll_at(guild_id, user_id, now)
+            lines.append("Three doubles in a row. You were jailed for speeding.")
+            return MonopolyRollResult(
+                status="speeding_jail",
+                cooldown_remaining=0.0,
+                die_a=die_a,
+                die_b=die_b,
+                position=10,
+                in_jail=True,
+                doubles=True,
+                lines=tuple(lines),
+            )
+
+        start_position = position
+        new_position = (position + rolled_spaces) % MONOPOLY_BOARD_SIZE
+        passed_go = (position + rolled_spaces) >= MONOPOLY_BOARD_SIZE
+        players.set_monopoly_position(guild_id, user_id, new_position)
+        players.set_monopoly_consecutive_doubles(guild_id, user_id, doubles_count)
+
+        if passed_go:
+            players.add_dough(guild_id, user_id, MONOPOLY_GO_REWARD_DOUGH)
+            lines.append(f"Passed GO: **+{MONOPOLY_GO_REWARD_DOUGH} dough**")
+
+        space = board_space(new_position)
+        lines.append(f"Landed on **{space.name}** {space.emoji}")
+
+        if space.kind == "tax":
+            paid = _deduct_up_to(players, guild_id, user_id, MONOPOLY_CHEESE_TAX_DOUGH)
+            if paid > 0:
+                pot.add(guild_id, dough=paid)
+            lines.append(f"Cheese tax paid: **{paid} dough**")
+
+        elif space.kind == "free_parking":
+            pot_dough, pot_starter, pot_tickets = pot.get_balances(guild_id)
+            if pot_dough > 0:
+                players.add_dough(guild_id, user_id, pot_dough)
+            if pot_starter > 0:
+                players.add_starter(guild_id, user_id, pot_starter)
+            if pot_tickets > 0:
+                players.add_drop_tickets(guild_id, user_id, pot_tickets)
+            pot.clear(guild_id)
+            lines.append(
+                f"Free Parking jackpot: **+{pot_dough} dough, +{pot_starter} starter, +{pot_tickets} drop tickets**"
+            )
+
+        elif space.kind == "go_to_jail":
+            players.set_monopoly_position(guild_id, user_id, 10)
+            players.set_monopoly_in_jail(guild_id, user_id, True)
+            players.set_monopoly_jail_roll_attempts(guild_id, user_id, 0)
+            players.set_monopoly_consecutive_doubles(guild_id, user_id, 0)
+            lines.append("Go directly to jail.")
+            is_doubles = False
+
+        elif space.kind == "mpreg":
+            card_id = random_epic_or_better_card_id()
+            generation = random_generation()
+            instance_id = instances.create_owned_instance(guild_id, user_id, card_id, generation)
+            players.set_last_pulled_instance(guild_id, user_id, instance_id)
+            lines.append(
+                f"Mpreg square effect: you gave birth to a dupe of **{card_id}** (generation {generation})."
+            )
+
+        elif space.kind == "community":
+            card = draw_community_charcuterie()
+            lines.append(f"Community Charcuterie: {card.text}")
+            if card.dough_delta != 0:
+                if card.dough_delta > 0:
+                    players.add_dough(guild_id, user_id, card.dough_delta)
+                else:
+                    paid = _deduct_up_to(players, guild_id, user_id, -card.dough_delta)
+                    if paid > 0:
+                        pot.add(guild_id, dough=paid)
+            if card.starter_delta != 0:
+                if card.starter_delta > 0:
+                    players.add_starter(guild_id, user_id, card.starter_delta)
+                else:
+                    current_starter = players.get_starter(guild_id, user_id)
+                    lost = min(current_starter, -card.starter_delta)
+                    if lost > 0:
+                        players.add_starter(guild_id, user_id, -lost)
+                        pot.add(guild_id, starter=lost)
+            if card.drop_tickets_delta != 0:
+                if card.drop_tickets_delta > 0:
+                    players.add_drop_tickets(guild_id, user_id, card.drop_tickets_delta)
+                else:
+                    current_tickets = players.get_drop_tickets(guild_id, user_id)
+                    lost = min(current_tickets, -card.drop_tickets_delta)
+                    if lost > 0:
+                        players.add_drop_tickets(guild_id, user_id, -lost)
+                        pot.add(guild_id, drop_tickets=lost)
+
+        elif space.kind == "chance":
+            card = draw_cheese_chance()
+            lines.append(f"Cheese Chance: {card.text}")
+            if card.reset_random_cooldown:
+                key = _apply_random_cooldown_reset(players, guild_id, user_id, now)
+                lines.append(f"{key.capitalize()} cooldown was reset.")
+            if card.go_to_jail:
+                players.set_monopoly_position(guild_id, user_id, 10)
+                players.set_monopoly_in_jail(guild_id, user_id, True)
+                players.set_monopoly_jail_roll_attempts(guild_id, user_id, 0)
+                players.set_monopoly_consecutive_doubles(guild_id, user_id, 0)
+                players.set_last_monopoly_roll_at(guild_id, user_id, now)
+                return MonopolyRollResult(
+                    status="jail",
+                    cooldown_remaining=0.0,
+                    die_a=die_a,
+                    die_b=die_b,
+                    position=10,
+                    in_jail=True,
+                    doubles=False,
+                    lines=tuple(lines),
+                )
+            if card.move_to is not None:
+                target = card.move_to % MONOPOLY_BOARD_SIZE
+                if target < new_position:
+                    players.add_dough(guild_id, user_id, MONOPOLY_GO_REWARD_DOUGH)
+                    lines.append(f"Moved past GO by card: **+{MONOPOLY_GO_REWARD_DOUGH} dough**")
+                new_position = target
+                players.set_monopoly_position(guild_id, user_id, target)
+                lines.append(f"Moved to **{board_space(target).name}**")
+            if card.dough_delta != 0:
+                if card.dough_delta > 0:
+                    players.add_dough(guild_id, user_id, card.dough_delta)
+                else:
+                    paid = _deduct_up_to(players, guild_id, user_id, -card.dough_delta)
+                    if paid > 0:
+                        pot.add(guild_id, dough=paid)
+            if card.starter_delta != 0:
+                if card.starter_delta > 0:
+                    players.add_starter(guild_id, user_id, card.starter_delta)
+                else:
+                    current_starter = players.get_starter(guild_id, user_id)
+                    lost = min(current_starter, -card.starter_delta)
+                    if lost > 0:
+                        players.add_starter(guild_id, user_id, -lost)
+                        pot.add(guild_id, starter=lost)
+            if card.drop_tickets_delta != 0:
+                if card.drop_tickets_delta > 0:
+                    players.add_drop_tickets(guild_id, user_id, card.drop_tickets_delta)
+                else:
+                    current_tickets = players.get_drop_tickets(guild_id, user_id)
+                    lost = min(current_tickets, -card.drop_tickets_delta)
+                    if lost > 0:
+                        players.add_drop_tickets(guild_id, user_id, -lost)
+                        pot.add(guild_id, drop_tickets=lost)
+
+        elif space.kind == "property" and space.rarity is not None:
+            candidates = [
+                (owner_id, card_id, generation, dupe_code)
+                for _instance_id, owner_id, card_id, generation, dupe_code in instances.list_owner_instances_for_guild(guild_id)
+                if owner_id != user_id and str(card_id) in CARD_CATALOG
+                and str(CARD_CATALOG[str(card_id)]["rarity"]).lower() == space.rarity
+            ]
+            if candidates:
+                owner_id, card_id, generation, dupe_code = random.choice(candidates)
+                rent_due = card_value(card_id, generation)
+                paid = _deduct_up_to(players, guild_id, user_id, rent_due)
+                if paid > 0:
+                    players.ensure_player(guild_id, owner_id)
+                    players.add_dough(guild_id, owner_id, paid)
+                lines.append(
+                    f"Rent paid to <@{owner_id}> for {card_id} #{dupe_code} (gen {generation}): **{paid}/{rent_due} dough**"
+                )
+            else:
+                lines.append(f"No owner had a {space.rarity} dupe. No rent due.")
+
+        current_position = players.get_monopoly_position(guild_id, user_id)
+        current_in_jail = players.get_monopoly_in_jail(guild_id, user_id)
+
+        if not is_doubles or current_in_jail:
+            players.set_last_monopoly_roll_at(guild_id, user_id, now)
+            if not current_in_jail:
+                players.set_monopoly_consecutive_doubles(guild_id, user_id, 0)
+        else:
+            lines.append("Doubles rolled: cooldown was not consumed. Roll again immediately.")
+
+        return MonopolyRollResult(
+            status="ok",
+            cooldown_remaining=0.0,
+            die_a=die_a,
+            die_b=die_b,
+            position=current_position,
+            in_jail=current_in_jail,
+            doubles=is_doubles,
+            lines=tuple(lines),
+        )
+
+
+def claim_vote_reward(
+    guild_id: int,
+    user_id: int,
     reward_amount: int,
-) -> tuple[bool, float, int]:
+) -> int:
     guild_id = _scope_guild_id(guild_id)
     with get_db_connection() as conn:
         _begin_immediate(conn)
         players = PlayerRepository(conn, STARTING_DOUGH)
         players.ensure_player(guild_id, user_id)
-
-        last_vote_reward_at = players.get_last_vote_reward_at(guild_id, user_id)
-        elapsed = now - last_vote_reward_at
-        if elapsed < cooldown_seconds:
-            return False, cooldown_seconds - elapsed, players.get_starter(guild_id, user_id)
-
-        players.set_last_vote_reward_at(guild_id, user_id, now)
         players.add_starter(guild_id, user_id, reward_amount)
-        return True, 0.0, players.get_starter(guild_id, user_id)
+        players.add_votes(guild_id, user_id, 1)
+        return players.get_starter(guild_id, user_id)
 
 
 def consume_slots_cooldown_if_ready(
@@ -1229,7 +1758,9 @@ def execute_flip_wager(
     with get_db_connection() as conn:
         _begin_immediate(conn)
         players = PlayerRepository(conn, STARTING_DOUGH)
+        pot = GamblingPotRepository(conn)
         players.ensure_player(guild_id, user_id)
+        pot.ensure_row(guild_id)
 
         current_dough = players.get_dough(guild_id, user_id)
         if stake <= 0:
@@ -1245,6 +1776,8 @@ def execute_flip_wager(
 
         dough_delta = stake if did_win else -stake
         players.add_dough(guild_id, user_id, dough_delta)
+        if not did_win:
+            pot.add(guild_id, dough=stake)
         players.set_last_flip_at(guild_id, user_id, now)
         return ("won" if did_win else "lost"), 0.0, current_dough + dough_delta
 
@@ -1432,6 +1965,33 @@ def add_dough(guild_id: int, user_id: int, amount: int) -> None:
         players = PlayerRepository(conn, STARTING_DOUGH)
         players.ensure_player(guild_id, user_id)
         players.add_dough(guild_id, user_id, amount)
+
+
+def execute_gift_dough(
+    guild_id: int,
+    sender_id: int,
+    recipient_id: int,
+    amount: int,
+) -> tuple[bool, str, int | None, int | None]:
+    guild_id = _scope_guild_id(guild_id)
+    if amount < 1:
+        return False, "Gift amount must be at least 1 dough.", None, None
+    if sender_id == recipient_id:
+        return False, "You cannot gift dough to yourself.", None, None
+
+    with get_db_connection() as conn:
+        _begin_immediate(conn)
+        players = PlayerRepository(conn, STARTING_DOUGH)
+        players.ensure_player(guild_id, sender_id)
+        players.ensure_player(guild_id, recipient_id)
+
+        sender_balance = players.get_dough(guild_id, sender_id)
+        if sender_balance < amount:
+            return False, "You do not have enough dough.", sender_balance, players.get_dough(guild_id, recipient_id)
+
+        players.add_dough(guild_id, sender_id, -amount)
+        players.add_dough(guild_id, recipient_id, amount)
+        return True, "", players.get_dough(guild_id, sender_id), players.get_dough(guild_id, recipient_id)
 
 
 def remove_card_from_player(guild_id: int, user_id: int, card_id: str) -> Optional[tuple[int, int]]:

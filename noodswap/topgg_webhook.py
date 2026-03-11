@@ -1,14 +1,13 @@
 import hmac
 import ipaddress
 import logging
-import time
 from dataclasses import dataclass
 from typing import Any
 
 from aiohttp import web
 
 from .settings import VOTE_STARTER_REWARD
-from .storage import claim_vote_reward_if_ready
+from .storage import claim_vote_reward
 
 logger = logging.getLogger(__name__)
 DEFAULT_TOPGG_WEBHOOK_MAX_BODY_BYTES = 16 * 1024
@@ -150,35 +149,16 @@ class TopggWebhookServer:
         if user_id is None:
             return web.json_response({"ok": False, "error": "missing_user"}, status=400)
 
-        claimed, remaining_seconds, starter_total = claim_vote_reward_if_ready(
+        starter_total = claim_vote_reward(
             guild_id=0,
             user_id=user_id,
-            now=time.time(),
-            cooldown_seconds=0,
             reward_amount=VOTE_STARTER_REWARD,
         )
-
-        if claimed:
-            logger.info("top.gg vote reward claimed for user_id=%s starter_total=%s", user_id, starter_total)
-            return web.json_response(
-                {
-                    "ok": True,
-                    "claimed": True,
-                    "starter_total": starter_total,
-                },
-                status=200,
-            )
-
-        logger.info(
-            "top.gg vote received inside cooldown for user_id=%s remaining_seconds=%.2f",
-            user_id,
-            remaining_seconds,
-        )
+        logger.info("top.gg vote reward claimed for user_id=%s starter_total=%s", user_id, starter_total)
         return web.json_response(
             {
                 "ok": True,
-                "claimed": False,
-                "remaining_seconds": remaining_seconds,
+                "claimed": True,
                 "starter_total": starter_total,
             },
             status=200,

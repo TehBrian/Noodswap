@@ -60,9 +60,10 @@ from .settings import (
     DROP_TIMEOUT_SECONDS,
     FLIP_COOLDOWN_SECONDS,
     FLIP_WIN_PROBABILITY,
+    MONOPOLY_JAIL_FINE_DOUGH,
+    MONOPOLY_ROLL_COOLDOWN_SECONDS,
     PULL_COOLDOWN_SECONDS,
     SLOTS_COOLDOWN_SECONDS,
-    VOTE_COOLDOWN_SECONDS,
     VOTE_STARTER_REWARD,
 )
 from .storage import (
@@ -71,9 +72,11 @@ from .storage import (
     assign_instance_to_folder,
     assign_instance_to_team,
     assign_tag_to_instance,
-    claim_vote_reward_if_ready,
+    claim_vote_reward,
     consume_slots_cooldown_if_ready,
     execute_flip_wager,
+    execute_monopoly_fine,
+    execute_monopoly_roll,
     create_player_folder,
     create_player_tag,
     create_player_team,
@@ -106,7 +109,9 @@ from .storage import (
     get_player_starter,
     get_player_info,
     get_player_drop_tickets,
-    get_player_vote_reward_timestamp,
+    get_gambling_pot,
+    get_monopoly_board_state,
+    get_monopoly_state,
     get_total_cards,
     set_player_folder_emoji,
     set_player_folder_locked,
@@ -2022,8 +2027,7 @@ def register_commands(bot: commands.Bot) -> None:  # pylint: disable=too-many-st
 
         lines: list[str] = [
             "Support Noodswap by voting on top.gg.",
-            f"Reward: **{VOTE_STARTER_REWARD} starter** per successful vote claim.",
-            f"Vote Reward Cooldown: **{format_cooldown(VOTE_COOLDOWN_SECONDS)}**",
+            f"Reward: **+{VOTE_STARTER_REWARD} starter** when your vote is detected.",
             "",
             "After voting, run `ns vote` again to claim your reward.",
         ]
@@ -2033,9 +2037,8 @@ def register_commands(bot: commands.Bot) -> None:  # pylint: disable=too-many-st
             lines.extend(
                 [
                     "",
-                    "Automatic vote verification is not configured yet.",
-                    "Set `TOPGG_API_TOKEN` to enable reward claims.",
-                    "`TOPGG_BOT_ID` is optional and only used as a vote-link fallback.",
+                    "Vote checking is temporarily unavailable right now.",
+                    "You can still vote using the button below and try claiming again soon.",
                 ]
             )
             await _reply(ctx, embed=italy_embed("Vote", multiline_text(lines)), view=_vote_link_view(vote_url))
@@ -2043,29 +2046,18 @@ def register_commands(bot: commands.Bot) -> None:  # pylint: disable=too-many-st
 
         voted, vote_error = await _topgg_recent_vote_status(ctx.author.id, api_token)
         if voted:
-            claimed, remaining_seconds, starter_total = claim_vote_reward_if_ready(
+            starter_total = claim_vote_reward(
                 guild_id=ctx.guild.id,
                 user_id=ctx.author.id,
-                now=time.time(),
-                cooldown_seconds=VOTE_COOLDOWN_SECONDS,
                 reward_amount=VOTE_STARTER_REWARD,
             )
-            if claimed:
-                lines.extend(
-                    [
-                        "",
-                        f"Claimed: **+{VOTE_STARTER_REWARD} starter**",
-                        f"Starter Balance: **{starter_total}**",
-                    ]
-                )
-            else:
-                lines.extend(
-                    [
-                        "",
-                        "Vote detected, but your vote reward cooldown is still active.",
-                        f"Time remaining: **{format_cooldown(remaining_seconds)}**",
-                    ]
-                )
+            lines.extend(
+                [
+                    "",
+                    f"Claimed: **+{VOTE_STARTER_REWARD} starter**",
+                    f"Starter Balance: **{starter_total}**",
+                ]
+            )
         elif voted is False:
             lines.extend(
                 [
@@ -2235,6 +2227,113 @@ def register_commands(bot: commands.Bot) -> None:  # pylint: disable=too-many-st
             ),
         )
 
+    @bot.group(name="monopoly", aliases=["mp"], invoke_without_command=True)
+    async def monopoly(ctx: commands.Context):
+        await _reply(
+            ctx,
+            embed=italy_embed(
+                "Monopoly",
+                multiline_text(
+                    [
+                        "Usage:",
+                        "`ns monopoly roll`",
+                        "`ns monopoly fine confirm`",
+                        "`ns monopoly board`",
+                        "`ns monopoly pot`",
+                    ]
+                ),
+            ),
+        )
+
+    @monopoly.command(name="roll")
+    async def monopoly_roll(ctx: commands.Context):
+        if ctx.guild is None:
+            await _reply(ctx, embed=italy_embed("Monopoly", "Use this command in a server."))
+            return
+
+        result = execute_monopoly_roll(
+            ctx.guild.id,
+            ctx.author.id,
+            now=time.time(),
+            cooldown_seconds=MONOPOLY_ROLL_COOLDOWN_SECONDS,
+        )
+        if result.status == "cooldown":
+            await _reply(
+                ctx,
+                embed=italy_embed(
+                    "Monopoly Roll Cooldown",
+                    f"You need to wait **{format_cooldown(result.cooldown_remaining)}** before rolling again.",
+                ),
+            )
+            return
+
+        await _reply(ctx, embed=italy_embed("Monopoly Roll", multiline_text(list(result.lines))))
+
+    @monopoly.command(name="fine")
+    async def monopoly_fine(ctx: commands.Context, confirm: str | None = None):
+        if ctx.guild is None:
+            await _reply(ctx, embed=italy_embed("Monopoly Fine", "Use this command in a server."))
+            return
+
+        if confirm is None or confirm.casefold() != "confirm":
+            await _reply(
+                ctx,
+                embed=italy_embed(
+                    "Monopoly Fine",
+                    multiline_text(
+                        [
+                            f"This will pay up to **{MONOPOLY_JAIL_FINE_DOUGH} dough** to leave jail.",
+                            "Run `ns monopoly fine confirm` to confirm.",
+                        ]
+                    ),
+                ),
+            )
+            return
+
+        result = execute_monopoly_fine(ctx.guild.id, ctx.author.id)
+        await _reply(ctx, embed=italy_embed("Monopoly Fine", multiline_text(list(result.lines))))
+
+    @monopoly.command(name="board")
+    async def monopoly_board(ctx: commands.Context):
+        if ctx.guild is None:
+            await _reply(ctx, embed=italy_embed("Monopoly Board", "Use this command in a server."))
+            return
+
+        position, in_jail, jail_attempts, doubles_count, board_render = get_monopoly_board_state(
+            ctx.guild.id,
+            ctx.author.id,
+        )
+        state_lines = [
+            f"Position: **{position}**",
+            f"In Jail: **{'Yes' if in_jail else 'No'}**",
+            f"Jail Failed Rolls: **{jail_attempts}/3**",
+            f"Consecutive Doubles: **{doubles_count}**",
+            "",
+            board_render,
+        ]
+        await _reply(ctx, embed=italy_embed("Monopoly Board", multiline_text(state_lines)))
+
+    @monopoly.command(name="pot")
+    async def monopoly_pot(ctx: commands.Context):
+        if ctx.guild is None:
+            await _reply(ctx, embed=italy_embed("Monopoly Pot", "Use this command in a server."))
+            return
+
+        pot_dough, pot_starter, pot_drop_tickets = get_gambling_pot(ctx.guild.id)
+        await _reply(
+            ctx,
+            embed=italy_embed(
+                "Monopoly Pot",
+                multiline_text(
+                    [
+                        f"Dough: **{pot_dough}**",
+                        f"Starter: **{pot_starter}**",
+                        f"Drop Tickets: **{pot_drop_tickets}**",
+                    ]
+                ),
+            ),
+        )
+
     @bot.command(name="cooldown", aliases=["cd"])
     async def cooldown(ctx: commands.Context, player: str | None = None):
         if ctx.guild is None:
@@ -2248,23 +2347,26 @@ def register_commands(bot: commands.Bot) -> None:  # pylint: disable=too-many-st
         target_member = resolved_member
 
         last_drop_at, last_pull_at = get_player_cooldown_timestamps(ctx.guild.id, target_member.id)
-        last_vote_reward_at = get_player_vote_reward_timestamp(ctx.guild.id, target_member.id)
         last_slots_at = get_player_slots_timestamp(ctx.guild.id, target_member.id)
         last_flip_at = get_player_flip_timestamp(ctx.guild.id, target_member.id)
+        _position, last_monopoly_roll_at, _in_jail, _jail_attempts, _doubles_count = get_monopoly_state(
+            ctx.guild.id,
+            target_member.id,
+        )
         now = time.time()
         drop_elapsed = now - last_drop_at
         pull_elapsed = now - last_pull_at
-        vote_elapsed = now - last_vote_reward_at
         slots_elapsed = now - last_slots_at
         flip_elapsed = now - last_flip_at
+        monopoly_elapsed = now - last_monopoly_roll_at
 
         description = multiline_text(
             [
                 _cooldown_status_line("Drop", drop_elapsed, DROP_COOLDOWN_SECONDS),
                 _cooldown_status_line("Pull", pull_elapsed, PULL_COOLDOWN_SECONDS),
-                _cooldown_status_line("Vote", vote_elapsed, VOTE_COOLDOWN_SECONDS),
                 _cooldown_status_line("Slots", slots_elapsed, SLOTS_COOLDOWN_SECONDS),
                 _cooldown_status_line("Flip", flip_elapsed, FLIP_COOLDOWN_SECONDS),
+                _cooldown_status_line("Monopoly", monopoly_elapsed, MONOPOLY_ROLL_COOLDOWN_SECONDS),
             ]
         )
 
