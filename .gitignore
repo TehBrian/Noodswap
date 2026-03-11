@@ -19,8 +19,8 @@ runtime/**/*
 !runtime/db/.gitkeep
 !runtime/card_images/
 !runtime/card_images/.gitkeep
-!runtime/frame_overlays/
-!runtime/frame_overlays/.gitkeep
+!runtime/frames/
+!runtime/frames/.gitkeep
 !runtime/fonts/
 !runtime/fonts/.gitkeep
 !runtime/logs/

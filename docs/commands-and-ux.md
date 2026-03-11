@@ -85,16 +85,16 @@ This includes:
 - Current morph set includes `black_and_white`, `inverse`, `tint_rose`, `tint_aqua`, `tint_lime`, `tint_warm`, `tint_cool`, `tint_violet`, and `upside_down`.
 - Tint morphs blend the card art toward a target color, while `upside_down` rotates the rendered card art by 180 degrees.
 - Supported frame keys are `buttery`, `gilded`, and `drizzled`.
-- All three frame overlays are currently bundled.
-- `gilded` and `drizzled` are temporary placeholders until distinct overlay art is added.
+- All three frames are currently bundled.
+- `gilded` and `drizzled` are temporary placeholders until distinct frame art is added.
 - `Classic` is the default baseline style and is not a cosmetic modifier.
 - Initial selectable font set includes `serif`, `mono`, `storybook`, `spooky`, `pixel`, and `playful`.
-- Frame overlays are loaded from `assets/frame_overlays/<frame_key>.png` (or `.webp`) by default and composited over the rendered card.
-- Rendered card frame is normalized to a portrait `2.5:3.5` aspect ratio (`5:7`).
+- Frames are loaded from `assets/frames/<frame_key>.png` (or `.webp`) by default and composited over the rendered card.
+- Rendered card canvas is normalized to a portrait `2.5:3.5` aspect ratio (`5:7`).
 - Default rendered card canvas is `350x490` (`5:7`) for lower processing cost.
 - `lookuphd` renders at `1000x1400` (`5:7`) for high-detail output on demand.
-- The in-canvas card body is rendered at `5:7` to match standard trading-card proportions while preserving frame margin.
-- Cards use a rounded outer frame and rounded inner art window.
+- The in-canvas card body is rendered at `5:7` to match standard trading-card proportions while preserving border margin.
+- Cards use a rounded outer border and rounded inner art window.
 - Border color is rarity-driven:
   - `common`: brown
   - `uncommon`: gray

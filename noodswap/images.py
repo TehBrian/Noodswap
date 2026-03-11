@@ -10,7 +10,7 @@ from .fonts import (
     font_asset_files,
     normalize_font_key,
 )
-from .frames import frame_overlay_path, normalize_frame_key
+from .frames import frame_path, normalize_frame_key
 from .morphs import (
     MORPH_BLACK_AND_WHITE,
     MORPH_INVERSE,
@@ -33,9 +33,9 @@ HD_CARD_RENDER_SIZE = (1000, 1400)
 OVERLAY_TEXT_SCALE = 1.5
 # Unframed cards can use tighter margins by default.
 CARD_BODY_SCALE = 0.96
-# Framed cards render smaller so overlay assets with built-in margins can sit on top cleanly.
+# Framed cards render smaller so frame assets with built-in margins can sit on top cleanly.
 FRAMED_CARD_BODY_SCALE = 0.72
-# Drop previews currently render without frame overlays.
+# Drop previews currently render without frames.
 DROP_CARD_BODY_SCALE = 0.96
 # Higher supersampling gives smoother rounded border edges.
 BORDER_MASK_SUPERSAMPLE_SCALE = 6
@@ -475,9 +475,9 @@ def _apply_buttery_frame_effect(
     return Image.alpha_composite(composited, softened_drips)
 
 
-def _load_frame_overlay_image(frame_key: str, size: tuple[int, int]):
-    frame_path = frame_overlay_path(frame_key)
-    if frame_path is None:
+def _load_frame_image(frame_key: str, size: tuple[int, int]):
+    resolved_frame_path = frame_path(frame_key)
+    if resolved_frame_path is None:
         return None
 
     try:
@@ -486,7 +486,7 @@ def _load_frame_overlay_image(frame_key: str, size: tuple[int, int]):
         return None
 
     try:
-        overlay = Image.open(frame_path).convert("RGBA")
+        overlay = Image.open(resolved_frame_path).convert("RGBA")
     except Exception:
         return None
 
@@ -638,7 +638,7 @@ def render_card_surface(
     card_surface.paste(card_body, (body_x, body_y), card_body)
 
     if normalized_frame_key is not None:
-        overlay = _load_frame_overlay_image(normalized_frame_key, (width, height))
+        overlay = _load_frame_image(normalized_frame_key, (width, height))
         if overlay is not None:
             card_surface = Image.alpha_composite(card_surface, overlay)
 

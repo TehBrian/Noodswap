@@ -66,8 +66,8 @@ DB_PATH = _resolve_path(os.getenv("SQLITE_PATH", str(RUNTIME_DIR / "db" / "noods
 CARD_IMAGE_DIR = _resolve_path(os.getenv("IMAGE_DIR", str(RUNTIME_DIR / "card_images")))
 CARD_IMAGE_MANIFEST = CARD_IMAGE_DIR / "manifest.json"
 CARD_FONTS_DIR = _resolve_path(os.getenv("FONTS_DIR", str(RUNTIME_DIR / "fonts")))
-FRAME_OVERLAYS_DIR = _resolve_path(
-    os.getenv("FRAME_OVERLAYS_DIR", str(RUNTIME_DIR / "frame_overlays"))
+FRAMES_DIR = _resolve_path(
+    os.getenv("FRAMES_DIR", str(RUNTIME_DIR / "frames"))
 )
 
 TOPGG_WEBHOOK_SECRET = os.getenv("TOPGG_WEBHOOK_SECRET", "").strip()

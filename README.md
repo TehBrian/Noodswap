@@ -108,7 +108,7 @@ Full Actions deploy instructions: `docs/deploy-github-actions.md`.
 - SQLite DB: `runtime/db/noodswap.db`
 - Cached card images: `runtime/card_images`
 - Seed fixtures live under `assets/` and can initialize fresh runtime directories.
-- Immutable render assets (fonts, frame overlays) live under `assets/` and are baked into the image.
+- Immutable render assets (fonts, frames) live under `assets/` and are baked into the image.
 - Deploys run from GitHub-hosted runners to Ubuntu via SSH
 - Deploy/update does not transfer DB contents between machines/paths; it reuses whatever already exists under `runtime/` on the target host.
 
@@ -137,7 +137,7 @@ This bot uses privileged intents. Enable these for your application in Discord D
 - `ns burn [targets...]` / `ns b [targets...]` — burn one or more targets for dough. Supports card codes/IDs plus selectors `t:<tag_name>` and `f:<folder_name>`. If any selected card is in a locked tag or locked folder, the entire burn is blocked.
 - `ns gift <player> <dough>` / `ns g <player> <dough>` — send dough to another player.
 - `ns morph [card_code]` / `ns mo [card_code]` — pay 20% of card value (rounded up) to apply a random visual morph; currently supports `black_and_white`.
-- `ns frame [card_code]` / `ns fr [card_code]` — pay 20% of card value (rounded up) to apply a random cosmetic frame from available overlays (`buttery`, `gilded`, `drizzled`) in `assets/frame_overlays/`.
+- `ns frame [card_code]` / `ns fr [card_code]` — pay 20% of card value (rounded up) to apply a random cosmetic frame from available frames (`buttery`, `gilded`, `drizzled`) in `assets/frames/`.
 - `ns font [card_code]` / `ns fo [card_code]` — pay 20% of card value (rounded up) to apply a random cosmetic font (`serif`, `mono`, `storybook`, `spooky`, `pixel`, `playful`). `Classic` is now the default baseline style (not a modifier).
 - `ns trade <player> <card_code> <amount>` / `ns t ...` — offer a specific dupe-for-dough trade.
 - `ns team` / `ns tm` — team command group.
@@ -182,7 +182,7 @@ This bot uses privileged intents. Enable these for your application in Discord D
 
 Card rendering is local-only and expects runtime assets under `runtime/`.
 
-- Local development: run `.venv/bin/python scripts/init_runtime.py` to replace `runtime/card_images/`, `runtime/fonts/`, and `runtime/frame_overlays/` from `assets/` seeds.
+- Local development: run `.venv/bin/python scripts/init_runtime.py` to replace `runtime/card_images/`, `runtime/fonts/`, and `runtime/frames/` from `assets/` seeds.
 - Production deploy: `deploy/update.sh` seeds `runtime/card_images/` from `assets/card_images/` when the runtime image directory is empty.
 
 The local image manifest lives at `runtime/card_images/manifest.json`.

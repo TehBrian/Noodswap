@@ -108,7 +108,7 @@ Stage 3 implementation guide: `docs/refactor-phase-3.md`.
 - Updated `vote` / `v` command copy to reflect automatic webhook registration and removed pull-based top.gg polling from the command path.
 - Removed vote reward gating and removed vote status from `cooldown` UX so vote rewards now claim whenever a vote is detected.
 - Changed `help` to send a brief bot overview plus an invoker-scoped category dropdown (`Overview`, `Economy`, `Gambling`, `Battle`, `Cosmetics`, `Wishlist`, `Tags`, `Folders`, `Relationship`) that edits the same embed to the selected command page.
-- Updated `scripts/init_runtime.py` to use replacement semantics for seeded runtime assets, refreshing `runtime/card_images/`, `runtime/fonts/`, and `runtime/frame_overlays/` from `assets/` on each run.
+- Updated `scripts/init_runtime.py` to use replacement semantics for seeded runtime assets, refreshing `runtime/card_images/`, `runtime/fonts/`, and `runtime/frames/` from `assets/` on each run.
 - Added `frame` / `fr` confirmation flow with before/after transition previews and per-instance frame persistence (`card_instances.frame_key`), initially shipping a `buttery` golden dripping-border frame.
 - Expanded frame cosmetics to support multiple overlay-backed frame keys (`buttery`, `gilded`, `drizzled`) and added a parallel `font` / `fo` confirmation flow with per-instance font persistence (`card_instances.font_key`).
 - Added per-player tag collections (`player_tags` + `card_instance_tags`) with commands for create/delete/list/lock/unlock/assign/unassign/cards, and enforced burn protection for instances attached to any locked tag.

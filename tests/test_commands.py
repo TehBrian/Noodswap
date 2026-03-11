@@ -2085,7 +2085,7 @@ class CardRenderRegressionTests(unittest.TestCase):
 
         with (
             patch("noodswap.images.read_local_card_image_bytes", return_value=png_bytes((100, 120, 140))),
-            patch("noodswap.images._load_frame_overlay_image", return_value=overlay),
+            patch("noodswap.images._load_frame_image", return_value=overlay),
         ):
             base_rendered = render_card_image_bytes("SPG", generation=10)
             framed_rendered = render_card_image_bytes("SPG", generation=10, frame_key="buttery")
@@ -2113,7 +2113,7 @@ class CardRenderRegressionTests(unittest.TestCase):
 
         with (
             patch("noodswap.images.read_local_card_image_bytes", return_value=png_bytes((120, 140, 160))),
-            patch("noodswap.images._load_frame_overlay_image", return_value=transparent_overlay),
+            patch("noodswap.images._load_frame_image", return_value=transparent_overlay),
         ):
             base_rendered = render_card_image_bytes("SPG", generation=10)
             framed_rendered = render_card_image_bytes("SPG", generation=10, frame_key="buttery")

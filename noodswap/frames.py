@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Final
 
-from .settings import FRAME_OVERLAYS_DIR as SETTINGS_FRAME_OVERLAYS_DIR
+from .settings import FRAMES_DIR as SETTINGS_FRAMES_DIR
 
 
 FRAME_BUTTERY: Final[str] = "buttery"
@@ -27,7 +27,7 @@ FRAME_RARITIES: Final[dict[str, str]] = {
     FRAME_DRIZZLED: "legendary",
 }
 
-FRAME_OVERLAYS_DIR: Final[Path] = SETTINGS_FRAME_OVERLAYS_DIR
+FRAMES_DIR: Final[Path] = SETTINGS_FRAMES_DIR
 
 
 def normalize_frame_key(frame_key: str | None) -> str | None:
@@ -50,20 +50,20 @@ def frame_label(frame_key: str | None) -> str:
     return FRAME_LABELS.get(normalized, normalized)
 
 
-def frame_overlay_path(frame_key: str) -> Path | None:
+def frame_path(frame_key: str) -> Path | None:
     normalized = normalize_frame_key(frame_key)
     if normalized is None:
         return None
 
     for extension in ("png", "webp"):
-        candidate = FRAME_OVERLAYS_DIR / f"{normalized}.{extension}"
+        candidate = FRAMES_DIR / f"{normalized}.{extension}"
         if candidate.exists() and candidate.is_file():
             return candidate
     return None
 
 
 def available_frame_keys() -> tuple[str, ...]:
-    return tuple(frame_key for frame_key in AVAILABLE_FRAMES if frame_overlay_path(frame_key) is not None)
+    return tuple(frame_key for frame_key in AVAILABLE_FRAMES if frame_path(frame_key) is not None)
 
 
 def frame_rarity(frame_key: str | None) -> str:

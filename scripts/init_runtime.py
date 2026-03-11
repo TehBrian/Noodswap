@@ -43,14 +43,14 @@ def main() -> None:
     runtime_db_dir = runtime_dir / "db"
     runtime_image_dir = runtime_dir / "card_images"
     runtime_fonts_dir = runtime_dir / "fonts"
-    runtime_frames_dir = runtime_dir / "frame_overlays"
+    runtime_frames_dir = runtime_dir / "frames"
     runtime_log_dir = runtime_dir / "logs"
 
     seed_dir = repo_root / "assets"
     seed_db_path = seed_dir / "noodswap.seed.db"
     seed_image_dir = seed_dir / "card_images"
     seed_fonts_dir = seed_dir / "fonts"
-    seed_frames_dir = seed_dir / "frame_overlays"
+    seed_frames_dir = seed_dir / "frames"
 
     runtime_db_dir.mkdir(parents=True, exist_ok=True)
     runtime_log_dir.mkdir(parents=True, exist_ok=True)
@@ -77,9 +77,9 @@ def main() -> None:
         print(f"No seed font directory found at: {seed_fonts_dir}")
 
     if _replace_directory(seed_frames_dir, runtime_frames_dir):
-        print(f"Replaced runtime frame overlays: {seed_frames_dir} -> {runtime_frames_dir}")
+        print(f"Replaced runtime frames: {seed_frames_dir} -> {runtime_frames_dir}")
     else:
-        print(f"No seed frame overlay directory found at: {seed_frames_dir}")
+        print(f"No seed frame directory found at: {seed_frames_dir}")
 
     print("Runtime initialization complete.")
 
