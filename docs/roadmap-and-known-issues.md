@@ -78,7 +78,7 @@ Stage 3 implementation guide: `docs/refactor-phase-3.md`.
 
 ## Decision log (recent)
 
-- Reworked `gift` into card gifting (`ns gift <player> <card_code>`) with recipient accept/deny confirmation, storage/service transfer orchestration (`execute_gift_card`, `prepare_gift_offer`, `resolve_gift_offer`), and a top-right card thumbnail in the offer embed to reduce accidental mis-gifts.
+- Reworked `gift` into explicit subcommands (`ns gift dough <player> <dough>` and `ns gift card <player> <card_code>`) so runtime behavior matches help docs, while preserving recipient accept/deny confirmation for card gifts and using `execute_gift_dough` for direct currency transfers.
 - Finalized command-module split: `noodswap/commands.py` is now a thin registrar entrypoint delegating to domain modules (`commands_social`, `commands_catalog`, `commands_economy`, `commands_gambling`, `commands_admin`) with shared helpers in `command_utils.py`.
 - Updated `wish add`, `tag/folder/team assign`, and `tag/folder/team unassign` to accept multiple space-separated targets with dedupe + mixed-result feedback (including team remaining-slot `before -> after` reporting), and changed batch burn semantics to partial execution (burn eligible targets, report skipped locked/unavailable targets) instead of all-or-nothing lock blocking.
 - Added persistent `players.votes` tracking for successful top.gg webhook claims, surfaced the count in `info`, and added `Votes` as a sortable `leaderboard` criterion.

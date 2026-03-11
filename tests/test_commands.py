@@ -1543,7 +1543,7 @@ class CommandsGiftTests(unittest.IsolatedAsyncioTestCase):
         register_commands(self.bot)
 
     async def test_gift_rejects_bot_target(self) -> None:
-        gift_command = _get_command(self.bot, "gift")
+        gift_card_command = _get_group_command(self.bot, "gift", "card")
 
         ctx = AsyncMock()
         ctx.guild = _FakeGuild(1)
@@ -1557,7 +1557,7 @@ class CommandsGiftTests(unittest.IsolatedAsyncioTestCase):
             patch("noodswap.commands_economy.resolve_member_argument", new=AsyncMock(return_value=(bot_target, None))),
             patch("noodswap.commands_economy.prepare_gift_offer") as prepare_gift,
         ):
-            await gift_command.callback(ctx, player="@BotTarget", card_code="0")
+            await gift_card_command.callback(ctx, player="@BotTarget", card_code="0")
 
         prepare_gift.assert_not_called()
         ctx.send.assert_awaited_once()
@@ -1566,7 +1566,7 @@ class CommandsGiftTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("cannot gift cards to bots", sent_embed.description)
 
     async def test_gift_success_sends_offer_embed_with_confirmation_view(self) -> None:
-        gift_command = _get_command(self.bot, "gift")
+        gift_card_command = _get_group_command(self.bot, "gift", "card")
 
         ctx = AsyncMock()
         ctx.guild = _FakeGuild(1)
@@ -1593,7 +1593,7 @@ class CommandsGiftTests(unittest.IsolatedAsyncioTestCase):
             patch("noodswap.commands_economy.get_instance_font", return_value=None),
             patch("noodswap.commands_economy.embed_image_payload", return_value=("attachment://gift.png", None)),
         ):
-            await gift_command.callback(ctx, player="@Target", card_code="0")
+            await gift_card_command.callback(ctx, player="@Target", card_code="0")
 
         prepare_gift.assert_called_once_with(
             guild_id=1,
@@ -1610,6 +1610,30 @@ class CommandsGiftTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("Sender: <@100>", sent_embed.description)
         self.assertIsInstance(sent_view, GiftCardView)
         self.assertEqual(sent_embed.thumbnail.url, "attachment://gift.png")
+
+    async def test_gift_dough_success_updates_balances(self) -> None:
+        gift_dough_command = _get_group_command(self.bot, "gift", "dough")
+
+        ctx = AsyncMock()
+        ctx.guild = _FakeGuild(1)
+        ctx.author = _FakeMember(100, "Caller")
+        ctx.send = AsyncMock()
+        ctx.reply = ctx.send
+
+        target = _FakeMember(200, "Target")
+        with (
+            patch("noodswap.commands_economy.resolve_member_argument", new=AsyncMock(return_value=(target, None))),
+            patch("noodswap.commands_economy.execute_gift_dough", return_value=(True, "", 70, 30)) as gift_dough,
+        ):
+            await gift_dough_command.callback(ctx, player="@Target", amount=20)
+
+        gift_dough.assert_called_once_with(guild_id=1, sender_id=100, recipient_id=200, amount=20)
+        ctx.send.assert_awaited_once()
+        sent_embed = ctx.send.await_args.kwargs["embed"]
+        self.assertEqual(sent_embed.title, "Gift")
+        self.assertIn("Sent: **20** dough", sent_embed.description)
+        self.assertIn("Your Balance: **70** dough", sent_embed.description)
+        self.assertIn("Target's Balance: **30** dough", sent_embed.description)
 
 
 class CommandsVoteTests(unittest.IsolatedAsyncioTestCase):

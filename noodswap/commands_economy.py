@@ -514,8 +514,56 @@ def register_economy_commands(bot: commands.Bot) -> None:
         )
         view.message = message
 
-    @bot.command(name="gift", aliases=["g"])
-    async def gift(ctx: commands.Context, player: str, card_code: str):
+    @bot.group(name="gift", aliases=["g"], invoke_without_command=True)
+    async def gift(ctx: commands.Context):
+        await _reply(
+            ctx,
+            embed=italy_embed(
+                "Gift",
+                "Usage: `ns gift dough <player> <dough>` or `ns gift card <player> <card_code>`.",
+            ),
+        )
+
+    @gift.command(name="dough", aliases=["d"])
+    async def gift_dough(ctx: commands.Context, player: str, amount: int):
+        if not await _require_guild(ctx, "Gift"):
+            return
+
+        resolved_member, resolve_error = await resolve_member_argument(ctx, player)
+        if resolved_member is None:
+            await _reply(ctx, embed=italy_embed("Gift", resolve_error or "Could not resolve player."))
+            return
+
+        if resolved_member.bot:
+            await _reply(ctx, embed=italy_embed("Gift", "You cannot gift dough to bots."))
+            return
+
+        gifted, error_message, sender_balance, recipient_balance = execute_gift_dough(
+            guild_id=_guild_id(ctx),
+            sender_id=ctx.author.id,
+            recipient_id=resolved_member.id,
+            amount=amount,
+        )
+        if not gifted:
+            await _reply(ctx, embed=italy_embed("Gift", error_message or "Gift failed."))
+            return
+
+        await _reply(
+            ctx,
+            embed=italy_embed(
+                "Gift",
+                multiline_text(
+                    [
+                        f"Sent: **{amount}** dough to <@{resolved_member.id}>",
+                        f"Your Balance: **{sender_balance}** dough",
+                        f"{resolved_member.display_name}'s Balance: **{recipient_balance}** dough",
+                    ]
+                ),
+            ),
+        )
+
+    @gift.command(name="card", aliases=["c"])
+    async def gift_card(ctx: commands.Context, player: str, card_code: str):
         if not await _require_guild(ctx, "Gift"):
             return
 

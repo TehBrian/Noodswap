@@ -262,11 +262,11 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(interaction.response.edited_messages), 1)
         edited_embed = interaction.response.edited_messages[0]["embed"]
         self.assertEqual(edited_embed.title, "Help: Economy")
-        self.assertIn("ns drop", edited_embed.description)
-        self.assertNotIn("ns slots", edited_embed.description)
-        self.assertNotIn("ns flip", edited_embed.description)
-        self.assertNotIn("ns team", edited_embed.description)
-        self.assertNotIn("ns battle", edited_embed.description)
+        self.assertIn("`drop`", edited_embed.description)
+        self.assertNotIn("`slots`", edited_embed.description)
+        self.assertNotIn("`flip`", edited_embed.description)
+        self.assertNotIn("`team`", edited_embed.description)
+        self.assertNotIn("`battle`", edited_embed.description)
 
         interaction.response.edited_messages.clear()
         view.category_select._values = ["gambling"]
@@ -274,12 +274,20 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(interaction.response.edited_messages), 1)
         gambling_embed = interaction.response.edited_messages[0]["embed"]
         self.assertEqual(gambling_embed.title, "Help: Gambling")
-        self.assertIn("ns slots", gambling_embed.description)
-        self.assertIn("ns flip", gambling_embed.description)
-        self.assertIn("ns monopoly roll", gambling_embed.description)
-        self.assertIn("ns monopoly fine confirm", gambling_embed.description)
-        self.assertIn("ns monopoly board", gambling_embed.description)
-        self.assertIn("ns monopoly pot", gambling_embed.description)
+        self.assertIn("`slots`", gambling_embed.description)
+        self.assertIn("`flip <stake> [heads|tails]`", gambling_embed.description)
+        self.assertNotIn("`monopoly roll`", gambling_embed.description)
+
+        interaction.response.edited_messages.clear()
+        view.category_select._values = ["monopoly"]
+        await view.category_select.callback(interaction)
+        self.assertEqual(len(interaction.response.edited_messages), 1)
+        monopoly_embed = interaction.response.edited_messages[0]["embed"]
+        self.assertEqual(monopoly_embed.title, "Help: Monopoly")
+        self.assertIn("`monopoly roll`", monopoly_embed.description)
+        self.assertIn("`monopoly fine`", monopoly_embed.description)
+        self.assertIn("`monopoly board`", monopoly_embed.description)
+        self.assertIn("`monopoly pot`", monopoly_embed.description)
 
         interaction.response.edited_messages.clear()
         view.category_select._values = ["battle"]
@@ -287,14 +295,14 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(interaction.response.edited_messages), 1)
         battle_embed = interaction.response.edited_messages[0]["embed"]
         self.assertEqual(battle_embed.title, "Help: Battle")
-        self.assertIn("ns team add", battle_embed.description)
-        self.assertIn("ns team remove", battle_embed.description)
-        self.assertIn("ns team list", battle_embed.description)
-        self.assertIn("ns team assign", battle_embed.description)
-        self.assertIn("ns team unassign", battle_embed.description)
-        self.assertIn("ns team cards", battle_embed.description)
-        self.assertIn("ns team active", battle_embed.description)
-        self.assertIn("ns battle", battle_embed.description)
+        self.assertIn("`team add <team_name>`", battle_embed.description)
+        self.assertIn("`team remove <team_name>`", battle_embed.description)
+        self.assertIn("`team list`", battle_embed.description)
+        self.assertIn("`team assign <team_name> <card_code>`", battle_embed.description)
+        self.assertIn("`team unassign <team_name> <card_code>`", battle_embed.description)
+        self.assertIn("`team cards <team_name>`", battle_embed.description)
+        self.assertIn("`team active [team_name]`", battle_embed.description)
+        self.assertIn("`battle <player> <stake>`", battle_embed.description)
 
     async def test_help_view_category_option_order_includes_gambling_and_battle(self) -> None:
         view = HelpView(user_id=10)
