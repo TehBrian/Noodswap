@@ -85,21 +85,24 @@ def _normalize_help_command_path(text: str) -> str:
     return " ".join(tokens)
 
 
+def _expand_help_alias(alias: str, parent_tokens: list[str]) -> str | None:
+    if not alias.startswith("... "):
+        return _normalize_help_command_path(alias)
+
+    if len(parent_tokens) < 2:
+        return None
+    alias_suffix = _normalize_help_command_path(alias[4:])
+    if not alias_suffix:
+        return None
+    return " ".join([*parent_tokens[:-1], alias_suffix])
+
+
 def _iter_alias_command_paths(line: str, command_path: str) -> list[str]:
     alias_paths: list[str] = []
     parent_tokens = command_path.split()
     for alias_text in re.findall(r"\(([^)]*)\)", line):
         for alias in re.findall(r"`([^`]+)`", alias_text):
-            if alias.startswith("... "):
-                if len(parent_tokens) < 2:
-                    continue
-                alias_suffix = _normalize_help_command_path(alias[4:])
-                if not alias_suffix:
-                    continue
-                alias_paths.append(" ".join([*parent_tokens[:-1], alias_suffix]))
-                continue
-
-            alias_command_path = _normalize_help_command_path(alias)
+            alias_command_path = _expand_help_alias(alias, parent_tokens)
             if alias_command_path:
                 alias_paths.append(alias_command_path)
     return alias_paths
