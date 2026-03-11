@@ -407,6 +407,12 @@
     "rarity": "common",
     "series": "bread"
   },
+  "CRF": {
+    "image": "runtime/card_images/CRF.jpg",
+    "name": "Cerato's Foccacia",
+    "rarity": "epic",
+    "series": "bread"
+  },
   "CRO": {
     "image": "runtime/card_images/CRO.jpg",
     "name": "Crostini",
@@ -502,6 +508,18 @@
     "name": "Eggplant Parmigiana",
     "rarity": "uncommon",
     "series": "entree"
+  },
+  "ERF": {
+    "image": "runtime/card_images/ERF.jpg",
+    "name": "Ericka's Foccacia",
+    "rarity": "mythical",
+    "series": "bread"
+  },
+  "ERP": {
+    "image": "runtime/card_images/ERP.jpg",
+    "name": "Ericka's pasta",
+    "rarity": "mythical",
+    "series": "noodle"
   },
   "ESC": {
     "image": "runtime/card_images/ESC.jpg",
@@ -1303,6 +1321,12 @@
     "image": "runtime/card_images/SDM.jpg",
     "name": "Semolina Bread",
     "rarity": "common",
+    "series": "bread"
+  },
+  "SEB": {
+    "image": "runtime/card_images/SEB.jpg",
+    "name": "Sisi's Evil Banana Bread",
+    "rarity": "rare",
     "series": "bread"
   },
   "SGD": {

@@ -311,7 +311,7 @@ class CommandsTagTests(unittest.IsolatedAsyncioTestCase):
         sent_embed = ctx.send.await_args.kwargs["embed"]
         self.assertIn("Removed from `safe`:", sent_embed.description)
 
-    async def test_wish_remove_lists_multiple_name_matches(self) -> None:
+    async def test_wish_remove_supports_multiple_card_ids(self) -> None:
         wish_remove_command = _get_group_command(self.bot, "wish", "remove")
 
         ctx = AsyncMock()
@@ -320,15 +320,18 @@ class CommandsTagTests(unittest.IsolatedAsyncioTestCase):
         ctx.send = AsyncMock()
         ctx.reply = ctx.send
 
-        with patch("noodswap.commands.remove_card_from_wishlist", return_value=True) as remove_wishlist:
-            await wish_remove_command.callback(ctx, card_id="cheddar")
+        with patch(
+            "noodswap.commands.remove_card_from_wishlist",
+            side_effect=[True, False],
+        ) as remove_wishlist:
+            await wish_remove_command.callback(ctx, "CHD", "CHJ", "notacard")
 
-        remove_wishlist.assert_not_called()
-        ctx.send.assert_awaited_once()
+        self.assertEqual(remove_wishlist.call_count, 2)
         sent_embed = ctx.send.await_args.kwargs["embed"]
-        self.assertEqual(sent_embed.title, "Wishlist Matches")
-        self.assertIn("1. (`CHD`) [🧀] **Cheddar**", sent_embed.description)
-        self.assertIn("2. (`CHJ`) [🧀] **Cheddar Jack**", sent_embed.description)
+        self.assertEqual(sent_embed.title, "Wishlist")
+        self.assertIn("Removed:", sent_embed.description)
+        self.assertIn("Not on wishlist:", sent_embed.description)
+        self.assertIn("Unknown card id(s):", sent_embed.description)
 
 
 class CommandsFolderTests(unittest.IsolatedAsyncioTestCase):

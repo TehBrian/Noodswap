@@ -550,33 +550,46 @@ async def _wish_add(ctx: commands.Context, *card_ids: str) -> None:
     await _reply(ctx, embed=italy_embed("Wishlist", multiline_text(description_lines)))
 
 
-async def _wish_remove(ctx: commands.Context, card_id: str) -> None:
+async def _wish_remove(ctx: commands.Context, *card_ids: str) -> None:
     if ctx.guild is None:
         await _reply(ctx, embed=italy_embed("Wishlist", "Use this command in a server."))
         return
 
-    normalized_card_id = normalize_card_id(card_id)
-    matched_card_ids = [normalized_card_id] if normalized_card_id in CARD_CATALOG else search_card_ids_by_name(card_id)
-    if not matched_card_ids:
-        await _reply(ctx, embed=italy_embed("Wishlist", "Unknown card id."))
+    deduped_card_tokens = _dedupe_nonempty_tokens(card_ids)
+    if not deduped_card_tokens:
+        await _reply(ctx, embed=italy_embed("Wishlist", "Usage: `ns wish remove <card_id> [card_id ...]`."))
         return
 
-    if len(matched_card_ids) > 1:
-        match_lines = [
-            f"{index}. {card_base_display(matched_card_id)}"
-            for index, matched_card_id in enumerate(matched_card_ids, start=1)
-        ]
-        await _reply(ctx, embed=italy_embed("Wishlist Matches", multiline_text(match_lines)))
-        return
+    resolved_card_ids: list[str] = []
+    unknown_card_ids: list[str] = []
+    for token in deduped_card_tokens:
+        normalized_card_id = normalize_card_id(token)
+        if normalized_card_id in CARD_CATALOG:
+            resolved_card_ids.append(normalized_card_id)
+        else:
+            unknown_card_ids.append(token)
 
-    resolved_card_id = matched_card_ids[0]
+    removed_lines: list[str] = []
+    not_wishlisted_lines: list[str] = []
+    for resolved_card_id in resolved_card_ids:
+        was_removed = remove_card_from_wishlist(ctx.guild.id, ctx.author.id, resolved_card_id)
+        if was_removed:
+            removed_lines.append(card_base_display(resolved_card_id))
+        else:
+            not_wishlisted_lines.append(card_base_display(resolved_card_id))
 
-    was_removed = remove_card_from_wishlist(ctx.guild.id, ctx.author.id, resolved_card_id)
-    if not was_removed:
-        await _reply(ctx, embed=italy_embed("Wishlist", f"Not on wishlist: {card_base_display(resolved_card_id)}"))
-        return
+    description_lines: list[str] = []
+    if removed_lines:
+        description_lines.append("Removed:")
+        description_lines.extend(f"- {line}" for line in removed_lines)
+    if not_wishlisted_lines:
+        description_lines.append("Not on wishlist:")
+        description_lines.extend(f"- {line}" for line in not_wishlisted_lines)
+    if unknown_card_ids:
+        unknown_text = ", ".join(f"`{card_id}`" for card_id in unknown_card_ids)
+        description_lines.append(f"Unknown card id(s): {unknown_text}")
 
-    await _reply(ctx, embed=italy_embed("Wishlist", f"Removed from wishlist: {card_base_display(resolved_card_id)}"))
+    await _reply(ctx, embed=italy_embed("Wishlist", multiline_text(description_lines)))
 
 
 async def _wish_list(ctx: commands.Context, target_member: discord.abc.User | None = None) -> None:
@@ -1304,7 +1317,7 @@ def register_commands(bot: commands.Bot) -> None:  # pylint: disable=too-many-st
         await _reply(ctx,
             embed=italy_embed(
                 "Wishlist",
-                "Usage: `ns wish add <card_id> [card_id ...]`, `ns wish remove <card_id>`, or `ns wish list [player]`.",
+                "Usage: `ns wish add <card_id> [card_id ...]`, `ns wish remove <card_id> [card_id ...]`, or `ns wish list [player]`.",
             )
         )
 
@@ -1313,8 +1326,8 @@ def register_commands(bot: commands.Bot) -> None:  # pylint: disable=too-many-st
         await _wish_add(ctx, *card_ids)
 
     @wish.command(name="remove", aliases=["r"])
-    async def wish_remove(ctx: commands.Context, card_id: str):
-        await _wish_remove(ctx, card_id)
+    async def wish_remove(ctx: commands.Context, *card_ids: str):
+        await _wish_remove(ctx, *card_ids)
 
     @wish.command(name="list", aliases=["l"])
     async def wish_list(ctx: commands.Context, *, player: str | None = None):
