@@ -1,3 +1,4 @@
+import warnings
 from math import exp, floor, log
 
 RARITY_ORDER = (
@@ -99,7 +100,7 @@ def build_rarity_weights(
     - ``tail_curvature``: higher values steepen top-tier rarity drop-off.
     - ``smoothing``: higher values flatten the curve.
 
-        Legacy migration:
+    Legacy migration:
     - ``shape`` is accepted and converted into ``linear_rate``.
     - ``growth_ratio`` is accepted and converted into an equivalent shape.
     - ``rarest_weight`` is deprecated and intentionally ignored.
@@ -126,7 +127,12 @@ def build_rarity_weights(
         raise ValueError("linear_rate must be > 0.0")
 
     if rarest_weight is not None:
-        _ = rarest_weight  # Deprecated; accepted only for transition compatibility.
+        _ = rarest_weight
+        warnings.warn(
+            "`rarest_weight` is deprecated and ignored; use linear_rate/tail_curvature/smoothing.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
 
     steepness_scale = 1.0 / (1.0 + smoothing)
     raw_rarest_to_common = [

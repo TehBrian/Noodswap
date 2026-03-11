@@ -10,6 +10,7 @@ from .morphs import morph_label
 from .presentation import italy_embed
 from .services import execute_burn_batch_confirmation, execute_burn_confirmation, resolve_font_roll, resolve_frame_roll, resolve_morph_roll
 from .settings import BURN_CONFIRM_TIMEOUT_SECONDS
+from .view_utils import InteractionView, logger
 
 
 def _format_lock_reason(reason: str) -> str:
@@ -36,7 +37,14 @@ def _format_skip_reasons(reasons: tuple[str, ...] | list[str]) -> str:
     return ", ".join(formatted)
 
 
-class BurnConfirmView(discord.ui.View):
+def _burn_result_has_required_fields(result: object) -> bool:
+    return all(
+        getattr(result, field_name) is not None
+        for field_name in ("card_id", "generation", "dupe_code", "payout", "delta")
+    )
+
+
+class BurnConfirmView(InteractionView):
     def __init__(
         self,
         guild_id: int,
@@ -115,13 +123,7 @@ class BurnConfirmView(discord.ui.View):
                     )
                 return
 
-            if (
-                burn_result.card_id is None
-                or burn_result.generation is None
-                or burn_result.dupe_code is None
-                or burn_result.payout is None
-                or burn_result.delta is None
-            ):
+            if not _burn_result_has_required_fields(burn_result):
                 self.finished = True
                 self._disable_buttons()
                 await interaction.response.edit_message(view=self)
@@ -253,7 +255,7 @@ Payout: **{burn_result.payout} dough**
                 view=self,
             )
         except discord.HTTPException:
-            pass
+            logger.warning("Failed to edit burn confirmation message on timeout (message_id=%s)", self.message.id)
 
     def _disable_buttons(self) -> None:
         for item in self.children:
@@ -261,7 +263,7 @@ Payout: **{burn_result.payout} dough**
                 item.disabled = True
 
 
-class MorphConfirmView(discord.ui.View):
+class MorphConfirmView(InteractionView):
     def __init__(
         self,
         *,
@@ -411,7 +413,7 @@ class MorphConfirmView(discord.ui.View):
         try:
             await self.message.edit(view=self)
         except discord.HTTPException:
-            pass
+            logger.warning("Failed to edit morph confirmation message on timeout (message_id=%s)", self.message.id)
 
     def _disable_buttons(self) -> None:
         for item in self.children:
@@ -419,7 +421,7 @@ class MorphConfirmView(discord.ui.View):
                 item.disabled = True
 
 
-class FrameConfirmView(discord.ui.View):
+class FrameConfirmView(InteractionView):
     def __init__(
         self,
         *,
@@ -569,7 +571,7 @@ class FrameConfirmView(discord.ui.View):
         try:
             await self.message.edit(view=self)
         except discord.HTTPException:
-            pass
+            logger.warning("Failed to edit frame confirmation message on timeout (message_id=%s)", self.message.id)
 
     def _disable_buttons(self) -> None:
         for item in self.children:
@@ -577,7 +579,7 @@ class FrameConfirmView(discord.ui.View):
                 item.disabled = True
 
 
-class FontConfirmView(discord.ui.View):
+class FontConfirmView(InteractionView):
     def __init__(
         self,
         *,
@@ -727,7 +729,7 @@ class FontConfirmView(discord.ui.View):
         try:
             await self.message.edit(view=self)
         except discord.HTTPException:
-            pass
+            logger.warning("Failed to edit font confirmation message on timeout (message_id=%s)", self.message.id)
 
     def _disable_buttons(self) -> None:
         for item in self.children:

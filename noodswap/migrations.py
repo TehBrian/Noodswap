@@ -381,6 +381,7 @@ def _apply_migration_v10(conn: sqlite3.Connection) -> None:
 
 
 def _apply_migration_v11(conn: sqlite3.Connection) -> None:
+    """Reserved no-op migration kept for schema history compatibility."""
     _ = conn
 
 
@@ -699,6 +700,17 @@ def _apply_migration_v21(conn: sqlite3.Connection) -> None:
     that would result in dough < 0 will raise an ABORT error and roll back the
     enclosing transaction.
     """
+    players_table_exists = conn.execute(
+        """
+        SELECT 1
+        FROM sqlite_master
+        WHERE type = 'table' AND name = 'players'
+        LIMIT 1
+        """
+    ).fetchone() is not None
+    if not players_table_exists:
+        return
+
     conn.executescript(
         """
         DROP TRIGGER IF EXISTS prevent_negative_dough;

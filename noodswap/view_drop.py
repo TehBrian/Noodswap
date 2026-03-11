@@ -8,9 +8,10 @@ from .images import embed_image_payload
 from .presentation import italy_embed
 from .services import execute_drop_claim
 from .settings import DROP_TIMEOUT_SECONDS, PULL_COOLDOWN_SECONDS
+from .view_utils import InteractionView, logger
 
 
-class DropView(discord.ui.View):
+class DropView(InteractionView):
     def __init__(self, guild_id: int, user_id: int, choices: list[tuple[str, int]]):
         super().__init__(timeout=DROP_TIMEOUT_SECONDS)
         self.guild_id = guild_id
@@ -118,7 +119,7 @@ class DropView(discord.ui.View):
         try:
             await self.message.edit(view=self)
         except discord.HTTPException:
-            pass
+            logger.warning("Failed to edit drop message on timeout (message_id=%s)", self.message.id)
 
     def _disable_buttons(self) -> None:
         for item in self.children:

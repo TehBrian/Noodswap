@@ -536,7 +536,7 @@ class StorageTests(unittest.TestCase):
             card_id,
         )
         self.assertFalse(second_success)
-        self.assertEqual(second_message, "That card is already married by another player in this server.")
+        self.assertEqual(second_message, "That card is already married by another player.")
         self.assertIsNone(second_instance_id)
         self.assertIsNone(second_generation)
 

@@ -1,7 +1,7 @@
 import os
 import logging
 
-from . import compat as _compat  # noqa: F401 — applies asyncio patch before discord import
+from . import compat as _compat  # noqa: F401 - applies asyncio patch before discord import
 
 import discord
 from discord.ext import commands

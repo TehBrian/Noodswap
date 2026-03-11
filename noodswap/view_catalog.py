@@ -8,9 +8,10 @@ from .presentation import italy_embed
 from .settings import TRADE_TIMEOUT_SECONDS
 from .utils import multiline_text
 from .view_pagination import FIRST_PAGE_EMOJI, LAST_PAGE_EMOJI, NEXT_PAGE_EMOJI, PREVIOUS_PAGE_EMOJI
+from .view_utils import InteractionView, logger
 
 
-class CardCatalogView(discord.ui.View):
+class CardCatalogView(InteractionView):
     def __init__(self, user_id: int, entries: list[tuple[str, int]], page_size: int = 10):
         super().__init__(timeout=TRADE_TIMEOUT_SECONDS)
         self.user_id = user_id
@@ -289,4 +290,4 @@ class CardCatalogView(discord.ui.View):
                 edit_kwargs["attachments"] = []
             await self.message.edit(**edit_kwargs)
         except discord.HTTPException:
-            pass
+            logger.warning("Failed to edit card catalog message on timeout (message_id=%s)", self.message.id)

@@ -7,9 +7,10 @@ from .cards import card_base_display, card_dupe_display
 from .presentation import italy_embed
 from .services import resolve_trade_offer
 from .settings import TRADE_TIMEOUT_SECONDS
+from .view_utils import InteractionView, logger
 
 
-class TradeView(discord.ui.View):
+class TradeView(InteractionView):
     def __init__(
         self,
         guild_id: int,
@@ -142,7 +143,7 @@ class TradeView(discord.ui.View):
                 view=self,
             )
         except discord.HTTPException:
-            pass
+            logger.warning("Failed to edit trade message on timeout (message_id=%s)", self.message.id)
 
     def _disable_buttons(self) -> None:
         for item in self.children:
