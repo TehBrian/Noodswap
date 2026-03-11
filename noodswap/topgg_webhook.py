@@ -7,7 +7,7 @@ from typing import Any
 
 from aiohttp import web
 
-from .settings import VOTE_COOLDOWN_SECONDS, VOTE_STARTER_REWARD
+from .settings import VOTE_STARTER_REWARD
 from .storage import claim_vote_reward_if_ready
 
 logger = logging.getLogger(__name__)
@@ -154,7 +154,7 @@ class TopggWebhookServer:
             guild_id=0,
             user_id=user_id,
             now=time.time(),
-            cooldown_seconds=VOTE_COOLDOWN_SECONDS,
+            cooldown_seconds=0,
             reward_amount=VOTE_STARTER_REWARD,
         )
 

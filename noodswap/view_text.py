@@ -67,28 +67,28 @@ class PaginatedLinesView(discord.ui.View):
             return False
         return True
 
-    @discord.ui.button(label="First", emoji=FIRST_PAGE_EMOJI, style=discord.ButtonStyle.secondary)
+    @discord.ui.button(emoji=FIRST_PAGE_EMOJI, style=discord.ButtonStyle.secondary)
     async def first_page_button(self, interaction: discord.Interaction, _button: discord.ui.Button):
         if not await self._guard_user(interaction):
             return
         self.page_index = 0
         await self._update_message(interaction)
 
-    @discord.ui.button(label="Prev", emoji=PREVIOUS_PAGE_EMOJI, style=discord.ButtonStyle.secondary)
+    @discord.ui.button(emoji=PREVIOUS_PAGE_EMOJI, style=discord.ButtonStyle.secondary)
     async def previous_page_button(self, interaction: discord.Interaction, _button: discord.ui.Button):
         if not await self._guard_user(interaction):
             return
         self.page_index = max(0, self.page_index - 1)
         await self._update_message(interaction)
 
-    @discord.ui.button(label="Next", emoji=NEXT_PAGE_EMOJI, style=discord.ButtonStyle.secondary)
+    @discord.ui.button(emoji=NEXT_PAGE_EMOJI, style=discord.ButtonStyle.secondary)
     async def next_page_button(self, interaction: discord.Interaction, _button: discord.ui.Button):
         if not await self._guard_user(interaction):
             return
         self.page_index = min(self.total_pages - 1, self.page_index + 1)
         await self._update_message(interaction)
 
-    @discord.ui.button(label="Last", emoji=LAST_PAGE_EMOJI, style=discord.ButtonStyle.secondary)
+    @discord.ui.button(emoji=LAST_PAGE_EMOJI, style=discord.ButtonStyle.secondary)
     async def last_page_button(self, interaction: discord.Interaction, _button: discord.ui.Button):
         if not await self._guard_user(interaction):
             return
@@ -125,9 +125,11 @@ class PlayerLeaderboardView(discord.ui.View):
         self.page_size = max(1, page_size)
         self.page_index = 0
         self.criteria = "cards"
+        self.sort_descending = True
         self.message: Optional[discord.Message] = None
-        self._sorted_entries = self._sorted_entries_for_criteria(self.criteria)
+        self._sorted_entries = self._sorted_entries_for_criteria(self.criteria, descending=self.sort_descending)
         self._set_criteria_select_defaults()
+        self._set_sort_direction_button_label()
         self._refresh_button_state()
 
     def _metric_value(self, entry: tuple[int, int, int, int, int, int, int], criteria: str) -> int:
@@ -152,11 +154,11 @@ class PlayerLeaderboardView(discord.ui.View):
             "value": "Collection Value",
         }.get(criteria, "Cards")
 
-    def _sorted_entries_for_criteria(self, criteria: str) -> list[tuple[int, int, int, int, int, int, int]]:
+    def _sorted_entries_for_criteria(self, criteria: str, *, descending: bool) -> list[tuple[int, int, int, int, int, int, int]]:
         return sorted(
             self.entries,
             key=lambda entry: (
-                -self._metric_value(entry, criteria),
+                -self._metric_value(entry, criteria) if descending else self._metric_value(entry, criteria),
                 -entry[6],
                 -entry[3],
                 entry[0],
@@ -167,6 +169,9 @@ class PlayerLeaderboardView(discord.ui.View):
         selected = self.criteria
         for option in self.criteria_select.options:
             option.default = option.value == selected
+
+    def _set_sort_direction_button_label(self) -> None:
+        self.sort_direction_button.label = "▼" if self.sort_descending else "▲"
 
     @property
     def total_pages(self) -> int:
@@ -203,11 +208,13 @@ class PlayerLeaderboardView(discord.ui.View):
             description = multiline_text(lines)
 
         embed = italy_embed(self.title, description)
-        embed.set_footer(text=f"Page {self.page_index + 1}/{self.total_pages} • Ranked by {criteria_label}")
+        direction_label = "Desc" if self.sort_descending else "Asc"
+        embed.set_footer(text=f"Page {self.page_index + 1}/{self.total_pages} • Ranked by {criteria_label} ({direction_label})")
         return embed
 
     async def _update_message(self, interaction: discord.Interaction) -> None:
         self.page_index = max(0, min(self.total_pages - 1, self.page_index))
+        self._set_sort_direction_button_label()
         self._refresh_button_state()
         await interaction.response.edit_message(embed=self.build_embed(), view=self)
 
@@ -239,36 +246,45 @@ class PlayerLeaderboardView(discord.ui.View):
 
         self.criteria = select.values[0]
         self.page_index = 0
-        self._sorted_entries = self._sorted_entries_for_criteria(self.criteria)
+        self._sorted_entries = self._sorted_entries_for_criteria(self.criteria, descending=self.sort_descending)
         self._set_criteria_select_defaults()
         await self._update_message(interaction)
 
-    @discord.ui.button(label="First", emoji=FIRST_PAGE_EMOJI, style=discord.ButtonStyle.secondary)
+    @discord.ui.button(emoji=FIRST_PAGE_EMOJI, style=discord.ButtonStyle.secondary)
     async def first_page_button(self, interaction: discord.Interaction, _button: discord.ui.Button):
         if not await self._guard_user(interaction):
             return
         self.page_index = 0
         await self._update_message(interaction)
 
-    @discord.ui.button(label="Prev", emoji=PREVIOUS_PAGE_EMOJI, style=discord.ButtonStyle.secondary)
+    @discord.ui.button(emoji=PREVIOUS_PAGE_EMOJI, style=discord.ButtonStyle.secondary)
     async def previous_page_button(self, interaction: discord.Interaction, _button: discord.ui.Button):
         if not await self._guard_user(interaction):
             return
         self.page_index = max(0, self.page_index - 1)
         await self._update_message(interaction)
 
-    @discord.ui.button(label="Next", emoji=NEXT_PAGE_EMOJI, style=discord.ButtonStyle.secondary)
+    @discord.ui.button(emoji=NEXT_PAGE_EMOJI, style=discord.ButtonStyle.secondary)
     async def next_page_button(self, interaction: discord.Interaction, _button: discord.ui.Button):
         if not await self._guard_user(interaction):
             return
         self.page_index = min(self.total_pages - 1, self.page_index + 1)
         await self._update_message(interaction)
 
-    @discord.ui.button(label="Last", emoji=LAST_PAGE_EMOJI, style=discord.ButtonStyle.secondary)
+    @discord.ui.button(emoji=LAST_PAGE_EMOJI, style=discord.ButtonStyle.secondary)
     async def last_page_button(self, interaction: discord.Interaction, _button: discord.ui.Button):
         if not await self._guard_user(interaction):
             return
         self.page_index = self.total_pages - 1
+        await self._update_message(interaction)
+
+    @discord.ui.button(label="▼", style=discord.ButtonStyle.primary)
+    async def sort_direction_button(self, interaction: discord.Interaction, _button: discord.ui.Button):
+        if not await self._guard_user(interaction):
+            return
+        self.sort_descending = not self.sort_descending
+        self.page_index = 0
+        self._sorted_entries = self._sorted_entries_for_criteria(self.criteria, descending=self.sort_descending)
         await self._update_message(interaction)
 
     async def on_timeout(self) -> None:

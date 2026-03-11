@@ -5,8 +5,8 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from typing import Optional
 
-from .cards import card_value, random_generation, split_card_code
-from .battle_engine import build_battle_card, resolve_attack
+from .cards import CARD_CATALOG, card_value, random_generation, split_card_code
+from .battle_engine import build_battle_card, resolve_attack, series_attack_message
 from .migrations import TARGET_SCHEMA_VERSION, run_migrations
 from .repositories import (
     BattleCombatantRepository,
@@ -679,9 +679,10 @@ def execute_battle_turn_action(
                 defender_is_defending=bool(opponent_active["is_defending"]),
                 rng=random,
             )
+            attacker_name = str(CARD_CATALOG.get(attacker.card_id, {}).get("name", attacker.card_id))
             if hit.missed:
                 turn_number = int(battle["turn_number"]) + 1
-                last_action = f"<@{actor_id}> attacked but missed."
+                last_action = f"**{attacker_name}** attacked but missed."
                 battles.update_turn_state(
                     guild_id,
                     battle_id,
@@ -705,7 +706,8 @@ def execute_battle_turn_action(
                     payout = int(battle["stake"]) * 2
                     players.add_dough(guild_id, winner, payout)
                     action_text = (
-                        f"<@{actor_id}> dealt **{hit.damage}** and knocked out the last opposing card."
+                        series_attack_message(attacker.series, attacker_name, hit.damage, random)
+                        + " Knocked out the last opposing card!"
                     )
                     battles.mark_finished(
                         guild_id,
@@ -718,10 +720,12 @@ def execute_battle_turn_action(
 
                 combatants.set_active_slot(battle_id, opponent_side, replacement_slot)
                 action_text = (
-                    f"<@{actor_id}> dealt **{hit.damage}** ({hit.effectiveness:.2f}x) and forced a switch."
+                    series_attack_message(attacker.series, attacker_name, hit.damage, random)
+                    + f" ({hit.effectiveness:.2f}x) Forced a switch!"
                 )
             else:
-                action_text = f"<@{actor_id}> dealt **{hit.damage}** ({hit.effectiveness:.2f}x)."
+                eff_suffix = f" ({hit.effectiveness:.2f}x)" if hit.effectiveness != 1.0 else ""
+                action_text = series_attack_message(attacker.series, attacker_name, hit.damage, random) + eff_suffix
 
             turn_number = int(battle["turn_number"]) + 1
             battles.update_turn_state(
@@ -1181,6 +1185,13 @@ def get_instance_font(guild_id: int, instance_id: int) -> Optional[str]:
     with get_db_connection() as conn:
         instances = CardInstanceRepository(conn)
         return instances.get_font_key(guild_id, instance_id)
+
+
+def get_instance_owner(guild_id: int, instance_id: int) -> Optional[int]:
+    guild_id = _scope_guild_id(guild_id)
+    with get_db_connection() as conn:
+        instances = CardInstanceRepository(conn)
+        return instances.get_owner_by_id(guild_id, instance_id)
 
 
 def get_instance_by_code(guild_id: int, user_id: int, card_code: str) -> Optional[tuple[int, str, int, str]]:

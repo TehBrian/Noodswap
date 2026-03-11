@@ -15,9 +15,11 @@ from .battle_engine import value_to_stats
 from .cards import (
     CARD_CATALOG,
     card_base_display,
+    card_base_value,
     card_dupe_display,
     card_dupe_display_concise,
     card_value,
+    generation_value_multiplier,
     normalize_card_id,
     search_card_ids,
     search_card_ids_by_name,
@@ -60,7 +62,6 @@ from .settings import (
     FLIP_WIN_PROBABILITY,
     PULL_COOLDOWN_SECONDS,
     SLOTS_COOLDOWN_SECONDS,
-    VOTE_COOLDOWN_SECONDS,
     VOTE_STARTER_REWARD,
 )
 from .storage import (
@@ -85,6 +86,7 @@ from .storage import (
     get_instance_font,
     get_instance_frame,
     get_instance_morph,
+    get_instance_owner,
     get_burn_candidate_by_card_id,
     get_instances_by_folder,
     get_instances_by_tag,
@@ -295,7 +297,7 @@ def _vote_link_view(vote_url: str) -> discord.ui.View:
     return view
 
 
-SLOTS_REEL_EMOJIS: tuple[str, ...] = ("🍞", "🍷", "🧀", "🍕", "🍇", "🥖", "🍝")
+SLOTS_REEL_EMOJIS: tuple[str, ...] = ("�", "🧀", "🥖", "🍝")
 SLOTS_REEL_COUNT = 3
 SLOTS_SPIN_MIN_STEPS = 4
 SLOTS_SPIN_MAX_STEPS = 7
@@ -1564,10 +1566,19 @@ def register_commands(bot: commands.Bot) -> None:  # pylint: disable=too-many-st
             matched_instance = get_instance_by_dupe_code(ctx.guild.id, card_id)
             if matched_instance is not None:
                 matched_instance_id, matched_card_id, matched_generation, matched_dupe_code = matched_instance
-                lookup_embed = italy_embed(
-                    embed_title,
-                    card_dupe_display(matched_card_id, matched_generation, dupe_code=matched_dupe_code),
-                )
+                owner_user_id = get_instance_owner(ctx.guild.id, matched_instance_id)
+                owner_mention = f"<@{owner_user_id}>" if owner_user_id is not None else "Unknown"
+                
+                embed_description = card_dupe_display(matched_card_id, matched_generation, dupe_code=matched_dupe_code)
+                embed_description += f"\n**Owner:** {owner_mention}"
+                
+                # Add value breakdown
+                base_val = card_base_value(matched_card_id)
+                multiplier = generation_value_multiplier(matched_generation)
+                actual_val = card_value(matched_card_id, matched_generation)
+                embed_description += f"\n**Base Value:** {base_val} dough • **Gen Multiplier:** {multiplier:.2f}x • **Actual Value:** {actual_val} dough"
+                
+                lookup_embed = italy_embed(embed_title, embed_description)
                 image_url, image_file = embed_image_payload(
                     matched_card_id,
                     generation=matched_generation,
@@ -1946,7 +1957,7 @@ def register_commands(bot: commands.Bot) -> None:  # pylint: disable=too-many-st
                 font_key=get_instance_font(ctx.guild.id, primary_item.instance_id),
             )
             if image_url is not None:
-                confirm_embed.set_image(url=image_url)
+                confirm_embed.set_thumbnail(url=image_url)
             if image_file is not None:
                 send_kwargs["file"] = image_file
 
@@ -2168,7 +2179,6 @@ def register_commands(bot: commands.Bot) -> None:  # pylint: disable=too-many-st
         lines: list[str] = [
             "Support Noodswap by voting on top.gg.",
             f"Reward: **{VOTE_STARTER_REWARD} starter** per confirmed vote.",
-            f"Vote Reward Cooldown: **{format_cooldown(VOTE_COOLDOWN_SECONDS)}**",
             "",
             "Vote rewards are registered automatically through the top.gg webhook.",
             "If your reward does not appear right away, top.gg may still be processing the event.",
@@ -2359,7 +2369,6 @@ def register_commands(bot: commands.Bot) -> None:  # pylint: disable=too-many-st
             [
                 _cooldown_status_line("Drop", drop_elapsed, DROP_COOLDOWN_SECONDS),
                 _cooldown_status_line("Pull", pull_elapsed, PULL_COOLDOWN_SECONDS),
-                _cooldown_status_line("Vote", vote_elapsed, VOTE_COOLDOWN_SECONDS),
                 _cooldown_status_line("Slots", slots_elapsed, SLOTS_COOLDOWN_SECONDS),
                 _cooldown_status_line("Flip", flip_elapsed, FLIP_COOLDOWN_SECONDS),
             ]

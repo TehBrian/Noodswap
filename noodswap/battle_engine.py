@@ -14,7 +14,7 @@ RARITY_MISS_CHANCE: dict[str, float] = {
     "rare": 0.24,
     "epic": 0.18,
     "legendary": 0.13,
-    "mythic": 0.10,
+    "mythical": 0.10,
     "divine": 0.07,
     "celestial": 0.05,
 }
@@ -35,6 +35,94 @@ MIN_ROLL = 0.7
 MAX_ROLL = 1.3
 ROLL_SIGMA = 0.15
 DEFEND_DAMAGE_MULTIPLIER = 0.6
+
+# Series-specific attack verb templates. Use {card} for the attacker name and {damage} for the damage dealt.
+SERIES_ATTACK_VERBS: dict[str, list[str]] = {
+    "wine": [
+        "{card} splashed their opponent, dealing {damage} damage!",
+        "{card} doused the enemy in a bold pour, dealing {damage} damage!",
+        "{card} swirled and sloshed, dealing {damage} damage!",
+        "{card} uncorked a tidal wave, dealing {damage} damage!",
+        "{card} baptized the opposition in tannins, dealing {damage} damage!",
+        "{card} let loose a vinous flood, dealing {damage} damage!",
+    ],
+    "bread": [
+        "{card} muffled their opponent under a dense loaf, dealing {damage} damage!",
+        "{card} suffocated the enemy in doughy layers, dealing {damage} damage!",
+        "{card} smothered the opposition with a thick crust, dealing {damage} damage!",
+        "{card} buried the enemy beneath a pile of crumbs, dealing {damage} damage!",
+        "{card} swatted their opponent with a crusty swing, dealing {damage} damage!",
+        "{card} pressed down on the enemy with full loaf force, dealing {damage} damage!",
+    ],
+    "cheese": [
+        "{card} aged the competition right out, dealing {damage} damage!",
+        "{card} melted all over their opponent, dealing {damage} damage!",
+        "{card} wedged into the enemy's defenses, dealing {damage} damage!",
+        "{card} unleashed a pungent assault, dealing {damage} damage!",
+        "{card} crumbled onto the opposition, dealing {damage} damage!",
+        "{card} rinded the enemy into submission, dealing {damage} damage!",
+    ],
+    "dessert": [
+        "{card} drowned their opponent in sweetness, dealing {damage} damage!",
+        "{card} layered the competition in sugary ruin, dealing {damage} damage!",
+        "{card} glazed the enemy into a stupor, dealing {damage} damage!",
+        "{card} frosted over the opposition, dealing {damage} damage!",
+        "{card} caramelized the enemy on the spot, dealing {damage} damage!",
+        "{card} showered the opponent in confectionery chaos, dealing {damage} damage!",
+    ],
+    "entree": [
+        "{card} plated the enemy for dinner, dealing {damage} damage!",
+        "{card} served up a devastating portion, dealing {damage} damage!",
+        "{card} sautéed their opponent into the ground, dealing {damage} damage!",
+        "{card} slow-cooked the competition, dealing {damage} damage!",
+        "{card} broiled the enemy to perfection, dealing {damage} damage!",
+        "{card} reduced their opponent to a garnish, dealing {damage} damage!",
+    ],
+    "grain": [
+        "{card} ground the enemy down, dealing {damage} damage!",
+        "{card} threshed their opponent into dust, dealing {damage} damage!",
+        "{card} pelted the competition with a grain storm, dealing {damage} damage!",
+        "{card} hulled the enemy right through, dealing {damage} damage!",
+        "{card} scattered the opposition with a mighty harvest, dealing {damage} damage!",
+        "{card} milled the enemy into fine powder, dealing {damage} damage!",
+    ],
+    "noodle": [
+        "{card} tangled up their opponent, dealing {damage} damage!",
+        "{card} whipped the competition into shape, dealing {damage} damage!",
+        "{card} ensnared the enemy in a noodle net, dealing {damage} damage!",
+        "{card} lashed their opponent with a saucy strand, dealing {damage} damage!",
+        "{card} coiled around the enemy and squeezed, dealing {damage} damage!",
+        "{card} slapped the opposition with a wet noodle, dealing {damage} damage!",
+    ],
+    "ingredient": [
+        "{card} infused the enemy with potent force, dealing {damage} damage!",
+        "{card} seasoned the competition heavily, dealing {damage} damage!",
+        "{card} marinated their opponent into submission, dealing {damage} damage!",
+        "{card} extracted all resistance from the enemy, dealing {damage} damage!",
+        "{card} distilled pure pain into the opposition, dealing {damage} damage!",
+        "{card} reduced the enemy to base components, dealing {damage} damage!",
+    ],
+    "snack": [
+        "{card} crunched their opponent mercilessly, dealing {damage} damage!",
+        "{card} snapped the enemy's resolve in two, dealing {damage} damage!",
+        "{card} pelted the competition with a rapid burst, dealing {damage} damage!",
+        "{card} nibbled away at the enemy's defenses, dealing {damage} damage!",
+        "{card} popped off on the opposition, dealing {damage} damage!",
+        "{card} spiraled into the enemy with reckless abandon, dealing {damage} damage!",
+    ],
+}
+
+_DEFAULT_ATTACK_VERBS = [
+    "{card} struck their opponent, dealing {damage} damage!",
+    "{card} delivered a decisive blow, dealing {damage} damage!",
+    "{card} landed a clean hit, dealing {damage} damage!",
+]
+
+
+def series_attack_message(series: str, card_name: str, damage: int, rng: random.Random) -> str:
+    pool = SERIES_ATTACK_VERBS.get(series, _DEFAULT_ATTACK_VERBS)
+    template = rng.choice(pool)
+    return template.format(card=f"**{card_name}**", damage=f"**{damage}**")
 
 
 @dataclass(frozen=True)

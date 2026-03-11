@@ -6,7 +6,7 @@ RARITY_ORDER = (
     "rare",
     "epic",
     "legendary",
-    "mythic",
+    "mythical",
     "divine",
     "celestial",
 )

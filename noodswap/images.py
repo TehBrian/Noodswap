@@ -46,7 +46,7 @@ RARITY_BORDER_COLORS: dict[str, tuple[int, int, int]] = {
     "rare": (186, 154, 255),
     "epic": (238, 141, 42),
     "legendary": (128, 205, 255),
-    "mythic": (96, 52, 145),
+    "mythical": (96, 52, 145),
     "divine": (242, 211, 74),
     "celestial": (198, 242, 255),
 }

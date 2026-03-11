@@ -1744,3 +1744,16 @@ class CardInstanceRepository:
         except sqlite3.OperationalError:
             return False
         return int(cursor.rowcount) > 0
+
+    def get_owner_by_id(self, guild_id: int, instance_id: int) -> Optional[int]:
+        row = self.conn.execute(
+            """
+            SELECT user_id
+            FROM card_instances
+            WHERE guild_id = ? AND instance_id = ?
+            """,
+            (guild_id, instance_id),
+        ).fetchone()
+        if row is None:
+            return None
+        return int(row["user_id"])

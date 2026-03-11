@@ -63,7 +63,7 @@ class SortableCardListView(discord.ui.View):
         order = {
             "celestial": 0,
             "divine": 1,
-            "mythic": 2,
+            "mythical": 2,
             "legendary": 3,
             "epic": 4,
             "rare": 5,
@@ -237,21 +237,21 @@ class SortableCardListView(discord.ui.View):
         self._set_sort_select_defaults()
         await self._update_message(interaction)
 
-    @discord.ui.button(label="First", emoji=FIRST_PAGE_EMOJI, style=discord.ButtonStyle.secondary)
+    @discord.ui.button(emoji=FIRST_PAGE_EMOJI, style=discord.ButtonStyle.secondary)
     async def first_page_button(self, interaction: discord.Interaction, _button: discord.ui.Button):
         if not await self._guard_user(interaction):
             return
         self.page_index = 0
         await self._update_message(interaction)
 
-    @discord.ui.button(label="Prev", emoji=PREVIOUS_PAGE_EMOJI, style=discord.ButtonStyle.secondary)
+    @discord.ui.button(emoji=PREVIOUS_PAGE_EMOJI, style=discord.ButtonStyle.secondary)
     async def previous_page_button(self, interaction: discord.Interaction, _button: discord.ui.Button):
         if not await self._guard_user(interaction):
             return
         self.page_index = max(0, self.page_index - 1)
         await self._update_message(interaction)
 
-    @discord.ui.button(label="Next", emoji=NEXT_PAGE_EMOJI, style=discord.ButtonStyle.secondary)
+    @discord.ui.button(emoji=NEXT_PAGE_EMOJI, style=discord.ButtonStyle.secondary)
     async def next_page_button(self, interaction: discord.Interaction, _button: discord.ui.Button):
         if not await self._guard_user(interaction):
             return
@@ -367,7 +367,7 @@ class SortableCollectionView(discord.ui.View):
         order = {
             "celestial": 0,
             "divine": 1,
-            "mythic": 2,
+            "mythical": 2,
             "legendary": 3,
             "epic": 4,
             "rare": 5,
@@ -595,28 +595,28 @@ class SortableCollectionView(discord.ui.View):
         self._set_sort_select_defaults()
         await self._update_message(interaction)
 
-    @discord.ui.button(label="First", emoji=FIRST_PAGE_EMOJI, style=discord.ButtonStyle.secondary)
+    @discord.ui.button(emoji=FIRST_PAGE_EMOJI, style=discord.ButtonStyle.secondary)
     async def first_page_button(self, interaction: discord.Interaction, _button: discord.ui.Button):
         if not await self._guard_user(interaction):
             return
         self.page_index = 0
         await self._update_message(interaction)
 
-    @discord.ui.button(label="Prev", emoji=PREVIOUS_PAGE_EMOJI, style=discord.ButtonStyle.secondary)
+    @discord.ui.button(emoji=PREVIOUS_PAGE_EMOJI, style=discord.ButtonStyle.secondary)
     async def previous_page_button(self, interaction: discord.Interaction, _button: discord.ui.Button):
         if not await self._guard_user(interaction):
             return
         self.page_index = max(0, self.page_index - 1)
         await self._update_message(interaction)
 
-    @discord.ui.button(label="Next", emoji=NEXT_PAGE_EMOJI, style=discord.ButtonStyle.secondary)
+    @discord.ui.button(emoji=NEXT_PAGE_EMOJI, style=discord.ButtonStyle.secondary)
     async def next_page_button(self, interaction: discord.Interaction, _button: discord.ui.Button):
         if not await self._guard_user(interaction):
             return
         self.page_index = min(self.total_pages - 1, self.page_index + 1)
         await self._update_message(interaction)
 
-    @discord.ui.button(label="Last", emoji=LAST_PAGE_EMOJI, style=discord.ButtonStyle.secondary)
+    @discord.ui.button(emoji=LAST_PAGE_EMOJI, style=discord.ButtonStyle.secondary)
     async def last_page_button(self, interaction: discord.Interaction, _button: discord.ui.Button):
         if not await self._guard_user(interaction):
             return

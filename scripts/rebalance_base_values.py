@@ -13,7 +13,7 @@ RARITY_VALUE_BANDS: dict[str, tuple[int, int]] = {
     "rare": (85, 145),
     "epic": (170, 260),
     "legendary": (300, 420),
-    "mythic": (480, 650),
+    "mythical": (480, 650),
     "divine": (740, 930),
     "celestial": (1040, 1200),
 }

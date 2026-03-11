@@ -32,7 +32,7 @@
   "AMB": {
     "image": "runtime/card_images/AMB.jpg",
     "name": "Ambrosia Tiramisu",
-    "rarity": "mythic",
+    "rarity": "mythical",
     "series": "dessert"
   },
   "AMS": {
@@ -74,7 +74,7 @@
   "ATL": {
     "image": "runtime/card_images/ATL.img",
     "name": "Atlas Cedar Honey",
-    "rarity": "mythic",
+    "rarity": "mythical",
     "series": "ingredient"
   },
   "BAG": {
@@ -530,7 +530,7 @@
   "FHS": {
     "image": "runtime/card_images/FHS.jpg",
     "name": "Frank's Hot Sauce",
-    "rarity": "mythic",
+    "rarity": "mythical",
     "series": "ingredient"
   },
   "FDG": {
@@ -608,7 +608,7 @@
   "GLC": {
     "image": "runtime/card_images/GLC.jpg",
     "name": "Golden Cheesecake",
-    "rarity": "mythic",
+    "rarity": "mythical",
     "series": "dessert"
   },
   "GLS": {
@@ -698,13 +698,13 @@
   "IMB": {
     "image": "runtime/card_images/IMB.jpg",
     "name": "Imperial Burrata",
-    "rarity": "mythic",
+    "rarity": "mythical",
     "series": "cheese"
   },
   "IMM": {
     "image": "runtime/card_images/IMM.jpg",
     "name": "Immortal Garlic Loaf",
-    "rarity": "mythic",
+    "rarity": "mythical",
     "series": "bread"
   },
   "JDS": {
@@ -769,7 +769,7 @@
   },
   "LFS": {
     "name": "Luffy's Spaghetti",
-    "rarity": "mythic",
+    "rarity": "mythical",
     "series": "entree"
   },
   "LGP": {
@@ -1116,7 +1116,7 @@
   "QSM": {
     "image": "runtime/card_images/QSM.img",
     "name": "Qeshm Moon Salt",
-    "rarity": "mythic",
+    "rarity": "mythical",
     "series": "ingredient"
   },
   "RAM": {
@@ -1242,7 +1242,7 @@
   "RWB": {
     "image": "runtime/card_images/RWB.jpg",
     "name": "Royal Wine Barrique",
-    "rarity": "mythic",
+    "rarity": "mythical",
     "series": "wine"
   },
   "RYB": {
@@ -1266,7 +1266,7 @@
   "SBR": {
     "image": "runtime/card_images/SBR.img",
     "name": "Siberian Pine Resin",
-    "rarity": "mythic",
+    "rarity": "mythical",
     "series": "ingredient"
   },
   "SCA": {
@@ -1308,7 +1308,7 @@
   "SGD": {
     "image": "runtime/card_images/SGD.jpg",
     "name": "Sammy's Girl Dinner",
-    "rarity": "mythic",
+    "rarity": "mythical",
     "series": "entree"
   },
   "SFL": {
@@ -1372,7 +1372,7 @@
   },
   "SSS": {
     "name": "Sisi's Shit",
-    "rarity": "mythic",
+    "rarity": "mythical",
     "series": "entree"
   },
   "SLA": {
@@ -1552,7 +1552,7 @@
   "WHT": {
     "image": "runtime/card_images/WHT.jpg",
     "name": "White Truffle Tagliolini",
-    "rarity": "mythic",
+    "rarity": "mythical",
     "series": "noodle"
   },
   "YAK": {
@@ -1564,7 +1564,7 @@
   "YJA": {
     "image": "runtime/card_images/YJA.img",
     "name": "Yuja Amber Preserve",
-    "rarity": "mythic",
+    "rarity": "mythical",
     "series": "ingredient"
   },
   "ZAB": {

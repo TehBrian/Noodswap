@@ -95,7 +95,7 @@ class DropView(discord.ui.View):
             )
             image_url, image_file = embed_image_payload(card_id, generation=generation)
             if image_url is not None:
-                pulled_embed.set_image(url=image_url)
+                pulled_embed.set_thumbnail(url=image_url)
 
             await interaction.response.edit_message(
                 content=None,
