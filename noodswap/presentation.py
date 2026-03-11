@@ -59,6 +59,19 @@ Card: {card_dupe_display(card_id, generation, dupe_code=dupe_code)}
 Price: **{amount}** dough"""
 
 
+def gift_offer_description(
+    offered_to_mention: str,
+    sender_mention: str,
+    card_id: str,
+    generation: int,
+    dupe_code: str | None,
+) -> str:
+    return f"""Offered to: {offered_to_mention}
+Sender: {sender_mention}
+
+Card: {card_dupe_display(card_id, generation, dupe_code=dupe_code)}"""
+
+
 def battle_offer_description(
     challenged_mention: str,
     challenger_mention: str,
@@ -165,7 +178,7 @@ COMMAND_SYNTAX_BY_KEY: dict[str, str] = {
     "folder unlock": "ns folder unlock <folder_name>",
     "font": "ns font [card_code]",
     "frame": "ns frame [card_code]",
-    "gift": "ns gift <player> <dough>",
+    "gift": "ns gift <player> <card_code>",
     "help": "ns help",
     "info": "ns info [player]",
     "leaderboard": "ns leaderboard",
@@ -240,7 +253,7 @@ HELP_CATEGORY_PAGES: tuple[tuple[str, str, str], ...] = (
 - `ns cooldown [player]` (`ns cd`) — Check a player's cooldowns; defaults to yourself or the replied user.
 - `ns vote` (`ns v`, `nv`) — Open top.gg vote link and claim starter reward if your vote is detected.
 - `ns burn [targets...]` (`ns b`, `nb`) — Burn one or many targets for dough; supports card codes/IDs plus `t:<tag_name>` and `f:<folder_name>` selectors; defaults to last pulled card.
-    - `ns gift <player> <dough>` (`ns g`) — Send dough to another player.
+    - `ns gift <player> <card_code>` (`ns g`) — Offer one of your cards to another player.
     - `ns trade <player> <card_code> <amount>` (`ns t`, `nt`) — Offer a card-for-dough trade.""",
     ),
     (

@@ -478,6 +478,71 @@ class StorageTests(unittest.TestCase):
         self.assertEqual(seller_dough, 0)
         self.assertEqual(buyer_dough, 5)
 
+    def test_gift_card_transfers_selected_instance_without_dough_change(self) -> None:
+        guild_id = 1
+        sender_id = 720
+        recipient_id = 721
+
+        storage.init_db()
+        storage.add_card_to_player(guild_id, sender_id, "SPG", 100)
+        storage.add_card_to_player(guild_id, sender_id, "SPG", 200)
+        selected = storage.get_burn_candidate_by_card_id(guild_id, sender_id, "SPG")
+        self.assertIsNotNone(selected)
+        if selected is None:
+            return
+        _, _card_id, _generation, selected_dupe_code = selected
+
+        success, message, gifted_card_id, gifted_generation, gifted_dupe_code = storage.execute_gift_card(
+            guild_id=guild_id,
+            sender_id=sender_id,
+            recipient_id=recipient_id,
+            card_code=selected_dupe_code,
+        )
+
+        self.assertTrue(success)
+        self.assertEqual(message, "")
+        self.assertEqual(gifted_card_id, "SPG")
+        self.assertEqual(gifted_generation, 200)
+        self.assertEqual(gifted_dupe_code, selected_dupe_code)
+
+        sender_instances = storage.get_player_card_instances(guild_id, sender_id)
+        recipient_instances = storage.get_player_card_instances(guild_id, recipient_id)
+        self.assertEqual(len(sender_instances), 1)
+        self.assertEqual(sender_instances[0][2], 100)
+        self.assertEqual(len(recipient_instances), 1)
+        self.assertEqual(recipient_instances[0][2], 200)
+
+        sender_dough, _, _ = storage.get_player_info(guild_id, sender_id)
+        recipient_dough, _, _ = storage.get_player_info(guild_id, recipient_id)
+        self.assertEqual(sender_dough, 0)
+        self.assertEqual(recipient_dough, 0)
+
+    def test_gift_card_clears_sender_last_pulled_pointer(self) -> None:
+        guild_id = 1
+        sender_id = 722
+        recipient_id = 723
+
+        storage.init_db()
+        storage.add_card_to_player(guild_id, sender_id, "SPG", 300)
+        selected = storage.get_last_pulled_instance(guild_id, sender_id)
+        self.assertIsNotNone(selected)
+        if selected is None:
+            return
+        _instance_id, _card_id, _generation, dupe_code = selected
+
+        success, message, gifted_card_id, gifted_generation, gifted_dupe_code = storage.execute_gift_card(
+            guild_id=guild_id,
+            sender_id=sender_id,
+            recipient_id=recipient_id,
+            card_code=dupe_code,
+        )
+        self.assertTrue(success)
+        self.assertEqual(message, "")
+        self.assertEqual(gifted_card_id, "SPG")
+        self.assertEqual(gifted_generation, 300)
+        self.assertEqual(gifted_dupe_code, dupe_code)
+        self.assertIsNone(storage.get_last_pulled_instance(guild_id, sender_id))
+
     def test_player_leaderboard_info_aggregates_cards_wishes_and_value(self) -> None:
         guild_id = 1
         first_user = 1100

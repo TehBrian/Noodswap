@@ -20,7 +20,7 @@ from noodswap.command_utils import (
 )
 from noodswap.commands import register_commands
 from noodswap.images import DEFAULT_CARD_RENDER_SIZE, HD_CARD_RENDER_SIZE, RARITY_BORDER_COLORS, render_card_image_bytes
-from noodswap.views import HelpView, PlayerLeaderboardView, SortableCardListView, SortableCollectionView
+from noodswap.views import GiftCardView, HelpView, PlayerLeaderboardView, SortableCardListView, SortableCollectionView
 
 
 _TEST_DB_TMP: tempfile.TemporaryDirectory[str] | None = None
@@ -1555,39 +1555,61 @@ class CommandsGiftTests(unittest.IsolatedAsyncioTestCase):
         bot_target.bot = True
         with (
             patch("noodswap.commands_economy.resolve_member_argument", new=AsyncMock(return_value=(bot_target, None))),
-            patch("noodswap.commands_economy.execute_gift_dough") as execute_gift,
+            patch("noodswap.commands_economy.prepare_gift_offer") as prepare_gift,
         ):
-            await gift_command.callback(ctx, player="@BotTarget", dough=10)
+            await gift_command.callback(ctx, player="@BotTarget", card_code="0")
 
-        execute_gift.assert_not_called()
+        prepare_gift.assert_not_called()
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
         self.assertEqual(sent_embed.title, "Gift")
-        self.assertIn("cannot gift dough to bots", sent_embed.description)
+        self.assertIn("cannot gift cards to bots", sent_embed.description)
 
-    async def test_gift_success_sends_confirmation_embed(self) -> None:
+    async def test_gift_success_sends_offer_embed_with_confirmation_view(self) -> None:
         gift_command = _get_command(self.bot, "gift")
 
         ctx = AsyncMock()
         ctx.guild = _FakeGuild(1)
         ctx.author = _FakeMember(100, "Caller")
-        ctx.send = AsyncMock()
+        ctx.send = AsyncMock(return_value=SimpleNamespace())
         ctx.reply = ctx.send
 
         target = _FakeMember(200, "Target")
         with (
             patch("noodswap.commands_economy.resolve_member_argument", new=AsyncMock(return_value=(target, None))),
-            patch("noodswap.commands_economy.execute_gift_dough", return_value=(True, "", 90, 10)) as execute_gift,
+            patch(
+                "noodswap.commands_economy.prepare_gift_offer",
+                return_value=SimpleNamespace(
+                    is_error=False,
+                    error_message=None,
+                    card_id="SPG",
+                    generation=123,
+                    dupe_code="a",
+                ),
+            ) as prepare_gift,
+            patch("noodswap.commands_economy.get_instance_by_code", return_value=(10, "SPG", 123, "a")),
+            patch("noodswap.commands_economy.get_instance_morph", return_value=None),
+            patch("noodswap.commands_economy.get_instance_frame", return_value=None),
+            patch("noodswap.commands_economy.get_instance_font", return_value=None),
+            patch("noodswap.commands_economy.embed_image_payload", return_value=("attachment://gift.png", None)),
         ):
-            await gift_command.callback(ctx, player="@Target", dough=10)
+            await gift_command.callback(ctx, player="@Target", card_code="0")
 
-        execute_gift.assert_called_once_with(1, 100, 200, 10)
+        prepare_gift.assert_called_once_with(
+            guild_id=1,
+            sender_id=100,
+            recipient_id=200,
+            recipient_is_bot=False,
+            card_code="0",
+        )
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
-        self.assertEqual(sent_embed.title, "Gift Sent")
-        self.assertIn("gifted **10 dough**", sent_embed.description)
-        self.assertIn("Your Balance: **90**", sent_embed.description)
-        self.assertIn("Their Balance: **10**", sent_embed.description)
+        sent_view = ctx.send.await_args.kwargs["view"]
+        self.assertEqual(sent_embed.title, "Gift Offer")
+        self.assertIn("Offered to: <@200>", sent_embed.description)
+        self.assertIn("Sender: <@100>", sent_embed.description)
+        self.assertIsInstance(sent_view, GiftCardView)
+        self.assertEqual(sent_embed.thumbnail.url, "attachment://gift.png")
 
 
 class CommandsVoteTests(unittest.IsolatedAsyncioTestCase):

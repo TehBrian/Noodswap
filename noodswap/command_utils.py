@@ -41,6 +41,7 @@ from .trait_rarities import trait_rarity_multiplier
 from .presentation import (
     battle_offer_description,
     drop_choices_description,
+    gift_offer_description,
     italy_embed,
     italy_marry_embed,
     trade_offer_description,
@@ -55,6 +56,7 @@ from .services import (
     prepare_frame,
     prepare_morph,
     prepare_battle_offer,
+    prepare_gift_offer,
     prepare_trade_offer,
 )
 from .settings import (
@@ -144,6 +146,7 @@ from .views import (
     SortableCardListView,
     SortableCollectionView,
     BattleProposalView,
+    GiftCardView,
     TradeView,
 )
 

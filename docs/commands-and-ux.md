@@ -21,7 +21,7 @@ This document defines behavior and presentation for commands and interaction flo
 - `vote` / `v`
 - `cooldown [player]` / `cd [player]`
 - `burn [targets...]` / `b [targets...]`
-- `gift <player> <dough>` / `g <player> <dough>`
+- `gift <player> <card_code>` / `g <player> <card_code>`
 - `morph [card_code]` / `mo [card_code]`
 - `frame [card_code]` / `fr [card_code]`
 - `font [card_code]` / `fo [card_code]`
@@ -163,12 +163,14 @@ Burn result format should remain:
 
 ## Gift UX
 
-- `gift <player> <dough>` sends dough from the command invoker to another player
+- `gift <player> <card_code>` offers one owned card copy to another player
 - player argument supports mention or exact username resolution
-- gift amount must be at least `1`
+- card code format is standalone base36 with optional leading `#` (examples: `0`, `a`, `10`, `#10`)
 - gifting to yourself is blocked
 - gifting to bots is blocked
-- sender must have enough dough to cover the gift amount
+- sender must own the provided card code at confirmation time
+- recipient must accept the confirmation prompt (`Accept`/`Deny`) for transfer to complete
+- gift confirmation embed shows the gifted card image as a top-right thumbnail to prevent mis-gifts
 
 ## Morph UX
 

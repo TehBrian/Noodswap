@@ -2049,6 +2049,38 @@ def execute_gift_dough(
         return True, "", players.get_dough(guild_id, sender_id), players.get_dough(guild_id, recipient_id)
 
 
+def execute_gift_card(
+    guild_id: int,
+    sender_id: int,
+    recipient_id: int,
+    card_code: str,
+) -> tuple[bool, str, Optional[str], Optional[int], Optional[str]]:
+    guild_id = _scope_guild_id(guild_id)
+    if sender_id == recipient_id:
+        return False, "You cannot gift a card to yourself.", None, None, None
+
+    parsed = split_card_code(card_code)
+    if parsed is None:
+        return False, "Invalid card code. Use format like `0`, `a`, `10`, or `#10`.", None, None, None
+
+    with get_db_connection() as conn:
+        _begin_immediate(conn)
+        players = PlayerRepository(conn, STARTING_DOUGH)
+        instances = CardInstanceRepository(conn)
+        players.ensure_player(guild_id, sender_id)
+        players.ensure_player(guild_id, recipient_id)
+
+        selected = instances.get_by_code(guild_id, sender_id, parsed)
+        if selected is None:
+            return False, "You do not own that card code.", None, None, None
+
+        instance_id, card_id, generation, dupe_code = selected
+        instances.transfer_to_user(instance_id, recipient_id)
+        players.clear_marriage_if_matches(guild_id, sender_id, instance_id)
+        players.clear_last_pulled_if_matches(guild_id, sender_id, instance_id)
+        return True, "", card_id, generation, dupe_code
+
+
 def remove_card_from_player(guild_id: int, user_id: int, card_id: str) -> Optional[tuple[int, int]]:
     guild_id = _scope_guild_id(guild_id)
     with get_db_connection() as conn:

@@ -14,6 +14,7 @@ from ..services import (
     resolve_font_roll,
     resolve_frame_roll,
     resolve_morph_roll,
+    resolve_gift_offer,
     resolve_trade_offer,
 )
 from ..storage import add_dough, burn_instance, get_locked_tags_for_instance
@@ -30,6 +31,7 @@ from ..view_pagination import FIRST_PAGE_EMOJI, LAST_PAGE_EMOJI, NEXT_PAGE_EMOJI
 from ..view_sortable_lists import SortableCardListView, SortableCollectionView
 from ..view_text import PaginatedLinesView, PlayerLeaderboardView
 from ..view_trade import TradeView
+from ..view_gift import GiftCardView
 from ..view_battle import BattleProposalView, BattleTurnView
 
 __all__ = [
@@ -46,6 +48,7 @@ __all__ = [
     "resolve_font_roll",
     "resolve_frame_roll",
     "resolve_morph_roll",
+    "resolve_gift_offer",
     "resolve_trade_offer",
     "add_dough",
     "burn_instance",
@@ -70,6 +73,7 @@ __all__ = [
     "PaginatedLinesView",
     "PlayerLeaderboardView",
     "TradeView",
+    "GiftCardView",
     "BattleProposalView",
     "BattleTurnView",
 ]

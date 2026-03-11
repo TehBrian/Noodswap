@@ -135,7 +135,7 @@ This bot uses privileged intents. Enable these for your application in Discord D
 - `ns vote` / `ns v` — open the top.gg vote page and claim `starter` reward when your vote is detected.
 - `ns cooldown [player]` / `ns cd [player]` — show drop (6m), pull (4m), flip (2m), slots (22m), and monopoly (11m) cooldowns for yourself or another player.
 - `ns burn [targets...]` / `ns b [targets...]` — burn one or more targets for dough. Supports card codes/IDs plus selectors `t:<tag_name>` and `f:<folder_name>`. If any selected card is in a locked tag or locked folder, the entire burn is blocked.
-- `ns gift <player> <dough>` / `ns g <player> <dough>` — send dough to another player.
+- `ns gift <player> <card_code>` / `ns g <player> <card_code>` — offer one owned card to another player with recipient confirmation.
 - `ns morph [card_code]` / `ns mo [card_code]` — pay 20% of card value (rounded up) to apply a random morph; currently supports `black_and_white`.
 - `ns frame [card_code]` / `ns fr [card_code]` — pay 20% of card value (rounded up) to apply a random frame from available frames (`buttery`, `gilded`, `drizzled`) in `assets/frames/`.
 - `ns font [card_code]` / `ns fo [card_code]` — pay 20% of card value (rounded up) to apply a random font (`serif`, `mono`, `storybook`, `spooky`, `pixel`, `playful`). `Classic` is now the default baseline style (not a trait modifier).
