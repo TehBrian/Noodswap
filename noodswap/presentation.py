@@ -189,7 +189,7 @@ COMMAND_SYNTAX_BY_KEY: dict[str, str] = {
     "marry": "ns marry [card_code]",
     "monopoly": "ns monopoly <roll|fine|board|pot>",
     "monopoly board": "ns monopoly board",
-    "monopoly fine": "ns monopoly fine confirm",
+    "monopoly fine": "ns monopoly fine",
     "monopoly pot": "ns monopoly pot",
     "monopoly roll": "ns monopoly roll",
     "morph": "ns morph [card_code]",

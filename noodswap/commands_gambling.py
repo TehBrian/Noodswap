@@ -137,14 +137,14 @@ def register_gambling_commands(bot: commands.Bot) -> None:
                 multiline_text([
                     "Usage:",
                     "`ns monopoly roll`",
-                    "`ns monopoly fine confirm`",
+                    "`ns monopoly fine`",
                     "`ns monopoly board`",
                     "`ns monopoly pot`",
                 ]),
             ),
         )
 
-    @monopoly.command(name="roll")
+    @monopoly.command(name="roll", aliases=["r"])
     async def monopoly_roll(ctx: commands.Context):
         if not await _require_guild(ctx, "Monopoly"):
             return
@@ -168,27 +168,14 @@ def register_gambling_commands(bot: commands.Bot) -> None:
         await _reply(ctx, embed=italy_embed("Monopoly Roll", multiline_text(list(result.lines))))
 
     @monopoly.command(name="fine")
-    async def monopoly_fine(ctx: commands.Context, confirm: str | None = None):
+    async def monopoly_fine(ctx: commands.Context):
         if not await _require_guild(ctx, "Monopoly Fine"):
-            return
-
-        if confirm is None or confirm.casefold() != "confirm":
-            await _reply(
-                ctx,
-                embed=italy_embed(
-                    "Monopoly Fine",
-                    multiline_text([
-                        f"This will pay up to **{MONOPOLY_JAIL_FINE_DOUGH} dough** to leave jail.",
-                        "Run `ns monopoly fine confirm` to confirm.",
-                    ]),
-                ),
-            )
             return
 
         result = execute_monopoly_fine(_guild_id(ctx), ctx.author.id)
         await _reply(ctx, embed=italy_embed("Monopoly Fine", multiline_text(list(result.lines))))
 
-    @monopoly.command(name="board")
+    @monopoly.command(name="board", aliases=["b"])
     async def monopoly_board(ctx: commands.Context):
         if not await _require_guild(ctx, "Monopoly Board"):
             return
@@ -209,7 +196,7 @@ def register_gambling_commands(bot: commands.Bot) -> None:
             ),
         )
 
-    @monopoly.command(name="pot")
+    @monopoly.command(name="pot", aliases=["p"])
     async def monopoly_pot(ctx: commands.Context):
         if not await _require_guild(ctx, "Monopoly Pot"):
             return
