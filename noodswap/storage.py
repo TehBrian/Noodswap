@@ -2172,7 +2172,7 @@ def marry_card(guild_id: int, user_id: int, card_id: str) -> tuple[bool, str, Op
 
         owner = players.find_other_owner_of_married_card(guild_id, card_id, user_id)
         if owner is not None:
-            return False, "That card is already married by another player in this server.", None, None
+            return False, "That card is already married by another player.", None, None
 
         players.set_marriage(guild_id, user_id, selected_instance_id, card_id)
         return True, "", selected_instance_id, selected_generation
@@ -2203,7 +2203,7 @@ def marry_card_instance(
 
         owner = players.find_other_owner_of_married_card(guild_id, selected_card_id, user_id)
         if owner is not None:
-            return False, "That card is already married by another player in this server.", None, None, None
+            return False, "That card is already married by another player.", None, None, None
 
         players.set_marriage(guild_id, user_id, instance_id, selected_card_id)
         return True, "", selected_card_id, selected_generation, selected_dupe_code
@@ -2236,7 +2236,8 @@ def execute_trade(
     amount: int,
 ) -> tuple[bool, str, Optional[int], Optional[str]]:
     guild_id = _scope_guild_id(guild_id)
-    _ = card_id
+    if amount <= 0:
+        return False, "Invalid trade amount.", None, None
     with get_db_connection() as conn:
         _begin_immediate(conn)
         players = PlayerRepository(conn, STARTING_DOUGH)
@@ -2252,7 +2253,9 @@ def execute_trade(
         if buyer_dough < amount:
             return False, "Trade failed: buyer does not have enough dough.", None, None
 
-        instance_id, generation, traded_dupe_code = seller_trade_instance
+        instance_id, fetched_card_id, generation, traded_dupe_code = seller_trade_instance
+        if fetched_card_id != card_id:
+            return False, "Trade failed: card mismatch.", None, None
 
         instances.transfer_to_user(instance_id, buyer_id)
         players.clear_marriage_if_matches(guild_id, seller_id, instance_id)

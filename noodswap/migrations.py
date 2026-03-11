@@ -2,7 +2,7 @@ from collections.abc import Callable
 import sqlite3
 
 
-TARGET_SCHEMA_VERSION = 20
+TARGET_SCHEMA_VERSION = 21
 _BASE36_ALPHABET = "0123456789abcdefghijklmnopqrstuvwxyz"
 
 
@@ -691,6 +691,27 @@ def _apply_migration_v20(conn: sqlite3.Connection) -> None:
     )
 
 
+def _apply_migration_v21(conn: sqlite3.Connection) -> None:
+    """Add a trigger that prevents any UPDATE from setting dough to a negative value.
+
+    SQLite does not support adding CHECK constraints to existing tables without a
+    full table rebuild, so a BEFORE UPDATE trigger is used instead. Any operation
+    that would result in dough < 0 will raise an ABORT error and roll back the
+    enclosing transaction.
+    """
+    conn.executescript(
+        """
+        DROP TRIGGER IF EXISTS prevent_negative_dough;
+        CREATE TRIGGER prevent_negative_dough
+        BEFORE UPDATE OF dough ON players
+        WHEN NEW.dough < 0
+        BEGIN
+            SELECT RAISE(ABORT, 'dough cannot go negative');
+        END;
+        """
+    )
+
+
 def run_migrations(
     conn: sqlite3.Connection,
     *,
@@ -799,6 +820,11 @@ def run_migrations(
         _apply_migration_v20(conn)
         _set_schema_version(conn, 20)
         current_version = 20
+
+    if current_version < 21:
+        _apply_migration_v21(conn)
+        _set_schema_version(conn, 21)
+        current_version = 21
 
     if current_version > target_schema_version:
         raise RuntimeError(

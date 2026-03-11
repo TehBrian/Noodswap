@@ -266,11 +266,11 @@ HELP_CATEGORY_PAGES: tuple[tuple[str, str, str], ...] = (
 - `ns battle <player> <stake>` (`ns bt`) — Propose a stake battle to another player.""",
     ),
     (
-        "cosmetics",
-        "Cosmetics",
-        """- `ns morph [card_code]` (`ns mo`, `nmo`) — Spend dough to apply a random visual morph; defaults to last pulled card.
-- `ns frame [card_code]` (`ns fr`, `nfr`) — Spend dough to apply a random cosmetic frame; defaults to last pulled card.
-- `ns font [card_code]` (`ns fo`, `nfo`) — Spend dough to apply a random card font; defaults to last pulled card.""",
+        "traits",
+        "Traits",
+        """- `ns morph [card_code]` (`ns mo`, `nmo`) — Spend dough to apply a random morph; defaults to last pulled card.
+- `ns frame [card_code]` (`ns fr`, `nfr`) — Spend dough to apply a random frame; defaults to last pulled card.
+- `ns font [card_code]` (`ns fo`, `nfo`) — Spend dough to apply a random font; defaults to last pulled card.""",
     ),
     (
         "wishlist",
@@ -317,7 +317,7 @@ HELP_CATEGORY_PAGES: tuple[tuple[str, str, str], ...] = (
 
 
 def help_overview_description() -> str:
-    return """Noodswap is a card-collecting Discord bot with drops, trading, burning, cosmetics, wishlists, and collection management.
+    return """Noodswap is a card-collecting Discord bot with drops, trading, burning, traits, wishlists, and collection management.
 
 Use the dropdown below to browse help by category."""
 

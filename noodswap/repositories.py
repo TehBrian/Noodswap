@@ -1806,10 +1806,10 @@ class CardInstanceRepository:
             return None
         return str(selected_row["card_id"]), int(selected_row["generation"]), str(selected_row["dupe_code"])
 
-    def get_seller_trade_instance(self, guild_id: int, seller_id: int, dupe_code: str) -> Optional[tuple[int, int, str]]:
+    def get_seller_trade_instance(self, guild_id: int, seller_id: int, dupe_code: str) -> Optional[tuple[int, str, int, str]]:
         row = self.conn.execute(
             """
-            SELECT instance_id, generation, dupe_code
+            SELECT instance_id, card_id, generation, dupe_code
             FROM card_instances
             WHERE guild_id = ? AND user_id = ? AND dupe_code = ?
             LIMIT 1
@@ -1818,7 +1818,7 @@ class CardInstanceRepository:
         ).fetchone()
         if row is None:
             return None
-        return int(row["instance_id"]), int(row["generation"]), str(row["dupe_code"])
+        return int(row["instance_id"]), str(row["card_id"]), int(row["generation"]), str(row["dupe_code"])
 
     def transfer_to_user(self, instance_id: int, buyer_id: int) -> None:
         self.conn.execute(

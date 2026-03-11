@@ -136,9 +136,9 @@ This bot uses privileged intents. Enable these for your application in Discord D
 - `ns cooldown [player]` / `ns cd [player]` — show drop (6m), pull (4m), flip (2m), slots (22m), and monopoly (11m) cooldowns for yourself or another player.
 - `ns burn [targets...]` / `ns b [targets...]` — burn one or more targets for dough. Supports card codes/IDs plus selectors `t:<tag_name>` and `f:<folder_name>`. If any selected card is in a locked tag or locked folder, the entire burn is blocked.
 - `ns gift <player> <dough>` / `ns g <player> <dough>` — send dough to another player.
-- `ns morph [card_code]` / `ns mo [card_code]` — pay 20% of card value (rounded up) to apply a random visual morph; currently supports `black_and_white`.
-- `ns frame [card_code]` / `ns fr [card_code]` — pay 20% of card value (rounded up) to apply a random cosmetic frame from available frames (`buttery`, `gilded`, `drizzled`) in `assets/frames/`.
-- `ns font [card_code]` / `ns fo [card_code]` — pay 20% of card value (rounded up) to apply a random cosmetic font (`serif`, `mono`, `storybook`, `spooky`, `pixel`, `playful`). `Classic` is now the default baseline style (not a modifier).
+- `ns morph [card_code]` / `ns mo [card_code]` — pay 20% of card value (rounded up) to apply a random morph; currently supports `black_and_white`.
+- `ns frame [card_code]` / `ns fr [card_code]` — pay 20% of card value (rounded up) to apply a random frame from available frames (`buttery`, `gilded`, `drizzled`) in `assets/frames/`.
+- `ns font [card_code]` / `ns fo [card_code]` — pay 20% of card value (rounded up) to apply a random font (`serif`, `mono`, `storybook`, `spooky`, `pixel`, `playful`). `Classic` is now the default baseline style (not a trait modifier).
 - `ns trade <player> <card_code> <amount>` / `ns t ...` — offer a specific dupe-for-dough trade.
 - `ns team` / `ns tm` — team command group.
 - `ns team add <team_name>` / `ns team a <team_name>` — create a team (max 32 chars, normalized lowercase).

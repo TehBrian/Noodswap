@@ -1,12 +1,11 @@
 import asyncio
 import io
-import inspect
 import os
 import random
 import time
 from typing import Awaitable, Callable, cast
 
-asyncio.iscoroutinefunction = inspect.iscoroutinefunction  # type: ignore[assignment]
+from . import compat as _compat  # noqa: F401 — applies asyncio patch before discord import
 
 import aiohttp
 import discord

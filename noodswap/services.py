@@ -1603,8 +1603,8 @@ def prepare_trade_offer(
     if buyer_is_bot:
         return TradeOfferPreparation(error_message="You cannot trade with bots.", card_id=None, generation=None, dupe_code=None)
 
-    if amount < 0:
-        return TradeOfferPreparation(error_message="Amount must be 0 or greater.", card_id=None, generation=None, dupe_code=None)
+    if amount <= 0:
+        return TradeOfferPreparation(error_message="Amount must be greater than 0.", card_id=None, generation=None, dupe_code=None)
 
     parsed = split_card_code(card_code)
     if parsed is None:

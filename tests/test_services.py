@@ -552,7 +552,20 @@ class ServicesTests(unittest.TestCase):
         )
 
         self.assertTrue(prepared.is_error)
-        self.assertEqual(prepared.error_message, "Amount must be 0 or greater.")
+        self.assertEqual(prepared.error_message, "Amount must be greater than 0.")
+
+    def test_prepare_trade_offer_rejects_zero_amount(self) -> None:
+        prepared = services.prepare_trade_offer(
+            guild_id=1,
+            seller_id=53,
+            buyer_id=54,
+            buyer_is_bot=False,
+            card_code="0",
+            amount=0,
+        )
+
+        self.assertTrue(prepared.is_error)
+        self.assertEqual(prepared.error_message, "Amount must be greater than 0.")
 
     def test_prepare_trade_offer_rejects_invalid_card_code(self) -> None:
         prepared = services.prepare_trade_offer(

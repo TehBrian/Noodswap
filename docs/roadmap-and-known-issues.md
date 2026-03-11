@@ -99,7 +99,7 @@ Stage 3 implementation guide: `docs/refactor-phase-3.md`.
 - Continued Stage 3 (non-breaking): extracted generation/value/payout + rarity-odds helpers from `cards.py` into `noodswap/card_economy.py` while keeping `noodswap.cards` wrappers stable.
 - Continued Stage 3 boundary tightening (non-breaking): removed the unused `storage.ensure_player(...)` pass-through wrapper.
 - Finalized Stage 3 package layout (non-breaking): converted `noodswap.cards` and `noodswap.views` from single-module shims to package paths (`noodswap/cards/__init__.py`, `noodswap/views/__init__.py`) and added package submodules (`catalog/search/display/economy` and `help/drop/trade/confirmations/catalog/pagination/sortable_lists/text`).
-- Started Stage 3 callback slimming by moving drop-claim, trade accept/deny, and cosmetic roll-confirm execution into `services.py` (`execute_drop_claim`, `resolve_trade_offer`, `resolve_morph_roll`, `resolve_frame_roll`, `resolve_font_roll`) and updating `views.py` callbacks to delegate to those use-cases.
+- Started Stage 3 callback slimming by moving drop-claim, trade accept/deny, and trait roll-confirm execution into `services.py` (`execute_drop_claim`, `resolve_trade_offer`, `resolve_morph_roll`, `resolve_frame_roll`, `resolve_font_roll`) and updating `views.py` callbacks to delegate to those use-cases.
 - Completed Stage 3 callback slimming by moving burn confirmation execution into `services.py` (`execute_burn_confirmation`), removing remaining `noodswap.views` callback indirection in view modules, and updating view tests to patch canonical module-level symbols.
 - Added follow-up roadmap item to automate deploy-state bootstrap (SQLite backup/restore and card-image cache artifact import) so host migrations do not require manual DB/image copy steps.
 - Added `leaderboard` / `le` with invoker-scoped pagination + criterion dropdown (`Cards`, `Wishes`, `Dough`, `Starter`, `Collection Value`) to rank players by global player metrics.
@@ -107,13 +107,13 @@ Stage 3 implementation guide: `docs/refactor-phase-3.md`.
 - Hardened top.gg webhook intake with optional source IP allowlisting (`TOPGG_WEBHOOK_ALLOWED_IPS`), strict JSON content-type enforcement, and bounded request size controls (`TOPGG_WEBHOOK_MAX_BODY_BYTES`) to reduce spoofing/DoS surface.
 - Updated `vote` / `v` command copy to reflect automatic webhook registration and removed pull-based top.gg polling from the command path.
 - Removed vote reward gating and removed vote status from `cooldown` UX so vote rewards now claim whenever a vote is detected.
-- Changed `help` to send a brief bot overview plus an invoker-scoped category dropdown (`Overview`, `Economy`, `Gambling`, `Battle`, `Cosmetics`, `Wishlist`, `Tags`, `Folders`, `Relationship`) that edits the same embed to the selected command page.
+- Changed `help` to send a brief bot overview plus an invoker-scoped category dropdown (`Overview`, `Economy`, `Gambling`, `Battle`, `Traits`, `Wishlist`, `Tags`, `Folders`, `Relationship`) that edits the same embed to the selected command page.
 - Updated `scripts/init_runtime.py` to use replacement semantics for seeded runtime assets, refreshing `runtime/card_images/`, `runtime/fonts/`, and `runtime/frames/` from `assets/` on each run.
 - Added `frame` / `fr` confirmation flow with before/after transition previews and per-instance frame persistence (`card_instances.frame_key`), initially shipping a `buttery` golden dripping-border frame.
-- Expanded frame cosmetics to support multiple overlay-backed frame keys (`buttery`, `gilded`, `drizzled`) and added a parallel `font` / `fo` confirmation flow with per-instance font persistence (`card_instances.font_key`).
+- Expanded frame traits to support multiple overlay-backed frame keys (`buttery`, `gilded`, `drizzled`) and added a parallel `font` / `fo` confirmation flow with per-instance font persistence (`card_instances.font_key`).
 - Added per-player tag collections (`player_tags` + `card_instance_tags`) with commands for create/delete/list/lock/unlock/assign/unassign/cards, and enforced burn protection for instances attached to any locked tag.
 - Added `morph` / `mo` confirmation flow with before/after transition previews (`before -> after`), and ensured morph persistence + dough charge happen only on explicit confirmation.
-- Expanded morph cosmetics with additional visual variants (`inverse`, `tint_rose`, `tint_aqua`, `tint_lime`, `upside_down`) while keeping the same random-roll + confirmation UX.
+- Expanded morph traits with additional visual variants (`inverse`, `tint_rose`, `tint_aqua`, `tint_lime`, `upside_down`) while keeping the same random-roll + confirmation UX.
 - Added more tint morph variants (`tint_warm`, `tint_cool`, `tint_violet`) and tuned tint strengths to keep each color treatment visually distinct.
 - Changed drop claiming to be contestable: any user can claim any unclaimed drop card, each card can only be claimed once, and drops remain active until timeout (or all cards are claimed).
 - Reduced pull cooldown from 6 minutes to 4 minutes and updated cooldown messaging to use pull terminology.

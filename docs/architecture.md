@@ -8,7 +8,7 @@ Noodswap is structured in a pragmatic layered style:
 
 - Presentation layer:
   - `noodswap/commands.py` (prefix command handlers)
-  - `noodswap/views/` (button interactions: drop/trade/burn confirm + cosmetics confirms)
+  - `noodswap/views/` (button interactions: drop/trade/burn confirm + trait confirms)
   - `noodswap/presentation.py` (shared embed styles + reusable command description formatting)
 - Use-case/service layer:
   - `noodswap/services.py` (command-facing orchestration for drop/burn/marry/divorce/trade prep)
@@ -17,7 +17,7 @@ Noodswap is structured in a pragmatic layered style:
   - `noodswap/card_search.py` (card search + dupe code parsing helpers used by `cards.py` wrappers)
   - `noodswap/card_economy.py` (generation/value/payout + rarity-odds helpers used by `cards.py` wrappers)
   - `noodswap/images.py` (local card image lookup + card render pipeline)
-  - `noodswap/morphs.py` / `noodswap/frames.py` / `noodswap/fonts.py` (cosmetic option metadata + normalization)
+  - `noodswap/morphs.py` / `noodswap/frames.py` / `noodswap/fonts.py` (trait option metadata + normalization)
   - `noodswap/rarities.py` (rarity weight constants)
   - `noodswap/settings.py` (global settings/constants)
   - `noodswap/utils.py` (small utility helpers)
@@ -62,12 +62,12 @@ Noodswap is structured in a pragmatic layered style:
 3. Buyer accepts/denies via interaction
 4. On accept, storage layer transfers one card instance and dough atomically within one DB transaction scope
 
-### Cosmetics flow (`morph` / `frame` / `font`)
+### Traits flow (`morph` / `frame` / `font`)
 
 1. User runs `ns morph|frame|font <card_code>`
-2. Command resolves target instance and proposed cosmetic roll via service layer
+2. Command resolves target instance and proposed trait roll via service layer
 3. Confirmation view presents before/after preview
-4. On confirm, storage persists per-instance cosmetic key and applies dough charge atomically
+4. On confirm, storage persists per-instance trait key and applies dough charge atomically
 
 ## Ownership model
 

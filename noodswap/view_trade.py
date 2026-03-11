@@ -1,3 +1,4 @@
+import asyncio
 from typing import Optional
 
 import discord
@@ -27,6 +28,7 @@ class TradeView(discord.ui.View):
         self.amount = amount
         self.finished = False
         self.message: Optional[discord.Message] = None
+        self._resolve_lock = asyncio.Lock()
 
     async def _resolve(self, interaction: discord.Interaction, accepted: bool):
         if interaction.user.id != self.buyer_id:
@@ -36,14 +38,33 @@ class TradeView(discord.ui.View):
             )
             return
 
-        if self.finished:
-            await interaction.response.send_message(
-                embed=italy_embed("Trade", "This trade has already been resolved."),
-                ephemeral=True,
-            )
-            return
+        async with self._resolve_lock:
+            if self.finished:
+                await interaction.response.send_message(
+                    embed=italy_embed("Trade", "This trade has already been resolved."),
+                    ephemeral=True,
+                )
+                return
 
-        if not accepted:
+            if not accepted:
+                trade_result = resolve_trade_offer(
+                    guild_id=self.guild_id,
+                    seller_id=self.seller_id,
+                    buyer_id=self.buyer_id,
+                    card_id=self.card_id,
+                    dupe_code=self.dupe_code,
+                    amount=self.amount,
+                    accepted=False,
+                )
+                self.finished = True
+                self._disable_buttons()
+                await interaction.response.edit_message(
+                    content=None,
+                    embed=italy_embed("Trade Denied", trade_result.message),
+                    view=self,
+                )
+                return
+
             trade_result = resolve_trade_offer(
                 guild_id=self.guild_id,
                 seller_id=self.seller_id,
@@ -51,46 +72,28 @@ class TradeView(discord.ui.View):
                 card_id=self.card_id,
                 dupe_code=self.dupe_code,
                 amount=self.amount,
-                accepted=False,
+                accepted=True,
             )
+            if trade_result.is_failed:
+                self.finished = True
+                self._disable_buttons()
+                await interaction.response.edit_message(
+                    content=None,
+                    embed=italy_embed("Trade Failed", trade_result.message),
+                    view=self,
+                )
+                return
+
             self.finished = True
             self._disable_buttons()
-            await interaction.response.edit_message(
-                content=None,
-                embed=italy_embed("Trade Denied", trade_result.message),
-                view=self,
-            )
-            return
 
-        trade_result = resolve_trade_offer(
-            guild_id=self.guild_id,
-            seller_id=self.seller_id,
-            buyer_id=self.buyer_id,
-            card_id=self.card_id,
-            dupe_code=self.dupe_code,
-            amount=self.amount,
-            accepted=True,
-        )
-        if trade_result.is_failed:
-            self.finished = True
-            self._disable_buttons()
-            await interaction.response.edit_message(
-                content=None,
-                embed=italy_embed("Trade Failed", trade_result.message),
-                view=self,
-            )
-            return
-
-        self.finished = True
-        self._disable_buttons()
-
-        traded_card_text = card_base_display(self.card_id)
-        if trade_result.generation is not None:
-            traded_card_text = card_dupe_display(
-                self.card_id,
-                trade_result.generation,
-                dupe_code=trade_result.dupe_code,
-            )
+            traded_card_text = card_base_display(self.card_id)
+            if trade_result.generation is not None:
+                traded_card_text = card_dupe_display(
+                    self.card_id,
+                    trade_result.generation,
+                    dupe_code=trade_result.dupe_code,
+                )
 
         await interaction.response.edit_message(
             view=self,

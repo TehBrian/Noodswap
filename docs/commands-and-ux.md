@@ -56,7 +56,7 @@ This document defines behavior and presentation for commands and interaction flo
 
 - `help` / `h` opens a brief bot overview embed instead of a full command dump
 - Help embed includes a category dropdown for command pages
-- Categories are: `Overview`, `Economy`, `Cosmetics`, `Wishlist`, `Tags`, `Relationship`, `Owner-only`
+- Categories are: `Overview`, `Economy`, `Traits`, `Wishlist`, `Tags`, `Relationship`, `Owner-only`
 - Selecting a category edits the same message to show that category's commands
 - Help dropdown interactions are restricted to the command invoker
 
@@ -87,7 +87,7 @@ This includes:
 - Supported frame keys are `buttery`, `gilded`, and `drizzled`.
 - All three frames are currently bundled.
 - `gilded` and `drizzled` are temporary placeholders until distinct frame art is added.
-- `Classic` is the default baseline style and is not a cosmetic modifier.
+- `Classic` is the default baseline style and is not a trait modifier.
 - Initial selectable font set includes `serif`, `mono`, `storybook`, `spooky`, `pixel`, and `playful`.
 - Frames are loaded from `assets/frames/<frame_key>.png` (or `.webp`) by default and composited over the rendered card.
 - Rendered card canvas is normalized to a portrait `2.5:3.5` aspect ratio (`5:7`).
