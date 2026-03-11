@@ -193,7 +193,7 @@ def register_catalog_commands(bot: commands.Bot) -> None:
                 [
                     "",
                     "The reward system is temporarily unavailable.",
-                    "You can still vote, but you won't earn starter.",
+                    "You can still vote, but you won't earn starter for now.",
                 ]
             )
             await _reply(ctx, embed=italy_embed("Vote", multiline_text(lines)), view=_vote_link_view(vote_url))

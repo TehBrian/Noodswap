@@ -1749,8 +1749,8 @@ class CommandsVoteTests(unittest.IsolatedAsyncioTestCase):
         sent_embed = ctx.send.await_args.kwargs["embed"]
         sent_view = ctx.send.await_args.kwargs["view"]
         self.assertEqual(sent_embed.title, "Vote")
-        self.assertIn("Vote checking is temporarily unavailable", sent_embed.description)
-        self.assertIn("vote using the button below", sent_embed.description)
+        self.assertIn("The reward system is temporarily unavailable.", sent_embed.description)
+        self.assertIn("You can still vote, but you won't earn starter for now.", sent_embed.description)
         self.assertIsInstance(sent_view, discord.ui.View)
 
     async def test_vote_claims_starter_when_topgg_vote_detected(self) -> None:
