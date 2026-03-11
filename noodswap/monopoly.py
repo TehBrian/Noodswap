@@ -230,7 +230,7 @@ def render_board(player_position: int) -> str:
         if row_col is None:
             continue
         row, col = row_col
-        marker = "👤" if space.position == player_position else "·"
+        marker = "👤" if space.position == player_position else " "
         grid[row][col] = f"{space.emoji}{marker}"
 
     lines = [" ".join(row) for row in grid]

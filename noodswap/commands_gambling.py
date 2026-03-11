@@ -191,7 +191,7 @@ def register_gambling_commands(bot: commands.Bot) -> None:
                     f"Jail Failed Rolls: **{jail_attempts}/3**",
                     f"Consecutive Doubles: **{doubles_count}**",
                     "",
-                    board_render,
+                    f"```\n{board_render}\n```",
                 ]),
             ),
         )

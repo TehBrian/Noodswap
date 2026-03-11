@@ -262,7 +262,7 @@ def register_economy_commands(bot: commands.Bot) -> None:
                 font_key=get_instance_font(_guild_id(ctx), primary_item.instance_id),
             )
             if image_url is not None:
-                confirm_embed.set_image(url=image_url)
+                confirm_embed.set_thumbnail(url=image_url)
             if image_file is not None:
                 send_kwargs["file"] = image_file
 

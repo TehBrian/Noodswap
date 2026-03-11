@@ -1,4 +1,5 @@
 import io
+import re
 import tempfile
 import unittest
 from types import SimpleNamespace
@@ -20,6 +21,7 @@ from noodswap.command_utils import (
 )
 from noodswap.commands import register_commands
 from noodswap.images import DEFAULT_CARD_RENDER_SIZE, HD_CARD_RENDER_SIZE, RARITY_BORDER_COLORS, render_card_image_bytes
+from noodswap.presentation import HELP_CATEGORY_PAGES
 from noodswap.views import GiftCardView, HelpView, PlayerLeaderboardView, SortableCardListView, SortableCollectionView
 
 
@@ -72,6 +74,85 @@ def _get_group_command(bot: commands.Bot, group_name: str, command_name: str) ->
     command = group.get_command(command_name)
     assert command is not None
     return command
+
+
+def _normalize_help_command_path(text: str) -> str:
+    tokens: list[str] = []
+    for token in text.strip().split():
+        if token.startswith("<") or token.startswith("["):
+            break
+        tokens.append(token)
+    return " ".join(tokens)
+
+
+def _iter_help_alias_expectations() -> list[tuple[str, str]]:
+    expectations: list[tuple[str, str]] = []
+    for _category_key, _category_label, description in HELP_CATEGORY_PAGES:
+        for line in description.splitlines():
+            line = line.strip()
+            if not line.startswith("- "):
+                continue
+
+            command_match = re.search(r"`([^`]+)`", line)
+            if command_match is None:
+                continue
+            command_path = _normalize_help_command_path(command_match.group(1))
+            if not command_path:
+                continue
+
+            for alias_text in re.findall(r"\(([^)]*)\)", line):
+                for alias in re.findall(r"`([^`]+)`", alias_text):
+                    if alias.startswith("... "):
+                        parent_tokens = command_path.split()
+                        if len(parent_tokens) < 2:
+                            continue
+                        alias_suffix = _normalize_help_command_path(alias[4:])
+                        if not alias_suffix:
+                            continue
+                        expanded = " ".join([*parent_tokens[:-1], alias_suffix])
+                        expectations.append((expanded, command_path))
+                        continue
+
+                    alias_command_path = _normalize_help_command_path(alias)
+                    if not alias_command_path:
+                        continue
+                    expectations.append((alias_command_path, command_path))
+    return expectations
+
+
+_HELP_ALIAS_SHORTCUT_TARGETS: dict[str, str] = {
+    "wa": "wish add",
+    "wr": "wish remove",
+    "wl": "wish list",
+}
+
+
+class CommandHelpAliasConsistencyTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)
+        register_commands(self.bot)
+
+    def test_help_menu_aliases_resolve_to_registered_commands(self) -> None:
+        for alias_command_path, expected_target_path in _iter_help_alias_expectations():
+            with self.subTest(alias=alias_command_path, expected=expected_target_path):
+                resolved = self.bot.get_command(alias_command_path)
+                self.assertIsNotNone(
+                    resolved,
+                    msg=f"Help alias `{alias_command_path}` does not resolve to a registered command.",
+                )
+
+                assert resolved is not None
+                allowed_targets = {expected_target_path}
+                if alias_command_path in _HELP_ALIAS_SHORTCUT_TARGETS:
+                    allowed_targets.add(alias_command_path)
+                self.assertIn(
+                    resolved.qualified_name,
+                    allowed_targets,
+                    msg=(
+                        f"Help alias `{alias_command_path}` resolves to `{resolved.qualified_name}` "
+                        f"instead of one of {sorted(allowed_targets)}."
+                    ),
+                )
 
 
 class CommandsWishlistTests(unittest.IsolatedAsyncioTestCase):
