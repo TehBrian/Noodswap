@@ -34,8 +34,12 @@ from ..card_search import (
     search_card_ids_by_name as _search_card_ids_by_name_impl,
     split_card_code as _split_card_code_impl,
 )
+from ..fonts import font_rarity
+from ..frames import frame_rarity
+from ..morphs import morph_rarity
 from ..rarities import RARITY_WEIGHTS
 from ..settings import CARD_IMAGE_MANIFEST, GENERATION_MAX, GENERATION_MIN
+from ..trait_rarities import trait_rarity_multiplier
 
 
 class CardData(TypedDict):
@@ -317,12 +321,37 @@ def card_base_value(card_id: str) -> int:
     return _card_base_value_impl(card_id, card_catalog=CARD_CATALOG)
 
 
-def card_value(card_id: str, generation: int) -> int:
+def trait_value_multiplier(
+    *,
+    morph_key: str | None = None,
+    frame_key: str | None = None,
+    font_key: str | None = None,
+) -> float:
+    return (
+        trait_rarity_multiplier(morph_rarity(morph_key))
+        * trait_rarity_multiplier(frame_rarity(frame_key))
+        * trait_rarity_multiplier(font_rarity(font_key))
+    )
+
+
+def card_value(
+    card_id: str,
+    generation: int,
+    *,
+    morph_key: str | None = None,
+    frame_key: str | None = None,
+    font_key: str | None = None,
+) -> int:
     return _card_value_impl(
         card_id,
         generation,
         card_base_value_func=card_base_value,
         generation_multiplier_func=generation_value_multiplier,
+        trait_multiplier=trait_value_multiplier(
+            morph_key=morph_key,
+            frame_key=frame_key,
+            font_key=font_key,
+        ),
     )
 
 
@@ -341,23 +370,40 @@ def card_dupe_display(
     dupe_code: str | None = None,
     *,
     pad_dupe_code: bool = True,
+    morph_key: str | None = None,
+    frame_key: str | None = None,
+    font_key: str | None = None,
 ) -> str:
     return _card_dupe_display_impl(
         card_id,
         generation,
         dupe_code,
         pad_dupe_code=pad_dupe_code,
+        morph_key=morph_key,
+        frame_key=frame_key,
+        font_key=font_key,
         card_catalog=CARD_CATALOG,
         series_catalog=SERIES_CATALOG,
         card_value=card_value,
     )
 
 
-def card_dupe_display_concise(card_id: str, generation: int, dupe_code: str | None = None) -> str:
+def card_dupe_display_concise(
+    card_id: str,
+    generation: int,
+    dupe_code: str | None = None,
+    *,
+    morph_key: str | None = None,
+    frame_key: str | None = None,
+    font_key: str | None = None,
+) -> str:
     return _card_dupe_display_concise_impl(
         card_id,
         generation,
         dupe_code,
+        morph_key=morph_key,
+        frame_key=frame_key,
+        font_key=font_key,
         card_catalog=CARD_CATALOG,
         series_catalog=SERIES_CATALOG,
         card_value=card_value,
@@ -404,12 +450,25 @@ def burn_delta_range(value: int) -> int:
     return _burn_delta_range_impl(value)
 
 
-def get_burn_payout(card_id: str, generation: int, delta_range: int | None = None) -> tuple[int, int, int, int, float, int]:
+def get_burn_payout(
+    card_id: str,
+    generation: int,
+    delta_range: int | None = None,
+    *,
+    morph_key: str | None = None,
+    frame_key: str | None = None,
+    font_key: str | None = None,
+) -> tuple[int, int, int, int, float, int]:
     return _get_burn_payout_impl(
         card_id,
         generation,
         card_base_value_func=card_base_value,
         generation_multiplier_func=generation_value_multiplier,
         burn_delta_range_func=burn_delta_range,
+        trait_multiplier=trait_value_multiplier(
+            morph_key=morph_key,
+            frame_key=frame_key,
+            font_key=font_key,
+        ),
         delta_range=delta_range,
     )

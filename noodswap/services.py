@@ -1,12 +1,11 @@
 from dataclasses import dataclass
 import math
-import random
 from typing import Optional
 
 from .cards import card_value, get_burn_payout, make_drop_choices, split_card_code
-from .fonts import AVAILABLE_FONTS, FONT_COST_FRACTION, font_label
-from .frames import FRAME_COST_FRACTION, available_frame_keys, frame_label
-from .morphs import AVAILABLE_MORPHS, MORPH_COST_FRACTION, morph_label
+from .fonts import AVAILABLE_FONTS, FONT_COST_FRACTION, font_label, font_rarity
+from .frames import FRAME_COST_FRACTION, available_frame_keys, frame_label, frame_rarity
+from .morphs import AVAILABLE_MORPHS, MORPH_COST_FRACTION, morph_label, morph_rarity
 from .settings import DROP_CHOICES_COUNT, DROP_COOLDOWN_SECONDS
 from .storage import (
     add_card_to_player,
@@ -35,6 +34,7 @@ from .storage import (
     resolve_battle_proposal,
     marry_card_instance,
 )
+from .trait_rarities import weighted_trait_choice
 
 
 @dataclass(frozen=True)
@@ -257,9 +257,15 @@ def prepare_burn(guild_id: int, user_id: int, card_code: Optional[str]) -> BurnP
     instance_id, burn_card_id, burn_generation, burn_dupe_code = target_instance
     locked_tags = get_locked_tags_for_instance(guild_id, user_id, instance_id)
     if locked_tags:
-        locked_tags_text = ", ".join(f"`{tag}`" for tag in locked_tags)
+        locked_folder_names = [tag.removeprefix("folder:") for tag in locked_tags if tag.startswith("folder:")]
+        if locked_folder_names:
+            locked_tags_text = ", ".join(f"`{folder}`" for folder in locked_folder_names)
+            error_message = f"That card is protected by locked folder(s): {locked_tags_text}."
+        else:
+            locked_tags_text = ", ".join(f"`{tag}`" for tag in locked_tags)
+            error_message = f"That card is protected by locked tag(s): {locked_tags_text}."
         return BurnPreparation(
-            error_message=f"That card is protected by locked tag(s): {locked_tags_text}.",
+            error_message=error_message,
             instance_id=None,
             card_id=None,
             generation=None,
@@ -272,7 +278,16 @@ def prepare_burn(guild_id: int, user_id: int, card_code: Optional[str]) -> BurnP
             multiplier=None,
         )
 
-    payout, value, base_value, delta, multiplier, delta_range = get_burn_payout(burn_card_id, burn_generation)
+    morph_key = get_instance_morph(guild_id, instance_id)
+    frame_key = get_instance_frame(guild_id, instance_id)
+    font_key = get_instance_font(guild_id, instance_id)
+    payout, value, base_value, delta, multiplier, delta_range = get_burn_payout(
+        burn_card_id,
+        burn_generation,
+        morph_key=morph_key,
+        frame_key=frame_key,
+        font_key=font_key,
+    )
     return BurnPreparation(
         error_message=None,
         instance_id=instance_id,
@@ -328,6 +343,7 @@ class BurnPreviewItem:
 class BurnBatchPreparation:
     error_message: Optional[str]
     items: tuple[BurnPreviewItem, ...]
+    skipped_items: tuple[str, ...]
     total_value: Optional[int]
     total_delta_range: Optional[int]
 
@@ -350,7 +366,7 @@ class BurnBatchConfirmationExecution:
     status: str
     message: str
     burned_entries: tuple[BurnBatchConfirmationEntry, ...]
-    locked_instances: tuple[tuple[int, tuple[str, ...]], ...]
+    skipped_instances: tuple[tuple[int, tuple[str, ...]], ...]
 
     @property
     def is_blocked(self) -> bool:
@@ -364,6 +380,10 @@ class BurnBatchConfirmationExecution:
     def is_burned(self) -> bool:
         return self.status == "burned"
 
+    @property
+    def is_partial(self) -> bool:
+        return self.status == "partial"
+
 
 def prepare_burn_batch(
     guild_id: int,
@@ -374,6 +394,7 @@ def prepare_burn_batch(
         return BurnBatchPreparation(
             error_message="No burn targets found.",
             items=(),
+            skipped_items=(),
             total_value=None,
             total_delta_range=None,
         )
@@ -386,7 +407,7 @@ def prepare_burn_batch(
         seen_instance_ids.add(instance_id)
         unique_targets.append((instance_id, card_id, generation, dupe_code))
 
-    locked_cards: list[str] = []
+    skipped_items: list[str] = []
     preview_items: list[BurnPreviewItem] = []
     total_value = 0
     total_delta_range = 0
@@ -394,11 +415,25 @@ def prepare_burn_batch(
     for instance_id, card_id, generation, dupe_code in unique_targets:
         locked_tags = get_locked_tags_for_instance(guild_id, user_id, instance_id)
         if locked_tags:
-            locked_tags_text = ", ".join(f"`{tag}`" for tag in locked_tags)
-            locked_cards.append(f"`{dupe_code}` ({locked_tags_text})")
+            locked_names = [tag.removeprefix("folder:") for tag in locked_tags if tag.startswith("folder:")]
+            if locked_names:
+                folder_text = ", ".join(f"`{name}`" for name in locked_names)
+                skipped_items.append(f"`{dupe_code}` (locked folder(s): {folder_text})")
+            else:
+                locked_tags_text = ", ".join(f"`{tag}`" for tag in locked_tags)
+                skipped_items.append(f"`{dupe_code}` (locked tag(s): {locked_tags_text})")
             continue
 
-        _payout, value, base_value, _delta, multiplier, delta_range = get_burn_payout(card_id, generation)
+        morph_key = get_instance_morph(guild_id, instance_id)
+        frame_key = get_instance_frame(guild_id, instance_id)
+        font_key = get_instance_font(guild_id, instance_id)
+        _payout, value, base_value, _delta, multiplier, delta_range = get_burn_payout(
+            card_id,
+            generation,
+            morph_key=morph_key,
+            frame_key=frame_key,
+            font_key=font_key,
+        )
         total_value += value
         total_delta_range += delta_range
         preview_items.append(
@@ -414,20 +449,10 @@ def prepare_burn_batch(
             )
         )
 
-    if locked_cards:
-        return BurnBatchPreparation(
-            error_message=(
-                "Burn blocked because at least one target is protected by locked tags:\n"
-                + "\n".join(f"- {card_line}" for card_line in locked_cards)
-            ),
-            items=(),
-            total_value=None,
-            total_delta_range=None,
-        )
-
     return BurnBatchPreparation(
         error_message=None,
         items=tuple(preview_items),
+        skipped_items=tuple(skipped_items),
         total_value=total_value,
         total_delta_range=total_delta_range,
     )
@@ -444,15 +469,29 @@ def execute_burn_batch_confirmation(
             status="failed",
             message="No burn targets were provided.",
             burned_entries=(),
-            locked_instances=(),
+            skipped_instances=(),
         )
 
-    instance_ids = [instance_id for instance_id, _delta_range in burn_targets]
+    instance_ids: list[int] = []
+    seen_instance_ids: set[int] = set()
+    for instance_id, _delta_range in burn_targets:
+        if instance_id in seen_instance_ids:
+            continue
+        seen_instance_ids.add(instance_id)
+        instance_ids.append(instance_id)
     delta_by_instance = {instance_id: delta_range for instance_id, delta_range in burn_targets}
 
-    burned_rows, locked_by_instance = burn_instances(guild_id, user_id, instance_ids)
-    if locked_by_instance:
-        locked_instances = tuple(
+    locked_by_instance: dict[int, list[str]] = {}
+    burnable_instance_ids: list[int] = []
+    for instance_id in instance_ids:
+        locked_tags = get_locked_tags_for_instance(guild_id, user_id, instance_id)
+        if locked_tags:
+            locked_by_instance[instance_id] = locked_tags
+            continue
+        burnable_instance_ids.append(instance_id)
+
+    if not burnable_instance_ids:
+        skipped_instances = tuple(
             (instance_id, tuple(tags))
             for instance_id, tags in sorted(locked_by_instance.items(), key=lambda entry: entry[0])
         )
@@ -460,16 +499,32 @@ def execute_burn_batch_confirmation(
             status="blocked",
             message="Burn blocked: at least one selected card is protected by locked tag(s).",
             burned_entries=(),
-            locked_instances=locked_instances,
+            skipped_instances=skipped_instances,
         )
 
-    if burned_rows is None:
+    trait_keys_by_instance = {
+        instance_id: (
+            get_instance_morph(guild_id, instance_id),
+            get_instance_frame(guild_id, instance_id),
+            get_instance_font(guild_id, instance_id),
+        )
+        for instance_id in burnable_instance_ids
+    }
+
+    burned_rows, locked_from_burn = burn_instances(guild_id, user_id, burnable_instance_ids)
+    for instance_id, tags in locked_from_burn.items():
+        locked_by_instance[instance_id] = tags
+
+    if burned_rows is None and not locked_by_instance:
         return BurnBatchConfirmationExecution(
             status="failed",
             message="One or more selected cards are no longer available.",
             burned_entries=(),
-            locked_instances=(),
+            skipped_instances=(),
         )
+
+    if burned_rows is None:
+        burned_rows = []
 
     burned_entries: list[BurnBatchConfirmationEntry] = []
     total_payout = 0
@@ -479,6 +534,9 @@ def execute_burn_batch_confirmation(
             card_id,
             generation,
             resolved_delta_range,
+            morph_key=trait_keys_by_instance.get(instance_id, (None, None, None))[0],
+            frame_key=trait_keys_by_instance.get(instance_id, (None, None, None))[1],
+            font_key=trait_keys_by_instance.get(instance_id, (None, None, None))[2],
         )
         total_payout += payout
         burned_entries.append(
@@ -491,12 +549,35 @@ def execute_burn_batch_confirmation(
             )
         )
 
-    add_dough(guild_id, user_id, total_payout)
+    skipped_instances = tuple(
+        (instance_id, tuple(tags))
+        for instance_id, tags in sorted(locked_by_instance.items(), key=lambda entry: entry[0])
+    )
+
+    if total_payout > 0:
+        add_dough(guild_id, user_id, total_payout)
+
+    if burned_entries and skipped_instances:
+        return BurnBatchConfirmationExecution(
+            status="partial",
+            message="",
+            burned_entries=tuple(burned_entries),
+            skipped_instances=skipped_instances,
+        )
+
+    if skipped_instances and not burned_entries:
+        return BurnBatchConfirmationExecution(
+            status="blocked",
+            message="Burn blocked: at least one selected card is protected by locked tag(s).",
+            burned_entries=(),
+            skipped_instances=skipped_instances,
+        )
+
     return BurnBatchConfirmationExecution(
         status="burned",
         message="",
         burned_entries=tuple(burned_entries),
-        locked_instances=(),
+        skipped_instances=(),
     )
 
 
@@ -514,7 +595,7 @@ def execute_burn_confirmation(
     )
 
     if batch_result.is_blocked:
-        locked_tags = tuple(batch_result.locked_instances[0][1]) if batch_result.locked_instances else tuple()
+        locked_tags = tuple(batch_result.skipped_instances[0][1]) if batch_result.skipped_instances else tuple()
         return BurnConfirmationExecution(
             status="blocked",
             message="Card is protected by locked tags.",
@@ -738,7 +819,15 @@ def prepare_morph(guild_id: int, user_id: int, card_code: Optional[str]) -> Morp
             cost=None,
         )
 
-    value = card_value(morph_card_id, morph_generation)
+    frame_key = get_instance_frame(guild_id, instance_id)
+    font_key = get_instance_font(guild_id, instance_id)
+    value = card_value(
+        morph_card_id,
+        morph_generation,
+        morph_key=current_morph_key,
+        frame_key=frame_key,
+        font_key=font_key,
+    )
     cost = max(1, int(math.ceil(value * MORPH_COST_FRACTION)))
     dough_before, _, _ = get_player_info(guild_id, user_id)
     if dough_before < cost:
@@ -855,7 +944,7 @@ def execute_morph(guild_id: int, user_id: int, card_code: Optional[str]) -> Morp
             remaining_dough=None,
         )
 
-    rolled_morph = random.choice(available_rolls)
+    rolled_morph = weighted_trait_choice(available_rolls, morph_rarity)
 
     return confirm_morph(
         guild_id,
@@ -895,7 +984,7 @@ def resolve_morph_roll(
             remaining_dough=None,
         )
 
-    rolled_morph = random.choice(available_rolls)
+    rolled_morph = weighted_trait_choice(available_rolls, morph_rarity)
     return confirm_morph(
         guild_id,
         user_id,
@@ -1019,7 +1108,15 @@ def prepare_frame(guild_id: int, user_id: int, card_code: Optional[str]) -> Fram
             cost=None,
         )
 
-    value = card_value(frame_card_id, frame_generation)
+    morph_key = get_instance_morph(guild_id, instance_id)
+    font_key = get_instance_font(guild_id, instance_id)
+    value = card_value(
+        frame_card_id,
+        frame_generation,
+        morph_key=morph_key,
+        frame_key=current_frame_key,
+        font_key=font_key,
+    )
     cost = max(1, int(math.ceil(value * FRAME_COST_FRACTION)))
     dough_before, _, _ = get_player_info(guild_id, user_id)
     if dough_before < cost:
@@ -1137,7 +1234,7 @@ def execute_frame(guild_id: int, user_id: int, card_code: Optional[str]) -> Fram
             remaining_dough=None,
         )
 
-    rolled_frame = random.choice(available_rolls)
+    rolled_frame = weighted_trait_choice(available_rolls, frame_rarity)
 
     return confirm_frame(
         guild_id,
@@ -1178,7 +1275,7 @@ def resolve_frame_roll(
             remaining_dough=None,
         )
 
-    rolled_frame = random.choice(available_rolls)
+    rolled_frame = weighted_trait_choice(available_rolls, frame_rarity)
     return confirm_frame(
         guild_id,
         user_id,
@@ -1301,7 +1398,15 @@ def prepare_font(guild_id: int, user_id: int, card_code: Optional[str]) -> FontP
             cost=None,
         )
 
-    value = card_value(font_card_id, font_generation)
+    morph_key = get_instance_morph(guild_id, instance_id)
+    frame_key = get_instance_frame(guild_id, instance_id)
+    value = card_value(
+        font_card_id,
+        font_generation,
+        morph_key=morph_key,
+        frame_key=frame_key,
+        font_key=current_font_key,
+    )
     cost = max(1, int(math.ceil(value * FONT_COST_FRACTION)))
     dough_before, _, _ = get_player_info(guild_id, user_id)
     if dough_before < cost:
@@ -1418,7 +1523,7 @@ def execute_font(guild_id: int, user_id: int, card_code: Optional[str]) -> FontE
             remaining_dough=None,
         )
 
-    rolled_font = random.choice(available_rolls)
+    rolled_font = weighted_trait_choice(available_rolls, font_rarity)
 
     return confirm_font(
         guild_id,
@@ -1458,7 +1563,7 @@ def resolve_font_roll(
             remaining_dough=None,
         )
 
-    rolled_font = random.choice(available_rolls)
+    rolled_font = weighted_trait_choice(available_rolls, font_rarity)
     return confirm_font(
         guild_id,
         user_id,

@@ -171,11 +171,26 @@ def value_to_stats(value: int) -> tuple[int, int, int]:
     return hp, attack, defense
 
 
-def build_battle_card(instance_id: int, card_id: str, generation: int, dupe_code: str) -> BattleCard:
+def build_battle_card(
+    instance_id: int,
+    card_id: str,
+    generation: int,
+    dupe_code: str,
+    *,
+    morph_key: str | None = None,
+    frame_key: str | None = None,
+    font_key: str | None = None,
+) -> BattleCard:
     card = CARD_CATALOG[card_id]
     rarity = str(card["rarity"])
     series = str(card["series"])
-    computed_value = card_value(card_id, generation)
+    computed_value = card_value(
+        card_id,
+        generation,
+        morph_key=morph_key,
+        frame_key=frame_key,
+        font_key=font_key,
+    )
     hp, attack, defense = value_to_stats(computed_value)
     return BattleCard(
         instance_id=instance_id,

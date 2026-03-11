@@ -105,8 +105,11 @@ def init_db() -> None:
 def reset_db_data() -> None:
     with get_db_connection() as conn:
         _begin_immediate(conn)
+        conn.execute("DELETE FROM card_instance_folders")
         conn.execute("DELETE FROM card_instance_tags")
+        conn.execute("DELETE FROM player_folders")
         conn.execute("DELETE FROM player_tags")
+        conn.execute("DELETE FROM gambling_pot")
         conn.execute("DELETE FROM wishlist_cards")
         conn.execute("DELETE FROM card_instances")
         conn.execute("DELETE FROM players")
@@ -490,6 +493,7 @@ def create_battle_proposal(
         battles = BattleSessionRepository(conn)
         players.ensure_player(guild_id, challenger_id)
         players.ensure_player(guild_id, challenged_id)
+        instances = CardInstanceRepository(conn)
 
         challenger_team_name = players.get_active_team_name(guild_id, challenger_id)
         challenged_team_name = players.get_active_team_name(guild_id, challenged_id)
@@ -592,6 +596,7 @@ def resolve_battle_proposal(
         members = TeamMemberRepository(conn)
         battles = BattleSessionRepository(conn)
         combatants = BattleCombatantRepository(conn)
+        instances = CardInstanceRepository(conn)
         battle = battles.get_by_id(guild_id, battle_id)
         if battle is None:
             return "failed", "Battle proposal not found."
@@ -635,7 +640,15 @@ def resolve_battle_proposal(
 
         combatant_rows: list[tuple[int, int, str, int, int, str, int, str, int, int, bool, bool, bool]] = []
         for slot_index, (instance_id, card_id, generation, dupe_code) in enumerate(challenger_instances):
-            battle_card = build_battle_card(instance_id, card_id, generation, dupe_code)
+            battle_card = build_battle_card(
+                instance_id,
+                card_id,
+                generation,
+                dupe_code,
+                morph_key=instances.get_morph_key(guild_id, instance_id),
+                frame_key=instances.get_frame_key(guild_id, instance_id),
+                font_key=instances.get_font_key(guild_id, instance_id),
+            )
             combatant_rows.append(
                 (
                     guild_id,
@@ -654,7 +667,15 @@ def resolve_battle_proposal(
                 )
             )
         for slot_index, (instance_id, card_id, generation, dupe_code) in enumerate(challenged_instances):
-            battle_card = build_battle_card(instance_id, card_id, generation, dupe_code)
+            battle_card = build_battle_card(
+                instance_id,
+                card_id,
+                generation,
+                dupe_code,
+                morph_key=instances.get_morph_key(guild_id, instance_id),
+                frame_key=instances.get_frame_key(guild_id, instance_id),
+                font_key=instances.get_font_key(guild_id, instance_id),
+            )
             combatant_rows.append(
                 (
                     guild_id,
@@ -700,6 +721,7 @@ def execute_battle_turn_action(
         players = PlayerRepository(conn, STARTING_DOUGH)
         battles = BattleSessionRepository(conn)
         combatants = BattleCombatantRepository(conn)
+        instances = CardInstanceRepository(conn)
         battle = battles.get_by_id(guild_id, battle_id)
         if battle is None:
             return "failed", "Battle not found.", None, None
@@ -847,12 +869,18 @@ def execute_battle_turn_action(
                 str(actor_active["card_id"]),
                 int(actor_active["generation"]),
                 str(actor_active["dupe_code"]),
+                morph_key=instances.get_morph_key(guild_id, int(actor_active["instance_id"])),
+                frame_key=instances.get_frame_key(guild_id, int(actor_active["instance_id"])),
+                font_key=instances.get_font_key(guild_id, int(actor_active["instance_id"])),
             )
             defender = build_battle_card(
                 int(opponent_active["instance_id"]),
                 str(opponent_active["card_id"]),
                 int(opponent_active["generation"]),
                 str(opponent_active["dupe_code"]),
+                morph_key=instances.get_morph_key(guild_id, int(opponent_active["instance_id"])),
+                frame_key=instances.get_frame_key(guild_id, int(opponent_active["instance_id"])),
+                font_key=instances.get_font_key(guild_id, int(opponent_active["instance_id"])),
             )
 
             combatants.clear_defending_for_side(battle_id, actor_side)
@@ -1052,17 +1080,26 @@ def get_locked_tags_for_instance(guild_id: int, user_id: int, instance_id: int) 
     with get_db_connection() as conn:
         players = PlayerRepository(conn, STARTING_DOUGH)
         tags = PlayerTagRepository(conn)
+        folders = PlayerFolderRepository(conn)
         players.ensure_player(guild_id, user_id)
-        return tags.list_locked_for_instance(guild_id, user_id, instance_id)
+        locked = list(tags.list_locked_for_instance(guild_id, user_id, instance_id))
+        locked_folder = folders.get_locked_for_instance(guild_id, user_id, instance_id)
+        if locked_folder is not None:
+            locked_folder_name, _emoji = locked_folder
+            locked.append(f"folder:{locked_folder_name}")
+        return locked
 
 
 def get_locked_instance_ids(guild_id: int, user_id: int, instance_ids: list[int] | None = None) -> set[int]:
     guild_id = _scope_guild_id(guild_id)
     with get_db_connection() as conn:
         players = PlayerRepository(conn, STARTING_DOUGH)
+        folders = PlayerFolderRepository(conn)
         tags = PlayerTagRepository(conn)
         players.ensure_player(guild_id, user_id)
-        return tags.list_locked_instance_ids(guild_id, user_id, instance_ids)
+        locked_by_folder = folders.list_locked_instance_ids(guild_id, user_id, instance_ids)
+        locked_by_tag = tags.list_locked_instance_ids(guild_id, user_id, instance_ids)
+        return locked_by_folder | locked_by_tag
 
 
 def get_instances_by_tag(guild_id: int, user_id: int, tag_name: str) -> list[tuple[int, str, int, str]]:
@@ -1655,7 +1692,16 @@ def execute_monopoly_roll(
             ]
             if candidates:
                 owner_id, card_id, generation, dupe_code = random.choice(candidates)
-                rent_due = card_value(card_id, generation)
+                morph_key = instances.get_morph_key(guild_id, int(_instance_id))
+                frame_key = instances.get_frame_key(guild_id, int(_instance_id))
+                font_key = instances.get_font_key(guild_id, int(_instance_id))
+                rent_due = card_value(
+                    card_id,
+                    generation,
+                    morph_key=morph_key,
+                    frame_key=frame_key,
+                    font_key=font_key,
+                )
                 paid = _deduct_up_to(players, guild_id, user_id, rent_due)
                 if paid > 0:
                     players.ensure_player(guild_id, owner_id)
@@ -1918,8 +1964,10 @@ def get_total_cards(guild_id: int, user_id: int) -> int:
         return instances.count_by_owner(guild_id, user_id)
 
 
-def get_player_leaderboard_info(guild_id: int) -> list[tuple[int, int, int, int, int, int]]:
+def get_player_leaderboard_info(guild_id: int) -> list[tuple[int, int, int, int, int, int, int]]:
     guild_id = _scope_guild_id(guild_id)
+    cards_count_by_user: dict[int, int] = {}
+    total_value_by_user: dict[int, int] = {}
     with get_db_connection() as conn:
         players = PlayerRepository(conn, STARTING_DOUGH)
         instances = CardInstanceRepository(conn)
@@ -1927,23 +1975,29 @@ def get_player_leaderboard_info(guild_id: int) -> list[tuple[int, int, int, int,
 
         balances = players.list_balances(guild_id)
         wish_counts = wishlist.get_wish_counts_by_user(guild_id)
-        all_instances = instances.list_owner_cards_for_guild(guild_id)
+        all_instances = instances.list_owner_instances_for_guild(guild_id)
+        for instance_id, owner_id, card_id, generation, _dupe_code in all_instances:
+            cards_count_by_user[owner_id] = cards_count_by_user.get(owner_id, 0) + 1
+            morph_key = instances.get_morph_key(guild_id, instance_id)
+            frame_key = instances.get_frame_key(guild_id, instance_id)
+            font_key = instances.get_font_key(guild_id, instance_id)
+            total_value_by_user[owner_id] = total_value_by_user.get(owner_id, 0) + card_value(
+                card_id,
+                generation,
+                morph_key=morph_key,
+                frame_key=frame_key,
+                font_key=font_key,
+            )
 
-    cards_count_by_user: dict[int, int] = {}
-    total_value_by_user: dict[int, int] = {}
-    for owner_id, card_id, generation in all_instances:
-        cards_count_by_user[owner_id] = cards_count_by_user.get(owner_id, 0) + 1
-        total_value_by_user[owner_id] = total_value_by_user.get(owner_id, 0) + card_value(card_id, generation)
-
-    users: dict[int, tuple[int, int]] = {
-        user_id: (dough, starter)
-        for user_id, dough, starter in balances
+    users: dict[int, tuple[int, int, int]] = {
+        user_id: (dough, starter, votes)
+        for user_id, dough, starter, votes in balances
     }
     all_user_ids = set(users.keys()) | set(wish_counts.keys()) | set(cards_count_by_user.keys())
 
-    rows: list[tuple[int, int, int, int, int, int]] = []
+    rows: list[tuple[int, int, int, int, int, int, int]] = []
     for user_id in sorted(all_user_ids):
-        dough, starter = users.get(user_id, (STARTING_DOUGH, 0))
+        dough, starter, votes = users.get(user_id, (STARTING_DOUGH, 0, 0))
         rows.append(
             (
                 user_id,
@@ -1951,6 +2005,7 @@ def get_player_leaderboard_info(guild_id: int) -> list[tuple[int, int, int, int,
                 wish_counts.get(user_id, 0),
                 dough,
                 starter,
+                votes,
                 total_value_by_user.get(user_id, 0),
             )
         )
@@ -2019,9 +2074,12 @@ def burn_instance(guild_id: int, user_id: int, instance_id: int) -> Optional[tup
         players = PlayerRepository(conn, STARTING_DOUGH)
         instances = CardInstanceRepository(conn)
         tags = PlayerTagRepository(conn)
+        folders = PlayerFolderRepository(conn)
         players.ensure_player(guild_id, user_id)
 
         if tags.list_locked_for_instance(guild_id, user_id, instance_id):
+            return None
+        if folders.get_locked_for_instance(guild_id, user_id, instance_id) is not None:
             return None
 
         burned = instances.burn_owned_instance(guild_id, user_id, instance_id)
@@ -2051,6 +2109,7 @@ def burn_instances(guild_id: int, user_id: int, instance_ids: list[int]) -> tupl
         players = PlayerRepository(conn, STARTING_DOUGH)
         instances = CardInstanceRepository(conn)
         tags = PlayerTagRepository(conn)
+        folders = PlayerFolderRepository(conn)
         players.ensure_player(guild_id, user_id)
 
         locked_by_instance: dict[int, list[str]] = {}
@@ -2060,6 +2119,9 @@ def burn_instances(guild_id: int, user_id: int, instance_ids: list[int]) -> tupl
                 return None, {}
 
             locked_tags = tags.list_locked_for_instance(guild_id, user_id, instance_id)
+            locked_folder = folders.get_locked_for_instance(guild_id, user_id, instance_id)
+            if locked_folder is not None:
+                locked_tags = [*locked_tags, f"folder:{locked_folder[0]}"]
             if locked_tags:
                 locked_by_instance[instance_id] = locked_tags
 

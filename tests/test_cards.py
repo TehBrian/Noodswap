@@ -3,6 +3,13 @@ from collections import Counter
 
 from noodswap.cards import CARD_CATALOG, SERIES_CATALOG, default_card_image
 from noodswap.card_economy import random_generation
+from noodswap.rarities import (
+    RARITY_CURVE_LINEAR_RATE,
+    RARITY_ORDER,
+    RARITY_TAIL_CURVATURE,
+    RARITY_TOTAL_WEIGHT,
+    build_rarity_weights,
+)
 from noodswap.settings import GENERATION_MAX, GENERATION_MIN
 
 
@@ -79,6 +86,47 @@ class GenerationSamplerTests(unittest.TestCase):
 
         self.assertGreater(bucket_counts["high"], bucket_counts["mid_low"])
         self.assertGreater(bucket_counts["mid_low"], bucket_counts["low"])
+
+
+class RarityWeightCurveTests(unittest.TestCase):
+    def test_generated_weights_sum_and_order_invariants(self) -> None:
+        weights = build_rarity_weights(
+            linear_rate=RARITY_CURVE_LINEAR_RATE,
+            tail_curvature=RARITY_TAIL_CURVATURE,
+            total_weight=RARITY_TOTAL_WEIGHT,
+            smoothing=0.0,
+        )
+
+        self.assertEqual(sum(weights.values()), RARITY_TOTAL_WEIGHT)
+        for rarity in RARITY_ORDER:
+            self.assertGreater(weights[rarity], 0)
+
+        for index in range(len(RARITY_ORDER) - 1):
+            left = RARITY_ORDER[index]
+            right = RARITY_ORDER[index + 1]
+            self.assertGreater(weights[left], weights[right])
+
+    def test_lower_linear_rate_makes_top_tiers_more_common(self) -> None:
+        flatter = build_rarity_weights(linear_rate=0.45, tail_curvature=0.0, total_weight=RARITY_TOTAL_WEIGHT, smoothing=0.0)
+        steeper = build_rarity_weights(linear_rate=0.70, tail_curvature=0.0, total_weight=RARITY_TOTAL_WEIGHT, smoothing=0.0)
+
+        self.assertGreater(flatter["celestial"], steeper["celestial"])
+        self.assertGreater(steeper["common"], flatter["common"])
+
+    def test_higher_tail_curvature_steepens_top_end(self) -> None:
+        low_curve = build_rarity_weights(linear_rate=0.541, tail_curvature=0.0, total_weight=RARITY_TOTAL_WEIGHT, smoothing=0.0)
+        high_curve = build_rarity_weights(linear_rate=0.541, tail_curvature=0.03, total_weight=RARITY_TOTAL_WEIGHT, smoothing=0.0)
+
+        self.assertLess(high_curve["celestial"], low_curve["celestial"])
+        self.assertLess(high_curve["divine"], low_curve["divine"])
+        self.assertGreater(high_curve["common"], low_curve["common"])
+
+    def test_smoothing_flattens_curve(self) -> None:
+        baseline = build_rarity_weights(linear_rate=0.541, tail_curvature=0.02, total_weight=RARITY_TOTAL_WEIGHT, smoothing=0.0)
+        smoothed = build_rarity_weights(linear_rate=0.541, tail_curvature=0.02, total_weight=RARITY_TOTAL_WEIGHT, smoothing=1.0)
+
+        self.assertGreater(smoothed["celestial"], baseline["celestial"])
+        self.assertLess(smoothed["common"], baseline["common"])
 
 
 if __name__ == "__main__":

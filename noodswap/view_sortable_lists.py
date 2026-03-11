@@ -319,7 +319,7 @@ class SortableCollectionView(discord.ui.View):
         guard_title: str,
         locked_instance_ids: set[int] | None = None,
         folder_emojis_by_instance: dict[int, str] | None = None,
-        card_line_formatter: Callable[[str, int, str | None], str] | None = None,
+        card_line_formatter: Callable[..., str] | None = None,
         page_size: int = 10,
     ):
         super().__init__(timeout=TRADE_TIMEOUT_SECONDS)
@@ -427,7 +427,21 @@ class SortableCollectionView(discord.ui.View):
             return sorted(
                 self.instances,
                 key=lambda item: (
-                    -card_value(item[1], item[2]) if descending else card_value(item[1], item[2]),
+                    -card_value(
+                        item[1],
+                        item[2],
+                        morph_key=self.instance_styles.get(item[0], (None, None, None))[0],
+                        frame_key=self.instance_styles.get(item[0], (None, None, None))[1],
+                        font_key=self.instance_styles.get(item[0], (None, None, None))[2],
+                    )
+                    if descending
+                    else card_value(
+                        item[1],
+                        item[2],
+                        morph_key=self.instance_styles.get(item[0], (None, None, None))[0],
+                        frame_key=self.instance_styles.get(item[0], (None, None, None))[1],
+                        font_key=self.instance_styles.get(item[0], (None, None, None))[2],
+                    ),
                     str(CARD_CATALOG[item[1]]["name"]),
                     item[2],
                     item[0],
@@ -491,11 +505,11 @@ class SortableCollectionView(discord.ui.View):
         elif self.gallery_mode:
             instance_id, card_id, generation, dupe_code = page_instances[0]
             marker = self._instance_marker(instance_id)
-            description = f"{start + 1}. {marker}{self.card_line_formatter(card_id, generation, dupe_code)}"
+            description = f"{start + 1}. {marker}{self._format_card_line(instance_id, card_id, generation, dupe_code)}"
         else:
             lines = [
                 f"{idx}. {self._instance_marker(instance_id)}"
-                f"{self.card_line_formatter(card_id, generation, dupe_code)}"
+                f"{self._format_card_line(instance_id, card_id, generation, dupe_code)}"
                 for idx, (instance_id, card_id, generation, dupe_code) in enumerate(page_instances, start=start + 1)
             ]
             description = multiline_text(lines)
@@ -538,6 +552,20 @@ class SortableCollectionView(discord.ui.View):
         folder_emoji = self.folder_emojis_by_instance.get(instance_id)
         folder_marker = f"{folder_emoji} " if folder_emoji is not None else "`  ` "
         return f"{folder_marker}{lock_marker}"
+
+    def _format_card_line(self, instance_id: int, card_id: str, generation: int, dupe_code: str | None) -> str:
+        morph_key, frame_key, font_key = self.instance_styles.get(instance_id, (None, None, None))
+        try:
+            return self.card_line_formatter(
+                card_id,
+                generation,
+                dupe_code,
+                morph_key=morph_key,
+                frame_key=frame_key,
+                font_key=font_key,
+            )
+        except TypeError:
+            return self.card_line_formatter(card_id, generation, dupe_code)
 
     def build_embed(self) -> discord.Embed:
         embed, _file = self._build_embed_and_file()

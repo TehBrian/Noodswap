@@ -38,7 +38,7 @@ def burn_confirmation_description(
 {card_dupe_display(card_id, generation, dupe_code=dupe_code)}
 
 Base Value: **{base_value}**
-Generation Multiplier: **x{multiplier:.2f}**
+Total Multiplier: **x{multiplier:.2f}**
 Value: **{value}**
 Payout: **{value}** ± **{delta_range}**"""
 
@@ -256,7 +256,13 @@ HELP_CATEGORY_PAGES: tuple[tuple[str, str, str], ...] = (
     (
         "battle",
         "Battle",
-        """- `ns team ...` (`ns tm ...`) — Manage battle teams and set your active team.
+        """- `ns team add <team_name>` (`ns tm add <team_name>`) — Create a battle team.
+- `ns team remove <team_name>` (`ns tm remove <team_name>`) — Delete one of your battle teams.
+- `ns team list` (`ns tm list`) — Show your teams and card counts.
+- `ns team assign <team_name> <card_code>` (`ns tm assign <team_name> <card_code>`) — Add a card to a team.
+- `ns team unassign <team_name> <card_code>` (`ns tm unassign <team_name> <card_code>`) — Remove a card from a team.
+- `ns team cards <team_name>` (`ns tm cards <team_name>`) — List cards in a team.
+- `ns team active [team_name]` (`ns tm active [team_name]`) — Set or show your active team.
 - `ns battle <player> <stake>` (`ns bt`) — Propose a stake battle to another player.""",
     ),
     (

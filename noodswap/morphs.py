@@ -36,6 +36,18 @@ MORPH_LABELS: Final[dict[str, str]] = {
     MORPH_UPSIDE_DOWN: "Upside Down",
 }
 
+MORPH_RARITIES: Final[dict[str, str]] = {
+    MORPH_BLACK_AND_WHITE: "common",
+    MORPH_INVERSE: "rare",
+    MORPH_TINT_ROSE: "uncommon",
+    MORPH_TINT_AQUA: "uncommon",
+    MORPH_TINT_LIME: "rare",
+    MORPH_TINT_WARM: "epic",
+    MORPH_TINT_COOL: "epic",
+    MORPH_TINT_VIOLET: "legendary",
+    MORPH_UPSIDE_DOWN: "celestial",
+}
+
 
 def normalize_morph_key(morph_key: str | None) -> str | None:
     if morph_key is None:
@@ -55,3 +67,10 @@ def morph_label(morph_key: str | None) -> str:
     if normalized is None:
         return "None"
     return MORPH_LABELS.get(normalized, normalized)
+
+
+def morph_rarity(morph_key: str | None) -> str:
+    normalized = normalize_morph_key(morph_key)
+    if normalized is None:
+        return "common"
+    return MORPH_RARITIES.get(normalized, "common")

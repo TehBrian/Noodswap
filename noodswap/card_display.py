@@ -58,9 +58,12 @@ def card_dupe_display(
     dupe_code: str | None = None,
     *,
     pad_dupe_code: bool = True,
+    morph_key: str | None = None,
+    frame_key: str | None = None,
+    font_key: str | None = None,
     card_catalog: Mapping[str, Mapping[str, object]],
     series_catalog: Mapping[str, Mapping[str, object]],
-    card_value: Callable[[str, int], int],
+    card_value: Callable[..., int],
 ) -> str:
     card = card_catalog[card_id]
     dupe_code_text = display_dupe_code(dupe_code) if pad_dupe_code else display_dupe_code_raw(dupe_code)
@@ -68,7 +71,7 @@ def card_dupe_display(
         f"`#{dupe_code_text}` **{card['name']}** • (`{card_id}`) "
         f"[{series_display(str(card['series']), series_catalog=series_catalog)}] "
         f"({proper_case(str(card['rarity']))}) "
-        f"• **{generation_label(generation)}** (**{card_value(card_id, generation)}** dough)"
+        f"• **{generation_label(generation)}** (**{card_value(card_id, generation, morph_key=morph_key, frame_key=frame_key, font_key=font_key)}** dough)"
     )
 
 
@@ -77,14 +80,17 @@ def card_dupe_display_concise(
     generation: int,
     dupe_code: str | None = None,
     *,
+    morph_key: str | None = None,
+    frame_key: str | None = None,
+    font_key: str | None = None,
     card_catalog: Mapping[str, Mapping[str, object]],
     series_catalog: Mapping[str, Mapping[str, object]],
-    card_value: Callable[[str, int], int],
+    card_value: Callable[..., int],
 ) -> str:
     card = card_catalog[card_id]
     dupe_code_text = display_dupe_code(dupe_code)
     return (
         f"`#{dupe_code_text}` (`{card_id}`) [{series_emoji(str(card['series']), series_catalog=series_catalog)}] "
         f"**{card['name']}** ({proper_case(str(card['rarity']))}) • **{generation_label(generation)}** "
-        f"(**{card_value(card_id, generation)}** dough)"
+        f"(**{card_value(card_id, generation, morph_key=morph_key, frame_key=frame_key, font_key=font_key)}** dough)"
     )

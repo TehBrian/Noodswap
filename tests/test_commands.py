@@ -572,8 +572,8 @@ class CommandsLeaderboardTests(unittest.IsolatedAsyncioTestCase):
         ctx.reply = ctx.send
 
         leaderboard_rows = [
-            (100, 2, 1, 20, 0, 40),
-            (200, 5, 3, 50, 2, 120),
+            (100, 2, 1, 20, 0, 0, 40),
+            (200, 5, 3, 50, 2, 1, 120),
         ]
         with patch("noodswap.commands.get_player_leaderboard_info", return_value=leaderboard_rows):
             await leaderboard_command.callback(ctx)
@@ -685,6 +685,9 @@ class CommandsLookupTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("`#abc`", sent_embed.description)
         self.assertIn("G-101", sent_embed.description)
         self.assertIn("dough", sent_embed.description)
+        self.assertIn("**Traits**", sent_embed.description)
+        self.assertIn("**Value Breakdown**", sent_embed.description)
+        self.assertIn("Trait Multiplier", sent_embed.description)
 
     async def test_lookup_shows_dupe_card_embed_for_hash_prefixed_code(self) -> None:
         lookup_command = _get_command(self.bot, "lookup")
@@ -708,6 +711,8 @@ class CommandsLookupTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("`#abc`", sent_embed.description)
         self.assertIn("G-101", sent_embed.description)
         self.assertIn("dough", sent_embed.description)
+        self.assertIn("**Traits**", sent_embed.description)
+        self.assertIn("**Value Breakdown**", sent_embed.description)
 
     async def test_lookup_prefers_exact_dupe_code_over_card_id(self) -> None:
         lookup_command = _get_command(self.bot, "lookup")
@@ -731,6 +736,7 @@ class CommandsLookupTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("`#spg`", sent_embed.description)
         self.assertIn("dough", sent_embed.description)
         self.assertNotIn("Base:", sent_embed.description)
+        self.assertIn("Trait Multiplier", sent_embed.description)
 
     async def test_lookup_falls_back_to_exact_card_name(self) -> None:
         lookup_command = _get_command(self.bot, "lookup")

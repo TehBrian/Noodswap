@@ -78,9 +78,10 @@ def card_value(
     *,
     card_base_value_func: Callable[[str], int],
     generation_multiplier_func: Callable[[int], float],
+    trait_multiplier: float = 1.0,
 ) -> int:
     base_value = card_base_value_func(card_id)
-    multiplier = generation_multiplier_func(generation)
+    multiplier = generation_multiplier_func(generation) * max(1.0, trait_multiplier)
     return max(1, int(round(base_value * multiplier)))
 
 
@@ -171,10 +172,11 @@ def get_burn_payout(
     card_base_value_func: Callable[[str], int],
     generation_multiplier_func: Callable[[int], float],
     burn_delta_range_func: Callable[[int], int],
+    trait_multiplier: float = 1.0,
     delta_range: int | None = None,
 ) -> tuple[int, int, int, int, float, int]:
     base_value = card_base_value_func(card_id)
-    multiplier = generation_multiplier_func(generation)
+    multiplier = generation_multiplier_func(generation) * max(1.0, trait_multiplier)
     value = max(1, int(round(base_value * multiplier)))
     resolved_delta_range = burn_delta_range_func(value) if delta_range is None else max(1, delta_range)
     delta = random.randint(-resolved_delta_range, resolved_delta_range)

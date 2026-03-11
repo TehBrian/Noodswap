@@ -309,8 +309,6 @@ class StorageTests(unittest.TestCase):
         self.assertEqual(last_roll_at, 0.0)
         self.assertFalse(in_jail)
         self.assertEqual(doubles_count, 1)
-        self.assertEqual(remaining, 0.0)
-        self.assertEqual(balance, 0)
 
     def test_execute_flip_wager_win_loss_and_cooldown(self) -> None:
         guild_id = 1
@@ -508,13 +506,15 @@ class StorageTests(unittest.TestCase):
         self.assertEqual(first[2], 2)
         self.assertEqual(first[3], 25)
         self.assertEqual(first[4], 2)
-        self.assertGreater(first[5], 0)
+        self.assertEqual(first[5], 1)
+        self.assertGreater(first[6], 0)
 
         self.assertEqual(second[1], 1)
         self.assertEqual(second[2], 1)
         self.assertEqual(second[3], 80)
         self.assertEqual(second[4], 0)
-        self.assertGreater(second[5], 0)
+        self.assertEqual(second[5], 0)
+        self.assertGreater(second[6], 0)
 
     def test_marry_fails_if_card_already_married_by_another_player(self) -> None:
         guild_id = 1

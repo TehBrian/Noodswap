@@ -21,6 +21,12 @@ FRAME_LABELS: Final[dict[str, str]] = {
     FRAME_DRIZZLED: "Drizzled",
 }
 
+FRAME_RARITIES: Final[dict[str, str]] = {
+    FRAME_BUTTERY: "common",
+    FRAME_GILDED: "epic",
+    FRAME_DRIZZLED: "legendary",
+}
+
 FRAME_OVERLAYS_DIR: Final[Path] = SETTINGS_FRAME_OVERLAYS_DIR
 
 
@@ -58,3 +64,10 @@ def frame_overlay_path(frame_key: str) -> Path | None:
 
 def available_frame_keys() -> tuple[str, ...]:
     return tuple(frame_key for frame_key in AVAILABLE_FRAMES if frame_overlay_path(frame_key) is not None)
+
+
+def frame_rarity(frame_key: str | None) -> str:
+    normalized = normalize_frame_key(frame_key)
+    if normalized is None:
+        return "common"
+    return FRAME_RARITIES.get(normalized, "common")

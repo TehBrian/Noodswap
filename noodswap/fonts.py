@@ -36,6 +36,16 @@ FONT_LABELS: Final[dict[str, str]] = {
     FONT_PLAYFUL: "Playful",
 }
 
+FONT_RARITIES: Final[dict[str, str]] = {
+    FONT_CLASSIC: "common",
+    FONT_SERIF: "uncommon",
+    FONT_MONO: "rare",
+    FONT_SCRIPT: "epic",
+    FONT_SPOOKY: "legendary",
+    FONT_PIXEL: "mythical",
+    FONT_PLAYFUL: "divine",
+}
+
 # Card render styles are mapped to explicit bundled font files in runtime/fonts.
 FONT_FILE_MAP: Final[dict[str, dict[str, str]]] = {
     # Classic/default face: Arial regular + bold.
@@ -105,3 +115,10 @@ def font_asset_files(font_key: str | None) -> tuple[str, str]:
         fallback = FONT_FILE_MAP[DEFAULT_FONT_KEY]
         return fallback["regular"], fallback["bold"]
     return mapped["regular"], mapped["bold"]
+
+
+def font_rarity(font_key: str | None) -> str:
+    normalized = normalize_font_key(font_key)
+    if normalized is None:
+        return "common"
+    return FONT_RARITIES.get(normalized, "common")

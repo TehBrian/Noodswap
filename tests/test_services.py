@@ -710,7 +710,7 @@ class ServicesTests(unittest.TestCase):
         storage.add_dough(guild_id, user_id, 50)
         instance_id = storage.add_card_to_player(guild_id, user_id, "SPG", 333)
 
-        with patch("noodswap.services.random.choice", return_value="black_and_white"):
+        with patch("noodswap.services.weighted_trait_choice", return_value="black_and_white"):
             result = services.resolve_morph_roll(
                 guild_id,
                 user_id,
@@ -734,7 +734,7 @@ class ServicesTests(unittest.TestCase):
 
         with (
             patch("noodswap.services.available_frame_keys", return_value=["buttery", "gilded", "drizzled"]),
-            patch("noodswap.services.random.choice", return_value="buttery"),
+            patch("noodswap.services.weighted_trait_choice", return_value="buttery"),
         ):
             result = services.resolve_frame_roll(
                 guild_id,
@@ -757,7 +757,7 @@ class ServicesTests(unittest.TestCase):
         storage.add_dough(guild_id, user_id, 50)
         instance_id = storage.add_card_to_player(guild_id, user_id, "SPG", 333)
 
-        with patch("noodswap.services.random.choice", return_value="serif"):
+        with patch("noodswap.services.weighted_trait_choice", return_value="serif"):
             result = services.resolve_font_roll(
                 guild_id,
                 user_id,

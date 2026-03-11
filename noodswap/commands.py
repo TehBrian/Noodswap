@@ -15,13 +15,16 @@ from discord.ext import commands
 from .battle_engine import value_to_stats
 from .cards import (
     CARD_CATALOG,
+    card_base_value,
     card_base_display,
     card_dupe_display,
     card_dupe_display_concise,
     card_value,
+    generation_value_multiplier,
     normalize_card_id,
     search_card_ids,
     search_card_ids_by_name,
+    trait_value_multiplier,
 )
 from .images import (
     DEFAULT_CARD_RENDER_SIZE,
@@ -32,9 +35,10 @@ from .images import (
     read_local_card_image_bytes,
     render_card_surface,
 )
-from .fonts import font_label
-from .frames import frame_label
-from .morphs import morph_label
+from .fonts import font_label, font_rarity
+from .frames import frame_label, frame_rarity
+from .morphs import morph_label, morph_rarity
+from .trait_rarities import trait_rarity_multiplier
 from .presentation import (
     battle_offer_description,
     drop_choices_description,
@@ -143,6 +147,78 @@ from .views import (
     BattleProposalView,
     TradeView,
 )
+
+
+def _title_case_rarity(rarity: str) -> str:
+    return rarity.strip().replace("_", " ").title()
+
+
+def _lookup_trait_breakdown_description(
+    card_id: str,
+    generation: int,
+    dupe_code: str | None,
+    *,
+    morph_key: str | None,
+    frame_key: str | None,
+    font_key: str | None,
+) -> str:
+    morph_rarity_label = morph_rarity(morph_key)
+    frame_rarity_label = frame_rarity(frame_key)
+    font_rarity_label = font_rarity(font_key)
+
+    morph_multiplier = trait_rarity_multiplier(morph_rarity_label)
+    frame_multiplier = trait_rarity_multiplier(frame_rarity_label)
+    font_multiplier = trait_rarity_multiplier(font_rarity_label)
+
+    trait_multiplier = trait_value_multiplier(
+        morph_key=morph_key,
+        frame_key=frame_key,
+        font_key=font_key,
+    )
+    base_value = card_base_value(card_id)
+    generation_multiplier = generation_value_multiplier(generation)
+    total_multiplier = generation_multiplier * trait_multiplier
+    computed_value = card_value(
+        card_id,
+        generation,
+        morph_key=morph_key,
+        frame_key=frame_key,
+        font_key=font_key,
+    )
+
+    return multiline_text(
+        [
+            card_dupe_display(
+                card_id,
+                generation,
+                dupe_code=dupe_code,
+                morph_key=morph_key,
+                frame_key=frame_key,
+                font_key=font_key,
+            ),
+            "",
+            "**Traits**",
+            (
+                f"Morph: **{morph_label(morph_key)}** "
+                f"({_title_case_rarity(morph_rarity_label)}) • **x{morph_multiplier:.2f}**"
+            ),
+            (
+                f"Frame: **{frame_label(frame_key)}** "
+                f"({_title_case_rarity(frame_rarity_label)}) • **x{frame_multiplier:.2f}**"
+            ),
+            (
+                f"Font: **{font_label(font_key)}** "
+                f"({_title_case_rarity(font_rarity_label)}) • **x{font_multiplier:.2f}**"
+            ),
+            "",
+            "**Value Breakdown**",
+            f"Base Value: **{base_value}**",
+            f"Generation Multiplier: **x{generation_multiplier:.2f}**",
+            f"Trait Multiplier: **x{trait_multiplier:.2f}**",
+            f"Total Multiplier: **x{total_multiplier:.2f}**",
+            f"Computed Value: **{computed_value}** dough",
+        ]
+    )
 
 
 async def resolve_member_argument(ctx: commands.Context, raw_member: str) -> tuple[discord.Member | None, str | None]:
@@ -1099,9 +1175,28 @@ async def _team_cards(ctx: commands.Context, team_name: str) -> None:
     view.message = message
 
 
-def _team_card_line_with_stats(card_id: str, generation: int, dupe_code: str | None) -> str:
-    hp, attack, defense = value_to_stats(card_value(card_id, generation))
-    return f"{card_dupe_display(card_id, generation, dupe_code)} • HP:{hp} ATK:{attack} DEF:{defense}"
+def _team_card_line_with_stats(
+    card_id: str,
+    generation: int,
+    dupe_code: str | None,
+    *,
+    morph_key: str | None = None,
+    frame_key: str | None = None,
+    font_key: str | None = None,
+) -> str:
+    hp, attack, defense = value_to_stats(
+        card_value(
+            card_id,
+            generation,
+            morph_key=morph_key,
+            frame_key=frame_key,
+            font_key=font_key,
+        )
+    )
+    return (
+        f"{card_dupe_display(card_id, generation, dupe_code, morph_key=morph_key, frame_key=frame_key, font_key=font_key)} "
+        f"• HP:{hp} ATK:{attack} DEF:{defense}"
+    )
 
 
 async def _team_active(ctx: commands.Context, team_name: str | None) -> None:
@@ -1446,16 +1541,26 @@ def register_commands(bot: commands.Bot) -> None:  # pylint: disable=too-many-st
             matched_instance = get_instance_by_dupe_code(ctx.guild.id, card_id)
             if matched_instance is not None:
                 matched_instance_id, matched_card_id, matched_generation, matched_dupe_code = matched_instance
+                morph_key = get_instance_morph(ctx.guild.id, matched_instance_id)
+                frame_key = get_instance_frame(ctx.guild.id, matched_instance_id)
+                font_key = get_instance_font(ctx.guild.id, matched_instance_id)
                 lookup_embed = italy_embed(
                     embed_title,
-                    card_dupe_display(matched_card_id, matched_generation, dupe_code=matched_dupe_code),
+                    _lookup_trait_breakdown_description(
+                        matched_card_id,
+                        matched_generation,
+                        matched_dupe_code,
+                        morph_key=morph_key,
+                        frame_key=frame_key,
+                        font_key=font_key,
+                    ),
                 )
                 image_url, image_file = embed_image_payload(
                     matched_card_id,
                     generation=matched_generation,
-                    morph_key=get_instance_morph(ctx.guild.id, matched_instance_id),
-                    frame_key=get_instance_frame(ctx.guild.id, matched_instance_id),
-                    font_key=get_instance_font(ctx.guild.id, matched_instance_id),
+                    morph_key=morph_key,
+                    frame_key=frame_key,
+                    font_key=font_key,
                     size=image_size,
                 )
                 if image_url is not None:
