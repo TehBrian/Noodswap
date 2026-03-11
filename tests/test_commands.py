@@ -85,6 +85,26 @@ def _normalize_help_command_path(text: str) -> str:
     return " ".join(tokens)
 
 
+def _iter_alias_command_paths(line: str, command_path: str) -> list[str]:
+    alias_paths: list[str] = []
+    parent_tokens = command_path.split()
+    for alias_text in re.findall(r"\(([^)]*)\)", line):
+        for alias in re.findall(r"`([^`]+)`", alias_text):
+            if alias.startswith("... "):
+                if len(parent_tokens) < 2:
+                    continue
+                alias_suffix = _normalize_help_command_path(alias[4:])
+                if not alias_suffix:
+                    continue
+                alias_paths.append(" ".join([*parent_tokens[:-1], alias_suffix]))
+                continue
+
+            alias_command_path = _normalize_help_command_path(alias)
+            if alias_command_path:
+                alias_paths.append(alias_command_path)
+    return alias_paths
+
+
 def _iter_help_alias_expectations() -> list[tuple[str, str]]:
     expectations: list[tuple[str, str]] = []
     for _category_key, _category_label, description in HELP_CATEGORY_PAGES:
@@ -100,23 +120,8 @@ def _iter_help_alias_expectations() -> list[tuple[str, str]]:
             if not command_path:
                 continue
 
-            for alias_text in re.findall(r"\(([^)]*)\)", line):
-                for alias in re.findall(r"`([^`]+)`", alias_text):
-                    if alias.startswith("... "):
-                        parent_tokens = command_path.split()
-                        if len(parent_tokens) < 2:
-                            continue
-                        alias_suffix = _normalize_help_command_path(alias[4:])
-                        if not alias_suffix:
-                            continue
-                        expanded = " ".join([*parent_tokens[:-1], alias_suffix])
-                        expectations.append((expanded, command_path))
-                        continue
-
-                    alias_command_path = _normalize_help_command_path(alias)
-                    if not alias_command_path:
-                        continue
-                    expectations.append((alias_command_path, command_path))
+            for alias_command_path in _iter_alias_command_paths(line, command_path):
+                expectations.append((alias_command_path, command_path))
     return expectations
 
 

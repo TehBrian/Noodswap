@@ -101,7 +101,7 @@ This includes:
   - `rare`: light purple
   - `epic`: orange
   - `legendary`: light blue
-  - `mythic`: dark purple
+  - `mythical`: dark purple
   - `divine`: yellow
   - `celestial`: bright near-white blue
 
