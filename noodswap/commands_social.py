@@ -207,7 +207,7 @@ def register_social_commands(bot: commands.Bot) -> None:
                 _cooldown_status_line("Pull", now - last_pull_at, PULL_COOLDOWN_SECONDS),
                 _cooldown_status_line("Slots", now - last_slots_at, SLOTS_COOLDOWN_SECONDS),
                 _cooldown_status_line("Flip", now - last_flip_at, FLIP_COOLDOWN_SECONDS),
-                _cooldown_status_line("Monopoly", now - last_monopoly_roll_at, MONOPOLY_ROLL_COOLDOWN_SECONDS),
+                _cooldown_status_line("Monopoly Roll", now - last_monopoly_roll_at, MONOPOLY_ROLL_COOLDOWN_SECONDS),
             ]
         )
         await _reply(ctx, embed=italy_embed(f"{target_member.display_name}'s Cooldowns", description))
