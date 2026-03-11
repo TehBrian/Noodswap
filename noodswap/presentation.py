@@ -237,109 +237,110 @@ HELP_CATEGORY_PAGES: tuple[tuple[str, str, str], ...] = (
     (
         "overview",
         "Overview",
-        """- `ns info [player]` (`ns i`, `ni`) — View a player's info. Defaults to yourself or the replied user.
-- `ns leaderboard` (`ns le`, `nle`) — View players ranked on various criteria.
-- `ns collection [player]` (`ns c`, `nc`) — View a player's cards. Defaults to yourself or the replied user.
-- `ns cards` (`ns ca`, `nca`) — View all cards.
-- `ns lookup <card_id|card_code|query>` (`ns l`, `nl`) — Look up a base card by ID or query or a dupe card by code.
-- `ns lookuphd <card_id|card_code|query>` (`ns lhd`, `nlhd`) — View a card in high resolution.
-- `ns help` (`ns h`, `nh`) — Open this help menu.""",
+        """- `info [player]` (`i`) — View a player's info. Defaults to yourself or the replied user.
+- `leaderboard` (`le`) — View players ranked on various criteria.
+- `collection [player]` (`c`) — View a player's cards. Defaults to yourself or the replied user.
+- `cards` (`ca`) — View all cards.
+- `lookup <card_id|card_code|query>` (`l`) — Look up a base card by ID or query or a dupe card by code.
+- `lookuphd <card_id|card_code|query>` (`lhd`) — View a card in high resolution.
+- `help` (`h`) — Open this help menu.""",
     ),
     (
         "economy",
         "Economy",
-        """- `ns drop` (`ns d`, `nd`) — Drop 3 cards.
-- `ns buy drop [quantity]` — Buy drop tickets for 1 starter each. Defaults to 1.
-- `ns cooldown [player]` (`ns cd`) — Check a player's cooldowns. Defaults to yourself or the replied user.
-- `ns vote` (`ns v`, `nv`) — Vote for the bot to claim rewards.
-- `ns burn [target...]` (`ns b`, `nb`) — Burn targets for dough. Supports card codes plus
+        """- `drop` (`d`) — Drop 3 cards.
+- `buy drop [quantity]` — Buy drop tickets for 1 starter each. Defaults to 1.
+- `cooldown [player]` (`cd`) — Check a player's cooldowns. Defaults to yourself or the replied user.
+- `vote` (`v`) — Vote for the bot to claim rewards.
+- `burn [target...]` (`b`) — Burn targets for dough. Supports card codes plus
     `t:<tag>` and `f:<folder>` selectors. Defaults to last pulled card.
-- `ns gift <player> <dough>` (`ns g`) — Send dough to a player.
-- `ns gift <player> <card_code>` (`ns g`) — Send a card to a player.
-- `ns trade <player> <card_code> <amount>` (`ns t`, `nt`) — Offer a card-for-dough trade.""",
+- `gift dough <player> <dough>` (`gift d`) — Send dough to a player.
+- `gift card <player> <card_code>` (`gift c`) — Send a card to a player.
+- `trade <player> <card_code> <amount>` (`t`) — Offer a card-for-dough trade.""",
     ),
     (
         "gambling",
         "Gambling",
-        """- `ns slots` (`ns sl`) — Spin 3 food reels. Matching all 3 wins 1-3 starter.
-- `ns flip <stake> [heads|tails]` (`ns f`, `nf`) — Flip a coin to double a wager.""",
+        """- `slots` (`sl`) — Spin 3 food reels. Matching all 3 wi1-3 starter.
+- `flip <stake> [heads|tails]` (`f`) — Flip a coin to double a wager.""",
     ),
     (
         "monopoly",
         "Monopoly",
-        """- `ns monopoly` (`ns mp`) — Play Monopoly.
-- `ns monopoly roll` (`ns ... r`) — Roll two dice to move on the board.
-- `ns monopoly fine` (`ns ... fine`) — Pay the jail fine to get out.
-- `ns monopoly board` (`ns ... b`) — View the board and your position on it.
-- `ns monopoly pot` (`ns ... p`) — View the Free Parking pot.
-        """
+        """- `monopoly` (`mp`) — Play Monopoly.
+- `monopoly roll` (`... r`) — Roll two dice to move on the board.
+- `monopoly fine` (`... fine`) — Pay the jail fine to get out.
+- `monopoly board` (`... b`) — View the board and your position on it.
+- `monopoly pot` (`... p`) — View the Free Parking pot."""
     ),
     (
         "battle",
         "Battle",
-        """- `ns team` (`ns tm`) — Manage your teams.
-- `ns team add <team_name>` (`ns ... a`) — Create a team.
-- `ns team remove <team_name>` (`ns ... r`) — Delete one of your teams.
-- `ns team list` (`ns ... l`) — List your teams.
-- `ns team assign <team_name> <card_code>` (`ns ... as`) — Add a card to a team.
-- `ns team unassign <team_name> <card_code>` (`ns ... u`) — Remove a card from a team.
-- `ns team cards <team_name>` (`ns ... c`) — List cards in a team.
-- `ns team active [team_name]`(`ns ... a`) — Show or set your active battle team.
-- `ns battle <player> <stake>` (`ns bt`) — Propose a battle to another player.""",
+        """- `team` (`tm`) — Manage your teams.
+- `team add <team_name>` (`... a`) — Create a team.
+- `team remove <team_name>` (`... r`) — Delete one of your teams.
+- `team list` (`... l`) — List your teams.
+- `team assign <team_name> <card_code>` (`... as`) — Add a card to a team.
+- `team unassign <team_name> <card_code>` (`... u`) — Remove a card from a team.
+- `team cards <team_name>` (`... c`) — List cards in a team.
+- `team active [team_name]` — Show or set your active battle team.
+- `battle <player> <stake>` (`bt`) — Propose a battle to another player.""",
     ),
     (
         "cosmetics",
         "Cosmetics",
-        """- `ns morph [card_code]` (`ns mo`, `nmo`) — Roll for a morph. Defaults to last pulled card.
-- `ns frame [card_code]` (`ns fr`, `nfr`) — Roll for a frame. Defaults to last pulled card.
-- `ns font [card_code]` (`ns fo`, `nfo`) — Roll for a font. Defaults to last pulled card.""",
+        """- `morph [card_code]` (`mo`) — Roll for a morph. Defaults to last pulled card.
+- `frame [card_code]` (`fr`) — Roll for a frame. Defaults to last pulled card.
+- `font [card_code]` (`fo`) — Roll for a font. Defaults to last pulled card.""",
     ),
     (
         "wishlist",
         "Wishlist",
-        """- `ns wish` (`ns w`) — Manage your wishlist.
-- `ns wish add <card_id>` (`ns ... a`, `ns wa`, `nwa`) — Add a card to your wishlist.
-- `ns wish remove <card_id>` (`ns ... r`, `ns wr`, `nwr`) — Remove a card from your wishlist.
-- `ns wish list [player]` (`ns ... l`, `ns wl`, `nwl`) — Show a player's wishlist. Defaults to yourself or the replied user.""",
+        """- `wish` (`w`) — Manage your wishlist.
+- `wish add <card_id>` (`... a`, `wa`) — Add a card to your wishlist.
+- `wish remove <card_id>` (`... r`, `wr`) — Remove a card from your wishlist.
+- `wish list [player]` (`... l`, `wl`) — Show a player's wishlist. Defaults to yourself or the replied user.""",
     ),
     (
         "tags",
         "Tags",
-        """- `ns tag` — Manage your tags.
-- `ns tag add <tag_name>` (`ns ... a`) — Create a tag.
-- `ns tag remove <tag_name>` (`ns ... r`) — Delete one of your tags.
-- `ns tag list` (`ns ... l`) — List your tags.
-- `ns tag lock <tag_name>` — Enable burn protection for that tag.
-- `ns tag unlock <tag_name>` — Disable burn protection for that tag.
-- `ns tag assign <tag_name> <card_code>` (`ns ... as`) — Add a card to a tag.
-- `ns tag unassign <tag_name> <card_code>` (`ns ... u`) — Remove a card from a tag.
-- `ns tag cards <tag_name>` (`ns ... c`) — Show cards in that tag.""",
+        """- `tag` — Manage your tags.
+- `tag add <tag_name>` (`... a`) — Create a tag.
+- `tag remove <tag_name>` (`... r`) — Delete one of your tags.
+- `tag list` (`... l`) — List your tags.
+- `tag lock <tag_name>` — Enable burn protection for that tag.
+- `tag unlock <tag_name>` — Disable burn protection for that tag.
+- `tag assign <tag_name> <card_code>` (`... as`) — Add a card to a tag.
+- `tag unassign <tag_name> <card_code>` (`... u`) — Remove a card from a tag.
+- `tag cards <tag_name>` (`... c`) — Show cards in that tag.""",
     ),
     (
         "folders",
         "Folders",
-        """- `ns folder` — Manage your folders.
-- `ns folder add <folder_name> [emoji]` (`ns ... a`) — Create a folder.
-- `ns folder remove <folder_name>` (`ns ... r`) — Delete one of your folders.
-- `ns folder list` (`ns ... l`) — List your folders with emoji, lock state, and card counts.
-- `ns folder lock <folder_name>` — Enable burn protection for that folder.
-- `ns folder unlock <folder_name>` — Disable burn protection for that folder.
-- `ns folder assign <folder_name> <card_code>` (`ns ... as`) — Add a card to a folder.
-- `ns folder unassign <folder_name> <card_code>` (`ns ... u`) — Remove a card from a folder.
-- `ns folder cards <folder_name>` (`ns ... c`) — Show cards in that folder.
-- `ns folder emoji <folder_name> <emoji>` (`ns ... e`) — Update a folder emoji.""",
+        """- `folder` — Manage your folders.
+- `folder add <folder_name> [emoji]` (`... a`) — Create a folder.
+- `folder remove <folder_name>` (`... r`) — Delete one of your folders.
+- `folder list` (`... l`) — List your folders with emoji, lock state, and card counts.
+- `folder lock <folder_name>` — Enable burn protection for that folder.
+- `folder unlock <folder_name>` — Disable burn protection for that folder.
+- `folder assign <folder_name> <card_code>` (`... as`) — Add a card to a folder.
+- `folder unassign <folder_name> <card_code>` (`... u`) — Remove a card from a folder.
+- `folder cards <folder_name>` (`... c`) — Show cards in that folder.
+- `folder emoji <folder_name> <emoji>` (`... e`) — Update a folder emoji.""",
     ),
     (
         "relationship",
         "Relationship",
-        """- `ns marry [card_code]` (`ns m`, `nm`) — Marry a card. Defaults to your last pulled card.
-- `ns divorce` (`ns dv`, `ndv`) — End your current marriage.""",
+        """- `marry [card_code]` (`m`) — Marry a card. Defaults to your last pulled card.
+- `divorce` (`dv`) — End your current marriage.""",
     ),
 )
 
 
 def help_overview_description() -> str:
     return """Noodswap is a card-collecting Discord bot with drops, trading, burning, traits, wishlists, and collection management.
+
+Its prefixes are `ns ` and `n`, so you may write, for example, `ns burn` or `nburn`.
 
 Use the dropdown below to browse help by category."""
 
