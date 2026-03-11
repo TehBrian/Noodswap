@@ -310,6 +310,45 @@ class StorageTests(unittest.TestCase):
         self.assertFalse(in_jail)
         self.assertEqual(doubles_count, 1)
 
+    def test_monopoly_property_rent_is_one_twelfth_of_card_value(self) -> None:
+        guild_id = 1
+        roller_id = 1250
+        owner_id = 1251
+        storage.init_db()
+
+        common_card_id = next(
+            card_id
+            for card_id, data in storage.CARD_CATALOG.items()
+            if str(data["rarity"]).lower() == "common"
+        )
+        generation = 100
+        storage.add_card_to_player(guild_id, owner_id, common_card_id, generation)
+        storage.add_dough(guild_id, roller_id, 10_000)
+
+        full_value = storage.card_value(
+            common_card_id,
+            generation,
+            morph_key=None,
+            frame_key=None,
+            font_key=None,
+        )
+        expected_rent = full_value // 12
+
+        with patch("noodswap.storage.roll_dice", return_value=(1, 2, False)):
+            result = storage.execute_monopoly_roll(
+                guild_id,
+                roller_id,
+                now=30_000.0,
+                cooldown_seconds=660.0,
+            )
+
+        self.assertEqual(result.status, "ok")
+
+        roller_dough, _, _ = storage.get_player_info(guild_id, roller_id)
+        owner_dough, _, _ = storage.get_player_info(guild_id, owner_id)
+        self.assertEqual(roller_dough, 10_000 - expected_rent)
+        self.assertEqual(owner_dough, expected_rent)
+
     def test_execute_flip_wager_win_loss_and_cooldown(self) -> None:
         guild_id = 1
         user_id = 1243
@@ -765,7 +804,18 @@ class StorageTests(unittest.TestCase):
         by_hash_global = storage.get_instance_by_dupe_code(guild_id, f"#{dupe_code.upper()}")
 
         self.assertEqual(by_plain_code, by_hash_code)
-        self.assertEqual(by_plain_code, by_hash_global)
+        self.assertIsNotNone(by_hash_global)
+        if by_plain_code is None or by_hash_global is None:
+            return
+
+        global_instance_id, global_user_id, global_card_id, global_generation, global_dupe_code = by_hash_global
+        plain_instance_id, plain_card_id, plain_generation, plain_dupe_code = by_plain_code
+
+        self.assertEqual(global_user_id, user_id)
+        self.assertEqual(
+            (global_instance_id, global_card_id, global_generation, global_dupe_code),
+            (plain_instance_id, plain_card_id, plain_generation, plain_dupe_code),
+        )
 
     def test_init_db_v5_ensures_dupe_code_column_and_index(self) -> None:
         with closing(sqlite3.connect(storage.DB_PATH)) as conn:

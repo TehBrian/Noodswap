@@ -763,7 +763,7 @@ class CommandsLookupTests(unittest.IsolatedAsyncioTestCase):
 
         with patch(
             "noodswap.commands_catalog.get_instance_by_dupe_code",
-            return_value=(123, "SPG", 101, "abc"),
+            return_value=(123, 999, "SPG", 101, "abc"),
         ) as lookup_dupe:
             await lookup_command.callback(ctx, card_id="AbC")
 
@@ -772,6 +772,7 @@ class CommandsLookupTests(unittest.IsolatedAsyncioTestCase):
         sent_embed = ctx.send.await_args.kwargs["embed"]
         self.assertEqual(sent_embed.title, "Card Lookup")
         self.assertIn("`#abc`", sent_embed.description)
+        self.assertIn("Owner: <@999>", sent_embed.description)
         self.assertIn("G-101", sent_embed.description)
         self.assertIn("dough", sent_embed.description)
         self.assertIn("**Traits**", sent_embed.description)
@@ -789,7 +790,7 @@ class CommandsLookupTests(unittest.IsolatedAsyncioTestCase):
 
         with patch(
             "noodswap.commands_catalog.get_instance_by_dupe_code",
-            return_value=(123, "SPG", 101, "abc"),
+            return_value=(123, 999, "SPG", 101, "abc"),
         ) as lookup_dupe:
             await lookup_command.callback(ctx, card_id="#AbC")
 
@@ -798,6 +799,7 @@ class CommandsLookupTests(unittest.IsolatedAsyncioTestCase):
         sent_embed = ctx.send.await_args.kwargs["embed"]
         self.assertEqual(sent_embed.title, "Card Lookup")
         self.assertIn("`#abc`", sent_embed.description)
+        self.assertIn("Owner: <@999>", sent_embed.description)
         self.assertIn("G-101", sent_embed.description)
         self.assertIn("dough", sent_embed.description)
         self.assertIn("**Traits**", sent_embed.description)
@@ -814,7 +816,7 @@ class CommandsLookupTests(unittest.IsolatedAsyncioTestCase):
 
         with patch(
             "noodswap.commands_catalog.get_instance_by_dupe_code",
-            return_value=(777, "SPG", 88, "spg"),
+            return_value=(777, 999, "SPG", 88, "spg"),
         ) as lookup_dupe:
             await lookup_command.callback(ctx, card_id="spg")
 
@@ -823,6 +825,7 @@ class CommandsLookupTests(unittest.IsolatedAsyncioTestCase):
         sent_embed = ctx.send.await_args.kwargs["embed"]
         self.assertEqual(sent_embed.title, "Card Lookup")
         self.assertIn("`#spg`", sent_embed.description)
+        self.assertIn("Owner: <@999>", sent_embed.description)
         self.assertIn("dough", sent_embed.description)
         self.assertNotIn("Base:", sent_embed.description)
         self.assertIn("Trait Multiplier", sent_embed.description)

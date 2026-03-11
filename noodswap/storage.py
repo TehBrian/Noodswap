@@ -1317,7 +1317,7 @@ def apply_font_to_instance(
         return True, ""
 
 
-def get_instance_by_dupe_code(guild_id: int, card_code: str) -> Optional[tuple[int, str, int, str]]:
+def get_instance_by_dupe_code(guild_id: int, card_code: str) -> Optional[tuple[int, int, str, int, str]]:
     guild_id = _scope_guild_id(guild_id)
     parsed = split_card_code(card_code)
     if parsed is None:
@@ -1687,7 +1687,7 @@ def execute_monopoly_roll(  # pylint: disable=too-many-branches
                     morph_key=morph_key,
                     frame_key=frame_key,
                     font_key=font_key,
-                )
+                ) // 12
                 paid = _deduct_up_to(players, guild_id, user_id, rent_due)
                 if paid > 0:
                     players.ensure_player(guild_id, owner_id)

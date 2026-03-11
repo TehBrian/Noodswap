@@ -74,7 +74,7 @@ def register_catalog_commands(bot: commands.Bot) -> None:
         if ctx.guild is not None:
             matched_instance = get_instance_by_dupe_code(_guild_id(ctx), card_id)
             if matched_instance is not None:
-                matched_instance_id, matched_card_id, matched_generation, matched_dupe_code = matched_instance
+                matched_instance_id, matched_owner_id, matched_card_id, matched_generation, matched_dupe_code = matched_instance
                 morph_key = get_instance_morph(_guild_id(ctx), matched_instance_id)
                 frame_key = get_instance_frame(_guild_id(ctx), matched_instance_id)
                 font_key = get_instance_font(_guild_id(ctx), matched_instance_id)
@@ -84,6 +84,7 @@ def register_catalog_commands(bot: commands.Bot) -> None:
                         matched_card_id,
                         matched_generation,
                         matched_dupe_code,
+                        owner_mention=f"<@{matched_owner_id}>",
                         morph_key=morph_key,
                         frame_key=frame_key,
                         font_key=font_key,
@@ -182,10 +183,8 @@ def register_catalog_commands(bot: commands.Bot) -> None:
             vote_url = f"https://top.gg/bot/{bot_id}/vote"
 
         lines: list[str] = [
-            "Support Noodswap by voting on top.gg.",
-            f"Reward: **+{VOTE_STARTER_REWARD} starter** when your vote is detected.",
-            "",
-            "After voting, run `ns vote` again to claim your reward.",
+            "Support Noodswap by voting on top.gg!",
+            f"Reward: **+{VOTE_STARTER_REWARD} starter**",
         ]
 
         api_token = os.getenv("TOPGG_API_TOKEN", "").strip()
@@ -193,8 +192,8 @@ def register_catalog_commands(bot: commands.Bot) -> None:
             lines.extend(
                 [
                     "",
-                    "Vote checking is temporarily unavailable right now.",
-                    "You can still vote using the button below and try claiming again soon.",
+                    "The reward system is temporarily unavailable.",
+                    "You can still vote, but you won't earn starter.",
                 ]
             )
             await _reply(ctx, embed=italy_embed("Vote", multiline_text(lines)), view=_vote_link_view(vote_url))

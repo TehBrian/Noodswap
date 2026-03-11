@@ -162,6 +162,7 @@ def _lookup_trait_breakdown_description(
     generation: int,
     dupe_code: str | None,
     *,
+    owner_mention: str | None,
     morph_key: str | None,
     frame_key: str | None,
     font_key: str | None,
@@ -190,16 +191,21 @@ def _lookup_trait_breakdown_description(
         font_key=font_key,
     )
 
-    return multiline_text(
+    lines = [
+        card_dupe_display(
+            card_id,
+            generation,
+            dupe_code=dupe_code,
+            morph_key=morph_key,
+            frame_key=frame_key,
+            font_key=font_key,
+        ),
+    ]
+    if owner_mention is not None:
+        lines.append(f"Owner: {owner_mention}")
+
+    lines.extend(
         [
-            card_dupe_display(
-                card_id,
-                generation,
-                dupe_code=dupe_code,
-                morph_key=morph_key,
-                frame_key=frame_key,
-                font_key=font_key,
-            ),
             "",
             "**Traits**",
             (
@@ -223,6 +229,7 @@ def _lookup_trait_breakdown_description(
             f"Computed Value: **{computed_value}** dough",
         ]
     )
+    return multiline_text(lines)
 
 
 async def resolve_member_argument(ctx: commands.Context, raw_member: str) -> tuple[discord.Member | None, str | None]:

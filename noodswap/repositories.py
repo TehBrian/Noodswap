@@ -1608,10 +1608,10 @@ class CardInstanceRepository:
             return None
         return int(row["instance_id"]), str(row["card_id"]), int(row["generation"]), str(row["dupe_code"])
 
-    def get_by_dupe_code(self, guild_id: int, dupe_code: str) -> Optional[tuple[int, str, int, str]]:
+    def get_by_dupe_code(self, guild_id: int, dupe_code: str) -> Optional[tuple[int, int, str, int, str]]:
         row = self.conn.execute(
             """
-            SELECT instance_id, card_id, generation, dupe_code
+            SELECT instance_id, user_id, card_id, generation, dupe_code
             FROM card_instances
             WHERE guild_id = ? AND dupe_code = ?
             LIMIT 1
@@ -1620,7 +1620,7 @@ class CardInstanceRepository:
         ).fetchone()
         if row is None:
             return None
-        return int(row["instance_id"]), str(row["card_id"]), int(row["generation"]), str(row["dupe_code"])
+        return int(row["instance_id"]), int(row["user_id"]), str(row["card_id"]), int(row["generation"]), str(row["dupe_code"])
 
     def count_by_card(self, guild_id: int, user_id: int, card_id: str) -> int:
         row = self.conn.execute(
