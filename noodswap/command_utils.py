@@ -620,7 +620,7 @@ async def _topgg_recent_vote_status(user_id: int, api_token: str) -> tuple[bool 
                         continue
 
                     if response.status != 200:
-                        return None, f"top.gg API responded with status {response.status}."
+                        return None, f"Top.gg API responded with status {response.status}."
 
                     payload = await response.json(content_type=None)
                     break
@@ -629,17 +629,17 @@ async def _topgg_recent_vote_status(user_id: int, api_token: str) -> tuple[bool 
                 await asyncio.sleep(0.5 * (2**attempt))
                 continue
             if isinstance(exc, asyncio.TimeoutError):
-                return None, "top.gg request timed out."
-            return None, f"top.gg request failed: {exc}"
+                return None, "Top.gg request timed out."
+            return None, f"Top.gg request failed: {exc}"
         except ValueError:
-            return None, "top.gg response was not valid JSON."
+            return None, "Top.gg response was not valid JSON."
     else:
-        return None, "top.gg request failed after retries."
+        return None, "Top.gg request failed after retries."
 
     created_at = payload.get("created_at")
     expires_at = payload.get("expires_at")
     if created_at is None and expires_at is None:
-        return None, "top.gg response did not include vote status fields."
+        return None, "Top.gg response did not include vote status fields."
     return True, None
 
 

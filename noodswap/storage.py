@@ -6,7 +6,7 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from typing import Optional
 
-from .cards import CARD_CATALOG, card_value, random_generation, split_card_code
+from .cards import CARD_CATALOG, card_dupe_display, card_value, random_generation, split_card_code
 from .battle_engine import build_battle_card, resolve_attack
 from .migrations import TARGET_SCHEMA_VERSION, run_migrations
 from .monopoly import (
@@ -59,6 +59,12 @@ class MonopolyRollResult:
     in_jail: bool
     doubles: bool
     lines: tuple[str, ...]
+    mpreg_card_id: str | None = None
+    mpreg_generation: int | None = None
+    mpreg_dupe_code: str | None = None
+    mpreg_morph_key: str | None = None
+    mpreg_frame_key: str | None = None
+    mpreg_font_key: str | None = None
 
 
 @dataclass(frozen=True)
@@ -1483,6 +1489,12 @@ def execute_monopoly_roll(  # pylint: disable=too-many-branches
         die_a, die_b, is_doubles = roll_dice()
         rolled_spaces = die_a + die_b
         lines: list[str] = [f"Dice: **{die_a} + {die_b} = {rolled_spaces}**"]
+        mpreg_card_id: str | None = None
+        mpreg_generation: int | None = None
+        mpreg_dupe_code: str | None = None
+        mpreg_morph_key: str | None = None
+        mpreg_frame_key: str | None = None
+        mpreg_font_key: str | None = None
 
         if in_jail:
             if is_doubles:
@@ -1580,8 +1592,29 @@ def execute_monopoly_roll(  # pylint: disable=too-many-branches
             generation = random_generation()
             instance_id = instances.create_owned_instance(guild_id, user_id, card_id, generation)
             players.set_last_pulled_instance(guild_id, user_id, instance_id)
+            created_instance = instances.get_by_id(guild_id, instance_id)
+            dupe_code = created_instance[3] if created_instance is not None else None
+            morph_key = instances.get_morph_key(guild_id, instance_id)
+            frame_key = instances.get_frame_key(guild_id, instance_id)
+            font_key = instances.get_font_key(guild_id, instance_id)
+
+            mpreg_card_id = card_id
+            mpreg_generation = generation
+            mpreg_dupe_code = dupe_code
+            mpreg_morph_key = morph_key
+            mpreg_frame_key = frame_key
+            mpreg_font_key = font_key
+
+            lines.append("Mpreg square effect: you gave birth to a dupe.")
             lines.append(
-                f"Mpreg square effect: you gave birth to a dupe of **{card_id}** (generation {generation})."
+                card_dupe_display(
+                    card_id,
+                    generation,
+                    dupe_code=dupe_code,
+                    morph_key=morph_key,
+                    frame_key=frame_key,
+                    font_key=font_key,
+                )
             )
 
         elif space.kind == "community":
@@ -1717,6 +1750,12 @@ def execute_monopoly_roll(  # pylint: disable=too-many-branches
             in_jail=current_in_jail,
             doubles=is_doubles,
             lines=tuple(lines),
+            mpreg_card_id=mpreg_card_id,
+            mpreg_generation=mpreg_generation,
+            mpreg_dupe_code=mpreg_dupe_code,
+            mpreg_morph_key=mpreg_morph_key,
+            mpreg_frame_key=mpreg_frame_key,
+            mpreg_font_key=mpreg_font_key,
         )
 
 

@@ -3,6 +3,7 @@ import tempfile
 import unittest
 from contextlib import closing
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from noodswap import storage
@@ -348,6 +349,42 @@ class StorageTests(unittest.TestCase):
         owner_dough, _, _ = storage.get_player_info(guild_id, owner_id)
         self.assertEqual(roller_dough, 10_000 - expected_rent)
         self.assertEqual(owner_dough, expected_rent)
+
+    def test_monopoly_roll_mpreg_includes_metadata_and_display_line(self) -> None:
+        guild_id = 1
+        user_id = 1252
+        storage.init_db()
+
+        with (
+            patch("noodswap.storage.roll_dice", return_value=(1, 2, False)),
+            patch(
+                "noodswap.storage.board_space",
+                return_value=SimpleNamespace(kind="mpreg", name="Mpreg", emoji="🤰", rarity=None),
+            ),
+            patch("noodswap.storage.random_epic_or_better_card_id", return_value="SPG"),
+            patch("noodswap.storage.random_generation", return_value=321),
+        ):
+            result = storage.execute_monopoly_roll(
+                guild_id,
+                user_id,
+                now=40_000.0,
+                cooldown_seconds=660.0,
+            )
+
+        self.assertEqual(result.status, "ok")
+        self.assertEqual(result.mpreg_card_id, "SPG")
+        self.assertEqual(result.mpreg_generation, 321)
+        self.assertIsNotNone(result.mpreg_dupe_code)
+
+        expected_line = storage.card_dupe_display(
+            "SPG",
+            321,
+            dupe_code=result.mpreg_dupe_code,
+            morph_key=result.mpreg_morph_key,
+            frame_key=result.mpreg_frame_key,
+            font_key=result.mpreg_font_key,
+        )
+        self.assertIn(expected_line, result.lines)
 
     def test_execute_flip_wager_win_loss_and_cooldown(self) -> None:
         guild_id = 1
@@ -805,12 +842,11 @@ class StorageTests(unittest.TestCase):
 
         self.assertEqual(by_plain_code, by_hash_code)
         self.assertIsNotNone(by_hash_global)
-        if by_plain_code is None or by_hash_global is None:
+        if by_hash_global is None or by_plain_code is None:
             return
 
         global_instance_id, global_user_id, global_card_id, global_generation, global_dupe_code = by_hash_global
         plain_instance_id, plain_card_id, plain_generation, plain_dupe_code = by_plain_code
-
         self.assertEqual(global_user_id, user_id)
         self.assertEqual(
             (global_instance_id, global_card_id, global_generation, global_dupe_code),

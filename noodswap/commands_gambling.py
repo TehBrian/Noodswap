@@ -165,7 +165,20 @@ def register_gambling_commands(bot: commands.Bot) -> None:
             )
             return
 
-        await _reply(ctx, embed=italy_embed("Monopoly Roll", multiline_text(list(result.lines))))
+        embed = italy_embed("Monopoly Roll", multiline_text(list(result.lines)))
+        image_file = None
+        if result.mpreg_card_id is not None and result.mpreg_generation is not None:
+            attachment_url, image_file = embed_image_payload(
+                result.mpreg_card_id,
+                result.mpreg_generation,
+                morph_key=result.mpreg_morph_key,
+                frame_key=result.mpreg_frame_key,
+                font_key=result.mpreg_font_key,
+            )
+            if attachment_url is not None:
+                embed.set_thumbnail(url=attachment_url)
+
+        await _reply(ctx, embed=embed, file=image_file)
 
     @monopoly.command(name="fine")
     async def monopoly_fine(ctx: commands.Context):

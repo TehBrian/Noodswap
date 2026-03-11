@@ -1863,6 +1863,61 @@ class CommandsBurnTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(sent_embed.title, "Burn Confirmation")
 
 
+class CommandsMonopolyTests(unittest.IsolatedAsyncioTestCase):
+    def setUp(self) -> None:
+        self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)
+        register_commands(self.bot)
+
+    async def test_monopoly_roll_mpreg_attaches_thumbnail_file(self) -> None:
+        monopoly_roll_command = _get_group_command(self.bot, "monopoly", "roll")
+
+        ctx = AsyncMock()
+        ctx.guild = _FakeGuild(1)
+        ctx.author = _FakeMember(100, "Caller")
+        ctx.send = AsyncMock()
+        ctx.reply = ctx.send
+
+        image_file = discord.File(io.BytesIO(b"png"), filename="mpreg.png")
+        result = SimpleNamespace(
+            status="ok",
+            cooldown_remaining=0.0,
+            die_a=1,
+            die_b=2,
+            position=3,
+            in_jail=False,
+            doubles=False,
+            lines=("Dice: **1 + 2 = 3**", "Mpreg square effect: you gave birth to a dupe."),
+            mpreg_card_id="SPG",
+            mpreg_generation=321,
+            mpreg_dupe_code="a",
+            mpreg_morph_key=None,
+            mpreg_frame_key=None,
+            mpreg_font_key=None,
+        )
+
+        with (
+            patch("noodswap.commands_gambling.execute_monopoly_roll", return_value=result),
+            patch(
+                "noodswap.commands_gambling.embed_image_payload",
+                return_value=("attachment://mpreg.png", image_file),
+            ) as image_payload,
+        ):
+            await monopoly_roll_command.callback(ctx)
+
+        image_payload.assert_called_once()
+        payload_args, payload_kwargs = image_payload.call_args
+        self.assertEqual(payload_args, ("SPG", 321))
+        self.assertEqual(payload_kwargs["morph_key"], None)
+        self.assertEqual(payload_kwargs["frame_key"], None)
+        self.assertEqual(payload_kwargs["font_key"], None)
+
+        ctx.send.assert_awaited_once()
+        sent_embed = ctx.send.await_args.kwargs["embed"]
+        sent_file = ctx.send.await_args.kwargs["file"]
+        self.assertEqual(sent_embed.thumbnail.url, "attachment://mpreg.png")
+        self.assertIs(sent_file, image_file)
+
+
 class CommandsMorphTests(unittest.IsolatedAsyncioTestCase):
     def setUp(self) -> None:
         self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)

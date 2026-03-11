@@ -236,7 +236,7 @@ class PlayerLeaderboardView(discord.ui.View):
             discord.SelectOption(label="Wishes", value="wishes", description="Most wishlisted cards"),
             discord.SelectOption(label="Dough", value="dough", description="Most dough"),
             discord.SelectOption(label="Starter", value="starter", description="Most starter"),
-            discord.SelectOption(label="Votes", value="votes", description="Most top.gg votes"),
+            discord.SelectOption(label="Votes", value="votes", description="Most Top.gg votes"),
             discord.SelectOption(label="Collection Value", value="value", description="Highest total card value"),
         ],
     )
