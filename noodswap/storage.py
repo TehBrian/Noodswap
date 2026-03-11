@@ -65,6 +65,11 @@ class MonopolyRollResult:
     mpreg_morph_key: str | None = None
     mpreg_frame_key: str | None = None
     mpreg_font_key: str | None = None
+    thumbnail_card_id: str | None = None
+    thumbnail_generation: int | None = None
+    thumbnail_morph_key: str | None = None
+    thumbnail_frame_key: str | None = None
+    thumbnail_font_key: str | None = None
 
 
 @dataclass(frozen=True)
@@ -1501,6 +1506,11 @@ def execute_monopoly_roll(  # pylint: disable=too-many-branches
         mpreg_morph_key: str | None = None
         mpreg_frame_key: str | None = None
         mpreg_font_key: str | None = None
+        thumbnail_card_id: str | None = None
+        thumbnail_generation: int | None = None
+        thumbnail_morph_key: str | None = None
+        thumbnail_frame_key: str | None = None
+        thumbnail_font_key: str | None = None
 
         if in_jail:
             if is_doubles:
@@ -1564,7 +1574,9 @@ def execute_monopoly_roll(  # pylint: disable=too-many-branches
             lines.append(f"Passed GO: **+{MONOPOLY_GO_REWARD_DOUGH} dough**")
 
         space = board_space(new_position)
-        lines.append(f"Landed on **{space.name}** {space.emoji}")
+
+        if space.kind != "property":
+            lines.append(f"Landed on **{space.name}** {space.emoji}")
 
         if space.kind == "tax":
             paid = _deduct_up_to(players, guild_id, user_id, MONOPOLY_CHEESE_TAX_DOUGH)
@@ -1610,6 +1622,11 @@ def execute_monopoly_roll(  # pylint: disable=too-many-branches
             mpreg_morph_key = morph_key
             mpreg_frame_key = frame_key
             mpreg_font_key = font_key
+            thumbnail_card_id = card_id
+            thumbnail_generation = generation
+            thumbnail_morph_key = morph_key
+            thumbnail_frame_key = frame_key
+            thumbnail_font_key = font_key
 
             lines.append("Mpreg square effect: you gave birth to a dupe.")
             lines.append(
@@ -1681,7 +1698,11 @@ def execute_monopoly_roll(  # pylint: disable=too-many-branches
                     lines.append(f"Moved past GO by card: **+{MONOPOLY_GO_REWARD_DOUGH} dough**")
                 new_position = target
                 players.set_monopoly_position(guild_id, user_id, target)
-                lines.append(f"Moved to **{board_space(target).name}**")
+                target_space = board_space(target)
+                if target_space.kind == "property":
+                    lines.append(f"Moved to a **{target_space.rarity}** property.")
+                else:
+                    lines.append(f"Moved to **{target_space.name}**")
             if card.dough_delta != 0:
                 if card.dough_delta > 0:
                     players.add_dough(guild_id, user_id, card.dough_delta)
@@ -1720,6 +1741,8 @@ def execute_monopoly_roll(  # pylint: disable=too-many-branches
                 morph_key = instances.get_morph_key(guild_id, selected_instance_id)
                 frame_key = instances.get_frame_key(guild_id, selected_instance_id)
                 font_key = instances.get_font_key(guild_id, selected_instance_id)
+                card_name = str(CARD_CATALOG[str(card_id)]["name"])
+                lines.append(f"Landed on **{card_name}** {space.emoji}")
                 rent_due = card_value(
                     card_id,
                     generation,
@@ -1731,10 +1754,16 @@ def execute_monopoly_roll(  # pylint: disable=too-many-branches
                 if paid > 0:
                     players.ensure_player(guild_id, owner_id)
                     players.add_dough(guild_id, owner_id, paid)
+                thumbnail_card_id = card_id
+                thumbnail_generation = generation
+                thumbnail_morph_key = morph_key
+                thumbnail_frame_key = frame_key
+                thumbnail_font_key = font_key
                 lines.append(
                     f"Rent paid to <@{owner_id}> for {card_id} #{dupe_code} (gen {generation}): **{paid}/{rent_due} dough**"
                 )
             else:
+                lines.append(f"Landed on an unowned **{space.rarity}** property {space.emoji}")
                 lines.append(f"No owner had a {space.rarity} dupe. No rent due.")
 
         current_position = players.get_monopoly_position(guild_id, user_id)
@@ -1762,6 +1791,11 @@ def execute_monopoly_roll(  # pylint: disable=too-many-branches
             mpreg_morph_key=mpreg_morph_key,
             mpreg_frame_key=mpreg_frame_key,
             mpreg_font_key=mpreg_font_key,
+            thumbnail_card_id=thumbnail_card_id,
+            thumbnail_generation=thumbnail_generation,
+            thumbnail_morph_key=thumbnail_morph_key,
+            thumbnail_frame_key=thumbnail_frame_key,
+            thumbnail_font_key=thumbnail_font_key,
         )
 
 

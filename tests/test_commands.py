@@ -1942,6 +1942,59 @@ class CommandsMonopolyTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(sent_embed.thumbnail.url, "attachment://mpreg.png")
         self.assertIs(sent_file, image_file)
 
+    async def test_monopoly_roll_uses_generic_thumbnail_metadata(self) -> None:
+        monopoly_roll_command = _get_group_command(self.bot, "monopoly", "roll")
+
+        ctx = AsyncMock()
+        ctx.guild = _FakeGuild(1)
+        ctx.author = _FakeMember(100, "Caller")
+        ctx.send = AsyncMock()
+        ctx.reply = ctx.send
+
+        image_file = discord.File(io.BytesIO(b"png"), filename="property.png")
+        result = SimpleNamespace(
+            status="ok",
+            cooldown_remaining=0.0,
+            die_a=1,
+            die_b=2,
+            position=3,
+            in_jail=False,
+            doubles=False,
+            lines=("Dice: **1 + 2 = 3**", "Landed on **Sample Card** 🟫"),
+            mpreg_card_id=None,
+            mpreg_generation=None,
+            mpreg_morph_key=None,
+            mpreg_frame_key=None,
+            mpreg_font_key=None,
+            thumbnail_card_id="SPG",
+            thumbnail_generation=222,
+            thumbnail_morph_key="foil",
+            thumbnail_frame_key="gold",
+            thumbnail_font_key="papyrus",
+        )
+
+        with (
+            patch("noodswap.commands_gambling.execute_monopoly_roll", return_value=result),
+            patch(
+                "noodswap.commands_gambling.embed_image_payload",
+                return_value=("attachment://property.png", image_file),
+            ) as image_payload,
+        ):
+            await monopoly_roll_command.callback(ctx)
+
+        image_payload.assert_called_once()
+        payload_args, payload_kwargs = image_payload.call_args
+        self.assertEqual(payload_args, ("SPG", 222))
+        self.assertEqual(payload_kwargs["morph_key"], "foil")
+        self.assertEqual(payload_kwargs["frame_key"], "gold")
+        self.assertEqual(payload_kwargs["font_key"], "papyrus")
+
+        ctx.send.assert_awaited_once()
+        sent_embed = ctx.send.await_args.kwargs["embed"]
+        sent_file = ctx.send.await_args.kwargs["file"]
+        self.assertEqual(sent_embed.thumbnail.url, "attachment://property.png")
+        self.assertIs(sent_file, image_file)
+
 
 class CommandsMorphTests(unittest.IsolatedAsyncioTestCase):
     def setUp(self) -> None:

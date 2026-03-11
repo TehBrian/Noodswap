@@ -167,13 +167,19 @@ def register_gambling_commands(bot: commands.Bot) -> None:
 
         embed = italy_embed("Monopoly Roll", multiline_text(list(result.lines)))
         image_file = None
-        if result.mpreg_card_id is not None and result.mpreg_generation is not None:
+        thumbnail_card_id = getattr(result, "thumbnail_card_id", None) or result.mpreg_card_id
+        thumbnail_generation = getattr(result, "thumbnail_generation", None) or result.mpreg_generation
+        thumbnail_morph_key = getattr(result, "thumbnail_morph_key", None)
+        thumbnail_frame_key = getattr(result, "thumbnail_frame_key", None)
+        thumbnail_font_key = getattr(result, "thumbnail_font_key", None)
+
+        if thumbnail_card_id is not None and thumbnail_generation is not None:
             attachment_url, image_file = embed_image_payload(
-                result.mpreg_card_id,
-                result.mpreg_generation,
-                morph_key=result.mpreg_morph_key,
-                frame_key=result.mpreg_frame_key,
-                font_key=result.mpreg_font_key,
+                thumbnail_card_id,
+                thumbnail_generation,
+                morph_key=thumbnail_morph_key if thumbnail_morph_key is not None else result.mpreg_morph_key,
+                frame_key=thumbnail_frame_key if thumbnail_frame_key is not None else result.mpreg_frame_key,
+                font_key=thumbnail_font_key if thumbnail_font_key is not None else result.mpreg_font_key,
             )
             if attachment_url is not None:
                 embed.set_thumbnail(url=attachment_url)

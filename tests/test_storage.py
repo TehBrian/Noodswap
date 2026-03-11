@@ -350,6 +350,34 @@ class StorageTests(unittest.TestCase):
         self.assertEqual(roller_dough, 10_000 - expected_rent)
         self.assertEqual(owner_dough, expected_rent)
 
+    def test_monopoly_property_landing_uses_dupe_card_name_and_thumbnail_metadata(self) -> None:
+        guild_id = 1
+        roller_id = 2250
+        owner_id = 2251
+        storage.init_db()
+
+        common_card_id = next(
+            card_id
+            for card_id, data in storage.CARD_CATALOG.items()
+            if str(data["rarity"]).lower() == "common"
+        )
+        generation = 123
+        storage.add_card_to_player(guild_id, owner_id, common_card_id, generation)
+        storage.add_dough(guild_id, roller_id, 10_000)
+
+        with patch("noodswap.storage.roll_dice", return_value=(1, 2, False)):
+            result = storage.execute_monopoly_roll(
+                guild_id,
+                roller_id,
+                now=31_000.0,
+                cooldown_seconds=660.0,
+            )
+
+        card_name = str(storage.CARD_CATALOG[common_card_id]["name"])
+        self.assertTrue(any(f"Landed on **{card_name}**" in line for line in result.lines))
+        self.assertEqual(result.thumbnail_card_id, common_card_id)
+        self.assertEqual(result.thumbnail_generation, generation)
+
     def test_monopoly_roll_mpreg_includes_metadata_and_display_line(self) -> None:
         guild_id = 1
         user_id = 1252
@@ -375,6 +403,8 @@ class StorageTests(unittest.TestCase):
         self.assertEqual(result.mpreg_card_id, "SPG")
         self.assertEqual(result.mpreg_generation, 321)
         self.assertIsNotNone(result.mpreg_dupe_code)
+        self.assertEqual(result.thumbnail_card_id, "SPG")
+        self.assertEqual(result.thumbnail_generation, 321)
 
         expected_line = storage.card_dupe_display(
             "SPG",
