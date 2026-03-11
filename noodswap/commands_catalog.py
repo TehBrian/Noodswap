@@ -183,7 +183,7 @@ def register_catalog_commands(bot: commands.Bot) -> None:
             vote_url = f"https://top.gg/bot/{bot_id}/vote"
 
         lines: list[str] = [
-            "Support Noodswap by voting on top.gg!",
+            "Support Noodswap by voting on Top.gg!",
             f"Reward: **+{VOTE_STARTER_REWARD} starter**",
         ]
 
@@ -214,11 +214,11 @@ def register_catalog_commands(bot: commands.Bot) -> None:
         elif voted is False:
             lines.extend([
                 "",
-                "No recent top.gg vote detected for your account yet.",
+                "No recent Top.gg vote detected for your account yet.",
                 "Cast your vote using the button, then try `ns vote` again.",
             ])
         else:
-            lines.extend(["", f"Could not verify your top.gg vote right now: {vote_error or 'unknown error'}"])
+            lines.extend(["", f"Could not verify your Top.gg vote right now: {vote_error or 'unknown error'}"])
 
         await _reply(ctx, embed=italy_embed("Vote", multiline_text(lines)), view=_vote_link_view(vote_url))
 

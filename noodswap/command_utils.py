@@ -386,7 +386,7 @@ def _cooldown_status_line(label: str, elapsed_seconds: float, cooldown_seconds: 
 
 def _vote_link_view(vote_url: str) -> discord.ui.View:
     view = discord.ui.View(timeout=None)
-    view.add_item(discord.ui.Button(label="Vote on top.gg", style=discord.ButtonStyle.link, url=vote_url))
+    view.add_item(discord.ui.Button(label="Vote on Top.gg", style=discord.ButtonStyle.link, url=vote_url))
     return view
 
 
