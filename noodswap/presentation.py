@@ -237,96 +237,103 @@ HELP_CATEGORY_PAGES: tuple[tuple[str, str, str], ...] = (
     (
         "overview",
         "Overview",
-        """- `ns info [player]` (`ns i`, `ni`) — View a player's info; defaults to yourself or the replied user.
-- `ns leaderboard` (`ns le`, `nle`) — View ranked players with selectable leaderboard criteria.
-- `ns collection [player]` (`ns c`, `nc`) — View a player's cards; defaults to yourself or the replied user.
-- `ns cards` (`ns ca`, `nca`) — View all cards, ranked by wish count.
-- `ns lookup <card_id|card_code|query>` (`ns l`, `nl`) — Look up a base card or exact dupe code.
-- `ns lookuphd <card_id|card_code|query>` (`ns lhd`, `nlhd`) — Look up a card with
-    high-detail `1000x1400` rendering.
+        """- `ns info [player]` (`ns i`, `ni`) — View a player's info. Defaults to yourself or the replied user.
+- `ns leaderboard` (`ns le`, `nle`) — View players ranked on various criteria.
+- `ns collection [player]` (`ns c`, `nc`) — View a player's cards. Defaults to yourself or the replied user.
+- `ns cards` (`ns ca`, `nca`) — View all cards.
+- `ns lookup <card_id|card_code|query>` (`ns l`, `nl`) — Look up a base card by ID or query or a dupe card by code.
+- `ns lookuphd <card_id|card_code|query>` (`ns lhd`, `nlhd`) — View a card in high resolution.
 - `ns help` (`ns h`, `nh`) — Open this help menu.""",
     ),
     (
         "economy",
         "Economy",
-        """- `ns drop` (`ns d`, `nd`) — Open a drop with 3 cards and pull 1 (auto-uses 1 drop ticket if drop cooldown is active).
-    - `ns buy drop [quantity]` — Buy drop tickets for 1 starter each (default quantity: 1).
-- `ns cooldown [player]` (`ns cd`) — Check a player's cooldowns; defaults to yourself or the replied user.
-- `ns vote` (`ns v`, `nv`) — Open top.gg vote link and claim starter reward if your vote is detected.
-- `ns burn [targets...]` (`ns b`, `nb`) — Burn one or many targets for dough; supports
-    card codes/IDs plus `t:<tag_name>` and `f:<folder_name>` selectors; defaults to last pulled card.
-    - `ns gift <player> <card_code>` (`ns g`) — Offer one of your cards to another player.
-    - `ns trade <player> <card_code> <amount>` (`ns t`, `nt`) — Offer a card-for-dough trade.""",
+        """- `ns drop` (`ns d`, `nd`) — Drop 3 cards.
+- `ns buy drop [quantity]` — Buy drop tickets for 1 starter each. Defaults to 1.
+- `ns cooldown [player]` (`ns cd`) — Check a player's cooldowns. Defaults to yourself or the replied user.
+- `ns vote` (`ns v`, `nv`) — Vote for the bot to claim rewards.
+- `ns burn [target...]` (`ns b`, `nb`) — Burn targets for dough. Supports card codes plus
+    `t:<tag>` and `f:<folder>` selectors. Defaults to last pulled card.
+- `ns gift <player> <dough>` (`ns g`) — Send dough to a player.
+- `ns gift <player> <card_code>` (`ns g`) — Send a card to a player.
+- `ns trade <player> <card_code> <amount>` (`ns t`, `nt`) — Offer a card-for-dough trade.""",
     ),
     (
         "gambling",
         "Gambling",
-        """- `ns slots` (`ns sl`) — Spin 3 food reels; matching all 3 wins 1-3 starter.
-- `ns flip <stake> [heads|tails]` (`ns f`, `nf`) — Flip a coin to double a wager.
-- `ns monopoly roll` (`ns mp roll`) — Roll two dice and move on the Monopoly board.
-- `ns monopoly fine confirm` (`ns mp fine confirm`) — Pay the jail fine to get out.
-- `ns monopoly board` (`ns mp board`) — View the board and your marker.
-- `ns monopoly pot` (`ns mp pot`) — View the Free Parking jackpot pot.""",
+        """- `ns slots` (`ns sl`) — Spin 3 food reels. Matching all 3 wins 1-3 starter.
+- `ns flip <stake> [heads|tails]` (`ns f`, `nf`) — Flip a coin to double a wager.""",
+    ),
+    (
+        "monopoly",
+        "Monopoly",
+        """- `ns monopoly` (`ns mp`) — Play Monopoly.
+- `ns monopoly roll` (`ns ... r`) — Roll two dice to move on the board.
+- `ns monopoly fine` (`ns ... fine`) — Pay the jail fine to get out.
+- `ns monopoly board` (`ns ... b`) — View the board and your position on it.
+- `ns monopoly pot` (`ns ... p`) — View the Free Parking pot.
+        """
     ),
     (
         "battle",
         "Battle",
-        """- `ns team add <team_name>` (`ns tm add <team_name>`) — Create a battle team.
-- `ns team remove <team_name>` (`ns tm remove <team_name>`) — Delete one of your battle teams.
-- `ns team list` (`ns tm list`) — Show your teams and card counts.
-- `ns team assign <team_name> <card_code>` (`ns tm assign <team_name> <card_code>`) — Add a card to a team.
-- `ns team unassign <team_name> <card_code>` (`ns tm unassign <team_name> <card_code>`) — Remove a card from a team.
-- `ns team cards <team_name>` (`ns tm cards <team_name>`) — List cards in a team.
-- `ns team active [team_name]` (`ns tm active [team_name]`) — Set or show your active team.
-- `ns battle <player> <stake>` (`ns bt`) — Propose a stake battle to another player.""",
+        """- `ns team` (`ns tm`) — Manage your teams.
+- `ns team add <team_name>` (`ns ... a`) — Create a team.
+- `ns team remove <team_name>` (`ns ... r`) — Delete one of your teams.
+- `ns team list` (`ns ... l`) — List your teams.
+- `ns team assign <team_name> <card_code>` (`ns ... as`) — Add a card to a team.
+- `ns team unassign <team_name> <card_code>` (`ns ... u`) — Remove a card from a team.
+- `ns team cards <team_name>` (`ns ... c`) — List cards in a team.
+- `ns team active [team_name]`(`ns ... a`) — Show or set your active battle team.
+- `ns battle <player> <stake>` (`ns bt`) — Propose a battle to another player.""",
     ),
     (
-        "traits",
-        "Traits",
-        """- `ns morph [card_code]` (`ns mo`, `nmo`) — Spend dough to apply a random morph; defaults to last pulled card.
-- `ns frame [card_code]` (`ns fr`, `nfr`) — Spend dough to apply a random frame; defaults to last pulled card.
-- `ns font [card_code]` (`ns fo`, `nfo`) — Spend dough to apply a random font; defaults to last pulled card.""",
+        "cosmetics",
+        "Cosmetics",
+        """- `ns morph [card_code]` (`ns mo`, `nmo`) — Roll for a morph. Defaults to last pulled card.
+- `ns frame [card_code]` (`ns fr`, `nfr`) — Roll for a frame. Defaults to last pulled card.
+- `ns font [card_code]` (`ns fo`, `nfo`) — Roll for a font. Defaults to last pulled card.""",
     ),
     (
         "wishlist",
         "Wishlist",
-        """- `ns wish` (`ns w`, `nw`) — Wishlist command group.
+        """- `ns wish` (`ns w`) — Manage your wishlist.
 - `ns wish add <card_id>` (`ns ... a`, `ns wa`, `nwa`) — Add a card to your wishlist.
 - `ns wish remove <card_id>` (`ns ... r`, `ns wr`, `nwr`) — Remove a card from your wishlist.
-- `ns wish list [player]` (`ns ... l`, `ns wl`, `nwl`) — Show a player's wishlist; defaults to yourself or the replied user.""",
+- `ns wish list [player]` (`ns ... l`, `ns wl`, `nwl`) — Show a player's wishlist. Defaults to yourself or the replied user.""",
     ),
     (
         "tags",
-        "Tags & Folders",
-        """- `ns tag` (`ns tg`) — Tag command group.
-- `ns tag add <tag_name>` (`ns ... a`) — Create a personal tag collection.
+        "Tags",
+        """- `ns tag` — Manage your tags.
+- `ns tag add <tag_name>` (`ns ... a`) — Create a tag.
 - `ns tag remove <tag_name>` (`ns ... r`) — Delete one of your tags.
-- `ns tag list` (`ns ... l`) — List your tags with lock state and card counts.
-- `ns tag lock <tag_name>` / `ns tag unlock <tag_name>` — Toggle burn protection for that tag.
-- `ns tag assign <tag_name> <card_code>` (`ns ... as`) — Add one of your dupes to a tag.
-- `ns tag unassign <tag_name> <card_code>` (`ns ... u`) — Remove a tagged dupe from a tag.
-- `ns tag cards <tag_name>` (`ns ... c`) — Show cards currently in that tag.
-- `ns folder` (`ns fd`) — Folder command group.
-- `ns folder add <folder_name> [emoji]` (`ns ... a`) — Create a personal folder (default emoji: `📁`).
+- `ns tag list` (`ns ... l`) — List your tags.
+- `ns tag lock <tag_name>` — Enable burn protection for that tag.
+- `ns tag unlock <tag_name>` — Disable burn protection for that tag.
+- `ns tag assign <tag_name> <card_code>` (`ns ... as`) — Add a card to a tag.
+- `ns tag unassign <tag_name> <card_code>` (`ns ... u`) — Remove a card from a tag.
+- `ns tag cards <tag_name>` (`ns ... c`) — Show cards in that tag.""",
+    ),
+    (
+        "folders",
+        "Folders",
+        """- `ns folder` — Manage your folders.
+- `ns folder add <folder_name> [emoji]` (`ns ... a`) — Create a folder.
 - `ns folder remove <folder_name>` (`ns ... r`) — Delete one of your folders.
 - `ns folder list` (`ns ... l`) — List your folders with emoji, lock state, and card counts.
-- `ns folder lock <folder_name>` / `ns folder unlock <folder_name>` — Toggle burn protection for that folder.
-- `ns folder assign <folder_name> <card_code>` (`ns ... as`) — Assign one owned card instance to a folder.
+- `ns folder lock <folder_name>` — Enable burn protection for that folder.
+- `ns folder unlock <folder_name>` — Disable burn protection for that folder.
+- `ns folder assign <folder_name> <card_code>` (`ns ... as`) — Add a card to a folder.
 - `ns folder unassign <folder_name> <card_code>` (`ns ... u`) — Remove a card from a folder.
-- `ns folder cards <folder_name>` (`ns ... c`) — Show cards currently in that folder.
+- `ns folder cards <folder_name>` (`ns ... c`) — Show cards in that folder.
 - `ns folder emoji <folder_name> <emoji>` (`ns ... e`) — Update a folder emoji.""",
     ),
     (
         "relationship",
         "Relationship",
-        """- `ns marry [card_code]` (`ns m`, `nm`) — Marry a card; defaults to your last pulled card.
+        """- `ns marry [card_code]` (`ns m`, `nm`) — Marry a card. Defaults to your last pulled card.
 - `ns divorce` (`ns dv`, `ndv`) — End your current marriage.""",
-    ),
-    (
-        "owner",
-        "Owner-only",
-        """- `ns dbexport` — Export the SQLite DB file.
-- `ns dbreset` — Reset all persisted bot data.""",
     ),
 )
 
