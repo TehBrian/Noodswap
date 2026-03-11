@@ -22,7 +22,7 @@ from noodswap.command_utils import (
 from noodswap.commands import register_commands
 from noodswap.images import DEFAULT_CARD_RENDER_SIZE, HD_CARD_RENDER_SIZE, RARITY_BORDER_COLORS, render_card_image_bytes
 from noodswap.presentation import HELP_CATEGORY_PAGES
-from noodswap.views import GiftCardView, HelpView, PlayerLeaderboardView, SortableCardListView, SortableCollectionView
+from noodswap.views import HelpView, PlayerLeaderboardView, SortableCardListView, SortableCollectionView
 
 
 _TEST_DB_TMP: tempfile.TemporaryDirectory[str] | None = None
@@ -1672,39 +1672,33 @@ class CommandsGiftTests(unittest.IsolatedAsyncioTestCase):
         bot_target.bot = True
         with (
             patch("noodswap.commands_economy.resolve_member_argument", new=AsyncMock(return_value=(bot_target, None))),
-            patch("noodswap.commands_economy.prepare_gift_offer") as prepare_gift,
+            patch("noodswap.commands_economy.execute_gift_card") as gift_card,
         ):
             await gift_card_command.callback(ctx, player="@BotTarget", card_code="0")
 
-        prepare_gift.assert_not_called()
+        gift_card.assert_not_called()
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
         self.assertEqual(sent_embed.title, "Gift")
         self.assertIn("cannot gift cards to bots", sent_embed.description)
 
-    async def test_gift_success_sends_offer_embed_with_confirmation_view(self) -> None:
+    async def test_gift_card_success_sends_immediate_embed(self) -> None:
         gift_card_command = _get_group_command(self.bot, "gift", "card")
 
         ctx = AsyncMock()
         ctx.guild = _FakeGuild(1)
         ctx.author = _FakeMember(100, "Caller")
-        ctx.send = AsyncMock(return_value=SimpleNamespace())
+        ctx.send = AsyncMock()
         ctx.reply = ctx.send
 
         target = _FakeMember(200, "Target")
         with (
             patch("noodswap.commands_economy.resolve_member_argument", new=AsyncMock(return_value=(target, None))),
             patch(
-                "noodswap.commands_economy.prepare_gift_offer",
-                return_value=SimpleNamespace(
-                    is_error=False,
-                    error_message=None,
-                    card_id="SPG",
-                    generation=123,
-                    dupe_code="a",
-                ),
-            ) as prepare_gift,
-            patch("noodswap.commands_economy.get_instance_by_code", return_value=(10, "SPG", 123, "a")),
+                "noodswap.commands_economy.execute_gift_card",
+                return_value=(True, "", "SPG", 123, "a"),
+            ) as gift_card,
+            patch("noodswap.commands_economy.get_instance_by_code", return_value=(10, "SPG", 123, "a")) as get_instance,
             patch("noodswap.commands_economy.get_instance_morph", return_value=None),
             patch("noodswap.commands_economy.get_instance_frame", return_value=None),
             patch("noodswap.commands_economy.get_instance_font", return_value=None),
@@ -1712,20 +1706,20 @@ class CommandsGiftTests(unittest.IsolatedAsyncioTestCase):
         ):
             await gift_card_command.callback(ctx, player="@Target", card_code="0")
 
-        prepare_gift.assert_called_once_with(
+        gift_card.assert_called_once_with(
             guild_id=1,
             sender_id=100,
             recipient_id=200,
-            recipient_is_bot=False,
             card_code="0",
         )
+        get_instance.assert_called_once_with(1, 200, "a")
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
-        sent_view = ctx.send.await_args.kwargs["view"]
-        self.assertEqual(sent_embed.title, "Gift Offer")
-        self.assertIn("Offered to: <@200>", sent_embed.description)
+        self.assertEqual(sent_embed.title, "Gift")
+        self.assertIn("Sent to: <@200>", sent_embed.description)
         self.assertIn("Sender: <@100>", sent_embed.description)
-        self.assertIsInstance(sent_view, GiftCardView)
+        self.assertIn("Card:", sent_embed.description)
+        self.assertNotIn("view", ctx.send.await_args.kwargs)
         self.assertEqual(sent_embed.thumbnail.url, "attachment://gift.png")
 
     async def test_gift_dough_success_updates_balances(self) -> None:
@@ -1751,6 +1745,54 @@ class CommandsGiftTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("Sent: **20** dough", sent_embed.description)
         self.assertIn("Your Balance: **70** dough", sent_embed.description)
         self.assertIn("Target's Balance: **30** dough", sent_embed.description)
+
+    async def test_gift_starter_success_updates_balances(self) -> None:
+        gift_starter_command = _get_group_command(self.bot, "gift", "starter")
+
+        ctx = AsyncMock()
+        ctx.guild = _FakeGuild(1)
+        ctx.author = _FakeMember(100, "Caller")
+        ctx.send = AsyncMock()
+        ctx.reply = ctx.send
+
+        target = _FakeMember(200, "Target")
+        with (
+            patch("noodswap.commands_economy.resolve_member_argument", new=AsyncMock(return_value=(target, None))),
+            patch("noodswap.commands_economy.execute_gift_starter", return_value=(True, "", 9, 4)) as gift_starter,
+        ):
+            await gift_starter_command.callback(ctx, player="@Target", amount=3)
+
+        gift_starter.assert_called_once_with(guild_id=1, sender_id=100, recipient_id=200, amount=3)
+        ctx.send.assert_awaited_once()
+        sent_embed = ctx.send.await_args.kwargs["embed"]
+        self.assertEqual(sent_embed.title, "Gift")
+        self.assertIn("Sent: **3** starter", sent_embed.description)
+        self.assertIn("Your Starter: **9**", sent_embed.description)
+        self.assertIn("Target's Starter: **4**", sent_embed.description)
+
+    async def test_gift_drop_success_updates_balances(self) -> None:
+        gift_drop_command = _get_group_command(self.bot, "gift", "drop")
+
+        ctx = AsyncMock()
+        ctx.guild = _FakeGuild(1)
+        ctx.author = _FakeMember(100, "Caller")
+        ctx.send = AsyncMock()
+        ctx.reply = ctx.send
+
+        target = _FakeMember(200, "Target")
+        with (
+            patch("noodswap.commands_economy.resolve_member_argument", new=AsyncMock(return_value=(target, None))),
+            patch("noodswap.commands_economy.execute_gift_drop_tickets", return_value=(True, "", 6, 2)) as gift_drop,
+        ):
+            await gift_drop_command.callback(ctx, player="@Target", amount=2)
+
+        gift_drop.assert_called_once_with(guild_id=1, sender_id=100, recipient_id=200, amount=2)
+        ctx.send.assert_awaited_once()
+        sent_embed = ctx.send.await_args.kwargs["embed"]
+        self.assertEqual(sent_embed.title, "Gift")
+        self.assertIn("Sent: **2** drop tickets", sent_embed.description)
+        self.assertIn("Your Drop Tickets: **6**", sent_embed.description)
+        self.assertIn("Target's Drop Tickets: **2**", sent_embed.description)
 
 
 class CommandsVoteTests(unittest.IsolatedAsyncioTestCase):

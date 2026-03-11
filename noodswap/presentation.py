@@ -183,9 +183,11 @@ COMMAND_SYNTAX_BY_KEY: dict[str, str] = {
     "folder unlock": "ns folder unlock <folder_name>",
     "font": "ns font [card_code]",
     "frame": "ns frame [card_code]",
-    "gift": "ns gift <dough|card> <player> <amount|card_code>",
+    "gift": "ns gift <dough|starter|drop|card> <player> <amount|card_code>",
     "gift card": "ns gift card <player> <card_code>",
     "gift dough": "ns gift dough <player> <dough>",
+    "gift drop": "ns gift drop <player> <tickets>",
+    "gift starter": "ns gift starter <player> <starter>",
     "help": "ns help",
     "info": "ns info [player]",
     "leaderboard": "ns leaderboard",
@@ -262,6 +264,8 @@ HELP_CATEGORY_PAGES: tuple[tuple[str, str, str], ...] = (
 - `burn [target...]` (`b`) — Burn targets for dough. Supports card codes plus
     `t:<tag>` and `f:<folder>` selectors. Defaults to last pulled card.
 - `gift dough <player> <dough>` (`gift d`) — Send dough to a player.
+- `gift starter <player> <starter>` (`gift s`) — Send starter to a player.
+- `gift drop <player> <tickets>` — Send drop tickets to a player.
 - `gift card <player> <card_code>` (`gift c`) — Send a card to a player.
 - `trade <player> <card_code> <amount>` (`t`) — Offer a card-for-dough trade.""",
     ),

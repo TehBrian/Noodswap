@@ -10,7 +10,6 @@ from noodswap.views import (
     DropView,
     FrameConfirmView,
     FontConfirmView,
-    GiftCardView,
     HelpView,
     MorphConfirmView,
     PaginatedLinesView,
@@ -482,56 +481,6 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(all(getattr(item, "disabled", False) for item in view.children))
         self.assertEqual(len(fake_message.edits), 1)
         self.assertEqual(fake_message.edits[0]["embed"].title, "Trade Expired")
-
-    async def test_gift_rejects_non_recipient(self) -> None:
-        view = GiftCardView(guild_id=1, sender_id=10, recipient_id=20, card_code="0", card_id="SPG", dupe_code="0")
-        interaction = _FakeInteraction(user_id=30)
-
-        with patch("noodswap.view_gift.resolve_gift_offer") as resolve_gift:
-            await view._resolve(interaction, accepted=True)
-            resolve_gift.assert_not_called()
-
-        self.assertEqual(len(interaction.response.sent_messages), 1)
-        sent = interaction.response.sent_messages[0]
-        self.assertTrue(sent.get("ephemeral"))
-        self.assertEqual(sent["embed"].title, "Gift")
-
-    async def test_gift_accept_success_sends_followup_and_keeps_offer(self) -> None:
-        view = GiftCardView(guild_id=1, sender_id=10, recipient_id=20, card_code="0", card_id="SPG", dupe_code="0")
-        interaction = _FakeInteraction(user_id=20)
-
-        with patch(
-            "noodswap.view_gift.resolve_gift_offer",
-            return_value=type(
-                "GiftResult",
-                (),
-                {"is_failed": False, "generation": 123, "dupe_code": "a"},
-            )(),
-        ) as resolve_gift:
-            await view._resolve(interaction, accepted=True)
-            resolve_gift.assert_called_once()
-
-        self.assertTrue(view.finished)
-        self.assertTrue(all(getattr(item, "disabled", False) for item in view.children))
-        self.assertEqual(len(interaction.response.edited_messages), 1)
-        edited = interaction.response.edited_messages[0]
-        self.assertEqual(edited.get("view"), view)
-        self.assertNotIn("embed", edited)
-        self.assertEqual(len(interaction.message.replies), 1)
-        accepted = interaction.message.replies[0]
-        self.assertEqual(accepted["embed"].title, "Gift Accepted")
-        self.assertIn("G-123", accepted["embed"].description)
-
-    async def test_gift_timeout_disables_buttons_and_edits_message(self) -> None:
-        view = GiftCardView(guild_id=1, sender_id=10, recipient_id=20, card_code="0", card_id="SPG", dupe_code="0")
-        fake_message = _FakeMessage()
-        view.message = fake_message
-
-        await view.on_timeout()
-
-        self.assertTrue(all(getattr(item, "disabled", False) for item in view.children))
-        self.assertEqual(len(fake_message.edits), 1)
-        self.assertEqual(fake_message.edits[0]["embed"].title, "Gift Expired")
 
     async def test_burn_confirm_sends_followup_embed_and_keeps_prompt(self) -> None:
         view = BurnConfirmView(guild_id=1, user_id=10, instance_id=77, card_id="SPG", generation=321, delta_range=8)

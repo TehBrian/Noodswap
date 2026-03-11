@@ -43,7 +43,6 @@ from .trait_rarities import trait_rarity_multiplier
 from .presentation import (
     battle_offer_description,
     drop_choices_description,
-    gift_offer_description,
     italy_embed,
     italy_marry_embed,
     trade_offer_description,
@@ -58,7 +57,6 @@ from .services import (
     prepare_frame,
     prepare_morph,
     prepare_battle_offer,
-    prepare_gift_offer,
     prepare_trade_offer,
 )
 from .settings import (
@@ -82,8 +80,11 @@ from .storage import (
     claim_vote_reward,
     consume_slots_cooldown_if_ready,
     execute_flip_wager,
+    execute_gift_card,
+    execute_gift_drop_tickets,
     execute_monopoly_fine,
     execute_monopoly_roll,
+    execute_gift_starter,
     create_player_folder,
     create_player_tag,
     create_player_team,
@@ -148,7 +149,6 @@ from .views import (
     SortableCardListView,
     SortableCollectionView,
     BattleProposalView,
-    GiftCardView,
     TradeView,
 )
 

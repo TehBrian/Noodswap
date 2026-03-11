@@ -520,7 +520,12 @@ def register_economy_commands(bot: commands.Bot) -> None:
             ctx,
             embed=italy_embed(
                 "Gift",
-                "Usage: `ns gift dough <player> <dough>` or `ns gift card <player> <card_code>`.",
+                (
+                    "Usage: `ns gift dough <player> <dough>`, "
+                    "`ns gift starter <player> <starter>`, "
+                    "`ns gift drop <player> <tickets>`, "
+                    "or `ns gift card <player> <card_code>`."
+                ),
             ),
         )
 
@@ -562,6 +567,82 @@ def register_economy_commands(bot: commands.Bot) -> None:
             ),
         )
 
+    @gift.command(name="starter", aliases=["s"])
+    async def gift_starter(ctx: commands.Context, player: str, amount: int):
+        if not await _require_guild(ctx, "Gift"):
+            return
+
+        resolved_member, resolve_error = await resolve_member_argument(ctx, player)
+        if resolved_member is None:
+            await _reply(ctx, embed=italy_embed("Gift", resolve_error or "Could not resolve player."))
+            return
+
+        if resolved_member.bot:
+            await _reply(ctx, embed=italy_embed("Gift", "You cannot gift starter to bots."))
+            return
+
+        gifted, error_message, sender_balance, recipient_balance = execute_gift_starter(
+            guild_id=_guild_id(ctx),
+            sender_id=ctx.author.id,
+            recipient_id=resolved_member.id,
+            amount=amount,
+        )
+        if not gifted:
+            await _reply(ctx, embed=italy_embed("Gift", error_message or "Gift failed."))
+            return
+
+        await _reply(
+            ctx,
+            embed=italy_embed(
+                "Gift",
+                multiline_text(
+                    [
+                        f"Sent: **{amount}** starter to <@{resolved_member.id}>",
+                        f"Your Starter: **{sender_balance}**",
+                        f"{resolved_member.display_name}'s Starter: **{recipient_balance}**",
+                    ]
+                ),
+            ),
+        )
+
+    @gift.command(name="drop")
+    async def gift_drop(ctx: commands.Context, player: str, amount: int):
+        if not await _require_guild(ctx, "Gift"):
+            return
+
+        resolved_member, resolve_error = await resolve_member_argument(ctx, player)
+        if resolved_member is None:
+            await _reply(ctx, embed=italy_embed("Gift", resolve_error or "Could not resolve player."))
+            return
+
+        if resolved_member.bot:
+            await _reply(ctx, embed=italy_embed("Gift", "You cannot gift drop tickets to bots."))
+            return
+
+        gifted, error_message, sender_balance, recipient_balance = execute_gift_drop_tickets(
+            guild_id=_guild_id(ctx),
+            sender_id=ctx.author.id,
+            recipient_id=resolved_member.id,
+            amount=amount,
+        )
+        if not gifted:
+            await _reply(ctx, embed=italy_embed("Gift", error_message or "Gift failed."))
+            return
+
+        await _reply(
+            ctx,
+            embed=italy_embed(
+                "Gift",
+                multiline_text(
+                    [
+                        f"Sent: **{amount}** drop tickets to <@{resolved_member.id}>",
+                        f"Your Drop Tickets: **{sender_balance}**",
+                        f"{resolved_member.display_name}'s Drop Tickets: **{recipient_balance}**",
+                    ]
+                ),
+            ),
+        )
+
     @gift.command(name="card", aliases=["c"])
     async def gift_card(ctx: commands.Context, player: str, card_code: str):
         if not await _require_guild(ctx, "Gift"):
@@ -576,22 +657,31 @@ def register_economy_commands(bot: commands.Bot) -> None:
             await _reply(ctx, embed=italy_embed("Gift", "You cannot gift cards to bots."))
             return
 
-        prepared = prepare_gift_offer(
+        gifted, error_message, card_id, generation, dupe_code = execute_gift_card(
             guild_id=_guild_id(ctx),
             sender_id=ctx.author.id,
             recipient_id=resolved_member.id,
-            recipient_is_bot=resolved_member.bot,
             card_code=card_code,
         )
-        if prepared.is_error:
-            await _reply(ctx, embed=italy_embed("Gift", prepared.error_message or "Gift failed."))
+        if not gifted:
+            await _reply(ctx, embed=italy_embed("Gift", error_message or "Gift failed."))
             return
 
-        if prepared.card_id is None or prepared.generation is None or prepared.dupe_code is None:
+        if card_id is None or generation is None:
             await _reply(ctx, embed=italy_embed("Gift", "Gift failed."))
             return
 
-        gifted_instance = get_instance_by_code(_guild_id(ctx), ctx.author.id, prepared.dupe_code)
+        gifted_card_text = card_base_display(card_id)
+        if dupe_code is not None:
+            gifted_card_text = card_dupe_display(
+                card_id,
+                generation,
+                dupe_code=dupe_code,
+            )
+
+        gifted_instance = None
+        if dupe_code is not None:
+            gifted_instance = get_instance_by_code(_guild_id(ctx), resolved_member.id, dupe_code)
         morph_key = None
         frame_key = None
         font_key = None
@@ -602,44 +692,29 @@ def register_economy_commands(bot: commands.Bot) -> None:
             font_key = get_instance_font(_guild_id(ctx), gifted_instance_id)
 
         image_url, image_file = embed_image_payload(
-            prepared.card_id,
-            generation=prepared.generation,
+            card_id,
+            generation=generation,
             morph_key=morph_key,
             frame_key=frame_key,
             font_key=font_key,
         )
 
-        view = GiftCardView(
-            guild_id=_guild_id(ctx),
-            sender_id=ctx.author.id,
-            recipient_id=resolved_member.id,
-            card_code=card_code,
-            card_id=prepared.card_id,
-            dupe_code=prepared.dupe_code,
-        )
-
         gift_embed = italy_embed(
-            "Gift Offer",
-            gift_offer_description(
-                f"<@{resolved_member.id}>",
-                f"<@{ctx.author.id}>",
-                prepared.card_id,
-                prepared.generation,
-                prepared.dupe_code,
+            "Gift",
+            multiline_text(
+                [
+                    f"Sent to: <@{resolved_member.id}>",
+                    f"Sender: <@{ctx.author.id}>",
+                    "",
+                    f"Card: {gifted_card_text}",
+                ]
             ),
         )
         if image_url is not None:
             gift_embed.set_thumbnail(url=image_url)
 
-        send_kwargs: dict[str, object] = {
-            "embed": gift_embed,
-            "view": view,
-        }
+        send_kwargs: dict[str, object] = {"embed": gift_embed}
         if image_file is not None:
             send_kwargs["file"] = image_file
 
-        message = await _reply(
-            ctx,
-            **send_kwargs,
-        )
-        view.message = message
+        await _reply(ctx, **send_kwargs)

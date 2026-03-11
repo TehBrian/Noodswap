@@ -2114,6 +2114,65 @@ def execute_gift_dough(
         return True, "", players.get_dough(guild_id, sender_id), players.get_dough(guild_id, recipient_id)
 
 
+def execute_gift_starter(
+    guild_id: int,
+    sender_id: int,
+    recipient_id: int,
+    amount: int,
+) -> tuple[bool, str, int | None, int | None]:
+    guild_id = _scope_guild_id(guild_id)
+    if amount < 1:
+        return False, "Gift amount must be at least 1 starter.", None, None
+    if sender_id == recipient_id:
+        return False, "You cannot gift starter to yourself.", None, None
+
+    with get_db_connection() as conn:
+        _begin_immediate(conn)
+        players = PlayerRepository(conn, STARTING_DOUGH)
+        players.ensure_player(guild_id, sender_id)
+        players.ensure_player(guild_id, recipient_id)
+
+        sender_balance = players.get_starter(guild_id, sender_id)
+        if sender_balance < amount:
+            return False, "You do not have enough starter.", sender_balance, players.get_starter(guild_id, recipient_id)
+
+        players.add_starter(guild_id, sender_id, -amount)
+        players.add_starter(guild_id, recipient_id, amount)
+        return True, "", players.get_starter(guild_id, sender_id), players.get_starter(guild_id, recipient_id)
+
+
+def execute_gift_drop_tickets(
+    guild_id: int,
+    sender_id: int,
+    recipient_id: int,
+    amount: int,
+) -> tuple[bool, str, int | None, int | None]:
+    guild_id = _scope_guild_id(guild_id)
+    if amount < 1:
+        return False, "Gift amount must be at least 1 drop ticket.", None, None
+    if sender_id == recipient_id:
+        return False, "You cannot gift drop tickets to yourself.", None, None
+
+    with get_db_connection() as conn:
+        _begin_immediate(conn)
+        players = PlayerRepository(conn, STARTING_DOUGH)
+        players.ensure_player(guild_id, sender_id)
+        players.ensure_player(guild_id, recipient_id)
+
+        sender_balance = players.get_drop_tickets(guild_id, sender_id)
+        if sender_balance < amount:
+            return False, "You do not have enough drop tickets.", sender_balance, players.get_drop_tickets(guild_id, recipient_id)
+
+        players.add_drop_tickets(guild_id, sender_id, -amount)
+        players.add_drop_tickets(guild_id, recipient_id, amount)
+        return (
+            True,
+            "",
+            players.get_drop_tickets(guild_id, sender_id),
+            players.get_drop_tickets(guild_id, recipient_id),
+        )
+
+
 def execute_gift_card(
     guild_id: int,
     sender_id: int,

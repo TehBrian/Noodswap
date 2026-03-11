@@ -21,7 +21,11 @@ This document defines behavior and presentation for commands and interaction flo
 - `vote` / `v`
 - `cooldown [player]` / `cd [player]`
 - `burn [targets...]` / `b [targets...]`
-- `gift <player> <card_code>` / `g <player> <card_code>`
+- `gift` / `g`
+- `gift dough <player> <dough>` / `gift d <player> <dough>`
+- `gift starter <player> <starter>` / `gift s <player> <starter>`
+- `gift drop <player> <tickets>`
+- `gift card <player> <card_code>` / `gift c <player> <card_code>`
 - `morph [card_code]` / `mo [card_code]`
 - `frame [card_code]` / `fr [card_code]`
 - `font [card_code]` / `fo [card_code]`
@@ -163,14 +167,17 @@ Burn result format should remain:
 
 ## Gift UX
 
-- `gift <player> <card_code>` offers one owned card copy to another player
+- `gift dough <player> <dough>` sends dough immediately
+- `gift starter <player> <starter>` sends starter immediately
+- `gift drop <player> <tickets>` sends drop tickets immediately
+- `gift card <player> <card_code>` sends one owned card copy immediately
 - player argument supports mention or exact username resolution
 - card code format is standalone base36 with optional leading `#` (examples: `0`, `a`, `10`, `#10`)
 - gifting to yourself is blocked
 - gifting to bots is blocked
-- sender must own the provided card code at confirmation time
-- recipient must accept the confirmation prompt (`Accept`/`Deny`) for transfer to complete
-- gift confirmation embed shows the gifted card image as a top-right thumbnail to prevent mis-gifts
+- sender must have enough balance for dough/starter/drop gifts
+- sender must own the provided card code for card gifts
+- gift response embed shows the gifted card image as a top-right thumbnail when available
 
 ## Morph UX
 

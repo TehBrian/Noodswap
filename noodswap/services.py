@@ -18,7 +18,6 @@ from .storage import (
     consume_pull_cooldown_if_ready,
     divorce_card,
     execute_trade,
-    execute_gift_card,
     create_battle_proposal,
     end_open_battles_for_shutdown as storage_end_open_battles_for_shutdown,
     execute_battle_turn_action,
@@ -1588,129 +1587,6 @@ class TradeOfferPreparation:
     @property
     def is_error(self) -> bool:
         return self.error_message is not None
-
-
-@dataclass(frozen=True)
-class GiftOfferPreparation:
-    error_message: Optional[str]
-    card_id: Optional[str]
-    generation: Optional[int]
-    dupe_code: Optional[str]
-
-    @property
-    def is_error(self) -> bool:
-        return self.error_message is not None
-
-
-@dataclass(frozen=True)
-class GiftResolution:
-    status: str
-    message: str
-    card_id: Optional[str]
-    generation: Optional[int]
-    dupe_code: Optional[str]
-
-    @property
-    def is_accepted(self) -> bool:
-        return self.status == "accepted"
-
-    @property
-    def is_denied(self) -> bool:
-        return self.status == "denied"
-
-    @property
-    def is_failed(self) -> bool:
-        return self.status == "failed"
-
-
-def prepare_gift_offer(
-    guild_id: int,
-    sender_id: int,
-    recipient_id: int,
-    recipient_is_bot: bool,
-    card_code: str,
-) -> GiftOfferPreparation:
-    if recipient_id == sender_id:
-        return GiftOfferPreparation(
-            error_message="You cannot gift a card to yourself.",
-            card_id=None,
-            generation=None,
-            dupe_code=None,
-        )
-
-    if recipient_is_bot:
-        return GiftOfferPreparation(
-            error_message="You cannot gift cards to bots.",
-            card_id=None,
-            generation=None,
-            dupe_code=None,
-        )
-
-    if split_card_code(card_code) is None:
-        return GiftOfferPreparation(
-            error_message="Invalid card code. Use format like `0`, `a`, `10`, or `#10`.",
-            card_id=None,
-            generation=None,
-            dupe_code=None,
-        )
-
-    candidate = get_instance_by_code(guild_id, sender_id, card_code)
-    if candidate is None:
-        return GiftOfferPreparation(
-            error_message="You do not own that card code.",
-            card_id=None,
-            generation=None,
-            dupe_code=None,
-        )
-
-    _instance_id, candidate_card_id, generation, dupe_code = candidate
-    return GiftOfferPreparation(
-        error_message=None,
-        card_id=candidate_card_id,
-        generation=generation,
-        dupe_code=dupe_code,
-    )
-
-
-def resolve_gift_offer(
-    guild_id: int,
-    sender_id: int,
-    recipient_id: int,
-    card_code: str,
-    *,
-    accepted: bool,
-) -> GiftResolution:
-    if not accepted:
-        return GiftResolution(
-            status="denied",
-            message="The gift was declined.",
-            card_id=None,
-            generation=None,
-            dupe_code=None,
-        )
-
-    success, message, card_id, generation, dupe_code = execute_gift_card(
-        guild_id=guild_id,
-        sender_id=sender_id,
-        recipient_id=recipient_id,
-        card_code=card_code,
-    )
-    if not success:
-        return GiftResolution(
-            status="failed",
-            message=message,
-            card_id=None,
-            generation=None,
-            dupe_code=None,
-        )
-
-    return GiftResolution(
-        status="accepted",
-        message="",
-        card_id=card_id,
-        generation=generation,
-        dupe_code=dupe_code,
-    )
 
 
 def prepare_trade_offer(

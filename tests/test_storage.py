@@ -649,6 +649,98 @@ class StorageTests(unittest.TestCase):
         self.assertEqual(gifted_dupe_code, dupe_code)
         self.assertIsNone(storage.get_last_pulled_instance(guild_id, sender_id))
 
+    def test_gift_starter_transfers_balances(self) -> None:
+        guild_id = 1
+        sender_id = 730
+        recipient_id = 731
+
+        storage.init_db()
+        storage.add_starter(guild_id, sender_id, 5)
+
+        gifted, message, sender_balance, recipient_balance = storage.execute_gift_starter(
+            guild_id=guild_id,
+            sender_id=sender_id,
+            recipient_id=recipient_id,
+            amount=3,
+        )
+
+        self.assertTrue(gifted)
+        self.assertEqual(message, "")
+        self.assertEqual(sender_balance, 2)
+        self.assertEqual(recipient_balance, 3)
+        self.assertEqual(storage.get_player_starter(guild_id, sender_id), 2)
+        self.assertEqual(storage.get_player_starter(guild_id, recipient_id), 3)
+
+    def test_gift_starter_fails_when_insufficient_balance(self) -> None:
+        guild_id = 1
+        sender_id = 732
+        recipient_id = 733
+
+        storage.init_db()
+        storage.add_starter(guild_id, sender_id, 1)
+
+        gifted, message, sender_balance, recipient_balance = storage.execute_gift_starter(
+            guild_id=guild_id,
+            sender_id=sender_id,
+            recipient_id=recipient_id,
+            amount=2,
+        )
+
+        self.assertFalse(gifted)
+        self.assertEqual(message, "You do not have enough starter.")
+        self.assertEqual(sender_balance, 1)
+        self.assertEqual(recipient_balance, 0)
+        self.assertEqual(storage.get_player_starter(guild_id, sender_id), 1)
+        self.assertEqual(storage.get_player_starter(guild_id, recipient_id), 0)
+
+    def test_gift_drop_tickets_transfers_balances(self) -> None:
+        guild_id = 1
+        sender_id = 734
+        recipient_id = 735
+
+        storage.init_db()
+        storage.add_starter(guild_id, sender_id, 4)
+        purchased, _starter, _tickets, _spent = storage.buy_drop_tickets_with_starter(guild_id, sender_id, 4)
+        self.assertTrue(purchased)
+
+        gifted, message, sender_balance, recipient_balance = storage.execute_gift_drop_tickets(
+            guild_id=guild_id,
+            sender_id=sender_id,
+            recipient_id=recipient_id,
+            amount=3,
+        )
+
+        self.assertTrue(gifted)
+        self.assertEqual(message, "")
+        self.assertEqual(sender_balance, 1)
+        self.assertEqual(recipient_balance, 3)
+        self.assertEqual(storage.get_player_drop_tickets(guild_id, sender_id), 1)
+        self.assertEqual(storage.get_player_drop_tickets(guild_id, recipient_id), 3)
+
+    def test_gift_drop_tickets_fails_when_insufficient_balance(self) -> None:
+        guild_id = 1
+        sender_id = 736
+        recipient_id = 737
+
+        storage.init_db()
+        storage.add_starter(guild_id, sender_id, 1)
+        purchased, _starter, _tickets, _spent = storage.buy_drop_tickets_with_starter(guild_id, sender_id, 1)
+        self.assertTrue(purchased)
+
+        gifted, message, sender_balance, recipient_balance = storage.execute_gift_drop_tickets(
+            guild_id=guild_id,
+            sender_id=sender_id,
+            recipient_id=recipient_id,
+            amount=2,
+        )
+
+        self.assertFalse(gifted)
+        self.assertEqual(message, "You do not have enough drop tickets.")
+        self.assertEqual(sender_balance, 1)
+        self.assertEqual(recipient_balance, 0)
+        self.assertEqual(storage.get_player_drop_tickets(guild_id, sender_id), 1)
+        self.assertEqual(storage.get_player_drop_tickets(guild_id, recipient_id), 0)
+
     def test_player_leaderboard_info_aggregates_cards_wishes_and_value(self) -> None:
         guild_id = 1
         first_user = 1100
