@@ -1253,9 +1253,13 @@ class StorageTests(unittest.TestCase):
         if isinstance(challenger_combatants, list):
             self.assertEqual(len(challenger_combatants), 1)
             self.assertTrue(bool(challenger_combatants[0]["is_active"]))
+            self.assertGreater(int(challenger_combatants[0]["attack"]), 0)
+            self.assertGreater(int(challenger_combatants[0]["defense"]), 0)
         if isinstance(challenged_combatants, list):
             self.assertEqual(len(challenged_combatants), 1)
             self.assertTrue(bool(challenged_combatants[0]["is_active"]))
+            self.assertGreater(int(challenged_combatants[0]["attack"]), 0)
+            self.assertGreater(int(challenged_combatants[0]["defense"]), 0)
 
     def test_battle_attack_advances_turn(self) -> None:
         guild_id = 1

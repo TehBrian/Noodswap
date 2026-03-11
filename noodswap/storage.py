@@ -631,7 +631,9 @@ def resolve_battle_proposal(
         if not challenged_instances:
             return "failed", "Your active team has no cards."
 
-        combatant_rows: list[tuple[int, int, str, int, int, str, int, str, int, int, bool, bool, bool]] = []
+        combatant_rows: list[
+            tuple[int, int, str, int, int, str, int, str, int, int, int, int, bool, bool, bool]
+        ] = []
         for slot_index, (instance_id, card_id, generation, dupe_code) in enumerate(challenger_instances):
             battle_card = build_battle_card(
                 instance_id,
@@ -654,6 +656,8 @@ def resolve_battle_proposal(
                     dupe_code,
                     battle_card.max_hp,
                     battle_card.max_hp,
+                    battle_card.attack,
+                    battle_card.defense,
                     slot_index == 0,
                     False,
                     False,
@@ -681,6 +685,8 @@ def resolve_battle_proposal(
                     dupe_code,
                     battle_card.max_hp,
                     battle_card.max_hp,
+                    battle_card.attack,
+                    battle_card.defense,
                     slot_index == 0,
                     False,
                     False,

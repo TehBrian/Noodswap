@@ -778,6 +778,7 @@ class CommandsLookupTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("**Traits**", sent_embed.description)
         self.assertIn("**Value Breakdown**", sent_embed.description)
         self.assertIn("Trait Multiplier", sent_embed.description)
+        self.assertRegex(sent_embed.description, r"HP:\d+ ATK:\d+ DEF:\d+")
 
     async def test_lookup_shows_dupe_card_embed_for_hash_prefixed_code(self) -> None:
         lookup_command = _get_command(self.bot, "lookup")
@@ -804,6 +805,30 @@ class CommandsLookupTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("dough", sent_embed.description)
         self.assertIn("**Traits**", sent_embed.description)
         self.assertIn("**Value Breakdown**", sent_embed.description)
+        self.assertRegex(sent_embed.description, r"HP:\d+ ATK:\d+ DEF:\d+")
+
+    async def test_lookuphd_shows_dupe_card_embed_with_stats_for_exact_code(self) -> None:
+        lookup_command = _get_command(self.bot, "lookuphd")
+
+        ctx = AsyncMock()
+        ctx.guild = _FakeGuild(1)
+        ctx.author = _FakeMember(100, "Caller")
+        ctx.send = AsyncMock()
+        ctx.reply = ctx.send
+
+        with patch(
+            "noodswap.commands_catalog.get_instance_by_dupe_code",
+            return_value=(123, 999, "SPG", 101, "abc"),
+        ) as lookup_dupe:
+            await lookup_command.callback(ctx, card_id="AbC")
+
+        lookup_dupe.assert_called_once_with(1, "AbC")
+        ctx.send.assert_awaited_once()
+        sent_embed = ctx.send.await_args.kwargs["embed"]
+        self.assertEqual(sent_embed.title, "Card Lookup (HD)")
+        self.assertIn("`#abc`", sent_embed.description)
+        self.assertIn("Owner: <@999>", sent_embed.description)
+        self.assertRegex(sent_embed.description, r"HP:\d+ ATK:\d+ DEF:\d+")
 
     async def test_lookup_prefers_exact_dupe_code_over_card_id(self) -> None:
         lookup_command = _get_command(self.bot, "lookup")

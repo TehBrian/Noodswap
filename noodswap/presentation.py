@@ -102,6 +102,8 @@ def _combatant_line(row: dict[str, int | str | bool]) -> str:
     dupe_code = str(row["dupe_code"])
     current_hp = int(row["current_hp"])
     max_hp = int(row["max_hp"])
+    attack = int(row["attack"]) if row.get("attack") is not None else 0
+    defense = int(row["defense"]) if row.get("defense") is not None else 0
     defending = bool(row["is_defending"])
     knocked_out = bool(row["is_knocked_out"])
     active = bool(row["is_active"])
@@ -113,7 +115,10 @@ def _combatant_line(row: dict[str, int | str | bool]) -> str:
     if knocked_out:
         state_bits.append("KO")
     state_text = f" ({', '.join(state_bits)})" if state_bits else ""
-    return f"`{card_id}#{dupe_code}`{state_text} {current_hp}/{max_hp} {_hp_bar(current_hp, max_hp)}"
+    hp_text = f"{current_hp:>3}/{max_hp:<3}"
+    health_line = f"`HP {hp_text}` {_hp_bar(current_hp, max_hp)}"
+    info_line = f"`{card_id}#{dupe_code}`{state_text} • HP:{current_hp} ATK:{attack} DEF:{defense}"
+    return f"{health_line}\n{info_line}"
 
 
 def battle_arena_description(

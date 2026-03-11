@@ -1375,7 +1375,11 @@ class BattleCombatantRepository:
     def __init__(self, conn: sqlite3.Connection):
         self.conn = conn
 
-    def replace_for_battle(self, battle_id: int, rows: list[tuple[int, int, str, int, int, str, int, str, int, int, bool, bool, bool]]) -> None:
+    def replace_for_battle(
+        self,
+        battle_id: int,
+        rows: list[tuple[int, int, str, int, int, str, int, str, int, int, int, int, bool, bool, bool]],
+    ) -> None:
         self.conn.execute(
             """
             DELETE FROM battle_combatants
@@ -1397,11 +1401,13 @@ class BattleCombatantRepository:
                 dupe_code,
                 max_hp,
                 current_hp,
+                attack,
+                defense,
                 is_active,
                 is_defending,
                 is_knocked_out
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             [
                 (
@@ -1416,6 +1422,8 @@ class BattleCombatantRepository:
                     dupe_code,
                     max_hp,
                     current_hp,
+                    attack,
+                    defense,
                     1 if is_active else 0,
                     1 if is_defending else 0,
                     1 if is_knocked_out else 0,
@@ -1431,6 +1439,8 @@ class BattleCombatantRepository:
                     dupe_code,
                     max_hp,
                     current_hp,
+                    attack,
+                    defense,
                     is_active,
                     is_defending,
                     is_knocked_out,
@@ -1442,7 +1452,8 @@ class BattleCombatantRepository:
         rows = self.conn.execute(
             """
             SELECT battle_id, guild_id, user_id, side, slot_index, instance_id, card_id,
-                   generation, dupe_code, max_hp, current_hp, is_active, is_defending, is_knocked_out
+                     generation, dupe_code, max_hp, current_hp, attack, defense,
+                     is_active, is_defending, is_knocked_out
             FROM battle_combatants
             WHERE battle_id = ?
             ORDER BY side ASC, slot_index ASC
@@ -1462,6 +1473,8 @@ class BattleCombatantRepository:
                 "dupe_code": str(row["dupe_code"]),
                 "max_hp": int(row["max_hp"]),
                 "current_hp": int(row["current_hp"]),
+                "attack": int(row["attack"]),
+                "defense": int(row["defense"]),
                 "is_active": bool(int(row["is_active"])),
                 "is_defending": bool(int(row["is_defending"])),
                 "is_knocked_out": bool(int(row["is_knocked_out"])),

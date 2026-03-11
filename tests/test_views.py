@@ -91,6 +91,8 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
                     "dupe_code": "0",
                     "current_hp": 80,
                     "max_hp": 100,
+                    "attack": 18,
+                    "defense": 12,
                     "is_defending": False,
                     "is_knocked_out": False,
                     "is_active": True,
@@ -102,6 +104,8 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
                     "dupe_code": "1",
                     "current_hp": 0,
                     "max_hp": 100,
+                    "attack": 16,
+                    "defense": 11,
                     "is_defending": False,
                     "is_knocked_out": True,
                     "is_active": True,
@@ -111,6 +115,9 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         )
 
         self.assertIn("Winner: 🏆 <@20> 🥇", description)
+        self.assertIn("`HP  80/100`", description)
+        self.assertIn("`SPG#0` (ACTIVE) • HP:80 ATK:18 DEF:12", description)
+        self.assertLess(description.index("`HP  80/100`"), description.index("`SPG#0` (ACTIVE)"))
 
     async def test_battle_embed_title_celebrates_finished_winner(self) -> None:
         snapshot = BattleSnapshot(
@@ -131,6 +138,8 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
                     "dupe_code": "0",
                     "current_hp": 0,
                     "max_hp": 100,
+                    "attack": 18,
+                    "defense": 12,
                     "is_defending": False,
                     "is_knocked_out": True,
                     "is_active": True,
@@ -142,6 +151,8 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
                     "dupe_code": "1",
                     "current_hp": 45,
                     "max_hp": 100,
+                    "attack": 16,
+                    "defense": 11,
                     "is_defending": False,
                     "is_knocked_out": False,
                     "is_active": True,
@@ -171,6 +182,8 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
                     "dupe_code": "0",
                     "current_hp": 88,
                     "max_hp": 100,
+                    "attack": 18,
+                    "defense": 12,
                     "is_defending": False,
                     "is_knocked_out": False,
                     "is_active": True,
@@ -182,6 +195,8 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
                     "dupe_code": "1",
                     "current_hp": 72,
                     "max_hp": 100,
+                    "attack": 16,
+                    "defense": 11,
                     "is_defending": False,
                     "is_knocked_out": False,
                     "is_active": True,

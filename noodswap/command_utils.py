@@ -201,6 +201,8 @@ def _lookup_trait_breakdown_description(
             font_key=font_key,
         ),
     ]
+    hp, attack, defense = value_to_stats(computed_value)
+    lines[0] = f"{lines[0]} • HP:{hp} ATK:{attack} DEF:{defense}"
     if owner_mention is not None:
         lines.append(f"Owner: {owner_mention}")
 
