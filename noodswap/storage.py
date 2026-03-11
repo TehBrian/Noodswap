@@ -291,18 +291,6 @@ def get_instances_by_folder(guild_id: int, user_id: int, folder_name: str) -> li
         return instance_folders.list_foldered_instances(guild_id, user_id, normalized_name)
 
 
-def get_locked_instance_ids(guild_id: int, user_id: int, instance_ids: list[int] | None = None) -> set[int]:
-    guild_id = _scope_guild_id(guild_id)
-    with get_db_connection() as conn:
-        players = PlayerRepository(conn, STARTING_DOUGH)
-        folders = PlayerFolderRepository(conn)
-        tags = PlayerTagRepository(conn)
-        players.ensure_player(guild_id, user_id)
-        locked_by_folder = folders.list_locked_instance_ids(guild_id, user_id, instance_ids)
-        locked_by_tag = tags.list_locked_instance_ids(guild_id, user_id, instance_ids)
-        return locked_by_folder | locked_by_tag
-
-
 def get_folder_emojis_for_instances(
     guild_id: int,
     user_id: int,
@@ -493,7 +481,6 @@ def create_battle_proposal(
         battles = BattleSessionRepository(conn)
         players.ensure_player(guild_id, challenger_id)
         players.ensure_player(guild_id, challenged_id)
-        instances = CardInstanceRepository(conn)
 
         challenger_team_name = players.get_active_team_name(guild_id, challenger_id)
         challenged_team_name = players.get_active_team_name(guild_id, challenged_id)
@@ -1463,7 +1450,7 @@ def execute_monopoly_fine(
         )
 
 
-def execute_monopoly_roll(
+def execute_monopoly_roll(  # pylint: disable=too-many-branches
     guild_id: int,
     user_id: int,
     *,
@@ -1549,7 +1536,6 @@ def execute_monopoly_roll(
                 lines=tuple(lines),
             )
 
-        start_position = position
         new_position = (position + rolled_spaces) % MONOPOLY_BOARD_SIZE
         passed_go = (position + rolled_spaces) >= MONOPOLY_BOARD_SIZE
         players.set_monopoly_position(guild_id, user_id, new_position)
@@ -1685,16 +1671,16 @@ def execute_monopoly_roll(
 
         elif space.kind == "property" and space.rarity is not None:
             candidates = [
-                (owner_id, card_id, generation, dupe_code)
-                for _instance_id, owner_id, card_id, generation, dupe_code in instances.list_owner_instances_for_guild(guild_id)
+                (instance_id, owner_id, card_id, generation, dupe_code)
+                for instance_id, owner_id, card_id, generation, dupe_code in instances.list_owner_instances_for_guild(guild_id)
                 if owner_id != user_id and str(card_id) in CARD_CATALOG
                 and str(CARD_CATALOG[str(card_id)]["rarity"]).lower() == space.rarity
             ]
             if candidates:
-                owner_id, card_id, generation, dupe_code = random.choice(candidates)
-                morph_key = instances.get_morph_key(guild_id, int(_instance_id))
-                frame_key = instances.get_frame_key(guild_id, int(_instance_id))
-                font_key = instances.get_font_key(guild_id, int(_instance_id))
+                selected_instance_id, owner_id, card_id, generation, dupe_code = random.choice(candidates)
+                morph_key = instances.get_morph_key(guild_id, selected_instance_id)
+                frame_key = instances.get_frame_key(guild_id, selected_instance_id)
+                font_key = instances.get_font_key(guild_id, selected_instance_id)
                 rent_due = card_value(
                     card_id,
                     generation,

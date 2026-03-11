@@ -58,7 +58,8 @@ def _enforce_strict_monotonic_common_to_rarest(weights: list[int]) -> list[int]:
     adjusted = list(weights)
 
     deficit = 0
-    for index in range(len(adjusted) - 2, -1, -1):
+    for reverse_offset, _ in enumerate(reversed(adjusted[:-1]), start=1):
+        index = len(adjusted) - 1 - reverse_offset
         minimum = adjusted[index + 1] + 1
         if adjusted[index] < minimum:
             needed = minimum - adjusted[index]
@@ -68,7 +69,7 @@ def _enforce_strict_monotonic_common_to_rarest(weights: list[int]) -> list[int]:
     if deficit == 0:
         return adjusted
 
-    for index in range(len(adjusted)):
+    for index, _value in enumerate(adjusted):
         right = adjusted[index + 1] if index < len(adjusted) - 1 else 0
         minimum = right + 1 if index < len(adjusted) - 1 else 1
         room = adjusted[index] - minimum

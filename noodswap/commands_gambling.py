@@ -1,7 +1,5 @@
+# pylint: disable=wildcard-import,unused-wildcard-import,undefined-variable
 from .command_utils import *  # noqa: F403
-
-
-# pylint: disable=wildcard-import,unused-wildcard-import
 
 def register_gambling_commands(bot: commands.Bot) -> None:
     @bot.command(name="slots", aliases=["sl"])

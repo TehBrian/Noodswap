@@ -1,7 +1,7 @@
 import unittest
 import tempfile
 from pathlib import Path
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock
 
 from aiohttp.test_utils import make_mocked_request
 

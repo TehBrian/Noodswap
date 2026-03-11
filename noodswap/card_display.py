@@ -71,7 +71,8 @@ def card_dupe_display(
         f"`#{dupe_code_text}` **{card['name']}** • (`{card_id}`) "
         f"[{series_display(str(card['series']), series_catalog=series_catalog)}] "
         f"({proper_case(str(card['rarity']))}) "
-        f"• **{generation_label(generation)}** (**{card_value(card_id, generation, morph_key=morph_key, frame_key=frame_key, font_key=font_key)}** dough)"
+        f"• **{generation_label(generation)}** "
+        f"(**{card_value(card_id, generation, morph_key=morph_key, frame_key=frame_key, font_key=font_key)}** dough)"
     )
 
 

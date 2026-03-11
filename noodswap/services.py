@@ -480,7 +480,7 @@ def execute_burn_batch_confirmation(
             continue
         seen_instance_ids.add(instance_id)
         instance_ids.append(instance_id)
-    delta_by_instance = {instance_id: delta_range for instance_id, delta_range in burn_targets}
+    delta_by_instance = dict(burn_targets)
 
     locked_by_instance: dict[int, list[str]] = {}
     burnable_instance_ids: list[int] = []

@@ -1,7 +1,5 @@
+# pylint: disable=wildcard-import,unused-wildcard-import,undefined-variable
 from .command_utils import *  # noqa: F403
-
-
-# pylint: disable=wildcard-import,unused-wildcard-import
 
 def register_economy_commands(bot: commands.Bot) -> None:
     @bot.command(name="drop", aliases=["d"])
@@ -138,7 +136,10 @@ def register_economy_commands(bot: commands.Bot) -> None:
         instances = get_player_card_instances(_guild_id(ctx), target_member.id)
         title = f"{target_member.display_name}'s Collection"
         if not instances:
-            description = "Your collection is empty. Try `ns drop`." if target_member.id == ctx.author.id else f"{target_member.display_name} has an empty collection."
+            if target_member.id == ctx.author.id:
+                description = "Your collection is empty. Try `ns drop`."
+            else:
+                description = f"{target_member.display_name} has an empty collection."
             await _reply(ctx, embed=italy_embed(title, description))
             return
 

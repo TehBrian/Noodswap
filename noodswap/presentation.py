@@ -242,7 +242,8 @@ HELP_CATEGORY_PAGES: tuple[tuple[str, str, str], ...] = (
 - `ns collection [player]` (`ns c`, `nc`) — View a player's cards; defaults to yourself or the replied user.
 - `ns cards` (`ns ca`, `nca`) — View all cards, ranked by wish count.
 - `ns lookup <card_id|card_code|query>` (`ns l`, `nl`) — Look up a base card or exact dupe code.
-- `ns lookuphd <card_id|card_code|query>` (`ns lhd`, `nlhd`) — Look up a card with high-detail `1000x1400` rendering.
+- `ns lookuphd <card_id|card_code|query>` (`ns lhd`, `nlhd`) — Look up a card with
+    high-detail `1000x1400` rendering.
 - `ns help` (`ns h`, `nh`) — Open this help menu.""",
     ),
     (
@@ -252,7 +253,8 @@ HELP_CATEGORY_PAGES: tuple[tuple[str, str, str], ...] = (
     - `ns buy drop [quantity]` — Buy drop tickets for 1 starter each (default quantity: 1).
 - `ns cooldown [player]` (`ns cd`) — Check a player's cooldowns; defaults to yourself or the replied user.
 - `ns vote` (`ns v`, `nv`) — Open top.gg vote link and claim starter reward if your vote is detected.
-- `ns burn [targets...]` (`ns b`, `nb`) — Burn one or many targets for dough; supports card codes/IDs plus `t:<tag_name>` and `f:<folder_name>` selectors; defaults to last pulled card.
+- `ns burn [targets...]` (`ns b`, `nb`) — Burn one or many targets for dough; supports
+    card codes/IDs plus `t:<tag_name>` and `f:<folder_name>` selectors; defaults to last pulled card.
     - `ns gift <player> <card_code>` (`ns g`) — Offer one of your cards to another player.
     - `ns trade <player> <card_code> <amount>` (`ns t`, `nt`) — Offer a card-for-dough trade.""",
     ),

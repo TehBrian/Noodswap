@@ -1,6 +1,9 @@
 import os
 import logging
 
+# compat must be imported before discord to apply runtime patches.
+# pylint: disable=wrong-import-order
+
 from . import compat as _compat  # noqa: F401 - applies asyncio patch before discord import
 
 import discord
