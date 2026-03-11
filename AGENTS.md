@@ -26,7 +26,13 @@ This file is the primary handoff guide for AI coding agents working on Noodswap.
 
 - `bot.py`: bootstrap only (`from noodswap.app import main`)
 - `noodswap/app.py`: bot creation, intents, startup lifecycle, command registration
-- `noodswap/commands.py`: command handlers (`drop/marry/divorce/collection/burn/info/trade/help/db*`)
+- `noodswap/commands.py`: thin command registration entrypoint
+- `noodswap/command_utils.py`: shared command helper functions/constants used by registrars
+- `noodswap/commands_social.py`: social/player-facing command registrar (`wish/tag/folder/team/battle/cooldown/leaderboard/info`)
+- `noodswap/commands_catalog.py`: catalog/discovery command registrar (`buy/cards/lookup/vote/help`)
+- `noodswap/commands_economy.py`: economy command registrar (`drop/marry/divorce/collection/burn/morph/frame/font/trade/gift`)
+- `noodswap/commands_gambling.py`: gambling command registrar (`slots/flip/monopoly`)
+- `noodswap/commands_admin.py`: owner/admin command registrar (`dbexport/dbreset`)
 - `noodswap/services.py`: command-facing use-case orchestration (`drop/burn/marry/divorce/trade` prep/exec)
 - `noodswap/views/`: interactive `discord.ui.View` flows (drop/trade/burn-confirm)
 - `noodswap/presentation.py`: shared embed style + reusable command description formatting helpers

@@ -145,7 +145,7 @@ Notes:
 - Rarity tuning: `noodswap/rarities.py`
 - DB and ownership semantics: `noodswap/storage.py`
 - Command/use-case orchestration: `noodswap/services.py`
-- Command Discord wiring + routing: `noodswap/commands.py`
+- Command Discord wiring + routing: `noodswap/commands.py` + `noodswap/commands_*.py`
 - Interaction UX: `noodswap/views/`
 - Shared embed theme + reusable description formatting: `noodswap/presentation.py`
 

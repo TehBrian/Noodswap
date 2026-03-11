@@ -6,8 +6,10 @@ This document describes the current runtime architecture of Noodswap.
 
 Noodswap is structured in a pragmatic layered style:
 
-- Presentation layer:
-  - `noodswap/commands.py` (prefix command handlers)
+Presentation layer:
+  - `noodswap/commands.py` (thin prefix command registration entrypoint)
+  - `noodswap/commands_social.py` / `noodswap/commands_catalog.py` / `noodswap/commands_economy.py` / `noodswap/commands_gambling.py` / `noodswap/commands_admin.py` (domain command registrars)
+  - `noodswap/command_utils.py` (shared command helper layer)
   - `noodswap/views/` (button interactions: drop/trade/burn confirm + trait confirms)
   - `noodswap/presentation.py` (shared embed styles + reusable command description formatting)
 - Use-case/service layer:
@@ -101,7 +103,7 @@ When adding new user-facing output, keep this consistent.
 - Data safety logic is isolated to one file
 - Command orchestration changes are isolated to `services.py`
 - UX text/formatting changes are isolated to `presentation.py`
-- Discord wiring changes are isolated to `commands.py` / `views/`
+- Discord wiring changes are isolated to `commands*.py` / `views/`
 - New commands can reuse the existing service boundaries quickly
 
 ## Phase 3 achieved layout (non-breaking)
@@ -115,7 +117,7 @@ Stage 3 completed this layout while preserving stable public imports.
   - `noodswap/views/confirmations.py` (burn/morph/frame/font)
   - `noodswap/views/catalog.py` (cards/collection/wishlist paged views)
   - `noodswap/views/pagination.py` (shared pagination components)
-  - `noodswap/views/__init__.py` re-exporting current symbols used by `commands.py`
+  - `noodswap/views/__init__.py` re-exporting current symbols used by command registrar modules
 - Cards split target:
   - `noodswap/cards/catalog.py` (load/validate catalog + series + image map)
   - `noodswap/cards/search.py` (query + lookup helpers)

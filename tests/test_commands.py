@@ -10,15 +10,15 @@ import discord
 from discord.ext import commands
 
 from noodswap import storage
-from noodswap.commands import (
+from noodswap.command_utils import (
     SLOTS_SPIN_FRAME_MAX_DELAY_SECONDS,
     SLOTS_SPIN_FRAME_MIN_DELAY_SECONDS,
     _animate_slots_spin,
     _build_drop_preview_blocking,
     _get_card_image_bytes,
     _slots_reel_content,
-    register_commands,
 )
+from noodswap.commands import register_commands
 from noodswap.images import DEFAULT_CARD_RENDER_SIZE, HD_CARD_RENDER_SIZE, RARITY_BORDER_COLORS, render_card_image_bytes
 from noodswap.views import HelpView, PlayerLeaderboardView, SortableCardListView, SortableCollectionView
 
@@ -88,7 +88,7 @@ class CommandsWishlistTests(unittest.IsolatedAsyncioTestCase):
         ctx.send = AsyncMock()
         ctx.reply = ctx.send
 
-        with patch("noodswap.commands._wish_list", new=AsyncMock()) as wish_list_impl:
+        with patch("noodswap.commands_social._wish_list", new=AsyncMock()) as wish_list_impl:
             await wish_list_command.callback(ctx, player=None)
 
         wish_list_impl.assert_awaited_once_with(ctx, ctx.author)
@@ -104,8 +104,8 @@ class CommandsWishlistTests(unittest.IsolatedAsyncioTestCase):
 
         target = _FakeMember(200, "Target")
         with (
-            patch("noodswap.commands.resolve_member_argument", new=AsyncMock(return_value=(target, None))) as resolve_member,
-            patch("noodswap.commands._wish_list", new=AsyncMock()) as wish_list_impl,
+            patch("noodswap.command_utils.resolve_member_argument", new=AsyncMock(return_value=(target, None))) as resolve_member,
+            patch("noodswap.commands_social._wish_list", new=AsyncMock()) as wish_list_impl,
         ):
             await wish_list_command.callback(ctx, player="@Target")
 
@@ -128,7 +128,7 @@ class CommandsWishlistTests(unittest.IsolatedAsyncioTestCase):
         ctx.send = AsyncMock()
         ctx.reply = ctx.send
 
-        with patch("noodswap.commands._wish_list", new=AsyncMock()) as wish_list_impl:
+        with patch("noodswap.commands_social._wish_list", new=AsyncMock()) as wish_list_impl:
             await wish_list_command.callback(ctx, player=None)
 
         wish_list_impl.assert_awaited_once_with(ctx, target)
@@ -143,8 +143,8 @@ class CommandsWishlistTests(unittest.IsolatedAsyncioTestCase):
         ctx.reply = ctx.send
 
         with (
-            patch("noodswap.commands.search_card_ids_by_name", return_value=["SPG"]),
-            patch("noodswap.commands.add_card_to_wishlist", return_value=True) as add_wishlist,
+            patch("noodswap.command_utils.search_card_ids_by_name", return_value=["SPG"]),
+            patch("noodswap.command_utils.add_card_to_wishlist", return_value=True) as add_wishlist,
         ):
             await wish_add_command.callback(ctx, card_id="spaghetti")
 
@@ -164,7 +164,7 @@ class CommandsWishlistTests(unittest.IsolatedAsyncioTestCase):
         ctx.send = AsyncMock()
         ctx.reply = ctx.send
 
-        with patch("noodswap.commands.add_card_to_wishlist", return_value=True) as add_wishlist:
+        with patch("noodswap.command_utils.add_card_to_wishlist", return_value=True) as add_wishlist:
             await wish_add_command.callback(ctx, card_id="cheddar")
 
         add_wishlist.assert_not_called()
@@ -189,7 +189,7 @@ class CommandsTagTests(unittest.IsolatedAsyncioTestCase):
         ctx.send = AsyncMock()
         ctx.reply = ctx.send
 
-        with patch("noodswap.commands.list_player_tags", return_value=[]):
+        with patch("noodswap.command_utils.list_player_tags", return_value=[]):
             await tag_list_command.callback(ctx)
 
         ctx.send.assert_awaited_once()
@@ -207,7 +207,7 @@ class CommandsTagTests(unittest.IsolatedAsyncioTestCase):
         ctx.reply = ctx.send
 
         with patch(
-            "noodswap.commands.list_player_tags",
+            "noodswap.command_utils.list_player_tags",
             return_value=[("safe", True, 2), ("trash", False, 1)],
         ):
             await tag_list_command.callback(ctx)
@@ -227,7 +227,7 @@ class CommandsTagTests(unittest.IsolatedAsyncioTestCase):
         ctx.send = AsyncMock()
         ctx.reply = ctx.send
 
-        with patch("noodswap.commands.get_instance_by_code", return_value=None):
+        with patch("noodswap.command_utils.get_instance_by_code", return_value=None):
             await tag_assign_command.callback(ctx, tag_name="safe", card_code="0")
 
         ctx.send.assert_awaited_once()
@@ -246,9 +246,9 @@ class CommandsTagTests(unittest.IsolatedAsyncioTestCase):
 
         selected = (5, "SPG", 1200, "0")
         with (
-            patch("noodswap.commands.get_instance_by_code", return_value=selected),
-            patch("noodswap.commands.is_tag_assigned_to_instance", return_value=True),
-            patch("noodswap.commands.assign_tag_to_instance", return_value=False) as assign_tag,
+            patch("noodswap.command_utils.get_instance_by_code", return_value=selected),
+            patch("noodswap.command_utils.is_tag_assigned_to_instance", return_value=True),
+            patch("noodswap.command_utils.assign_tag_to_instance", return_value=False) as assign_tag,
         ):
             await tag_assign_command.callback(ctx, tag_name="safe", card_code="0")
 
@@ -272,12 +272,12 @@ class CommandsTagTests(unittest.IsolatedAsyncioTestCase):
             (2, "BAR", 900, "1"),
         ]
         with (
-            patch("noodswap.commands.get_instances_by_tag", return_value=tagged_instances),
-            patch("noodswap.commands.get_locked_instance_ids", return_value=set()),
-            patch("noodswap.commands.get_card_wish_counts", return_value={"SPG": 1, "BAR": 2}),
-            patch("noodswap.commands.get_instance_morph", return_value=None),
-            patch("noodswap.commands.get_instance_frame", return_value=None),
-            patch("noodswap.commands.get_instance_font", return_value=None),
+            patch("noodswap.command_utils.get_instances_by_tag", return_value=tagged_instances),
+            patch("noodswap.command_utils.get_locked_instance_ids", return_value=set()),
+            patch("noodswap.command_utils.get_card_wish_counts", return_value={"SPG": 1, "BAR": 2}),
+            patch("noodswap.command_utils.get_instance_morph", return_value=None),
+            patch("noodswap.command_utils.get_instance_frame", return_value=None),
+            patch("noodswap.command_utils.get_instance_font", return_value=None),
         ):
             await tag_cards_command.callback(ctx, tag_name="safe")
 
@@ -297,7 +297,7 @@ class CommandsTagTests(unittest.IsolatedAsyncioTestCase):
         ctx.send = AsyncMock()
         ctx.reply = ctx.send
 
-        with patch("noodswap.commands.remove_card_from_wishlist", return_value=True) as remove_wishlist:
+        with patch("noodswap.command_utils.remove_card_from_wishlist", return_value=True) as remove_wishlist:
             await wish_remove_command.callback(ctx, card_id="cheddar")
 
         remove_wishlist.assert_not_called()
@@ -323,7 +323,7 @@ class CommandsFolderTests(unittest.IsolatedAsyncioTestCase):
         ctx.reply = ctx.send
 
         with patch(
-            "noodswap.commands.list_player_folders",
+            "noodswap.command_utils.list_player_folders",
             return_value=[("vault", "📦", True, 2), ("dump", "🗑️", False, 1)],
         ):
             await folder_list_command.callback(ctx)
@@ -345,9 +345,9 @@ class CommandsFolderTests(unittest.IsolatedAsyncioTestCase):
 
         selected = (5, "SPG", 1200, "0")
         with (
-            patch("noodswap.commands.get_instance_by_code", return_value=selected),
-            patch("noodswap.commands.is_instance_assigned_to_folder", return_value=True),
-            patch("noodswap.commands.assign_instance_to_folder", return_value=False) as assign_folder,
+            patch("noodswap.command_utils.get_instance_by_code", return_value=selected),
+            patch("noodswap.command_utils.is_instance_assigned_to_folder", return_value=True),
+            patch("noodswap.command_utils.assign_instance_to_folder", return_value=False) as assign_folder,
         ):
             await folder_assign_command.callback(ctx, folder_name="vault", card_code="0")
 
@@ -389,9 +389,9 @@ class CommandsBurnSelectorTests(unittest.IsolatedAsyncioTestCase):
         ctx.reply = ctx.send
 
         with (
-            patch("noodswap.commands.get_instances_by_folder", return_value=[(10, "SPG", 100, "0")]),
+            patch("noodswap.command_utils.get_instances_by_folder", return_value=[(10, "SPG", 100, "0")]),
             patch(
-                "noodswap.commands.prepare_burn_batch",
+                "noodswap.commands_economy.prepare_burn_batch",
                 return_value=SimpleNamespace(
                     is_error=False,
                     error_message=None,
@@ -411,10 +411,10 @@ class CommandsBurnSelectorTests(unittest.IsolatedAsyncioTestCase):
                     total_delta_range=1,
                 ),
             ),
-            patch("noodswap.commands.get_instance_morph", return_value=None),
-            patch("noodswap.commands.get_instance_frame", return_value=None),
-            patch("noodswap.commands.get_instance_font", return_value=None),
-            patch("noodswap.commands.embed_image_payload", return_value=(None, None)),
+            patch("noodswap.command_utils.get_instance_morph", return_value=None),
+            patch("noodswap.command_utils.get_instance_frame", return_value=None),
+            patch("noodswap.command_utils.get_instance_font", return_value=None),
+            patch("noodswap.commands_economy.embed_image_payload", return_value=(None, None)),
         ):
             await burn_command.callback(ctx, "f:vault")
 
@@ -467,10 +467,10 @@ class CommandsBurnSelectorTests(unittest.IsolatedAsyncioTestCase):
                 self.message = None
 
         with (
-            patch("noodswap.commands.get_instances_by_tag", return_value=[(10, "SPG", 100, "0")]),
-            patch("noodswap.commands.get_instance_by_code", return_value=(11, "PEN", 200, "1")),
-            patch("noodswap.commands.prepare_burn_batch", return_value=prepared),
-            patch("noodswap.commands.BurnConfirmView", _FakeBurnView),
+            patch("noodswap.command_utils.get_instances_by_tag", return_value=[(10, "SPG", 100, "0")]),
+            patch("noodswap.command_utils.get_instance_by_code", return_value=(11, "PEN", 200, "1")),
+            patch("noodswap.commands_economy.prepare_burn_batch", return_value=prepared),
+            patch("noodswap.commands_economy.BurnConfirmView", _FakeBurnView),
         ):
             await burn_command.callback(ctx, "t:safe", "a")
 
@@ -504,12 +504,12 @@ class CommandsTeamTests(unittest.IsolatedAsyncioTestCase):
             (2, "BAR", 900, "1"),
         ]
         with (
-            patch("noodswap.commands.get_instances_by_team", return_value=team_instances),
-            patch("noodswap.commands.get_locked_instance_ids", return_value=set()),
-            patch("noodswap.commands.get_card_wish_counts", return_value={"SPG": 1, "BAR": 2}),
-            patch("noodswap.commands.get_instance_morph", return_value=None),
-            patch("noodswap.commands.get_instance_frame", return_value=None),
-            patch("noodswap.commands.get_instance_font", return_value=None),
+            patch("noodswap.command_utils.get_instances_by_team", return_value=team_instances),
+            patch("noodswap.command_utils.get_locked_instance_ids", return_value=set()),
+            patch("noodswap.command_utils.get_card_wish_counts", return_value={"SPG": 1, "BAR": 2}),
+            patch("noodswap.command_utils.get_instance_morph", return_value=None),
+            patch("noodswap.command_utils.get_instance_frame", return_value=None),
+            patch("noodswap.command_utils.get_instance_font", return_value=None),
         ):
             await team_cards_command.callback(ctx, team_name="alpha")
 
@@ -575,7 +575,7 @@ class CommandsLeaderboardTests(unittest.IsolatedAsyncioTestCase):
             (100, 2, 1, 20, 0, 0, 40),
             (200, 5, 3, 50, 2, 1, 120),
         ]
-        with patch("noodswap.commands.get_player_leaderboard_info", return_value=leaderboard_rows):
+        with patch("noodswap.commands_social.get_player_leaderboard_info", return_value=leaderboard_rows):
             await leaderboard_command.callback(ctx)
 
         ctx.send.assert_awaited_once()
@@ -673,7 +673,7 @@ class CommandsLookupTests(unittest.IsolatedAsyncioTestCase):
         ctx.reply = ctx.send
 
         with patch(
-            "noodswap.commands.get_instance_by_dupe_code",
+            "noodswap.commands_catalog.get_instance_by_dupe_code",
             return_value=(123, "SPG", 101, "abc"),
         ) as lookup_dupe:
             await lookup_command.callback(ctx, card_id="AbC")
@@ -699,7 +699,7 @@ class CommandsLookupTests(unittest.IsolatedAsyncioTestCase):
         ctx.reply = ctx.send
 
         with patch(
-            "noodswap.commands.get_instance_by_dupe_code",
+            "noodswap.commands_catalog.get_instance_by_dupe_code",
             return_value=(123, "SPG", 101, "abc"),
         ) as lookup_dupe:
             await lookup_command.callback(ctx, card_id="#AbC")
@@ -724,7 +724,7 @@ class CommandsLookupTests(unittest.IsolatedAsyncioTestCase):
         ctx.reply = ctx.send
 
         with patch(
-            "noodswap.commands.get_instance_by_dupe_code",
+            "noodswap.commands_catalog.get_instance_by_dupe_code",
             return_value=(777, "SPG", 88, "spg"),
         ) as lookup_dupe:
             await lookup_command.callback(ctx, card_id="spg")
@@ -747,7 +747,7 @@ class CommandsLookupTests(unittest.IsolatedAsyncioTestCase):
         ctx.send = AsyncMock()
         ctx.reply = ctx.send
 
-        with patch("noodswap.commands.search_card_ids", return_value=["SPG"]):
+        with patch("noodswap.commands_catalog.search_card_ids", return_value=["SPG"]):
             await lookup_command.callback(ctx, card_id="spaghetti")
 
         ctx.send.assert_awaited_once()
@@ -805,7 +805,7 @@ class CommandsLookupTests(unittest.IsolatedAsyncioTestCase):
         ctx.send = AsyncMock()
         ctx.reply = ctx.send
 
-        with patch("noodswap.commands.search_card_ids", return_value=["SPG"]) as search_cards:
+        with patch("noodswap.commands_catalog.search_card_ids", return_value=["SPG"]) as search_cards:
             await lookup_command.callback(ctx, card_id="spicy noodle")
 
         search_cards.assert_called_once_with("spicy noodle", include_series=True)
@@ -824,7 +824,7 @@ class CommandsLookupTests(unittest.IsolatedAsyncioTestCase):
         ctx.reply = ctx.send
 
         with patch(
-            "noodswap.commands.embed_image_payload",
+            "noodswap.commands_catalog.embed_image_payload",
             return_value=("attachment://spg_card.png", None),
         ) as embed_payload:
             await lookup_command.callback(ctx, card_id="spg")
@@ -850,7 +850,7 @@ class CommandsCollectionTests(unittest.IsolatedAsyncioTestCase):
         ctx.send = AsyncMock()
         ctx.reply = ctx.send
 
-        with patch("noodswap.commands.get_player_card_instances", return_value=[]):
+        with patch("noodswap.commands_economy.get_player_card_instances", return_value=[]):
             await collection_command.callback(ctx, player=None)
 
         ctx.send.assert_awaited_once()
@@ -869,8 +869,8 @@ class CommandsCollectionTests(unittest.IsolatedAsyncioTestCase):
 
         target = _FakeMember(200, "Target")
         with (
-            patch("noodswap.commands.resolve_member_argument", new=AsyncMock(return_value=(target, None))) as resolve_member,
-            patch("noodswap.commands.get_player_card_instances", return_value=[]),
+            patch("noodswap.command_utils.resolve_member_argument", new=AsyncMock(return_value=(target, None))) as resolve_member,
+            patch("noodswap.commands_economy.get_player_card_instances", return_value=[]),
         ):
             await collection_command.callback(ctx, player="@Target")
 
@@ -896,7 +896,7 @@ class CommandsCollectionTests(unittest.IsolatedAsyncioTestCase):
         ctx.send = AsyncMock()
         ctx.reply = ctx.send
 
-        with patch("noodswap.commands.get_player_card_instances", return_value=[]):
+        with patch("noodswap.commands_economy.get_player_card_instances", return_value=[]):
             await collection_command.callback(ctx, player=None)
 
         ctx.send.assert_awaited_once()
@@ -915,10 +915,10 @@ class CommandsCollectionTests(unittest.IsolatedAsyncioTestCase):
 
         with (
             patch(
-                "noodswap.commands.resolve_member_argument",
+                "noodswap.command_utils.resolve_member_argument",
                 new=AsyncMock(return_value=(None, "Could not find that player.")),
             ) as resolve_member,
-            patch("noodswap.commands.get_player_card_instances", return_value=[]),
+            patch("noodswap.commands_economy.get_player_card_instances", return_value=[]),
         ):
             await collection_command.callback(ctx, player="ghost")
 
@@ -943,8 +943,8 @@ class CommandsCollectionTests(unittest.IsolatedAsyncioTestCase):
             (5, "SPG", 90, "2"),
         ]
         with (
-            patch("noodswap.commands.get_player_card_instances", return_value=instances),
-            patch("noodswap.commands.get_locked_instance_ids", return_value=set()),
+            patch("noodswap.commands_economy.get_player_card_instances", return_value=instances),
+            patch("noodswap.command_utils.get_locked_instance_ids", return_value=set()),
         ):
             await collection_command.callback(ctx, player=None)
 
@@ -966,8 +966,8 @@ class CommandsCollectionTests(unittest.IsolatedAsyncioTestCase):
 
         instances = [(idx, "SPG", 100 + idx, str(idx)) for idx in range(1, 13)]
         with (
-            patch("noodswap.commands.get_player_card_instances", return_value=instances),
-            patch("noodswap.commands.get_locked_instance_ids", return_value=set()),
+            patch("noodswap.commands_economy.get_player_card_instances", return_value=instances),
+            patch("noodswap.command_utils.get_locked_instance_ids", return_value=set()),
         ):
             await collection_command.callback(ctx, player=None)
 
@@ -987,7 +987,7 @@ class CommandsCollectionTests(unittest.IsolatedAsyncioTestCase):
         ctx.reply = ctx.send
 
         wishlisted_ids = ["SPG", "PEN", "FUS", "CHD", "CHJ", "BGL", "BAG", "BOL", "PIT", "RYE", "SOU"]
-        with patch("noodswap.commands.get_wishlist_cards", return_value=wishlisted_ids):
+        with patch("noodswap.command_utils.get_wishlist_cards", return_value=wishlisted_ids):
             await wish_list_command.callback(ctx, player=None)
 
         ctx.send.assert_awaited_once()
@@ -1007,10 +1007,10 @@ class CommandsCollectionTests(unittest.IsolatedAsyncioTestCase):
 
         with (
             patch(
-                "noodswap.commands.resolve_member_argument",
+                "noodswap.command_utils.resolve_member_argument",
                 new=AsyncMock(return_value=(None, "Could not find that player.")),
             ) as resolve_member,
-            patch("noodswap.commands._wish_list", new=AsyncMock()) as wish_list_impl,
+            patch("noodswap.commands_social._wish_list", new=AsyncMock()) as wish_list_impl,
         ):
             await wish_list_command.callback(ctx, player="ghost")
 
@@ -1032,8 +1032,8 @@ class CommandsCollectionTests(unittest.IsolatedAsyncioTestCase):
 
         target = _FakeMember(222, "Target")
         with (
-            patch("noodswap.commands.resolve_member_argument", new=AsyncMock(return_value=(target, None))) as resolve_member,
-            patch("noodswap.commands._wish_list", new=AsyncMock()) as wish_list_impl,
+            patch("noodswap.command_utils.resolve_member_argument", new=AsyncMock(return_value=(target, None))) as resolve_member,
+            patch("noodswap.commands_social._wish_list", new=AsyncMock()) as wish_list_impl,
         ):
             await wish_list_short.callback(ctx, player="@Target")
 
@@ -1056,10 +1056,10 @@ class CommandsCooldownTests(unittest.IsolatedAsyncioTestCase):
         ctx.reply = ctx.send
 
         with (
-            patch("noodswap.commands.get_player_cooldown_timestamps", return_value=(0.0, 0.0)),
-            patch("noodswap.commands.get_player_slots_timestamp", return_value=0.0),
-            patch("noodswap.commands.get_player_flip_timestamp", return_value=0.0),
-            patch("noodswap.commands.time.time", return_value=10_000.0),
+            patch("noodswap.commands_social.get_player_cooldown_timestamps", return_value=(0.0, 0.0)),
+            patch("noodswap.commands_social.get_player_slots_timestamp", return_value=0.0),
+            patch("noodswap.commands_social.get_player_flip_timestamp", return_value=0.0),
+            patch("noodswap.commands_gambling.time.time", return_value=10_000.0),
         ):
             await cooldown_command.callback(ctx, player=None)
 
@@ -1083,11 +1083,11 @@ class CommandsCooldownTests(unittest.IsolatedAsyncioTestCase):
 
         target = _FakeMember(222, "Target")
         with (
-            patch("noodswap.commands.resolve_member_argument", new=AsyncMock(return_value=(target, None))) as resolve_member,
-            patch("noodswap.commands.get_player_cooldown_timestamps", return_value=(9_800.0, 9_850.0)),
-            patch("noodswap.commands.get_player_slots_timestamp", return_value=9_950.0),
-            patch("noodswap.commands.get_player_flip_timestamp", return_value=9_980.0),
-            patch("noodswap.commands.time.time", return_value=10_000.0),
+            patch("noodswap.command_utils.resolve_member_argument", new=AsyncMock(return_value=(target, None))) as resolve_member,
+            patch("noodswap.commands_social.get_player_cooldown_timestamps", return_value=(9_800.0, 9_850.0)),
+            patch("noodswap.commands_social.get_player_slots_timestamp", return_value=9_950.0),
+            patch("noodswap.commands_social.get_player_flip_timestamp", return_value=9_980.0),
+            patch("noodswap.commands_gambling.time.time", return_value=10_000.0),
         ):
             await cooldown_command.callback(ctx, player="@Target")
 
@@ -1125,7 +1125,7 @@ class CommandsBuyTests(unittest.IsolatedAsyncioTestCase):
         ctx.send = AsyncMock()
         ctx.reply = ctx.send
 
-        with patch("noodswap.commands.buy_drop_tickets_with_starter", return_value=(True, 4, 7, 3)) as buy_tickets:
+        with patch("noodswap.commands_catalog.buy_drop_tickets_with_starter", return_value=(True, 4, 7, 3)) as buy_tickets:
             await buy_drop_command.callback(ctx, quantity=3)
 
         buy_tickets.assert_called_once_with(1, 100, 3)
@@ -1158,9 +1158,9 @@ class CommandsDropTests(unittest.IsolatedAsyncioTestCase):
             used_drop_ticket=True,
         )
         with (
-            patch("noodswap.commands.prepare_drop", return_value=prepared),
-            patch("noodswap.commands.build_drop_preview_file", new=AsyncMock(return_value=None)),
-            patch("noodswap.commands.DropView") as drop_view_cls,
+            patch("noodswap.commands_economy.prepare_drop", return_value=prepared),
+            patch("noodswap.commands_economy.build_drop_preview_file", new=AsyncMock(return_value=None)),
+            patch("noodswap.commands_economy.DropView") as drop_view_cls,
         ):
             view = SimpleNamespace(message=None)
             drop_view_cls.return_value = view
@@ -1193,10 +1193,10 @@ class CommandsCooldownReplyTargetTests(unittest.IsolatedAsyncioTestCase):
         ctx.reply = ctx.send
 
         with (
-            patch("noodswap.commands.get_player_cooldown_timestamps", return_value=(9_800.0, 9_850.0)),
-            patch("noodswap.commands.get_player_slots_timestamp", return_value=9_950.0),
-            patch("noodswap.commands.get_player_flip_timestamp", return_value=9_980.0),
-            patch("noodswap.commands.time.time", return_value=10_000.0),
+            patch("noodswap.commands_social.get_player_cooldown_timestamps", return_value=(9_800.0, 9_850.0)),
+            patch("noodswap.commands_social.get_player_slots_timestamp", return_value=9_950.0),
+            patch("noodswap.commands_social.get_player_flip_timestamp", return_value=9_980.0),
+            patch("noodswap.commands_gambling.time.time", return_value=10_000.0),
         ):
             await cooldown_command.callback(ctx, player=None)
 
@@ -1220,9 +1220,9 @@ class CommandsSlotsTests(unittest.IsolatedAsyncioTestCase):
         ctx.reply = ctx.send
 
         with (
-            patch("noodswap.commands.consume_slots_cooldown_if_ready", return_value=60.0),
-            patch("noodswap.commands.add_starter") as add_starter,
-            patch("noodswap.commands._animate_slots_spin", new=AsyncMock()) as animate,
+            patch("noodswap.commands_gambling.consume_slots_cooldown_if_ready", return_value=60.0),
+            patch("noodswap.commands_gambling.add_starter") as add_starter,
+            patch("noodswap.commands_gambling._animate_slots_spin", new=AsyncMock()) as animate,
         ):
             await slots_command.callback(ctx)
 
@@ -1244,11 +1244,11 @@ class CommandsSlotsTests(unittest.IsolatedAsyncioTestCase):
         ctx.reply = ctx.send
 
         with (
-            patch("noodswap.commands.consume_slots_cooldown_if_ready", return_value=0.0),
-            patch("noodswap.commands.random.choice", return_value="🍞"),
-            patch("noodswap.commands.random.randint", return_value=2),
-            patch("noodswap.commands.add_starter", return_value=7) as add_starter,
-            patch("noodswap.commands._animate_slots_spin", new=AsyncMock()) as animate,
+            patch("noodswap.commands_gambling.consume_slots_cooldown_if_ready", return_value=0.0),
+            patch("noodswap.commands_gambling.random.choice", return_value="🍞"),
+            patch("noodswap.commands_gambling.random.randint", return_value=2),
+            patch("noodswap.commands_gambling.add_starter", return_value=7) as add_starter,
+            patch("noodswap.commands_gambling._animate_slots_spin", new=AsyncMock()) as animate,
         ):
             await slots_command.callback(ctx)
 
@@ -1309,7 +1309,7 @@ class CommandsFlipTests(unittest.IsolatedAsyncioTestCase):
         ctx.reply = ctx.send
 
         with patch(
-            "noodswap.commands.execute_flip_wager",
+            "noodswap.commands_gambling.execute_flip_wager",
             return_value=("cooldown", 30.0, 50),
         ):
             await flip_command.callback(ctx, stake_str="10")
@@ -1329,7 +1329,7 @@ class CommandsFlipTests(unittest.IsolatedAsyncioTestCase):
         ctx.reply = ctx.send
 
         with patch(
-            "noodswap.commands.execute_flip_wager",
+            "noodswap.commands_gambling.execute_flip_wager",
             return_value=("insufficient_dough", 0.0, 5),
         ):
             await flip_command.callback(ctx, stake_str="10")
@@ -1351,10 +1351,10 @@ class CommandsFlipTests(unittest.IsolatedAsyncioTestCase):
         ctx.reply = ctx.send
 
         with (
-            patch("noodswap.commands.random.random", return_value=0.1),
-            patch("noodswap.commands.random.choice", return_value="rolling"),
-            patch("noodswap.commands.execute_flip_wager", return_value=("won", 0.0, 60)) as execute_flip,
-            patch("noodswap.commands.asyncio.sleep", new=AsyncMock()) as sleep_mock,
+            patch("noodswap.commands_gambling.random.random", return_value=0.1),
+            patch("noodswap.commands_gambling.random.choice", return_value="rolling"),
+            patch("noodswap.commands_gambling.execute_flip_wager", return_value=("won", 0.0, 60)) as execute_flip,
+            patch("noodswap.commands_gambling.asyncio.sleep", new=AsyncMock()) as sleep_mock,
         ):
             await flip_command.callback(ctx, stake_str="10")
 
@@ -1382,10 +1382,10 @@ class CommandsFlipTests(unittest.IsolatedAsyncioTestCase):
         ctx.reply = ctx.send
 
         with (
-            patch("noodswap.commands.random.random", return_value=0.9),
-            patch("noodswap.commands.random.choice", return_value="spinning"),
-            patch("noodswap.commands.execute_flip_wager", return_value=("lost", 0.0, 40)) as execute_flip,
-            patch("noodswap.commands.asyncio.sleep", new=AsyncMock()) as sleep_mock,
+            patch("noodswap.commands_gambling.random.random", return_value=0.9),
+            patch("noodswap.commands_gambling.random.choice", return_value="spinning"),
+            patch("noodswap.commands_gambling.execute_flip_wager", return_value=("lost", 0.0, 40)) as execute_flip,
+            patch("noodswap.commands_gambling.asyncio.sleep", new=AsyncMock()) as sleep_mock,
         ):
             await flip_command.callback(ctx, stake_str="10")
 
@@ -1411,10 +1411,10 @@ class CommandsFlipTests(unittest.IsolatedAsyncioTestCase):
         ctx.reply = ctx.send
 
         with (
-            patch("noodswap.commands.random.random", return_value=0.1),
-            patch("noodswap.commands.random.choice", return_value="whirling"),
-            patch("noodswap.commands.execute_flip_wager", return_value=("won", 0.0, 60)),
-            patch("noodswap.commands.asyncio.sleep", new=AsyncMock()),
+            patch("noodswap.commands_gambling.random.random", return_value=0.1),
+            patch("noodswap.commands_gambling.random.choice", return_value="whirling"),
+            patch("noodswap.commands_gambling.execute_flip_wager", return_value=("won", 0.0, 60)),
+            patch("noodswap.commands_gambling.asyncio.sleep", new=AsyncMock()),
         ):
             await flip_command.callback(ctx, stake_str="10", side_str="heads")
 
@@ -1434,10 +1434,10 @@ class CommandsFlipTests(unittest.IsolatedAsyncioTestCase):
         ctx.reply = ctx.send
 
         with (
-            patch("noodswap.commands.random.random", return_value=0.1),
-            patch("noodswap.commands.random.choice", return_value="tumbling"),
-            patch("noodswap.commands.execute_flip_wager", return_value=("won", 0.0, 60)),
-            patch("noodswap.commands.asyncio.sleep", new=AsyncMock()),
+            patch("noodswap.commands_gambling.random.random", return_value=0.1),
+            patch("noodswap.commands_gambling.random.choice", return_value="tumbling"),
+            patch("noodswap.commands_gambling.execute_flip_wager", return_value=("won", 0.0, 60)),
+            patch("noodswap.commands_gambling.asyncio.sleep", new=AsyncMock()),
         ):
             await flip_command.callback(ctx, stake_str="10", side_str="t")
 
@@ -1457,9 +1457,9 @@ class CommandsSlotsAnimationTests(unittest.IsolatedAsyncioTestCase):
         message = AsyncMock()
 
         with (
-            patch("noodswap.commands.random.randint", return_value=4),
-            patch("noodswap.commands.random.choice", return_value="🍞"),
-            patch("noodswap.commands.asyncio.sleep", new=AsyncMock()) as sleep_mock,
+            patch("noodswap.commands_gambling.random.randint", return_value=4),
+            patch("noodswap.commands_gambling.random.choice", return_value="🍞"),
+            patch("noodswap.commands_gambling.asyncio.sleep", new=AsyncMock()) as sleep_mock,
         ):
             await _animate_slots_spin(message, ["🍇", "🍝", "🧀"])
 
@@ -1490,11 +1490,11 @@ class CommandsInfoTests(unittest.IsolatedAsyncioTestCase):
         ctx.reply = ctx.send
 
         with (
-            patch("noodswap.commands.get_player_info", return_value=(123, 0.0, None)),
-            patch("noodswap.commands.get_player_starter", return_value=9),
-            patch("noodswap.commands.get_player_drop_tickets", return_value=4),
-            patch("noodswap.commands.get_total_cards", return_value=7),
-            patch("noodswap.commands.get_wishlist_cards", return_value=["SPG", "PEN", "FUS"]),
+            patch("noodswap.commands_social.get_player_info", return_value=(123, 0.0, None)),
+            patch("noodswap.commands_social.get_player_starter", return_value=9),
+            patch("noodswap.commands_social.get_player_drop_tickets", return_value=4),
+            patch("noodswap.commands_social.get_total_cards", return_value=7),
+            patch("noodswap.commands_social.get_wishlist_cards", return_value=["SPG", "PEN", "FUS"]),
         ):
             await info_command.callback(ctx, player=None)
 
@@ -1524,11 +1524,11 @@ class CommandsInfoTests(unittest.IsolatedAsyncioTestCase):
         ctx.reply = ctx.send
 
         with (
-            patch("noodswap.commands.get_player_info", return_value=(999, 0.0, None)),
-            patch("noodswap.commands.get_player_starter", return_value=2),
-            patch("noodswap.commands.get_player_drop_tickets", return_value=0),
-            patch("noodswap.commands.get_total_cards", return_value=4),
-            patch("noodswap.commands.get_wishlist_cards", return_value=["SPG"]),
+            patch("noodswap.commands_social.get_player_info", return_value=(999, 0.0, None)),
+            patch("noodswap.commands_social.get_player_starter", return_value=2),
+            patch("noodswap.commands_social.get_player_drop_tickets", return_value=0),
+            patch("noodswap.commands_social.get_total_cards", return_value=4),
+            patch("noodswap.commands_social.get_wishlist_cards", return_value=["SPG"]),
         ):
             await info_command.callback(ctx, player=None)
 
@@ -1554,8 +1554,8 @@ class CommandsGiftTests(unittest.IsolatedAsyncioTestCase):
         bot_target = _FakeMember(200, "BotTarget")
         bot_target.bot = True
         with (
-            patch("noodswap.commands.resolve_member_argument", new=AsyncMock(return_value=(bot_target, None))),
-            patch("noodswap.commands.execute_gift_dough") as execute_gift,
+            patch("noodswap.commands_economy.resolve_member_argument", new=AsyncMock(return_value=(bot_target, None))),
+            patch("noodswap.commands_economy.execute_gift_dough") as execute_gift,
         ):
             await gift_command.callback(ctx, player="@BotTarget", dough=10)
 
@@ -1576,8 +1576,8 @@ class CommandsGiftTests(unittest.IsolatedAsyncioTestCase):
 
         target = _FakeMember(200, "Target")
         with (
-            patch("noodswap.commands.resolve_member_argument", new=AsyncMock(return_value=(target, None))),
-            patch("noodswap.commands.execute_gift_dough", return_value=(True, "", 90, 10)) as execute_gift,
+            patch("noodswap.commands_economy.resolve_member_argument", new=AsyncMock(return_value=(target, None))),
+            patch("noodswap.commands_economy.execute_gift_dough", return_value=(True, "", 90, 10)) as execute_gift,
         ):
             await gift_command.callback(ctx, player="@Target", dough=10)
 
@@ -1626,8 +1626,8 @@ class CommandsVoteTests(unittest.IsolatedAsyncioTestCase):
 
         with (
             patch.dict("os.environ", {"TOPGG_API_TOKEN": "token", "TOPGG_BOT_ID": "123"}, clear=True),
-            patch("noodswap.commands._topgg_recent_vote_status", new=AsyncMock(return_value=(True, None))),
-            patch("noodswap.commands.claim_vote_reward", return_value=5),
+            patch("noodswap.commands_catalog._topgg_recent_vote_status", new=AsyncMock(return_value=(True, None))),
+            patch("noodswap.commands_catalog.claim_vote_reward", return_value=5),
         ):
             await vote_command.callback(ctx)
 
@@ -1671,8 +1671,8 @@ class CommandsBurnTests(unittest.IsolatedAsyncioTestCase):
         )
 
         with (
-            patch("noodswap.commands.get_instance_by_code", return_value=(77, "SPG", 321, "a")),
-            patch("noodswap.commands.prepare_burn_batch", return_value=prepared),
+            patch("noodswap.command_utils.get_instance_by_code", return_value=(77, "SPG", 321, "a")),
+            patch("noodswap.commands_economy.prepare_burn_batch", return_value=prepared),
         ):
             await burn_command.callback(ctx, "a")
 
@@ -1711,12 +1711,12 @@ class CommandsBurnTests(unittest.IsolatedAsyncioTestCase):
         )
 
         with (
-            patch("noodswap.commands.get_instances_by_folder", return_value=[(10, "SPG", 100, "0")]),
-            patch("noodswap.commands.prepare_burn_batch", return_value=prepared),
-            patch("noodswap.commands.get_instance_morph", return_value=None),
-            patch("noodswap.commands.get_instance_frame", return_value=None),
-            patch("noodswap.commands.get_instance_font", return_value=None),
-            patch("noodswap.commands.embed_image_payload", return_value=(None, None)),
+            patch("noodswap.command_utils.get_instances_by_folder", return_value=[(10, "SPG", 100, "0")]),
+            patch("noodswap.commands_economy.prepare_burn_batch", return_value=prepared),
+            patch("noodswap.command_utils.get_instance_morph", return_value=None),
+            patch("noodswap.command_utils.get_instance_frame", return_value=None),
+            patch("noodswap.command_utils.get_instance_font", return_value=None),
+            patch("noodswap.commands_economy.embed_image_payload", return_value=(None, None)),
         ):
             await burn_command.callback(ctx, "f:vault")
 
@@ -1750,7 +1750,7 @@ class CommandsMorphTests(unittest.IsolatedAsyncioTestCase):
             cost=9,
         )
 
-        with patch("noodswap.commands.prepare_morph", return_value=result):
+        with patch("noodswap.commands_economy.prepare_morph", return_value=result):
             await morph_command.callback(ctx, card_code="a")
 
         ctx.send.assert_awaited_once()
@@ -1775,7 +1775,7 @@ class CommandsMorphTests(unittest.IsolatedAsyncioTestCase):
             error_message="You do not have enough dough.",
         )
 
-        with patch("noodswap.commands.prepare_morph", return_value=result):
+        with patch("noodswap.commands_economy.prepare_morph", return_value=result):
             await morph_command.callback(ctx, card_code="a")
 
         ctx.send.assert_awaited_once()
@@ -1809,7 +1809,7 @@ class CommandsFrameTests(unittest.IsolatedAsyncioTestCase):
             cost=9,
         )
 
-        with patch("noodswap.commands.prepare_frame", return_value=result):
+        with patch("noodswap.commands_economy.prepare_frame", return_value=result):
             await frame_command.callback(ctx, card_code="a")
 
         ctx.send.assert_awaited_once()
@@ -1834,7 +1834,7 @@ class CommandsFrameTests(unittest.IsolatedAsyncioTestCase):
             error_message="You do not have enough dough.",
         )
 
-        with patch("noodswap.commands.prepare_frame", return_value=result):
+        with patch("noodswap.commands_economy.prepare_frame", return_value=result):
             await frame_command.callback(ctx, card_code="a")
 
         ctx.send.assert_awaited_once()
@@ -1868,7 +1868,7 @@ class CommandsFontTests(unittest.IsolatedAsyncioTestCase):
             cost=9,
         )
 
-        with patch("noodswap.commands.prepare_font", return_value=result):
+        with patch("noodswap.commands_economy.prepare_font", return_value=result):
             await font_command.callback(ctx, card_code="a")
 
         ctx.send.assert_awaited_once()
@@ -1893,7 +1893,7 @@ class CommandsFontTests(unittest.IsolatedAsyncioTestCase):
             error_message="You do not have enough dough.",
         )
 
-        with patch("noodswap.commands.prepare_font", return_value=result):
+        with patch("noodswap.commands_economy.prepare_font", return_value=result):
             await font_command.callback(ctx, card_code="a")
 
         ctx.send.assert_awaited_once()
@@ -2297,14 +2297,14 @@ class CardRenderRegressionTests(unittest.TestCase):
 
 class LocalImageBytesTests(unittest.TestCase):
     def test_get_card_image_bytes_returns_local_bytes(self) -> None:
-        with patch("noodswap.commands.read_local_card_image_bytes", return_value=b"local-bytes") as read_local:
+        with patch("noodswap.command_utils.read_local_card_image_bytes", return_value=b"local-bytes") as read_local:
             resolved = _get_card_image_bytes("SPG")
 
         self.assertEqual(resolved, b"local-bytes")
         read_local.assert_called_once_with("SPG")
 
     def test_get_card_image_bytes_returns_none_when_local_missing(self) -> None:
-        with patch("noodswap.commands.read_local_card_image_bytes", return_value=None) as read_local:
+        with patch("noodswap.command_utils.read_local_card_image_bytes", return_value=None) as read_local:
             resolved = _get_card_image_bytes("SPG")
 
         self.assertIsNone(resolved)
