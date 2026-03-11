@@ -579,6 +579,8 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
                     "is_error": False,
                     "morph_key": "black_and_white",
                     "morph_name": "Black and White",
+                    "rolled_rarity": "common",
+                    "rolled_multiplier": 1.0,
                     "remaining_dough": 41,
                 },
             )(),
@@ -592,6 +594,7 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(interaction.message.replies), 1)
         sent_embed = interaction.message.replies[0]["embed"]
         self.assertEqual(sent_embed.title, "Morph Rolled")
+        self.assertIn("Trait Rarity: **Common** (x1.00)", sent_embed.description)
         self.assertIn("Morph Cost: **9**", sent_embed.description)
         self.assertIn("Dough Remaining: **41**", sent_embed.description)
 
@@ -668,6 +671,8 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
                     "is_error": False,
                     "frame_key": "buttery",
                     "frame_name": "Buttery",
+                    "rolled_rarity": "common",
+                    "rolled_multiplier": 1.0,
                     "remaining_dough": 41,
                 },
             )(),
@@ -681,6 +686,7 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(interaction.message.replies), 1)
         sent_embed = interaction.message.replies[0]["embed"]
         self.assertEqual(sent_embed.title, "Frame Rolled")
+        self.assertIn("Trait Rarity: **Common** (x1.00)", sent_embed.description)
         self.assertIn("Frame Cost: **9**", sent_embed.description)
         self.assertIn("Dough Remaining: **41**", sent_embed.description)
 
@@ -734,6 +740,8 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
                     "is_error": False,
                     "font_key": "serif",
                     "font_name": "Serif",
+                    "rolled_rarity": "uncommon",
+                    "rolled_multiplier": 1.02,
                     "remaining_dough": 41,
                 },
             )(),
@@ -747,6 +755,7 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(interaction.message.replies), 1)
         sent_embed = interaction.message.replies[0]["embed"]
         self.assertEqual(sent_embed.title, "Font Rolled")
+        self.assertIn("Trait Rarity: **Uncommon** (x1.02)", sent_embed.description)
         self.assertIn("Font Cost: **9**", sent_embed.description)
         self.assertIn("Dough Remaining: **41**", sent_embed.description)
 

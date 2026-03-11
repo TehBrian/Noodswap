@@ -324,6 +324,8 @@ class ServicesTests(unittest.TestCase):
             dupe_code="0",
             morph_key="black_and_white",
             morph_name="Black and White",
+            rolled_rarity="common",
+            rolled_multiplier=1.0,
             cost=1,
         )
 
@@ -378,6 +380,8 @@ class ServicesTests(unittest.TestCase):
             dupe_code="0",
             frame_key="buttery",
             frame_name="Buttery",
+            rolled_rarity="common",
+            rolled_multiplier=1.0,
             cost=1,
         )
 
@@ -431,6 +435,8 @@ class ServicesTests(unittest.TestCase):
             dupe_code="0",
             font_key="serif",
             font_name="Serif",
+            rolled_rarity="uncommon",
+            rolled_multiplier=1.02,
             cost=1,
         )
 
@@ -737,6 +743,8 @@ class ServicesTests(unittest.TestCase):
 
         self.assertFalse(result.is_error)
         self.assertEqual(result.morph_key, "black_and_white")
+        self.assertEqual(result.rolled_rarity, "common")
+        self.assertEqual(result.rolled_multiplier, 1.0)
         self.assertEqual(storage.get_instance_morph(guild_id, instance_id), "black_and_white")
 
     def test_resolve_frame_roll_applies_selected_frame(self) -> None:
@@ -762,6 +770,8 @@ class ServicesTests(unittest.TestCase):
 
         self.assertFalse(result.is_error)
         self.assertEqual(result.frame_key, "buttery")
+        self.assertEqual(result.rolled_rarity, "common")
+        self.assertEqual(result.rolled_multiplier, 1.0)
         self.assertEqual(storage.get_instance_frame(guild_id, instance_id), "buttery")
 
     def test_resolve_font_roll_applies_selected_font(self) -> None:
@@ -784,6 +794,8 @@ class ServicesTests(unittest.TestCase):
 
         self.assertFalse(result.is_error)
         self.assertEqual(result.font_key, "serif")
+        self.assertEqual(result.rolled_rarity, "uncommon")
+        self.assertEqual(result.rolled_multiplier, 1.02)
         self.assertEqual(storage.get_instance_font(guild_id, instance_id), "serif")
 
 

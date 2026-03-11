@@ -44,6 +44,11 @@ def _burn_result_has_required_fields(result: object) -> bool:
     )
 
 
+def _format_trait_roll_details(rolled_rarity: str, rolled_multiplier: float) -> str:
+    rarity_label = rolled_rarity.replace("_", " ").title()
+    return f"Trait Rarity: **{rarity_label}** (x{rolled_multiplier:.2f})"
+
+
 class BurnConfirmView(InteractionView):
     def __init__(
         self,
@@ -332,7 +337,13 @@ class MorphConfirmView(InteractionView):
                 )
             return
 
-        if result.morph_key is None or result.morph_name is None or result.remaining_dough is None:
+        if (
+            result.morph_key is None
+            or result.morph_name is None
+            or result.rolled_rarity is None
+            or result.rolled_multiplier is None
+            or result.remaining_dough is None
+        ):
             self.finished = True
             self._disable_buttons()
             await interaction.response.edit_message(view=self)
@@ -354,6 +365,7 @@ class MorphConfirmView(InteractionView):
                 f"{card_dupe_display(self.card_id, self.generation, dupe_code=self.dupe_code)}.\n\n"
                 f"Before: **{morph_label(self.before_morph_key)}**\n"
                 f"After: **{result.morph_name}**\n\n"
+                f"{_format_trait_roll_details(result.rolled_rarity, result.rolled_multiplier)}\n"
                 f"Morph Cost: **{self.cost}** dough\n"
                 f"Dough Remaining: **{result.remaining_dough}**"
             ),
@@ -490,7 +502,13 @@ class FrameConfirmView(InteractionView):
                 )
             return
 
-        if result.frame_key is None or result.frame_name is None or result.remaining_dough is None:
+        if (
+            result.frame_key is None
+            or result.frame_name is None
+            or result.rolled_rarity is None
+            or result.rolled_multiplier is None
+            or result.remaining_dough is None
+        ):
             self.finished = True
             self._disable_buttons()
             await interaction.response.edit_message(view=self)
@@ -512,6 +530,7 @@ class FrameConfirmView(InteractionView):
                 f"{card_dupe_display(self.card_id, self.generation, dupe_code=self.dupe_code)}.\n\n"
                 f"Before: **{frame_label(self.before_frame_key)}**\n"
                 f"After: **{result.frame_name}**\n\n"
+                f"{_format_trait_roll_details(result.rolled_rarity, result.rolled_multiplier)}\n"
                 f"Frame Cost: **{self.cost}** dough\n"
                 f"Dough Remaining: **{result.remaining_dough}**"
             ),
@@ -648,7 +667,13 @@ class FontConfirmView(InteractionView):
                 )
             return
 
-        if result.font_key is None or result.font_name is None or result.remaining_dough is None:
+        if (
+            result.font_key is None
+            or result.font_name is None
+            or result.rolled_rarity is None
+            or result.rolled_multiplier is None
+            or result.remaining_dough is None
+        ):
             self.finished = True
             self._disable_buttons()
             await interaction.response.edit_message(view=self)
@@ -670,6 +695,7 @@ class FontConfirmView(InteractionView):
                 f"{card_dupe_display(self.card_id, self.generation, dupe_code=self.dupe_code)}.\n\n"
                 f"Before: **{font_label(self.before_font_key)}**\n"
                 f"After: **{result.font_name}**\n\n"
+                f"{_format_trait_roll_details(result.rolled_rarity, result.rolled_multiplier)}\n"
                 f"Font Cost: **{self.cost}** dough\n"
                 f"Dough Remaining: **{result.remaining_dough}**"
             ),

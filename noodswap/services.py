@@ -34,7 +34,7 @@ from .storage import (
     resolve_battle_proposal,
     marry_card_instance,
 )
-from .trait_rarities import weighted_trait_choice
+from .trait_rarities import trait_rarity_multiplier, weighted_trait_choice
 
 
 @dataclass(frozen=True)
@@ -719,6 +719,8 @@ class MorphExecution:
     dupe_code: Optional[str]
     morph_key: Optional[str]
     morph_name: Optional[str]
+    rolled_rarity: Optional[str]
+    rolled_multiplier: Optional[float]
     cost: Optional[int]
     remaining_dough: Optional[int]
 
@@ -866,6 +868,8 @@ def confirm_morph(
     dupe_code: str,
     morph_key: str,
     morph_name: str,
+    rolled_rarity: str,
+    rolled_multiplier: float,
     cost: int,
 ) -> MorphExecution:
     applied, message = apply_morph_to_instance(guild_id, user_id, instance_id, morph_key, cost)
@@ -878,6 +882,8 @@ def confirm_morph(
             dupe_code=None,
             morph_key=None,
             morph_name=None,
+            rolled_rarity=None,
+            rolled_multiplier=None,
             cost=None,
             remaining_dough=None,
         )
@@ -891,6 +897,8 @@ def confirm_morph(
         dupe_code=dupe_code,
         morph_key=morph_key,
         morph_name=morph_name,
+        rolled_rarity=rolled_rarity,
+        rolled_multiplier=rolled_multiplier,
         cost=cost,
         remaining_dough=dough_after,
     )
@@ -907,6 +915,8 @@ def execute_morph(guild_id: int, user_id: int, card_code: Optional[str]) -> Morp
             dupe_code=None,
             morph_key=None,
             morph_name=None,
+            rolled_rarity=None,
+            rolled_multiplier=None,
             cost=None,
             remaining_dough=None,
         )
@@ -926,6 +936,8 @@ def execute_morph(guild_id: int, user_id: int, card_code: Optional[str]) -> Morp
             dupe_code=None,
             morph_key=None,
             morph_name=None,
+            rolled_rarity=None,
+            rolled_multiplier=None,
             cost=None,
             remaining_dough=None,
         )
@@ -940,11 +952,15 @@ def execute_morph(guild_id: int, user_id: int, card_code: Optional[str]) -> Morp
             dupe_code=None,
             morph_key=None,
             morph_name=None,
+            rolled_rarity=None,
+            rolled_multiplier=None,
             cost=None,
             remaining_dough=None,
         )
 
     rolled_morph = weighted_trait_choice(available_rolls, morph_rarity)
+    rolled_rarity = morph_rarity(rolled_morph)
+    rolled_multiplier = trait_rarity_multiplier(rolled_rarity)
 
     return confirm_morph(
         guild_id,
@@ -955,6 +971,8 @@ def execute_morph(guild_id: int, user_id: int, card_code: Optional[str]) -> Morp
         dupe_code=prepared.dupe_code,
         morph_key=rolled_morph,
         morph_name=morph_label(rolled_morph),
+        rolled_rarity=rolled_rarity,
+        rolled_multiplier=rolled_multiplier,
         cost=prepared.cost,
     )
 
@@ -980,11 +998,15 @@ def resolve_morph_roll(
             dupe_code=None,
             morph_key=None,
             morph_name=None,
+            rolled_rarity=None,
+            rolled_multiplier=None,
             cost=None,
             remaining_dough=None,
         )
 
     rolled_morph = weighted_trait_choice(available_rolls, morph_rarity)
+    rolled_rarity = morph_rarity(rolled_morph)
+    rolled_multiplier = trait_rarity_multiplier(rolled_rarity)
     return confirm_morph(
         guild_id,
         user_id,
@@ -994,6 +1016,8 @@ def resolve_morph_roll(
         dupe_code=dupe_code,
         morph_key=rolled_morph,
         morph_name=morph_label(rolled_morph),
+        rolled_rarity=rolled_rarity,
+        rolled_multiplier=rolled_multiplier,
         cost=cost,
     )
 
@@ -1007,6 +1031,8 @@ class FrameExecution:
     dupe_code: Optional[str]
     frame_key: Optional[str]
     frame_name: Optional[str]
+    rolled_rarity: Optional[str]
+    rolled_multiplier: Optional[float]
     cost: Optional[int]
     remaining_dough: Optional[int]
 
@@ -1155,6 +1181,8 @@ def confirm_frame(
     dupe_code: str,
     frame_key: str,
     frame_name: str,
+    rolled_rarity: str,
+    rolled_multiplier: float,
     cost: int,
 ) -> FrameExecution:
     applied, message = apply_frame_to_instance(guild_id, user_id, instance_id, frame_key, cost)
@@ -1167,6 +1195,8 @@ def confirm_frame(
             dupe_code=None,
             frame_key=None,
             frame_name=None,
+            rolled_rarity=None,
+            rolled_multiplier=None,
             cost=None,
             remaining_dough=None,
         )
@@ -1180,6 +1210,8 @@ def confirm_frame(
         dupe_code=dupe_code,
         frame_key=frame_key,
         frame_name=frame_name,
+        rolled_rarity=rolled_rarity,
+        rolled_multiplier=rolled_multiplier,
         cost=cost,
         remaining_dough=dough_after,
     )
@@ -1196,6 +1228,8 @@ def execute_frame(guild_id: int, user_id: int, card_code: Optional[str]) -> Fram
             dupe_code=None,
             frame_key=None,
             frame_name=None,
+            rolled_rarity=None,
+            rolled_multiplier=None,
             cost=None,
             remaining_dough=None,
         )
@@ -1215,6 +1249,8 @@ def execute_frame(guild_id: int, user_id: int, card_code: Optional[str]) -> Fram
             dupe_code=None,
             frame_key=None,
             frame_name=None,
+            rolled_rarity=None,
+            rolled_multiplier=None,
             cost=None,
             remaining_dough=None,
         )
@@ -1230,11 +1266,15 @@ def execute_frame(guild_id: int, user_id: int, card_code: Optional[str]) -> Fram
             dupe_code=None,
             frame_key=None,
             frame_name=None,
+            rolled_rarity=None,
+            rolled_multiplier=None,
             cost=None,
             remaining_dough=None,
         )
 
     rolled_frame = weighted_trait_choice(available_rolls, frame_rarity)
+    rolled_rarity = frame_rarity(rolled_frame)
+    rolled_multiplier = trait_rarity_multiplier(rolled_rarity)
 
     return confirm_frame(
         guild_id,
@@ -1245,6 +1285,8 @@ def execute_frame(guild_id: int, user_id: int, card_code: Optional[str]) -> Fram
         dupe_code=prepared.dupe_code,
         frame_key=rolled_frame,
         frame_name=frame_label(rolled_frame),
+        rolled_rarity=rolled_rarity,
+        rolled_multiplier=rolled_multiplier,
         cost=prepared.cost,
     )
 
@@ -1271,11 +1313,15 @@ def resolve_frame_roll(
             dupe_code=None,
             frame_key=None,
             frame_name=None,
+            rolled_rarity=None,
+            rolled_multiplier=None,
             cost=None,
             remaining_dough=None,
         )
 
     rolled_frame = weighted_trait_choice(available_rolls, frame_rarity)
+    rolled_rarity = frame_rarity(rolled_frame)
+    rolled_multiplier = trait_rarity_multiplier(rolled_rarity)
     return confirm_frame(
         guild_id,
         user_id,
@@ -1285,6 +1331,8 @@ def resolve_frame_roll(
         dupe_code=dupe_code,
         frame_key=rolled_frame,
         frame_name=frame_label(rolled_frame),
+        rolled_rarity=rolled_rarity,
+        rolled_multiplier=rolled_multiplier,
         cost=cost,
     )
 
@@ -1298,6 +1346,8 @@ class FontExecution:
     dupe_code: Optional[str]
     font_key: Optional[str]
     font_name: Optional[str]
+    rolled_rarity: Optional[str]
+    rolled_multiplier: Optional[float]
     cost: Optional[int]
     remaining_dough: Optional[int]
 
@@ -1445,6 +1495,8 @@ def confirm_font(
     dupe_code: str,
     font_key: str,
     font_name: str,
+    rolled_rarity: str,
+    rolled_multiplier: float,
     cost: int,
 ) -> FontExecution:
     applied, message = apply_font_to_instance(guild_id, user_id, instance_id, font_key, cost)
@@ -1457,6 +1509,8 @@ def confirm_font(
             dupe_code=None,
             font_key=None,
             font_name=None,
+            rolled_rarity=None,
+            rolled_multiplier=None,
             cost=None,
             remaining_dough=None,
         )
@@ -1470,6 +1524,8 @@ def confirm_font(
         dupe_code=dupe_code,
         font_key=font_key,
         font_name=font_name,
+        rolled_rarity=rolled_rarity,
+        rolled_multiplier=rolled_multiplier,
         cost=cost,
         remaining_dough=dough_after,
     )
@@ -1486,6 +1542,8 @@ def execute_font(guild_id: int, user_id: int, card_code: Optional[str]) -> FontE
             dupe_code=None,
             font_key=None,
             font_name=None,
+            rolled_rarity=None,
+            rolled_multiplier=None,
             cost=None,
             remaining_dough=None,
         )
@@ -1505,6 +1563,8 @@ def execute_font(guild_id: int, user_id: int, card_code: Optional[str]) -> FontE
             dupe_code=None,
             font_key=None,
             font_name=None,
+            rolled_rarity=None,
+            rolled_multiplier=None,
             cost=None,
             remaining_dough=None,
         )
@@ -1519,11 +1579,15 @@ def execute_font(guild_id: int, user_id: int, card_code: Optional[str]) -> FontE
             dupe_code=None,
             font_key=None,
             font_name=None,
+            rolled_rarity=None,
+            rolled_multiplier=None,
             cost=None,
             remaining_dough=None,
         )
 
     rolled_font = weighted_trait_choice(available_rolls, font_rarity)
+    rolled_rarity = font_rarity(rolled_font)
+    rolled_multiplier = trait_rarity_multiplier(rolled_rarity)
 
     return confirm_font(
         guild_id,
@@ -1534,6 +1598,8 @@ def execute_font(guild_id: int, user_id: int, card_code: Optional[str]) -> FontE
         dupe_code=prepared.dupe_code,
         font_key=rolled_font,
         font_name=font_label(rolled_font),
+        rolled_rarity=rolled_rarity,
+        rolled_multiplier=rolled_multiplier,
         cost=prepared.cost,
     )
 
@@ -1559,11 +1625,15 @@ def resolve_font_roll(
             dupe_code=None,
             font_key=None,
             font_name=None,
+            rolled_rarity=None,
+            rolled_multiplier=None,
             cost=None,
             remaining_dough=None,
         )
 
     rolled_font = weighted_trait_choice(available_rolls, font_rarity)
+    rolled_rarity = font_rarity(rolled_font)
+    rolled_multiplier = trait_rarity_multiplier(rolled_rarity)
     return confirm_font(
         guild_id,
         user_id,
@@ -1573,6 +1643,8 @@ def resolve_font_roll(
         dupe_code=dupe_code,
         font_key=rolled_font,
         font_name=font_label(rolled_font),
+        rolled_rarity=rolled_rarity,
+        rolled_multiplier=rolled_multiplier,
         cost=cost,
     )
 
