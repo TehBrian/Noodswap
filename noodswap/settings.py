@@ -5,8 +5,8 @@ DROP_COOLDOWN_SECONDS = 6 * 60
 PULL_COOLDOWN_SECONDS = 45
 VOTE_COOLDOWN_SECONDS = 24 * 60 * 60
 SLOTS_COOLDOWN_SECONDS = 22 * 60
-FLIP_COOLDOWN_SECONDS = 10
-FLIP_WIN_PROBABILITY = 0.52
+FLIP_COOLDOWN_SECONDS = 2 * 60
+FLIP_WIN_PROBABILITY = 0.46
 STARTING_DOUGH = 0
 STARTING_STARTER = 0
 VOTE_STARTER_REWARD = 1
@@ -29,14 +29,6 @@ def _resolve_path(value: str) -> Path:
     return Path(value).expanduser().resolve()
 
 
-def _env_bool(name: str, default: bool) -> bool:
-    value = os.getenv(name)
-    if value is None:
-        return default
-    normalized = value.strip().lower()
-    return normalized in {"1", "true", "yes", "on"}
-
-
 RUNTIME_DIR = _resolve_path(os.getenv("DATA_DIR", str(PROJECT_ROOT / "runtime")))
 DB_PATH = _resolve_path(os.getenv("SQLITE_PATH", str(RUNTIME_DIR / "db" / "noodswap.db")))
 CARD_IMAGE_DIR = _resolve_path(os.getenv("IMAGE_DIR", str(RUNTIME_DIR / "card_images")))
@@ -44,16 +36,6 @@ CARD_IMAGE_MANIFEST = CARD_IMAGE_DIR / "manifest.json"
 CARD_FONTS_DIR = _resolve_path(os.getenv("FONTS_DIR", str(RUNTIME_DIR / "fonts")))
 FRAME_OVERLAYS_DIR = _resolve_path(
     os.getenv("FRAME_OVERLAYS_DIR", str(RUNTIME_DIR / "frame_overlays"))
-)
-TOPGG_WEBHOOK_SECRET = os.getenv("TOPGG_WEBHOOK_SECRET", "").strip()
-TOPGG_WEBHOOK_HOST = os.getenv("TOPGG_WEBHOOK_HOST", "0.0.0.0").strip() or "0.0.0.0"
-TOPGG_WEBHOOK_PORT = int(os.getenv("TOPGG_WEBHOOK_PORT", "8080"))
-TOPGG_WEBHOOK_PATH = os.getenv("TOPGG_WEBHOOK_PATH", "/noodswap/topgg-vote-webhook").strip() or "/noodswap/topgg-vote-webhook"
-TOPGG_BOT_ID = os.getenv("TOPGG_BOT_ID", "").strip()
-TOPGG_WEBHOOK_MAX_BODY_BYTES = max(1024, int(os.getenv("TOPGG_WEBHOOK_MAX_BODY_BYTES", "16384")))
-TOPGG_WEBHOOK_REQUIRE_JSON_CONTENT_TYPE = _env_bool("TOPGG_WEBHOOK_REQUIRE_JSON_CONTENT_TYPE", True)
-TOPGG_WEBHOOK_ALLOWED_IPS = tuple(
-    part.strip() for part in os.getenv("TOPGG_WEBHOOK_ALLOWED_IPS", "").split(",") if part.strip()
 )
 
 # Card body height / width ratio used by the in-canvas renderer.

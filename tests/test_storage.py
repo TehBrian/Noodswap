@@ -32,7 +32,6 @@ class StorageTests(unittest.TestCase):
             self.assertIn("last_dropped_instance_id", column_names)
             self.assertIn("starter", column_names)
             self.assertIn("drop_tickets", column_names)
-            self.assertIn("votes", column_names)
             self.assertIn("last_vote_reward_at", column_names)
             self.assertIn("last_slots_at", column_names)
             self.assertIn("last_flip_at", column_names)
@@ -58,16 +57,6 @@ class StorageTests(unittest.TestCase):
                 "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'card_instance_tags'"
             ).fetchone()
             self.assertIsNotNone(instance_tags_row)
-
-            folders_row = conn.execute(
-                "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'player_folders'"
-            ).fetchone()
-            self.assertIsNotNone(folders_row)
-
-            instance_folders_row = conn.execute(
-                "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'card_instance_folders'"
-            ).fetchone()
-            self.assertIsNotNone(instance_folders_row)
 
             teams_row = conn.execute(
                 "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'player_teams'"
@@ -126,7 +115,6 @@ class StorageTests(unittest.TestCase):
         self.assertTrue(claimed)
         self.assertEqual(remaining, 0.0)
         self.assertEqual(starter_total, 1)
-        self.assertEqual(storage.get_player_votes(guild_id, user_id), 1)
 
         claimed, remaining, starter_total = storage.claim_vote_reward_if_ready(
             guild_id=guild_id,
@@ -138,7 +126,6 @@ class StorageTests(unittest.TestCase):
         self.assertFalse(claimed)
         self.assertGreater(remaining, 0.0)
         self.assertEqual(starter_total, 1)
-        self.assertEqual(storage.get_player_votes(guild_id, user_id), 1)
 
     def test_slots_cooldown_and_starter_award(self) -> None:
         guild_id = 1
@@ -303,50 +290,6 @@ class StorageTests(unittest.TestCase):
         self.assertEqual(remaining, 0.0)
         self.assertEqual(balance, 50)
 
-    def test_execute_gift_dough_transfers_balance(self) -> None:
-        guild_id = 1
-        sender_id = 111
-        recipient_id = 112
-
-        storage.init_db()
-        storage.add_dough(guild_id, sender_id, 100)
-
-        success, message, sender_balance, recipient_balance = storage.execute_gift_dough(
-            guild_id,
-            sender_id,
-            recipient_id,
-            25,
-        )
-
-        self.assertTrue(success)
-        self.assertEqual(message, "")
-        self.assertEqual(sender_balance, 75)
-        self.assertEqual(recipient_balance, 25)
-
-        sender_dough, _, _ = storage.get_player_info(guild_id, sender_id)
-        recipient_dough, _, _ = storage.get_player_info(guild_id, recipient_id)
-        self.assertEqual(sender_dough, 75)
-        self.assertEqual(recipient_dough, 25)
-
-    def test_execute_gift_dough_rejects_insufficient_balance(self) -> None:
-        guild_id = 1
-        sender_id = 113
-        recipient_id = 114
-
-        storage.init_db()
-
-        success, message, sender_balance, recipient_balance = storage.execute_gift_dough(
-            guild_id,
-            sender_id,
-            recipient_id,
-            1,
-        )
-
-        self.assertFalse(success)
-        self.assertEqual(message, "You do not have enough dough.")
-        self.assertIsNone(sender_balance)
-        self.assertIsNone(recipient_balance)
-
     def test_burn_candidate_selects_highest_generation_copy(self) -> None:
         guild_id = 1
         user_id = 101
@@ -501,15 +444,13 @@ class StorageTests(unittest.TestCase):
         self.assertEqual(first[2], 2)
         self.assertEqual(first[3], 25)
         self.assertEqual(first[4], 2)
-        self.assertEqual(first[5], 1)
-        self.assertGreater(first[6], 0)
+        self.assertGreater(first[5], 0)
 
         self.assertEqual(second[1], 1)
         self.assertEqual(second[2], 1)
         self.assertEqual(second[3], 80)
         self.assertEqual(second[4], 0)
-        self.assertEqual(second[5], 0)
-        self.assertGreater(second[6], 0)
+        self.assertGreater(second[5], 0)
 
     def test_marry_fails_if_card_already_married_by_another_player(self) -> None:
         guild_id = 1
@@ -963,7 +904,7 @@ class StorageTests(unittest.TestCase):
         still_owned = storage.get_instance_by_id(guild_id, instance_id)
         self.assertIsNotNone(still_owned)
 
-    def test_burn_instances_burns_available_and_skips_locked(self) -> None:
+    def test_burn_instances_blocks_all_when_any_locked(self) -> None:
         guild_id = 1
         user_id = 1204
 
@@ -974,12 +915,11 @@ class StorageTests(unittest.TestCase):
         storage.assign_tag_to_instance(guild_id, user_id, locked_instance, "keep")
         storage.set_player_tag_locked(guild_id, user_id, "keep", True)
 
-        burned_rows, skipped_by_instance = storage.burn_instances(guild_id, user_id, [open_instance, locked_instance])
+        burned_rows, locked_by_instance = storage.burn_instances(guild_id, user_id, [open_instance, locked_instance])
 
-        self.assertEqual(len(burned_rows), 1)
-        self.assertEqual(burned_rows[0][0], open_instance)
-        self.assertIn(locked_instance, skipped_by_instance)
-        self.assertIsNone(storage.get_instance_by_id(guild_id, open_instance))
+        self.assertIsNone(burned_rows)
+        self.assertIn(locked_instance, locked_by_instance)
+        self.assertIsNotNone(storage.get_instance_by_id(guild_id, open_instance))
         self.assertIsNotNone(storage.get_instance_by_id(guild_id, locked_instance))
 
     def test_deleting_tag_cascades_instance_assignments(self) -> None:
@@ -993,62 +933,6 @@ class StorageTests(unittest.TestCase):
 
         self.assertTrue(storage.delete_player_tag(guild_id, user_id, "archive"))
         self.assertEqual(storage.get_instances_by_tag(guild_id, user_id, "archive"), [])
-
-    def test_player_folders_create_list_lock_and_delete(self) -> None:
-        guild_id = 1
-        user_id = 1210
-
-        storage.init_db()
-
-        self.assertTrue(storage.create_player_folder(guild_id, user_id, "keepers", "🍝"))
-        self.assertFalse(storage.create_player_folder(guild_id, user_id, "keepers", "🍞"))
-
-        listed = storage.list_player_folders(guild_id, user_id)
-        self.assertEqual(listed, [("keepers", "🍝", False, 0)])
-
-        self.assertTrue(storage.set_player_folder_locked(guild_id, user_id, "keepers", True))
-        listed_after_lock = storage.list_player_folders(guild_id, user_id)
-        self.assertEqual(listed_after_lock, [("keepers", "🍝", True, 0)])
-
-        self.assertTrue(storage.set_player_folder_emoji(guild_id, user_id, "keepers", "🔥"))
-        listed_after_emoji = storage.list_player_folders(guild_id, user_id)
-        self.assertEqual(listed_after_emoji, [("keepers", "🔥", True, 0)])
-
-        self.assertTrue(storage.delete_player_folder(guild_id, user_id, "keepers"))
-        self.assertEqual(storage.list_player_folders(guild_id, user_id), [])
-
-    def test_assigning_to_new_folder_moves_instance(self) -> None:
-        guild_id = 1
-        user_id = 1211
-
-        storage.init_db()
-        instance_id = storage.add_card_to_player(guild_id, user_id, "SPG", 333)
-        storage.create_player_folder(guild_id, user_id, "a", "📁")
-        storage.create_player_folder(guild_id, user_id, "b", "🔥")
-
-        self.assertTrue(storage.assign_instance_to_folder(guild_id, user_id, instance_id, "a"))
-        self.assertEqual(storage.get_folder_for_instance(guild_id, user_id, instance_id), ("a", "📁"))
-
-        self.assertTrue(storage.assign_instance_to_folder(guild_id, user_id, instance_id, "b"))
-        self.assertEqual(storage.get_folder_for_instance(guild_id, user_id, instance_id), ("b", "🔥"))
-        self.assertEqual(storage.get_instances_by_folder(guild_id, user_id, "a"), [])
-
-    def test_locked_folder_blocks_burn(self) -> None:
-        guild_id = 1
-        user_id = 1212
-
-        storage.init_db()
-        instance_id = storage.add_card_to_player(guild_id, user_id, "SPG", 222)
-        storage.create_player_folder(guild_id, user_id, "safe", "🧱")
-        storage.assign_instance_to_folder(guild_id, user_id, instance_id, "safe")
-        storage.set_player_folder_locked(guild_id, user_id, "safe", True)
-
-        locked_ids = storage.get_locked_instance_ids(guild_id, user_id, [instance_id])
-        self.assertEqual(locked_ids, {instance_id})
-
-        burned = storage.burn_instance(guild_id, user_id, instance_id)
-        self.assertIsNone(burned)
-        self.assertIsNotNone(storage.get_instance_by_id(guild_id, instance_id))
 
     def test_team_assignment_enforces_three_card_limit(self) -> None:
         guild_id = 1
@@ -1257,184 +1141,6 @@ class StorageTests(unittest.TestCase):
         challenged_dough, _, _ = storage.get_player_info(guild_id, challenged_id)
         self.assertEqual(challenger_dough, 75)
         self.assertEqual(challenged_dough, 125)
-
-    def test_battle_switch_cycles_all_challenger_cards_with_wrap(self) -> None:
-        guild_id = 1
-        challenger_id = 1431
-        challenged_id = 1432
-
-        storage.init_db()
-        storage.add_dough(guild_id, challenger_id, 100)
-        storage.add_dough(guild_id, challenged_id, 100)
-
-        storage.create_player_team(guild_id, challenger_id, "a")
-        storage.create_player_team(guild_id, challenged_id, "b")
-        storage.set_active_team(guild_id, challenger_id, "a")
-        storage.set_active_team(guild_id, challenged_id, "b")
-
-        for card_id, generation in (("SPG", 120), ("PEN", 130), ("FUS", 140)):
-            storage.assign_instance_to_team(
-                guild_id,
-                challenger_id,
-                storage.add_card_to_player(guild_id, challenger_id, card_id, generation),
-                "a",
-            )
-        storage.assign_instance_to_team(
-            guild_id,
-            challenged_id,
-            storage.add_card_to_player(guild_id, challenged_id, "MAC", 340),
-            "b",
-        )
-
-        created, _msg, battle_id, _a, _b = storage.create_battle_proposal(guild_id, challenger_id, challenged_id, 10)
-        self.assertTrue(created)
-        self.assertIsNotNone(battle_id)
-        if battle_id is None:
-            return
-        with patch("noodswap.storage.random.choice", return_value=challenger_id):
-            status, _accept_msg = storage.resolve_battle_proposal(guild_id, battle_id, challenged_id, accepted=True)
-        self.assertEqual(status, "accepted")
-
-        action_status, _message, _winner, next_actor = storage.execute_battle_turn_action(
-            guild_id,
-            battle_id,
-            challenger_id,
-            "switch",
-        )
-        self.assertEqual(action_status, "advanced")
-        self.assertEqual(next_actor, challenged_id)
-        state = storage.get_battle_state(guild_id, battle_id)
-        self.assertIsNotNone(state)
-        if state is None:
-            return
-        challenger_rows = state["challenger_combatants"]
-        self.assertTrue(isinstance(challenger_rows, list))
-        if isinstance(challenger_rows, list):
-            active_slots = [int(row["slot_index"]) for row in challenger_rows if bool(row["is_active"])]
-            self.assertEqual(active_slots, [1])
-
-        action_status, _message, _winner, next_actor = storage.execute_battle_turn_action(
-            guild_id,
-            battle_id,
-            challenged_id,
-            "defend",
-        )
-        self.assertEqual(action_status, "advanced")
-        self.assertEqual(next_actor, challenger_id)
-
-        action_status, _message, _winner, next_actor = storage.execute_battle_turn_action(
-            guild_id,
-            battle_id,
-            challenger_id,
-            "switch",
-        )
-        self.assertEqual(action_status, "advanced")
-        self.assertEqual(next_actor, challenged_id)
-        state = storage.get_battle_state(guild_id, battle_id)
-        self.assertIsNotNone(state)
-        if state is None:
-            return
-        challenger_rows = state["challenger_combatants"]
-        self.assertTrue(isinstance(challenger_rows, list))
-        if isinstance(challenger_rows, list):
-            active_slots = [int(row["slot_index"]) for row in challenger_rows if bool(row["is_active"])]
-            self.assertEqual(active_slots, [2])
-
-        action_status, _message, _winner, next_actor = storage.execute_battle_turn_action(
-            guild_id,
-            battle_id,
-            challenged_id,
-            "defend",
-        )
-        self.assertEqual(action_status, "advanced")
-        self.assertEqual(next_actor, challenger_id)
-
-        action_status, _message, _winner, next_actor = storage.execute_battle_turn_action(
-            guild_id,
-            battle_id,
-            challenger_id,
-            "switch",
-        )
-        self.assertEqual(action_status, "advanced")
-        self.assertEqual(next_actor, challenged_id)
-        state = storage.get_battle_state(guild_id, battle_id)
-        self.assertIsNotNone(state)
-        if state is None:
-            return
-        challenger_rows = state["challenger_combatants"]
-        self.assertTrue(isinstance(challenger_rows, list))
-        if isinstance(challenger_rows, list):
-            active_slots = [int(row["slot_index"]) for row in challenger_rows if bool(row["is_active"])]
-            self.assertEqual(active_slots, [0])
-
-    def test_battle_switch_skips_unavailable_slots(self) -> None:
-        guild_id = 1
-        challenger_id = 1441
-        challenged_id = 1442
-
-        storage.init_db()
-        storage.add_dough(guild_id, challenger_id, 100)
-        storage.add_dough(guild_id, challenged_id, 100)
-
-        storage.create_player_team(guild_id, challenger_id, "a")
-        storage.create_player_team(guild_id, challenged_id, "b")
-        storage.set_active_team(guild_id, challenger_id, "a")
-        storage.set_active_team(guild_id, challenged_id, "b")
-
-        for card_id, generation in (("SPG", 220), ("PEN", 230), ("FUS", 240)):
-            storage.assign_instance_to_team(
-                guild_id,
-                challenger_id,
-                storage.add_card_to_player(guild_id, challenger_id, card_id, generation),
-                "a",
-            )
-        storage.assign_instance_to_team(
-            guild_id,
-            challenged_id,
-            storage.add_card_to_player(guild_id, challenged_id, "MAC", 440),
-            "b",
-        )
-
-        created, _msg, battle_id, _a, _b = storage.create_battle_proposal(guild_id, challenger_id, challenged_id, 10)
-        self.assertTrue(created)
-        self.assertIsNotNone(battle_id)
-        if battle_id is None:
-            return
-        with patch("noodswap.storage.random.choice", return_value=challenger_id):
-            status, _accept_msg = storage.resolve_battle_proposal(guild_id, battle_id, challenged_id, accepted=True)
-        self.assertEqual(status, "accepted")
-
-        with closing(sqlite3.connect(storage.DB_PATH)) as conn:
-            conn.execute(
-                """
-                UPDATE battle_combatants
-                SET current_hp = 0,
-                    is_knocked_out = 1,
-                    is_active = 0
-                WHERE battle_id = ? AND side = 'challenger' AND slot_index = 1
-                """,
-                (battle_id,),
-            )
-            conn.commit()
-
-        action_status, _message, _winner, next_actor = storage.execute_battle_turn_action(
-            guild_id,
-            battle_id,
-            challenger_id,
-            "switch",
-        )
-        self.assertEqual(action_status, "advanced")
-        self.assertEqual(next_actor, challenged_id)
-
-        state = storage.get_battle_state(guild_id, battle_id)
-        self.assertIsNotNone(state)
-        if state is None:
-            return
-        challenger_rows = state["challenger_combatants"]
-        self.assertTrue(isinstance(challenger_rows, list))
-        if isinstance(challenger_rows, list):
-            active_slots = [int(row["slot_index"]) for row in challenger_rows if bool(row["is_active"])]
-            self.assertEqual(active_slots, [2])
 
     def test_create_battle_proposal_rejects_player_with_open_battle(self) -> None:
         guild_id = 1

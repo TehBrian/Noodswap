@@ -2,7 +2,7 @@ from collections.abc import Callable
 import sqlite3
 
 
-TARGET_SCHEMA_VERSION = 19
+TARGET_SCHEMA_VERSION = 20
 _BASE36_ALPHABET = "0123456789abcdefghijklmnopqrstuvwxyz"
 
 
@@ -651,6 +651,49 @@ def _apply_migration_v19(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE players ADD COLUMN votes INTEGER NOT NULL DEFAULT 0")
 
 
+def _apply_migration_v20(conn: sqlite3.Connection) -> None:
+    players_table_exists = conn.execute(
+        """
+        SELECT 1
+        FROM sqlite_master
+        WHERE type = 'table' AND name = 'players'
+        LIMIT 1
+        """
+    ).fetchone() is not None
+    if not players_table_exists:
+        return
+
+    if not _has_column(conn, "players", "monopoly_position"):
+        conn.execute("ALTER TABLE players ADD COLUMN monopoly_position INTEGER NOT NULL DEFAULT 0")
+
+    if not _has_column(conn, "players", "last_monopoly_roll_at"):
+        conn.execute("ALTER TABLE players ADD COLUMN last_monopoly_roll_at REAL NOT NULL DEFAULT 0")
+
+    if not _has_column(conn, "players", "monopoly_in_jail"):
+        conn.execute("ALTER TABLE players ADD COLUMN monopoly_in_jail INTEGER NOT NULL DEFAULT 0")
+
+    if not _has_column(conn, "players", "monopoly_jail_roll_attempts"):
+        conn.execute("ALTER TABLE players ADD COLUMN monopoly_jail_roll_attempts INTEGER NOT NULL DEFAULT 0")
+
+    if not _has_column(conn, "players", "monopoly_consecutive_doubles"):
+        conn.execute("ALTER TABLE players ADD COLUMN monopoly_consecutive_doubles INTEGER NOT NULL DEFAULT 0")
+
+    conn.executescript(
+        """
+        CREATE TABLE IF NOT EXISTS gambling_pot (
+            guild_id INTEGER NOT NULL PRIMARY KEY,
+            dough INTEGER NOT NULL DEFAULT 0,
+            starter INTEGER NOT NULL DEFAULT 0,
+            drop_tickets INTEGER NOT NULL DEFAULT 0
+        );
+
+        INSERT INTO gambling_pot (guild_id, dough, starter, drop_tickets)
+        VALUES (0, 0, 0, 0)
+        ON CONFLICT(guild_id) DO NOTHING;
+        """
+    )
+
+
 def run_migrations(
     conn: sqlite3.Connection,
     *,
@@ -754,6 +797,11 @@ def run_migrations(
         _apply_migration_v19(conn)
         _set_schema_version(conn, 19)
         current_version = 19
+
+    if current_version < 20:
+        _apply_migration_v20(conn)
+        _set_schema_version(conn, 20)
+        current_version = 20
 
     if current_version > target_schema_version:
         raise RuntimeError(

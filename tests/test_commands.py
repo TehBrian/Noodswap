@@ -133,7 +133,7 @@ class CommandsWishlistTests(unittest.IsolatedAsyncioTestCase):
 
         wish_list_impl.assert_awaited_once_with(ctx, target)
 
-    async def test_wish_add_accepts_multiple_card_ids(self) -> None:
+    async def test_wish_add_falls_back_to_exact_card_name(self) -> None:
         wish_add_command = _get_group_command(self.bot, "wish", "add")
 
         ctx = AsyncMock()
@@ -142,20 +142,20 @@ class CommandsWishlistTests(unittest.IsolatedAsyncioTestCase):
         ctx.send = AsyncMock()
         ctx.reply = ctx.send
 
-        with patch("noodswap.commands.add_card_to_wishlist", return_value=True) as add_wishlist:
-            await wish_add_command.callback(ctx, "SPG", "BAR")
+        with (
+            patch("noodswap.commands.search_card_ids_by_name", return_value=["SPG"]),
+            patch("noodswap.commands.add_card_to_wishlist", return_value=True) as add_wishlist,
+        ):
+            await wish_add_command.callback(ctx, card_id="spaghetti")
 
-        self.assertEqual(add_wishlist.call_count, 2)
-        add_wishlist.assert_any_call(1, 100, "SPG")
-        add_wishlist.assert_any_call(1, 100, "BAR")
+        add_wishlist.assert_called_once_with(1, 100, "SPG")
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
         self.assertEqual(sent_embed.title, "Wishlist")
-        self.assertIn("Added:", sent_embed.description)
+        self.assertIn("Added to wishlist", sent_embed.description)
         self.assertIn("(`SPG`)", sent_embed.description)
-        self.assertIn("(`BAR`)", sent_embed.description)
 
-    async def test_wish_add_reports_unknown_card_ids(self) -> None:
+    async def test_wish_add_lists_multiple_name_matches_with_numbering(self) -> None:
         wish_add_command = _get_group_command(self.bot, "wish", "add")
 
         ctx = AsyncMock()
@@ -165,13 +165,14 @@ class CommandsWishlistTests(unittest.IsolatedAsyncioTestCase):
         ctx.reply = ctx.send
 
         with patch("noodswap.commands.add_card_to_wishlist", return_value=True) as add_wishlist:
-            await wish_add_command.callback(ctx, "cheddar")
+            await wish_add_command.callback(ctx, card_id="cheddar")
 
         add_wishlist.assert_not_called()
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
-        self.assertEqual(sent_embed.title, "Wishlist")
-        self.assertIn("Unknown card id(s): `cheddar`", sent_embed.description)
+        self.assertEqual(sent_embed.title, "Wishlist Matches")
+        self.assertIn("1. (`CHD`) [🧀] **Cheddar**", sent_embed.description)
+        self.assertIn("2. (`CHJ`) [🧀] **Cheddar Jack**", sent_embed.description)
 
 
 class CommandsTagTests(unittest.IsolatedAsyncioTestCase):
@@ -226,13 +227,13 @@ class CommandsTagTests(unittest.IsolatedAsyncioTestCase):
         ctx.send = AsyncMock()
         ctx.reply = ctx.send
 
-        with patch("noodswap.commands.list_player_tags", return_value=[("safe", False, 0)]):
-            await tag_assign_command.callback(ctx, "safe", "0")
+        with patch("noodswap.commands.get_instance_by_code", return_value=None):
+            await tag_assign_command.callback(ctx, tag_name="safe", card_code="0")
 
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
         self.assertEqual(sent_embed.title, "Tags")
-        self.assertIn("Unknown card code(s): `0`", sent_embed.description)
+        self.assertEqual(sent_embed.description, "You do not own that card code.")
 
     async def test_tag_assign_rejects_duplicate_assignment_explicitly(self) -> None:
         tag_assign_command = _get_group_command(self.bot, "tag", "assign")
@@ -245,18 +246,17 @@ class CommandsTagTests(unittest.IsolatedAsyncioTestCase):
 
         selected = (5, "SPG", 1200, "0")
         with (
-            patch("noodswap.commands.list_player_tags", return_value=[("safe", False, 1)]),
             patch("noodswap.commands.get_instance_by_code", return_value=selected),
             patch("noodswap.commands.is_tag_assigned_to_instance", return_value=True),
             patch("noodswap.commands.assign_tag_to_instance", return_value=False) as assign_tag,
         ):
-            await tag_assign_command.callback(ctx, "safe", "0")
+            await tag_assign_command.callback(ctx, tag_name="safe", card_code="0")
 
         assign_tag.assert_not_called()
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
         self.assertEqual(sent_embed.title, "Tags")
-        self.assertIn("Already assigned:", sent_embed.description)
+        self.assertEqual(sent_embed.description, "That card is already assigned to this tag.")
 
     async def test_tag_cards_shows_sortable_collection_view(self) -> None:
         tag_cards_command = _get_group_command(self.bot, "tag", "cards")
@@ -288,30 +288,7 @@ class CommandsTagTests(unittest.IsolatedAsyncioTestCase):
         self.assertIsInstance(sent_view, SortableCollectionView)
         self.assertIs(sent_view.message, ctx.send.return_value)
 
-    async def test_tag_unassign_supports_multiple_codes(self) -> None:
-        tag_unassign_command = _get_group_command(self.bot, "tag", "unassign")
-
-        ctx = AsyncMock()
-        ctx.guild = _FakeGuild(1)
-        ctx.author = _FakeMember(100, "Caller")
-        ctx.send = AsyncMock()
-        ctx.reply = ctx.send
-
-        with (
-            patch("noodswap.commands.list_player_tags", return_value=[("safe", False, 2)]),
-            patch(
-                "noodswap.commands.get_instance_by_code",
-                side_effect=[(1, "SPG", 1200, "0"), (2, "BAR", 1100, "1")],
-            ),
-            patch("noodswap.commands.unassign_tag_from_instance", return_value=True) as unassign_tag,
-        ):
-            await tag_unassign_command.callback(ctx, "safe", "0", "1")
-
-        self.assertEqual(unassign_tag.call_count, 2)
-        sent_embed = ctx.send.await_args.kwargs["embed"]
-        self.assertIn("Removed from `safe`:", sent_embed.description)
-
-    async def test_wish_remove_supports_multiple_card_ids(self) -> None:
+    async def test_wish_remove_lists_multiple_name_matches(self) -> None:
         wish_remove_command = _get_group_command(self.bot, "wish", "remove")
 
         ctx = AsyncMock()
@@ -320,18 +297,15 @@ class CommandsTagTests(unittest.IsolatedAsyncioTestCase):
         ctx.send = AsyncMock()
         ctx.reply = ctx.send
 
-        with patch(
-            "noodswap.commands.remove_card_from_wishlist",
-            side_effect=[True, False],
-        ) as remove_wishlist:
-            await wish_remove_command.callback(ctx, "CHD", "CHJ", "notacard")
+        with patch("noodswap.commands.remove_card_from_wishlist", return_value=True) as remove_wishlist:
+            await wish_remove_command.callback(ctx, card_id="cheddar")
 
-        self.assertEqual(remove_wishlist.call_count, 2)
+        remove_wishlist.assert_not_called()
+        ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
-        self.assertEqual(sent_embed.title, "Wishlist")
-        self.assertIn("Removed:", sent_embed.description)
-        self.assertIn("Not on wishlist:", sent_embed.description)
-        self.assertIn("Unknown card id(s):", sent_embed.description)
+        self.assertEqual(sent_embed.title, "Wishlist Matches")
+        self.assertIn("1. (`CHD`) [🧀] **Cheddar**", sent_embed.description)
+        self.assertIn("2. (`CHJ`) [🧀] **Cheddar Jack**", sent_embed.description)
 
 
 class CommandsFolderTests(unittest.IsolatedAsyncioTestCase):
@@ -371,41 +345,17 @@ class CommandsFolderTests(unittest.IsolatedAsyncioTestCase):
 
         selected = (5, "SPG", 1200, "0")
         with (
-            patch("noodswap.commands.list_player_folders", return_value=[("vault", "📦", False, 0)]),
             patch("noodswap.commands.get_instance_by_code", return_value=selected),
             patch("noodswap.commands.is_instance_assigned_to_folder", return_value=True),
             patch("noodswap.commands.assign_instance_to_folder", return_value=False) as assign_folder,
         ):
-            await folder_assign_command.callback(ctx, "vault", "0")
+            await folder_assign_command.callback(ctx, folder_name="vault", card_code="0")
 
         assign_folder.assert_not_called()
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
         self.assertEqual(sent_embed.title, "Folders")
-        self.assertIn("Already assigned:", sent_embed.description)
-
-    async def test_folder_unassign_supports_multiple_codes(self) -> None:
-        folder_unassign_command = _get_group_command(self.bot, "folder", "unassign")
-
-        ctx = AsyncMock()
-        ctx.guild = _FakeGuild(1)
-        ctx.author = _FakeMember(100, "Caller")
-        ctx.send = AsyncMock()
-        ctx.reply = ctx.send
-
-        with (
-            patch("noodswap.commands.list_player_folders", return_value=[("vault", "📦", False, 2)]),
-            patch(
-                "noodswap.commands.get_instance_by_code",
-                side_effect=[(1, "SPG", 1200, "0"), (2, "BAR", 1100, "1")],
-            ),
-            patch("noodswap.commands.unassign_instance_from_folder", return_value=True) as unassign_folder,
-        ):
-            await folder_unassign_command.callback(ctx, "vault", "0", "1")
-
-        self.assertEqual(unassign_folder.call_count, 2)
-        sent_embed = ctx.send.await_args.kwargs["embed"]
-        self.assertIn("Removed from `vault`:", sent_embed.description)
+        self.assertEqual(sent_embed.description, "That card is already assigned to this folder.")
 
 
 class CommandsBurnSelectorTests(unittest.IsolatedAsyncioTestCase):
@@ -457,7 +407,6 @@ class CommandsBurnSelectorTests(unittest.IsolatedAsyncioTestCase):
                             multiplier=1.1,
                         ),
                     ),
-                    skipped_items=(),
                     total_value=10,
                     total_delta_range=1,
                 ),
@@ -508,7 +457,6 @@ class CommandsBurnSelectorTests(unittest.IsolatedAsyncioTestCase):
             is_error=False,
             error_message=None,
             items=fake_items,
-            skipped_items=(),
             total_value=26,
             total_delta_range=5,
         )
@@ -573,52 +521,6 @@ class CommandsTeamTests(unittest.IsolatedAsyncioTestCase):
         self.assertIsInstance(sent_view, SortableCollectionView)
         self.assertIs(sent_view.message, ctx.send.return_value)
 
-    async def test_team_assign_reports_remaining_slots_before_and_after(self) -> None:
-        team_assign_command = _get_group_command(self.bot, "team", "assign")
-
-        ctx = AsyncMock()
-        ctx.guild = _FakeGuild(1)
-        ctx.author = _FakeMember(100, "Caller")
-        ctx.send = AsyncMock()
-        ctx.reply = ctx.send
-
-        with (
-            patch("noodswap.commands.list_player_teams", return_value=[("alpha", 1, False)]),
-            patch(
-                "noodswap.commands.get_instance_by_code",
-                side_effect=[(1, "SPG", 1200, "0"), (2, "BAR", 1100, "1")],
-            ),
-            patch("noodswap.commands.is_instance_assigned_to_team", return_value=False),
-            patch("noodswap.commands.assign_instance_to_team", return_value=(True, "")),
-        ):
-            await team_assign_command.callback(ctx, "alpha", "0", "1")
-
-        sent_embed = ctx.send.await_args.kwargs["embed"]
-        self.assertIn("Remaining slots: **2 -> 0**", sent_embed.description)
-
-    async def test_team_unassign_supports_multiple_codes(self) -> None:
-        team_unassign_command = _get_group_command(self.bot, "team", "unassign")
-
-        ctx = AsyncMock()
-        ctx.guild = _FakeGuild(1)
-        ctx.author = _FakeMember(100, "Caller")
-        ctx.send = AsyncMock()
-        ctx.reply = ctx.send
-
-        with (
-            patch("noodswap.commands.list_player_teams", return_value=[("alpha", 2, False)]),
-            patch(
-                "noodswap.commands.get_instance_by_code",
-                side_effect=[(1, "SPG", 1200, "0"), (2, "BAR", 1100, "1")],
-            ),
-            patch("noodswap.commands.unassign_instance_from_team", return_value=True) as unassign_team,
-        ):
-            await team_unassign_command.callback(ctx, "alpha", "0", "1")
-
-        self.assertEqual(unassign_team.call_count, 2)
-        sent_embed = ctx.send.await_args.kwargs["embed"]
-        self.assertIn("Removed from `alpha`:", sent_embed.description)
-
 
 class CommandsAliasRegistrationTests(unittest.TestCase):
     def setUp(self) -> None:
@@ -670,8 +572,8 @@ class CommandsLeaderboardTests(unittest.IsolatedAsyncioTestCase):
         ctx.reply = ctx.send
 
         leaderboard_rows = [
-            (100, 2, 1, 20, 0, 4, 40),
-            (200, 5, 3, 50, 2, 7, 120),
+            (100, 2, 1, 20, 0, 40),
+            (200, 5, 3, 50, 2, 120),
         ]
         with patch("noodswap.commands.get_player_leaderboard_info", return_value=leaderboard_rows):
             await leaderboard_command.callback(ctx)
@@ -1588,7 +1490,6 @@ class CommandsInfoTests(unittest.IsolatedAsyncioTestCase):
         with (
             patch("noodswap.commands.get_player_info", return_value=(123, 0.0, None)),
             patch("noodswap.commands.get_player_starter", return_value=9),
-            patch("noodswap.commands.get_player_votes", return_value=6),
             patch("noodswap.commands.get_player_drop_tickets", return_value=4),
             patch("noodswap.commands.get_total_cards", return_value=7),
             patch("noodswap.commands.get_wishlist_cards", return_value=["SPG", "PEN", "FUS"]),
@@ -1601,7 +1502,6 @@ class CommandsInfoTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(field_values.get("Cards"), "7")
         self.assertEqual(field_values.get("Dough"), "123")
         self.assertEqual(field_values.get("Starter"), "9")
-        self.assertEqual(field_values.get("Votes"), "6")
         self.assertEqual(field_values.get("Drop Tickets"), "4")
         self.assertEqual(field_values.get("Wishes"), "3")
 
@@ -1624,7 +1524,6 @@ class CommandsInfoTests(unittest.IsolatedAsyncioTestCase):
         with (
             patch("noodswap.commands.get_player_info", return_value=(999, 0.0, None)),
             patch("noodswap.commands.get_player_starter", return_value=2),
-            patch("noodswap.commands.get_player_votes", return_value=5),
             patch("noodswap.commands.get_player_drop_tickets", return_value=0),
             patch("noodswap.commands.get_total_cards", return_value=4),
             patch("noodswap.commands.get_wishlist_cards", return_value=["SPG"]),
@@ -1694,7 +1593,7 @@ class CommandsVoteTests(unittest.IsolatedAsyncioTestCase):
         self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)
         register_commands(self.bot)
 
-    async def test_vote_shows_webhook_auto_claim_message(self) -> None:
+    async def test_vote_shows_configuration_message_when_topgg_token_missing(self) -> None:
         vote_command = _get_command(self.bot, "vote")
 
         ctx = AsyncMock()
@@ -1710,11 +1609,11 @@ class CommandsVoteTests(unittest.IsolatedAsyncioTestCase):
         sent_embed = ctx.send.await_args.kwargs["embed"]
         sent_view = ctx.send.await_args.kwargs["view"]
         self.assertEqual(sent_embed.title, "Vote")
-        self.assertIn("Vote rewards are registered automatically", sent_embed.description)
-        self.assertIn("top.gg webhook", sent_embed.description)
+        self.assertIn("Automatic vote verification is not configured", sent_embed.description)
+        self.assertIn("Set `TOPGG_API_TOKEN` to enable reward claims", sent_embed.description)
         self.assertIsInstance(sent_view, discord.ui.View)
 
-    async def test_vote_uses_configured_bot_id_for_vote_url_fallback(self) -> None:
+    async def test_vote_claims_starter_when_topgg_vote_detected(self) -> None:
         vote_command = _get_command(self.bot, "vote")
 
         ctx = AsyncMock()
@@ -1723,13 +1622,17 @@ class CommandsVoteTests(unittest.IsolatedAsyncioTestCase):
         ctx.send = AsyncMock()
         ctx.reply = ctx.send
 
-        with patch.dict("os.environ", {"TOPGG_BOT_ID": "123"}, clear=True):
+        with (
+            patch.dict("os.environ", {"TOPGG_API_TOKEN": "token", "TOPGG_BOT_ID": "123"}, clear=True),
+            patch("noodswap.commands._topgg_recent_vote_status", new=AsyncMock(return_value=(True, None))),
+            patch("noodswap.commands.claim_vote_reward_if_ready", return_value=(True, 0.0, 5)),
+        ):
             await vote_command.callback(ctx)
 
         ctx.send.assert_awaited_once()
-        sent_view = ctx.send.await_args.kwargs["view"]
-        self.assertIsInstance(sent_view, discord.ui.View)
-        self.assertEqual(sent_view.children[0].url, "https://top.gg/bot/123/vote")
+        sent_embed = ctx.send.await_args.kwargs["embed"]
+        self.assertIn("Claimed:", sent_embed.description)
+        self.assertIn("Starter Balance: **5**", sent_embed.description)
 
 
 class CommandsBurnTests(unittest.IsolatedAsyncioTestCase):
@@ -1761,7 +1664,6 @@ class CommandsBurnTests(unittest.IsolatedAsyncioTestCase):
                     multiplier=1.05,
                 ),
             ),
-            skipped_items=(),
             total_value=40,
             total_delta_range=8,
         )
@@ -1802,7 +1704,6 @@ class CommandsBurnTests(unittest.IsolatedAsyncioTestCase):
                     multiplier=1.1,
                 ),
             ),
-            skipped_items=(),
             total_value=10,
             total_delta_range=1,
         )

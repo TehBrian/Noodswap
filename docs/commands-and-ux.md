@@ -30,8 +30,8 @@ This document defines behavior and presentation for commands and interaction flo
 - `team add <team_name>` / `team a <team_name>`
 - `team remove <team_name>` / `team r <team_name>`
 - `team list` / `team l`
-- `team assign <team_name> <card_code> [card_code ...]` / `team as ...`
-- `team unassign <team_name> <card_code> [card_code ...]` / `team u ...`
+- `team assign <team_name> <card_code>` / `team as ...`
+- `team unassign <team_name> <card_code>` / `team u ...`
 - `team cards <team_name>` / `team c <team_name>`
 - `team active [team_name]`
 - `folder` / `fd`
@@ -39,23 +39,24 @@ This document defines behavior and presentation for commands and interaction flo
 - `folder remove <folder_name>` / `folder r ...`
 - `folder list` / `folder l`
 - `folder lock <folder_name>` / `folder unlock <folder_name>`
-- `folder assign <folder_name> <card_code> [card_code ...]` / `folder as ...`
-- `folder unassign <folder_name> <card_code> [card_code ...]` / `folder u ...`
+- `folder assign <folder_name> <card_code>` / `folder as ...`
+- `folder unassign <folder_name> <card_code>` / `folder u ...`
 - `folder cards <folder_name>` / `folder c ...`
 - `folder emoji <folder_name> <emoji>` / `folder e ...`
 - `battle <player> <stake>` / `bt ...`
 - `wish` / `w`
-- `wish add <card_id> [card_id ...]` / `wish a <card_id> [card_id ...]` / `w add <card_id> [card_id ...]` / `w a <card_id> [card_id ...]` / `wa <card_id> [card_id ...]`
+- `wish add <card_id>` / `wish a <card_id>` / `w add <card_id>` / `w a <card_id>` / `wa <card_id>`
 - `wish remove <card_id>` / `wish r <card_id>` / `w remove <card_id>` / `w r <card_id>` / `wr <card_id>`
 - `wish list [player]` / `wish l [player]` / `w list [player]` / `w l [player]` / `wl [player]`
 - `marry [card_code]` / `m [card_code]`
 - `divorce` / `dv`
+- owner-only: `dbexport`, `dbreset`
 
 ## Help UX
 
 - `help` / `h` opens a brief bot overview embed instead of a full command dump
 - Help embed includes a category dropdown for command pages
-- Categories are: `Overview`, `Economy`, `Gambling`, `Battle`, `Cosmetics`, `Wishlist`, `Tags`, `Folders`, `Relationship`
+- Categories are: `Overview`, `Economy`, `Cosmetics`, `Wishlist`, `Tags`, `Relationship`, `Owner-only`
 - Selecting a category edits the same message to show that category's commands
 - Help dropdown interactions are restricted to the command invoker
 
@@ -100,7 +101,7 @@ This includes:
   - `rare`: light purple
   - `epic`: orange
   - `legendary`: light blue
-  - `mythical`: dark purple
+  - `mythic`: dark purple
   - `divine`: yellow
   - `celestial`: bright near-white blue
 
@@ -126,7 +127,7 @@ Burn flow:
 - tag targets are provided as `t:<tag_name>`
 - folder targets are provided as `f:<folder_name>`
 - all selected targets are confirmed together and listed individually in the confirmation embed
-- burn executes per selected target; locked or unavailable targets are skipped while remaining targets are burned
+- if any selected target is protected by locked tags or a locked folder, the full burn is blocked and no cards are burned
 - card code format is standalone base36 with optional leading `#` (examples: `0`, `a`, `10`, `#10`)
 - Burn always requires confirm/cancel interaction before destruction
 - Burn payout includes a generation multiplier (lower generation = higher payout)
@@ -250,7 +251,7 @@ Card identity terms:
 
 ## Wishlist UX
 
-- `wish add <card_id> [card_id ...]` / `w add <card_id> [card_id ...]` adds one or more base card ids to the invoker's wishlist
+- `wish add <card_id>` / `w add <card_id>` adds a base card id to the invoker's wishlist
 - `wish remove <card_id>` / `w remove <card_id>` removes a base card id from the invoker's wishlist
 - `wish list` / `w list` returns the invoker's wishlist as embed lines
 - `wish list` / `w list` includes a sort dropdown with modes: `Wishes`, `Rarity`, `Series`, `Base Value`, `Alphabetical`
@@ -287,7 +288,6 @@ Shows:
 - total cards
 - dough
 - starter
-- votes
 - drop tickets
 - total wishes
 - married card instance display
@@ -305,7 +305,7 @@ Shows:
 ## Leaderboard UX
 
 - `leaderboard` / `le` shows a paginated leaderboard of players
-- Includes criteria dropdown options: `Cards`, `Wishes`, `Dough`, `Starter`, `Votes`, `Collection Value`
+- Includes criteria dropdown options: `Cards`, `Wishes`, `Dough`, `Starter`, `Collection Value`
 - Each leaderboard row shows the selected criterion value for the ranked player
 - Footer format: `Page X/Y • Ranked by <Criterion>`
 - Leaderboard interactions are restricted to the command invoker
@@ -330,9 +330,10 @@ Shows:
 ## Vote UX
 
 - `vote` / `v` sends an embed with top.gg voting info and a link button
-- vote rewards are granted from signed top.gg webhook vote events (no polling from command path)
-- successful webhook claim grants `starter` and sets the vote cooldown
-- `vote` should state that registration is automatic and may lag briefly while top.gg processes event delivery
+- if top.gg API v1 verification is configured, running `vote` after voting attempts to claim `starter` immediately
+- successful claim grants `starter` and sets the vote cooldown
+- if no recent vote is detected by top.gg, command should instruct user to vote and retry
+- if top.gg API config is missing (`TOPGG_API_TOKEN`), command still sends vote link plus setup hint
 - `TOPGG_BOT_ID` is optional and only used as a vote-link fallback
 
 ## Marriage UX

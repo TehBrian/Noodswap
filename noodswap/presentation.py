@@ -113,8 +113,8 @@ def battle_arena_description(
     winner_user_id: int | None,
     challenger_team_name: str,
     challenged_team_name: str,
-    challenger_rows: tuple[dict[str, int | str | bool],...],
-    challenged_rows: tuple[dict[str, int | str | bool],...],
+    challenger_rows: tuple[dict[str, int | str | bool], ...],
+    challenged_rows: tuple[dict[str, int | str | bool], ...],
     last_action: str,
 ) -> str:
     actor_text = f"<@{acting_user_id}>" if acting_user_id is not None else "None"
@@ -137,19 +137,21 @@ def battle_arena_description(
 # Canonical command syntax used in command error embeds.
 COMMAND_SYNTAX_BY_KEY: dict[str, str] = {
     "battle": "ns battle <player> <stake>",
-    "burn": "ns burn [target...]",
+    "burn": "ns burn [targets...]",
     "buy": "ns buy drop [quantity]",
     "buy drop": "ns buy drop [quantity]",
     "cards": "ns cards",
     "collection": "ns collection [player]",
     "cooldown": "ns cooldown [player]",
+    "dbexport": "ns dbexport",
+    "dbreset": "ns dbreset",
     "divorce": "ns divorce",
     "drop": "ns drop",
     "flip": "ns flip <stake> [heads|tails]",
     "folder": (
         "ns folder add <folder_name> [emoji], ns folder remove <folder_name>, ns folder list, "
         "ns folder lock <folder_name>, ns folder unlock <folder_name>, "
-        "ns folder assign <folder_name> <card_code> [card_code...], ns folder unassign <folder_name> <card_code> [card_code...], "
+        "ns folder assign <folder_name> <card_code>, ns folder unassign <folder_name> <card_code>, "
         "ns folder cards <folder_name>, ns folder emoji <folder_name> <emoji>"
     ),
     "folder add": "ns folder add <folder_name> [emoji]",
@@ -159,7 +161,7 @@ COMMAND_SYNTAX_BY_KEY: dict[str, str] = {
     "folder list": "ns folder list",
     "folder lock": "ns folder lock <folder_name>",
     "folder remove": "ns folder remove <folder_name>",
-    "folder unassign": "ns folder unassign <folder_name> <card_code> [card_code...]",
+    "folder unassign": "ns folder unassign <folder_name> <card_code>",
     "folder unlock": "ns folder unlock <folder_name>",
     "font": "ns font [card_code]",
     "frame": "ns frame [card_code]",
@@ -175,7 +177,7 @@ COMMAND_SYNTAX_BY_KEY: dict[str, str] = {
     "tag": (
         "ns tag add <tag_name>, ns tag remove <tag_name>, ns tag list, "
         "ns tag lock <tag_name>, ns tag unlock <tag_name>, "
-        "ns tag assign <tag_name> <card_code> [card_code...], ns tag unassign <tag_name> <card_code> [card_code...], "
+        "ns tag assign <tag_name> <card_code>, ns tag unassign <tag_name> <card_code>, "
         "ns tag cards <tag_name>"
     ),
     "tag add": "ns tag add <tag_name>",
@@ -184,11 +186,11 @@ COMMAND_SYNTAX_BY_KEY: dict[str, str] = {
     "tag list": "ns tag list",
     "tag lock": "ns tag lock <tag_name>",
     "tag remove": "ns tag remove <tag_name>",
-    "tag unassign": "ns tag unassign <tag_name> <card_code> [card_code...]",
+    "tag unassign": "ns tag unassign <tag_name> <card_code>",
     "tag unlock": "ns tag unlock <tag_name>",
     "team": (
         "ns team add <team_name>, ns team remove <team_name>, ns team list, "
-        "ns team assign <team_name> <card_code> [card_code...], ns team unassign <team_name> <card_code> [card_code...], "
+        "ns team assign <team_name> <card_code>, ns team unassign <team_name> <card_code>, "
         "ns team cards <team_name>, ns team active [team_name]"
     ),
     "team active": "ns team active [team_name]",
@@ -197,7 +199,7 @@ COMMAND_SYNTAX_BY_KEY: dict[str, str] = {
     "team cards": "ns team cards <team_name>",
     "team list": "ns team list",
     "team remove": "ns team remove <team_name>",
-    "team unassign": "ns team unassign <team_name> <card_code> [card_code...]",
+    "team unassign": "ns team unassign <team_name> <card_code>",
     "trade": "ns trade <player> <card_code> <amount>",
     "vote": "ns vote",
     "wa": "ns wish add <card_id>",
@@ -213,90 +215,88 @@ COMMAND_SYNTAX_BY_KEY: dict[str, str] = {
 def command_syntax_for_error(command_key: str) -> str | None:
     return COMMAND_SYNTAX_BY_KEY.get(command_key)
 
-HELP_CATEGORY_PAGES: tuple[tuple[str, str, str],...] = (
+HELP_CATEGORY_PAGES: tuple[tuple[str, str, str], ...] = (
     (
         "overview",
         "Overview",
-        """- `ns info [player]` (`ns i`, `ni`) — View a player's info. Defaults to yourself or the replied user.
-- `ns leaderboard` (`ns le`, `nle`) — View players ranked on various criteria.
-- `ns collection [player]` (`ns c`, `nc`) — View a player's cards. Defaults to yourself or the replied user.
-- `ns cards` (`ns ca`, `nca`) — View all cards.
-- `ns lookup <card_id|card_code|query>` (`ns l`, `nl`) — Look up a base card by ID or name or a dupe card by code.
-- `ns lookuphd <card_id|card_code|query>` (`ns lhd`, `nlhd`) — Look up a card with HD rendering.
+        """- `ns info [player]` (`ns i`, `ni`) — View a player's info; defaults to yourself or the replied user.
+- `ns leaderboard` (`ns le`, `nle`) — View ranked players with selectable leaderboard criteria.
+- `ns collection [player]` (`ns c`, `nc`) — View a player's cards; defaults to yourself or the replied user.
+- `ns cards` (`ns ca`, `nca`) — View all cards, ranked by wish count.
+- `ns lookup <card_id|card_code|query>` (`ns l`, `nl`) — Look up a base card or exact dupe code.
+- `ns lookuphd <card_id|card_code|query>` (`ns lhd`, `nlhd`) — Look up a card with high-detail `1000x1400` rendering.
 - `ns help` (`ns h`, `nh`) — Open this help menu.""",
     ),
     (
         "economy",
         "Economy",
-        """- `ns drop` (`ns d`, `nd`) — Drop 3 cards.
-- `ns buy drop [quantity]` — Buy drop tickets for 1 starter each. Defaults to 1.
-- `ns cooldown [player]` (`ns cd`) — Check a player's cooldowns. Defaults to yourself or the replied user.
-- `ns vote` (`ns v`, `nv`) — Vote for rewards.
-- `ns burn [target...]` (`ns b`, `nb`) — Burn a target for dough. Supports card codes plus
-    `t:<tag>` and `f:<folder>` selectors. Defaults to last pulled card.
-- `ns gift <player> <dough>` (`ns g`) — Send dough to another player.
-- `ns trade <player> <card_code> <amount>` (`ns t`, `nt`) — Offer a card-for-dough trade.""",
+        """- `ns drop` (`ns d`, `nd`) — Open a drop with 3 cards and pull 1 (auto-uses 1 drop ticket if drop cooldown is active).
+    - `ns buy drop [quantity]` — Buy drop tickets for 1 starter each (default quantity: 1).
+- `ns cooldown [player]` (`ns cd`) — Check a player's cooldowns; defaults to yourself or the replied user.
+- `ns vote` (`ns v`, `nv`) — Open top.gg vote link and claim starter reward if your vote is detected.
+- `ns burn [targets...]` (`ns b`, `nb`) — Burn one or many targets for dough; supports card codes/IDs plus `t:<tag_name>` and `f:<folder_name>` selectors; defaults to last pulled card.
+    - `ns gift <player> <dough>` (`ns g`) — Send dough to another player.
+    - `ns trade <player> <card_code> <amount>` (`ns t`, `nt`) — Offer a card-for-dough trade.""",
     ),
     (
         "gambling",
         "Gambling",
-        """- `ns slots` (`ns sl`) — Spin 3 food reels. Matching all 3 wins 1-3 starter.
-- `ns flip <stake> [heads|tails]` (`ns f`, `nf`) — Flip a coin to double a wager.""",
+        """- `ns slots` (`ns sl`) — Spin 3 food reels; matching all 3 wins 1-3 starter.
+- `ns flip <stake> [heads|tails]` (`ns f`, `nf`) — Flip a coin wager (46% heads win / 54% tails lose), 2m cooldown.""",
     ),
     (
         "battle",
         "Battle",
-        """- `ns team add <team_name>` (`ns tm a`) — Create a team.
-- `ns team remove <team_name>` (`ns tm r`) — Delete one of your teams.
-- `ns team list` (`ns tm l`) — List your teams.
-- `ns team assign <team_name> <card_code>` (`ns tm as`) — Assign a card to a team.
-- `ns team unassign <team_name> <card_code> [card_code...]` (`ns tm u`) — Remove one or more cards from a team.
-- `ns team cards <team_name>` (`ns tm c`) — Show cards in a team.
-- `ns team active [team_name]` — Show or set your active battle team.
-- `ns battle <player> <stake>` (`ns bt`) — Propose a battle to another player.""",
+        """- `ns team ...` (`ns tm ...`) — Manage battle teams and set your active team.
+- `ns battle <player> <stake>` (`ns bt`) — Propose a stake battle to another player.""",
     ),
     (
         "cosmetics",
         "Cosmetics",
-        """- `ns morph [card_code]` (`ns mo`, `nmo`) — Apply a random visual morph. Defaults to last pulled card.
-- `ns frame [card_code]` (`ns fr`, `nfr`) — Apply a random frame overlay. Defaults to last pulled card.
-- `ns font [card_code]` (`ns fo`, `nfo`) — Apply a random font. Defaults to last pulled card.""",
+        """- `ns morph [card_code]` (`ns mo`, `nmo`) — Spend dough to apply a random visual morph; defaults to last pulled card.
+- `ns frame [card_code]` (`ns fr`, `nfr`) — Spend dough to apply a random cosmetic frame; defaults to last pulled card.
+- `ns font [card_code]` (`ns fo`, `nfo`) — Spend dough to apply a random card font; defaults to last pulled card.""",
     ),
     (
         "wishlist",
         "Wishlist",
-        """- `ns wish add <card_id>` (`ns ... a`, `ns wa`, `nwa`) — Add a card to your wishlist.
+        """- `ns wish` (`ns w`, `nw`) — Wishlist command group.
+- `ns wish add <card_id>` (`ns ... a`, `ns wa`, `nwa`) — Add a card to your wishlist.
 - `ns wish remove <card_id>` (`ns ... r`, `ns wr`, `nwr`) — Remove a card from your wishlist.
-- `ns wish list [player]` (`ns ... l`, `ns wl`, `nwl`) — Show a player's wishlist. Defaults to yourself or the replied user.""",
+- `ns wish list [player]` (`ns ... l`, `ns wl`, `nwl`) — Show a player's wishlist; defaults to yourself or the replied user.""",
     ),
     (
         "tags",
-        "Tags",
-        """- `ns tag add <tag_name>` (`ns ... a`) — Create a tag.
+        "Tags & Folders",
+        """- `ns tag` (`ns tg`) — Tag command group.
+- `ns tag add <tag_name>` (`ns ... a`) — Create a personal tag collection.
 - `ns tag remove <tag_name>` (`ns ... r`) — Delete one of your tags.
-- `ns tag list` (`ns ... l`) — List your tags.
+- `ns tag list` (`ns ... l`) — List your tags with lock state and card counts.
 - `ns tag lock <tag_name>` / `ns tag unlock <tag_name>` — Toggle burn protection for that tag.
-- `ns tag assign <tag_name> <card_code>` (`ns ... as`) — Add one of your cards to a tag.
-- `ns tag unassign <tag_name> <card_code> [card_code...]` (`ns ... u`) — Remove one or more dupes from a tag.
-- `ns tag cards <tag_name>` (`ns ... c`) — Show cards currently in that tag.""",
-    ),
-    (
-        "folders",
-        "Folders",
-        """- `ns folder add <folder_name> [emoji]` (`ns ... a`) — Create a folder.
+- `ns tag assign <tag_name> <card_code>` (`ns ... as`) — Add one of your dupes to a tag.
+- `ns tag unassign <tag_name> <card_code>` (`ns ... u`) — Remove a tagged dupe from a tag.
+- `ns tag cards <tag_name>` (`ns ... c`) — Show cards currently in that tag.
+- `ns folder` (`ns fd`) — Folder command group.
+- `ns folder add <folder_name> [emoji]` (`ns ... a`) — Create a personal folder (default emoji: `📁`).
 - `ns folder remove <folder_name>` (`ns ... r`) — Delete one of your folders.
 - `ns folder list` (`ns ... l`) — List your folders with emoji, lock state, and card counts.
 - `ns folder lock <folder_name>` / `ns folder unlock <folder_name>` — Toggle burn protection for that folder.
-- `ns folder assign <folder_name> <card_code>` (`ns ... as`) — Add one of your cards to a folder.
-- `ns folder unassign <folder_name> <card_code> [card_code...]` (`ns ... u`) — Remove one or more cards from a folder.
+- `ns folder assign <folder_name> <card_code>` (`ns ... as`) — Assign one owned card instance to a folder.
+- `ns folder unassign <folder_name> <card_code>` (`ns ... u`) — Remove a card from a folder.
 - `ns folder cards <folder_name>` (`ns ... c`) — Show cards currently in that folder.
 - `ns folder emoji <folder_name> <emoji>` (`ns ... e`) — Update a folder emoji.""",
     ),
     (
         "relationship",
         "Relationship",
-        """- `ns marry [card_code]` (`ns m`, `nm`) — Marry a card. Defaults to your last pulled card.
+        """- `ns marry [card_code]` (`ns m`, `nm`) — Marry a card; defaults to your last pulled card.
 - `ns divorce` (`ns dv`, `ndv`) — End your current marriage.""",
+    ),
+    (
+        "owner",
+        "Owner-only",
+        """- `ns dbexport` — Export the SQLite DB file.
+- `ns dbreset` — Reset all persisted bot data.""",
     ),
 )
 
@@ -307,7 +307,7 @@ def help_overview_description() -> str:
 Use the dropdown below to browse help by category."""
 
 
-def help_category_pages() -> tuple[tuple[str, str, str],...]:
+def help_category_pages() -> tuple[tuple[str, str, str], ...]:
     return HELP_CATEGORY_PAGES
 
 

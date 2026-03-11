@@ -438,6 +438,185 @@ class PlayerRepository:
             (timestamp, guild_id, user_id),
         )
 
+    def get_monopoly_position(self, guild_id: int, user_id: int) -> int:
+        row = self.conn.execute(
+            """
+            SELECT monopoly_position
+            FROM players
+            WHERE guild_id = ? AND user_id = ?
+            """,
+            (guild_id, user_id),
+        ).fetchone()
+        return int(row["monopoly_position"]) if row is not None else 0
+
+    def set_monopoly_position(self, guild_id: int, user_id: int, position: int) -> None:
+        self.conn.execute(
+            """
+            UPDATE players
+            SET monopoly_position = ?
+            WHERE guild_id = ? AND user_id = ?
+            """,
+            (position, guild_id, user_id),
+        )
+
+    def get_last_monopoly_roll_at(self, guild_id: int, user_id: int) -> float:
+        row = self.conn.execute(
+            """
+            SELECT last_monopoly_roll_at
+            FROM players
+            WHERE guild_id = ? AND user_id = ?
+            """,
+            (guild_id, user_id),
+        ).fetchone()
+        return float(row["last_monopoly_roll_at"]) if row is not None else 0.0
+
+    def set_last_monopoly_roll_at(self, guild_id: int, user_id: int, timestamp: float) -> None:
+        self.conn.execute(
+            """
+            UPDATE players
+            SET last_monopoly_roll_at = ?
+            WHERE guild_id = ? AND user_id = ?
+            """,
+            (timestamp, guild_id, user_id),
+        )
+
+    def get_monopoly_in_jail(self, guild_id: int, user_id: int) -> bool:
+        row = self.conn.execute(
+            """
+            SELECT monopoly_in_jail
+            FROM players
+            WHERE guild_id = ? AND user_id = ?
+            """,
+            (guild_id, user_id),
+        ).fetchone()
+        return bool(int(row["monopoly_in_jail"])) if row is not None else False
+
+    def set_monopoly_in_jail(self, guild_id: int, user_id: int, in_jail: bool) -> None:
+        self.conn.execute(
+            """
+            UPDATE players
+            SET monopoly_in_jail = ?
+            WHERE guild_id = ? AND user_id = ?
+            """,
+            (1 if in_jail else 0, guild_id, user_id),
+        )
+
+    def get_monopoly_jail_roll_attempts(self, guild_id: int, user_id: int) -> int:
+        row = self.conn.execute(
+            """
+            SELECT monopoly_jail_roll_attempts
+            FROM players
+            WHERE guild_id = ? AND user_id = ?
+            """,
+            (guild_id, user_id),
+        ).fetchone()
+        return int(row["monopoly_jail_roll_attempts"]) if row is not None else 0
+
+    def set_monopoly_jail_roll_attempts(self, guild_id: int, user_id: int, attempts: int) -> None:
+        self.conn.execute(
+            """
+            UPDATE players
+            SET monopoly_jail_roll_attempts = ?
+            WHERE guild_id = ? AND user_id = ?
+            """,
+            (attempts, guild_id, user_id),
+        )
+
+    def get_monopoly_consecutive_doubles(self, guild_id: int, user_id: int) -> int:
+        row = self.conn.execute(
+            """
+            SELECT monopoly_consecutive_doubles
+            FROM players
+            WHERE guild_id = ? AND user_id = ?
+            """,
+            (guild_id, user_id),
+        ).fetchone()
+        return int(row["monopoly_consecutive_doubles"]) if row is not None else 0
+
+    def set_monopoly_consecutive_doubles(self, guild_id: int, user_id: int, count: int) -> None:
+        self.conn.execute(
+            """
+            UPDATE players
+            SET monopoly_consecutive_doubles = ?
+            WHERE guild_id = ? AND user_id = ?
+            """,
+            (count, guild_id, user_id),
+        )
+
+    def get_monopoly_state(self, guild_id: int, user_id: int) -> tuple[int, float, bool, int, int]:
+        row = self.conn.execute(
+            """
+            SELECT monopoly_position, last_monopoly_roll_at, monopoly_in_jail,
+                   monopoly_jail_roll_attempts, monopoly_consecutive_doubles
+            FROM players
+            WHERE guild_id = ? AND user_id = ?
+            """,
+            (guild_id, user_id),
+        ).fetchone()
+        if row is None:
+            return 0, 0.0, False, 0, 0
+        return (
+            int(row["monopoly_position"]),
+            float(row["last_monopoly_roll_at"]),
+            bool(int(row["monopoly_in_jail"])),
+            int(row["monopoly_jail_roll_attempts"]),
+            int(row["monopoly_consecutive_doubles"]),
+        )
+
+
+class GamblingPotRepository:
+    def __init__(self, conn: sqlite3.Connection):
+        self.conn = conn
+
+    def ensure_row(self, guild_id: int) -> None:
+        self.conn.execute(
+            """
+            INSERT INTO gambling_pot (guild_id, dough, starter, drop_tickets)
+            VALUES (?, 0, 0, 0)
+            ON CONFLICT(guild_id) DO NOTHING
+            """,
+            (guild_id,),
+        )
+
+    def get_balances(self, guild_id: int) -> tuple[int, int, int]:
+        row = self.conn.execute(
+            """
+            SELECT dough, starter, drop_tickets
+            FROM gambling_pot
+            WHERE guild_id = ?
+            """,
+            (guild_id,),
+        ).fetchone()
+        if row is None:
+            return 0, 0, 0
+        return int(row["dough"]), int(row["starter"]), int(row["drop_tickets"])
+
+    def add(self, guild_id: int, *, dough: int = 0, starter: int = 0, drop_tickets: int = 0) -> None:
+        self.ensure_row(guild_id)
+        self.conn.execute(
+            """
+            UPDATE gambling_pot
+            SET dough = dough + ?,
+                starter = starter + ?,
+                drop_tickets = drop_tickets + ?
+            WHERE guild_id = ?
+            """,
+            (dough, starter, drop_tickets, guild_id),
+        )
+
+    def clear(self, guild_id: int) -> None:
+        self.ensure_row(guild_id)
+        self.conn.execute(
+            """
+            UPDATE gambling_pot
+            SET dough = 0,
+                starter = 0,
+                drop_tickets = 0
+            WHERE guild_id = ?
+            """,
+            (guild_id,),
+        )
+
 
 class WishlistRepository:
     def __init__(self, conn: sqlite3.Connection):
@@ -1545,6 +1724,27 @@ class CardInstanceRepository:
                 int(row["user_id"]),
                 str(row["card_id"]),
                 int(row["generation"]),
+            )
+            for row in rows
+        ]
+
+    def list_owner_instances_for_guild(self, guild_id: int) -> list[tuple[int, int, str, int, str]]:
+        rows = self.conn.execute(
+            """
+            SELECT instance_id, user_id, card_id, generation, dupe_code
+            FROM card_instances
+            WHERE guild_id = ?
+            ORDER BY user_id ASC, instance_id ASC
+            """,
+            (guild_id,),
+        ).fetchall()
+        return [
+            (
+                int(row["instance_id"]),
+                int(row["user_id"]),
+                str(row["card_id"]),
+                int(row["generation"]),
+                str(row["dupe_code"]),
             )
             for row in rows
         ]
