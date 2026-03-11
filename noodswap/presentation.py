@@ -261,7 +261,7 @@ HELP_CATEGORY_PAGES: tuple[tuple[str, str, str], ...] = (
     (
         "gambling",
         "Gambling",
-        """- `slots` (`sl`) — Spin 3 food reels. Matching all 3 wi1-3 starter.
+        """- `slots` (`sl`) — Spin 3 food reels. Matching all 3 wins 1-3 starter.
 - `flip <stake> [heads|tails]` (`f`) — Flip a coin to double a wager.""",
     ),
     (
@@ -331,7 +331,7 @@ HELP_CATEGORY_PAGES: tuple[tuple[str, str, str], ...] = (
     (
         "relationship",
         "Relationship",
-        """- `marry [card_code]` (`m`) — Marry a card. Defaults to your last pulled card.
+        """- `marry [card_code]` (`m`) — Marry a card. Defaults to last pulled card.
 - `divorce` (`dv`) — End your current marriage.""",
     ),
 )
