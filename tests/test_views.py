@@ -258,6 +258,46 @@ class ViewTests:
         assert sent.get("ephemeral")
         assert "Only the command user" in sent["embed"].description
 
+    async def test_paginated_views_use_emoji_only_navigation_buttons(self) -> None:
+        views = [
+            PaginatedLinesView(
+                user_id=10,
+                title="Lines",
+                lines=["one", "two"],
+                guard_title="Lines",
+                page_size=1,
+            ),
+            PlayerLeaderboardView(
+                user_id=10,
+                title="Leaderboard",
+                entries=[(1, 3, 2, 10, 1, 4, 50), (2, 4, 1, 8, 0, 1, 60)],
+                guard_title="Leaderboard",
+                page_size=1,
+            ),
+            SortableCardListView(
+                user_id=10,
+                title="Cards",
+                card_ids=["SPG", "PEN"],
+                guard_title="Cards",
+                page_size=1,
+            ),
+            SortableCollectionView(
+                user_id=10,
+                title="Collection",
+                instances=[(1, "SPG", 1, "0"), (2, "PEN", 2, "1")],
+                wish_counts=None,
+                instance_styles=None,
+                guard_title="Collection",
+                page_size=1,
+            ),
+        ]
+
+        for view in views:
+            assert view.first_page_button.label is None
+            assert view.previous_page_button.label is None
+            assert view.next_page_button.label is None
+            assert view.last_page_button.label is None
+
     async def test_help_view_shows_overview_by_default(self) -> None:
         view = HelpView(user_id=10)
         embed = view.build_overview_embed()
