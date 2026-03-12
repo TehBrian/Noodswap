@@ -712,13 +712,13 @@ class ServicesTests(unittest.TestCase):
             buyer_id=595,
             buyer_is_bot=False,
             card_code=dupe_code,
-            mode="tickets",
+            mode="drop",
             amount=2,
         )
 
         self.assertFalse(prepared.is_error)
         self.assertIsNotNone(prepared.terms)
-        self.assertEqual(prepared.terms.mode, "tickets")  # type: ignore[union-attr]
+        self.assertEqual(prepared.terms.mode, "drop")  # type: ignore[union-attr]
         self.assertEqual(prepared.terms.amount, 2)  # type: ignore[union-attr]
 
     def test_prepare_trade_offer_card_mode_requires_buyer_to_own_req_card(self) -> None:
@@ -897,7 +897,7 @@ class ServicesTests(unittest.TestCase):
             buyer_id=buyer_id,
             card_id="SPG",
             dupe_code=dupe_code,
-            terms=services.TradeTerms(mode="tickets", amount=2),
+            terms=services.TradeTerms(mode="drop", amount=2),
             accepted=True,
         )
 

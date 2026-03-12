@@ -146,7 +146,7 @@ def normalize_trade_mode(raw: str) -> Optional[str]:
 class TradeTerms:
     """Typed description of what the seller is asking for."""
 
-    mode: str  # "dough" | "starter" | "tickets" | "card"
+    mode: str  # "dough" | "starter" | "drop" | "card"
     amount: Optional[int] = None  # numeric modes
     req_card_id: Optional[str] = None  # card mode: buyer's offered card_id
     req_generation: Optional[int] = None  # card mode: buyer's offered generation

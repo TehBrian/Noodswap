@@ -652,7 +652,7 @@ class StorageTests(unittest.TestCase):
             buyer_id=buyer_id,
             card_id="SPG",
             dupe_code=dupe_code,
-            terms=TradeTerms(mode="tickets", amount=3),
+            terms=TradeTerms(mode="drop", amount=3),
         )
 
         self.assertTrue(success)
@@ -686,7 +686,7 @@ class StorageTests(unittest.TestCase):
             buyer_id=buyer_id,
             card_id="SPG",
             dupe_code=dupe_code,
-            terms=TradeTerms(mode="tickets", amount=5),
+            terms=TradeTerms(mode="drop", amount=5),
         )
 
         self.assertFalse(success)
