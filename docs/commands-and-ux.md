@@ -337,10 +337,10 @@ Shows:
 
 - `cooldown [player]` / `cd [player]` shows drop, pull, slots, flip, and monopoly cooldown status for yourself or another player
 - Drop cooldown is 6 minutes and applies to `ns drop`
-- Pull cooldown is 4 minutes and applies to claiming cards from drops
-- Slots cooldown is 22 minutes and applies to `ns slots`
-- Flip cooldown is 2 minutes and applies to `ns flip`
-- Monopoly cooldown is 11 minutes and applies to `ns monopoly roll`
+- Pull cooldown is 2.5 minutes and applies to claiming cards from drops
+- Slots cooldown is 11 minutes and applies to `ns slots`
+- Flip cooldown is 15 seconds and applies to `ns flip`
+- Monopoly cooldown is 3.5 minutes and applies to `ns monopoly roll`
 - Embed title format is `{Player}'s Cooldowns`
 
 ## Slots UX
@@ -350,7 +350,7 @@ Shows:
 - Matching exactly 2 reels rewards `dough` in the range `200..400`
 - A jackpot requires all 3 reels to match the same emoji
 - Jackpot rewards `800..1200` `dough` plus `starter` in the range `1..3`
-- `slots` uses a 22-minute cooldown
+- `slots` uses a 11-minute cooldown
 
 ## Vote UX
 
