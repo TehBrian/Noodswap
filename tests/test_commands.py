@@ -1,7 +1,6 @@
 import io
 import re
 import tempfile
-from tests.pytest_compat import IsolatedAsyncioTestCase, TestCase
 from types import SimpleNamespace
 from typing import Any
 from unittest.mock import AsyncMock, patch
@@ -148,33 +147,27 @@ _HELP_ALIAS_SHORTCUT_TARGETS: dict[str, str] = {
 }
 
 
-class CommandHelpAliasConsistencyTests(TestCase):
-    def setUp(self) -> None:
+class CommandHelpAliasConsistencyTests:
+    def setup_method(self) -> None:
         self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)
         register_commands(self.bot)
 
     def test_help_menu_aliases_resolve_to_registered_commands(self) -> None:
         for alias_command_path, expected_target_path in _iter_help_alias_expectations():
-            with self.subTest(alias=alias_command_path, expected=expected_target_path):
-                resolved = self.bot.get_command(alias_command_path)
-                self.assertIsNotNone(
-                    resolved,
-                    msg=f"Help alias `{alias_command_path}` does not resolve to a registered command.",
-                )
+            resolved = self.bot.get_command(alias_command_path)
+            assert resolved is not None, f"Help alias `{alias_command_path}` does not resolve to a registered command."
 
-                assert resolved is not None
-                allowed_targets = {expected_target_path}
-                if alias_command_path in _HELP_ALIAS_SHORTCUT_TARGETS:
-                    allowed_targets.add(alias_command_path)
-                self.assertIn(
-                    resolved.qualified_name,
-                    allowed_targets,
-                    msg=(f"Help alias `{alias_command_path}` resolves to `{resolved.qualified_name}` instead of one of {sorted(allowed_targets)}."),
-                )
+            allowed_targets = {expected_target_path}
+            if alias_command_path in _HELP_ALIAS_SHORTCUT_TARGETS:
+                allowed_targets.add(alias_command_path)
+            assert resolved.qualified_name in allowed_targets, (
+                f"Help alias `{alias_command_path}` resolves to `{resolved.qualified_name}` "
+                f"instead of one of {sorted(allowed_targets)}."
+            )
 
 
-class CommandsWishlistTests(IsolatedAsyncioTestCase):
-    def setUp(self) -> None:
+class CommandsWishlistTests:
+    def setup_method(self) -> None:
         self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)
         register_commands(self.bot)
 
@@ -253,9 +246,9 @@ class CommandsWishlistTests(IsolatedAsyncioTestCase):
         add_wishlist.assert_called_once_with(1, 100, "SPG")
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
-        self.assertEqual(sent_embed.title, "Wishlist")
-        self.assertIn("Added to wishlist", sent_embed.description)
-        self.assertIn("(`SPG`)", sent_embed.description)
+        assert sent_embed.title == "Wishlist"
+        assert "Added to wishlist" in sent_embed.description
+        assert "(`SPG`)" in sent_embed.description
 
     async def test_wish_add_lists_multiple_name_matches_with_numbering(self) -> None:
         wish_add_command = _get_group_command(self.bot, "wish", "add")
@@ -272,13 +265,13 @@ class CommandsWishlistTests(IsolatedAsyncioTestCase):
         add_wishlist.assert_not_called()
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
-        self.assertEqual(sent_embed.title, "Wishlist Matches")
-        self.assertIn("1. (`CHD`) [🧀] **Cheddar**", sent_embed.description)
-        self.assertIn("2. (`CHJ`) [🧀] **Cheddar Jack**", sent_embed.description)
+        assert sent_embed.title == "Wishlist Matches"
+        assert "1. (`CHD`) [🧀] **Cheddar**" in sent_embed.description
+        assert "2. (`CHJ`) [🧀] **Cheddar Jack**" in sent_embed.description
 
 
-class CommandsTagTests(IsolatedAsyncioTestCase):
-    def setUp(self) -> None:
+class CommandsTagTests:
+    def setup_method(self) -> None:
         self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)
         register_commands(self.bot)
 
@@ -296,8 +289,8 @@ class CommandsTagTests(IsolatedAsyncioTestCase):
 
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
-        self.assertEqual(sent_embed.title, "Your Tags")
-        self.assertIn("No tags yet", sent_embed.description)
+        assert sent_embed.title == "Your Tags"
+        assert "No tags yet" in sent_embed.description
 
     async def test_tag_list_shows_lock_markers_for_locked_and_unlocked_tags(
         self,
@@ -318,9 +311,9 @@ class CommandsTagTests(IsolatedAsyncioTestCase):
 
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
-        self.assertEqual(sent_embed.title, "Your Tags")
-        self.assertIn("🔒 `safe` • 2 cards", sent_embed.description)
-        self.assertIn("`  ` `trash` • 1 card", sent_embed.description)
+        assert sent_embed.title == "Your Tags"
+        assert "🔒 `safe` • 2 cards" in sent_embed.description
+        assert "`  ` `trash` • 1 card" in sent_embed.description
 
     async def test_tag_assign_rejects_unowned_card_code(self) -> None:
         tag_assign_command = _get_group_command(self.bot, "tag", "assign")
@@ -336,8 +329,8 @@ class CommandsTagTests(IsolatedAsyncioTestCase):
 
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
-        self.assertEqual(sent_embed.title, "Tags")
-        self.assertEqual(sent_embed.description, "You do not own that card code.")
+        assert sent_embed.title == "Tags"
+        assert sent_embed.description == "You do not own that card code."
 
     async def test_tag_assign_rejects_duplicate_assignment_explicitly(self) -> None:
         tag_assign_command = _get_group_command(self.bot, "tag", "assign")
@@ -359,8 +352,8 @@ class CommandsTagTests(IsolatedAsyncioTestCase):
         assign_tag.assert_not_called()
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
-        self.assertEqual(sent_embed.title, "Tags")
-        self.assertEqual(sent_embed.description, "That card is already assigned to this tag.")
+        assert sent_embed.title == "Tags"
+        assert sent_embed.description == "That card is already assigned to this tag."
 
     async def test_tag_cards_shows_sortable_collection_view(self) -> None:
         tag_cards_command = _get_group_command(self.bot, "tag", "cards")
@@ -394,9 +387,9 @@ class CommandsTagTests(IsolatedAsyncioTestCase):
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
         sent_view = ctx.send.await_args.kwargs["view"]
-        self.assertEqual(sent_embed.title, "Tag: `safe`")
-        self.assertIsInstance(sent_view, SortableCollectionView)
-        self.assertIs(sent_view.message, ctx.send.return_value)
+        assert sent_embed.title == "Tag: `safe`"
+        assert isinstance(sent_view, SortableCollectionView)
+        assert sent_view.message is ctx.send.return_value
 
     async def test_wish_remove_lists_multiple_name_matches(self) -> None:
         wish_remove_command = _get_group_command(self.bot, "wish", "remove")
@@ -413,13 +406,13 @@ class CommandsTagTests(IsolatedAsyncioTestCase):
         remove_wishlist.assert_not_called()
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
-        self.assertEqual(sent_embed.title, "Wishlist Matches")
-        self.assertIn("1. (`CHD`) [🧀] **Cheddar**", sent_embed.description)
-        self.assertIn("2. (`CHJ`) [🧀] **Cheddar Jack**", sent_embed.description)
+        assert sent_embed.title == "Wishlist Matches"
+        assert "1. (`CHD`) [🧀] **Cheddar**" in sent_embed.description
+        assert "2. (`CHJ`) [🧀] **Cheddar Jack**" in sent_embed.description
 
 
-class CommandsFolderTests(IsolatedAsyncioTestCase):
-    def setUp(self) -> None:
+class CommandsFolderTests:
+    def setup_method(self) -> None:
         self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)
         register_commands(self.bot)
 
@@ -440,9 +433,9 @@ class CommandsFolderTests(IsolatedAsyncioTestCase):
 
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
-        self.assertEqual(sent_embed.title, "Your Folders")
-        self.assertIn("🔒 📦 `vault` • 2 cards", sent_embed.description)
-        self.assertIn("`  ` 🗑️ `dump` • 1 card", sent_embed.description)
+        assert sent_embed.title == "Your Folders"
+        assert "🔒 📦 `vault` • 2 cards" in sent_embed.description
+        assert "`  ` 🗑️ `dump` • 1 card" in sent_embed.description
 
     async def test_folder_assign_rejects_duplicate_assignment(self) -> None:
         folder_assign_command = _get_group_command(self.bot, "folder", "assign")
@@ -467,12 +460,12 @@ class CommandsFolderTests(IsolatedAsyncioTestCase):
         assign_folder.assert_not_called()
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
-        self.assertEqual(sent_embed.title, "Folders")
-        self.assertEqual(sent_embed.description, "That card is already assigned to this folder.")
+        assert sent_embed.title == "Folders"
+        assert sent_embed.description == "That card is already assigned to this folder."
 
 
-class CommandsBurnSelectorTests(IsolatedAsyncioTestCase):
-    def setUp(self) -> None:
+class CommandsBurnSelectorTests:
+    def setup_method(self) -> None:
         self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)
         register_commands(self.bot)
 
@@ -489,8 +482,8 @@ class CommandsBurnSelectorTests(IsolatedAsyncioTestCase):
 
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
-        self.assertEqual(sent_embed.title, "Burn")
-        self.assertEqual(sent_embed.description, "Missing value for `t:` selector.")
+        assert sent_embed.title == "Burn"
+        assert sent_embed.description == "Missing value for `t:` selector."
 
     async def test_burn_supports_folder_selector(self) -> None:
         burn_command = _get_command(self.bot, "burn")
@@ -539,7 +532,7 @@ class CommandsBurnSelectorTests(IsolatedAsyncioTestCase):
 
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
-        self.assertEqual(sent_embed.title, "Burn Confirmation")
+        assert sent_embed.title == "Burn Confirmation"
 
     async def test_burn_supports_tag_and_card_targets_together(self) -> None:
         burn_command = _get_command(self.bot, "burn")
@@ -602,16 +595,13 @@ class CommandsBurnSelectorTests(IsolatedAsyncioTestCase):
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
         sent_view = ctx.send.await_args.kwargs["view"]
-        self.assertEqual(sent_embed.title, "Burn Confirmation")
-        self.assertIn("Cards: **2**", sent_embed.description)
-        self.assertEqual(
-            sent_view.kwargs["burn_items"],
-            [(10, 2), (11, 3)],
-        )
+        assert sent_embed.title == "Burn Confirmation"
+        assert "Cards: **2**" in sent_embed.description
+        assert sent_view.kwargs["burn_items"] == [(10, 2), (11, 3)]
 
 
-class CommandsTeamTests(IsolatedAsyncioTestCase):
-    def setUp(self) -> None:
+class CommandsTeamTests:
+    def setup_method(self) -> None:
         self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)
         register_commands(self.bot)
 
@@ -647,48 +637,47 @@ class CommandsTeamTests(IsolatedAsyncioTestCase):
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
         sent_view = ctx.send.await_args.kwargs["view"]
-        self.assertEqual(sent_embed.title, "Team: `alpha`")
-        self.assertIsInstance(sent_view, SortableCollectionView)
-        self.assertIs(sent_view.message, ctx.send.return_value)
+        assert sent_embed.title == "Team: `alpha`"
+        assert isinstance(sent_view, SortableCollectionView)
+        assert sent_view.message is ctx.send.return_value
 
 
-class CommandsAliasRegistrationTests(TestCase):
-    def setUp(self) -> None:
+class CommandsAliasRegistrationTests:
+    def setup_method(self) -> None:
         self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)
         register_commands(self.bot)
 
     def test_requested_aliases_exist(self) -> None:
-        self.assertIsNotNone(_get_command(self.bot, "wa"))
-        self.assertIsNotNone(_get_command(self.bot, "wr"))
-        self.assertIsNotNone(_get_command(self.bot, "wl"))
-
-        self.assertIn("m", _get_command(self.bot, "marry").aliases)
-        self.assertIn("dv", _get_command(self.bot, "divorce").aliases)
-        self.assertIn("t", _get_command(self.bot, "trade").aliases)
-        self.assertIn("b", _get_command(self.bot, "burn").aliases)
-        self.assertIn("mo", _get_command(self.bot, "morph").aliases)
-        self.assertIn("fr", _get_command(self.bot, "frame").aliases)
-        self.assertIn("fo", _get_command(self.bot, "font").aliases)
+        assert _get_command(self.bot, "wa") is not None
+        assert _get_command(self.bot, "wr") is not None
+        assert _get_command(self.bot, "wl") is not None
+        assert "m" in _get_command(self.bot, "marry").aliases
+        assert "dv" in _get_command(self.bot, "divorce").aliases
+        assert "t" in _get_command(self.bot, "trade").aliases
+        assert "b" in _get_command(self.bot, "burn").aliases
+        assert "mo" in _get_command(self.bot, "morph").aliases
+        assert "fr" in _get_command(self.bot, "frame").aliases
+        assert "fo" in _get_command(self.bot, "font").aliases
         cooldown_command = _get_command(self.bot, "cooldown")
-        self.assertIn("cd", cooldown_command.aliases)
-        self.assertIn("d", _get_command(self.bot, "drop").aliases)
-        self.assertIn("h", _get_command(self.bot, "help").aliases)
-        self.assertIn("ca", _get_command(self.bot, "cards").aliases)
-        self.assertIn("l", _get_command(self.bot, "lookup").aliases)
-        self.assertIn("lhd", _get_command(self.bot, "lookuphd").aliases)
-        self.assertIn("c", _get_command(self.bot, "collection").aliases)
-        self.assertIn("le", _get_command(self.bot, "leaderboard").aliases)
-        self.assertIn("i", _get_command(self.bot, "info").aliases)
-        self.assertIn("v", _get_command(self.bot, "vote").aliases)
-        self.assertIn("sl", _get_command(self.bot, "slots").aliases)
-        self.assertIn("f", _get_command(self.bot, "flip").aliases)
-        self.assertIn("g", _get_command(self.bot, "gift").aliases)
-        self.assertIn("tg", _get_command(self.bot, "tag").aliases)
-        self.assertIn("fd", _get_command(self.bot, "folder").aliases)
+        assert "cd" in cooldown_command.aliases
+        assert "d" in _get_command(self.bot, "drop").aliases
+        assert "h" in _get_command(self.bot, "help").aliases
+        assert "ca" in _get_command(self.bot, "cards").aliases
+        assert "l" in _get_command(self.bot, "lookup").aliases
+        assert "lhd" in _get_command(self.bot, "lookuphd").aliases
+        assert "c" in _get_command(self.bot, "collection").aliases
+        assert "le" in _get_command(self.bot, "leaderboard").aliases
+        assert "i" in _get_command(self.bot, "info").aliases
+        assert "v" in _get_command(self.bot, "vote").aliases
+        assert "sl" in _get_command(self.bot, "slots").aliases
+        assert "f" in _get_command(self.bot, "flip").aliases
+        assert "g" in _get_command(self.bot, "gift").aliases
+        assert "tg" in _get_command(self.bot, "tag").aliases
+        assert "fd" in _get_command(self.bot, "folder").aliases
 
 
-class CommandsLeaderboardTests(IsolatedAsyncioTestCase):
-    def setUp(self) -> None:
+class CommandsLeaderboardTests:
+    def setup_method(self) -> None:
         self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)
         register_commands(self.bot)
 
@@ -714,13 +703,13 @@ class CommandsLeaderboardTests(IsolatedAsyncioTestCase):
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
         sent_view = ctx.send.await_args.kwargs["view"]
-        self.assertEqual(sent_embed.title, "Leaderboard")
-        self.assertIsInstance(sent_view, PlayerLeaderboardView)
-        self.assertIs(sent_view.message, ctx.send.return_value)
+        assert sent_embed.title == "Leaderboard"
+        assert isinstance(sent_view, PlayerLeaderboardView)
+        assert sent_view.message is ctx.send.return_value
 
 
-class CommandsHelpTests(IsolatedAsyncioTestCase):
-    def setUp(self) -> None:
+class CommandsHelpTests:
+    def setup_method(self) -> None:
         self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)
         register_commands(self.bot)
 
@@ -737,14 +726,14 @@ class CommandsHelpTests(IsolatedAsyncioTestCase):
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
         sent_view = ctx.send.await_args.kwargs["view"]
-        self.assertEqual(sent_embed.title, "Help")
-        self.assertIn("Noodswap", sent_embed.description)
-        self.assertIsInstance(sent_view, HelpView)
-        self.assertIs(sent_view.message, ctx.send.return_value)
+        assert sent_embed.title == "Help"
+        assert "Noodswap" in sent_embed.description
+        assert isinstance(sent_view, HelpView)
+        assert sent_view.message is ctx.send.return_value
 
 
-class CommandsLookupTests(IsolatedAsyncioTestCase):
-    def setUp(self) -> None:
+class CommandsLookupTests:
+    def setup_method(self) -> None:
         self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)
         register_commands(self.bot)
 
@@ -761,8 +750,8 @@ class CommandsLookupTests(IsolatedAsyncioTestCase):
 
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
-        self.assertEqual(sent_embed.title, "Lookup")
-        self.assertEqual(sent_embed.description, "No results found.")
+        assert sent_embed.title == "Lookup"
+        assert sent_embed.description == "No results found."
 
     async def test_lookup_shows_usage_when_missing_argument(self) -> None:
         lookup_command = _get_command(self.bot, "lookup")
@@ -777,8 +766,8 @@ class CommandsLookupTests(IsolatedAsyncioTestCase):
 
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
-        self.assertEqual(sent_embed.title, "Lookup")
-        self.assertEqual(sent_embed.description, "Usage: `ns lookup <card_id|card_code|query>`.")
+        assert sent_embed.title == "Lookup"
+        assert sent_embed.description == "Usage: `ns lookup <card_id|card_code|query>`."
 
     async def test_lookup_shows_base_card_embed(self) -> None:
         lookup_command = _get_command(self.bot, "lookup")
@@ -793,8 +782,8 @@ class CommandsLookupTests(IsolatedAsyncioTestCase):
 
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
-        self.assertEqual(sent_embed.title, "Card Lookup")
-        self.assertIn("(`SPG`)", sent_embed.description)
+        assert sent_embed.title == "Card Lookup"
+        assert "(`SPG`)" in sent_embed.description
 
     async def test_lookup_shows_dupe_card_embed_for_exact_code(self) -> None:
         lookup_command = _get_command(self.bot, "lookup")
@@ -814,17 +803,14 @@ class CommandsLookupTests(IsolatedAsyncioTestCase):
         lookup_dupe.assert_called_once_with(1, "AbC")
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
-        self.assertEqual(sent_embed.title, "Card Lookup")
-        self.assertIn("`#abc`", sent_embed.description)
-        self.assertIn("Owner: <@999>", sent_embed.description)
-        self.assertIn("G-101", sent_embed.description)
-        self.assertIn("dough", sent_embed.description)
-        self.assertIn("**Value Breakdown**", sent_embed.description)
-        self.assertIn("Trait Multiplier", sent_embed.description)
-        self.assertRegex(
-            sent_embed.description,
-            r"HP: \*\*\d+\*\* • ATK: \*\*\d+\*\* • DEF: \*\*\d+\*\*",
-        )
+        assert sent_embed.title == "Card Lookup"
+        assert "`#abc`" in sent_embed.description
+        assert "Owner: <@999>" in sent_embed.description
+        assert "G-101" in sent_embed.description
+        assert "dough" in sent_embed.description
+        assert "**Value Breakdown**" in sent_embed.description
+        assert "Trait Multiplier" in sent_embed.description
+        assert re.search(r"HP: \*\*\d+\*\* • ATK: \*\*\d+\*\* • DEF: \*\*\d+\*\*", sent_embed.description)
 
     async def test_lookup_shows_dupe_card_embed_for_hash_prefixed_code(self) -> None:
         lookup_command = _get_command(self.bot, "lookup")
@@ -844,16 +830,13 @@ class CommandsLookupTests(IsolatedAsyncioTestCase):
         lookup_dupe.assert_called_once_with(1, "#AbC")
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
-        self.assertEqual(sent_embed.title, "Card Lookup")
-        self.assertIn("`#abc`", sent_embed.description)
-        self.assertIn("Owner: <@999>", sent_embed.description)
-        self.assertIn("G-101", sent_embed.description)
-        self.assertIn("dough", sent_embed.description)
-        self.assertIn("**Value Breakdown**", sent_embed.description)
-        self.assertRegex(
-            sent_embed.description,
-            r"HP: \*\*\d+\*\* • ATK: \*\*\d+\*\* • DEF: \*\*\d+\*\*",
-        )
+        assert sent_embed.title == "Card Lookup"
+        assert "`#abc`" in sent_embed.description
+        assert "Owner: <@999>" in sent_embed.description
+        assert "G-101" in sent_embed.description
+        assert "dough" in sent_embed.description
+        assert "**Value Breakdown**" in sent_embed.description
+        assert re.search(r"HP: \*\*\d+\*\* • ATK: \*\*\d+\*\* • DEF: \*\*\d+\*\*", sent_embed.description)
 
     async def test_lookuphd_shows_dupe_card_embed_with_stats_for_exact_code(
         self,
@@ -875,13 +858,10 @@ class CommandsLookupTests(IsolatedAsyncioTestCase):
         lookup_dupe.assert_called_once_with(1, "AbC")
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
-        self.assertEqual(sent_embed.title, "Card Lookup (HD)")
-        self.assertIn("`#abc`", sent_embed.description)
-        self.assertIn("Owner: <@999>", sent_embed.description)
-        self.assertRegex(
-            sent_embed.description,
-            r"HP: \*\*\d+\*\* • ATK: \*\*\d+\*\* • DEF: \*\*\d+\*\*",
-        )
+        assert sent_embed.title == "Card Lookup (HD)"
+        assert "`#abc`" in sent_embed.description
+        assert "Owner: <@999>" in sent_embed.description
+        assert re.search(r"HP: \*\*\d+\*\* • ATK: \*\*\d+\*\* • DEF: \*\*\d+\*\*", sent_embed.description)
 
     async def test_lookup_prefers_exact_dupe_code_over_card_id(self) -> None:
         lookup_command = _get_command(self.bot, "lookup")
@@ -901,12 +881,12 @@ class CommandsLookupTests(IsolatedAsyncioTestCase):
         lookup_dupe.assert_called_once_with(1, "spg")
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
-        self.assertEqual(sent_embed.title, "Card Lookup")
-        self.assertIn("`#spg`", sent_embed.description)
-        self.assertIn("Owner: <@999>", sent_embed.description)
-        self.assertIn("dough", sent_embed.description)
-        self.assertNotIn("Base:", sent_embed.description)
-        self.assertIn("Trait Multiplier", sent_embed.description)
+        assert sent_embed.title == "Card Lookup"
+        assert "`#spg`" in sent_embed.description
+        assert "Owner: <@999>" in sent_embed.description
+        assert "dough" in sent_embed.description
+        assert "Base:" not in sent_embed.description
+        assert "Trait Multiplier" in sent_embed.description
 
     async def test_lookup_falls_back_to_exact_card_name(self) -> None:
         lookup_command = _get_command(self.bot, "lookup")
@@ -922,8 +902,8 @@ class CommandsLookupTests(IsolatedAsyncioTestCase):
 
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
-        self.assertEqual(sent_embed.title, "Card Lookup")
-        self.assertIn("(`SPG`)", sent_embed.description)
+        assert sent_embed.title == "Card Lookup"
+        assert "(`SPG`)" in sent_embed.description
 
     async def test_lookup_lists_multiple_name_matches(self) -> None:
         lookup_command = _get_command(self.bot, "lookup")
@@ -939,11 +919,11 @@ class CommandsLookupTests(IsolatedAsyncioTestCase):
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
         sent_view = ctx.send.await_args.kwargs["view"]
-        self.assertEqual(sent_embed.title, "Lookup Matches")
-        self.assertIsInstance(sent_view, SortableCardListView)
-        self.assertIn("Cheddar", sent_embed.description)
-        self.assertIn("Cheddar Jack", sent_embed.description)
-        self.assertIn("Sort: Alphabetical", sent_embed.footer.text)
+        assert sent_embed.title == "Lookup Matches"
+        assert isinstance(sent_view, SortableCardListView)
+        assert "Cheddar" in sent_embed.description
+        assert "Cheddar Jack" in sent_embed.description
+        assert "Sort: Alphabetical" in sent_embed.footer.text
 
     async def test_lookup_lists_matches_for_series_query(self) -> None:
         lookup_command = _get_command(self.bot, "lookup")
@@ -959,12 +939,12 @@ class CommandsLookupTests(IsolatedAsyncioTestCase):
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
         sent_view = ctx.send.await_args.kwargs["view"]
-        self.assertEqual(sent_embed.title, "Lookup Matches")
-        self.assertIsInstance(sent_view, SortableCardListView)
-        self.assertIn("1.", sent_embed.description)
-        self.assertTrue(sent_embed.footer.text.startswith("Page 1/"))
-        self.assertIn("Sort: Alphabetical", sent_embed.footer.text)
-        self.assertGreater(sent_view.total_pages, 1)
+        assert sent_embed.title == "Lookup Matches"
+        assert isinstance(sent_view, SortableCardListView)
+        assert "1." in sent_embed.description
+        assert sent_embed.footer.text.startswith("Page 1/")
+        assert "Sort: Alphabetical" in sent_embed.footer.text
+        assert sent_view.total_pages > 1
 
     async def test_lookup_unknown_card_id_falls_back_to_search_query(self) -> None:
         lookup_command = _get_command(self.bot, "lookup")
@@ -981,8 +961,8 @@ class CommandsLookupTests(IsolatedAsyncioTestCase):
         search_cards.assert_called_once_with("spicy noodle", include_series=True)
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
-        self.assertEqual(sent_embed.title, "Card Lookup")
-        self.assertIn("(`SPG`)", sent_embed.description)
+        assert sent_embed.title == "Card Lookup"
+        assert "(`SPG`)" in sent_embed.description
 
     async def test_lookuphd_requests_hd_render_size(self) -> None:
         lookup_command = _get_command(self.bot, "lookuphd")
@@ -1000,14 +980,14 @@ class CommandsLookupTests(IsolatedAsyncioTestCase):
             await lookup_command.callback(ctx, card_id="spg")
 
         embed_payload.assert_called_once()
-        self.assertEqual(embed_payload.call_args.kwargs["size"], HD_CARD_RENDER_SIZE)
+        assert embed_payload.call_args.kwargs["size"] == HD_CARD_RENDER_SIZE
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
-        self.assertEqual(sent_embed.title, "Card Lookup (HD)")
+        assert sent_embed.title == "Card Lookup (HD)"
 
 
-class CommandsCollectionTests(IsolatedAsyncioTestCase):
-    def setUp(self) -> None:
+class CommandsCollectionTests:
+    def setup_method(self) -> None:
         self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)
         register_commands(self.bot)
 
@@ -1025,8 +1005,8 @@ class CommandsCollectionTests(IsolatedAsyncioTestCase):
 
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
-        self.assertEqual(sent_embed.title, "Caller's Collection")
-        self.assertEqual(sent_embed.description, "Your collection is empty. Try `ns drop`.")
+        assert sent_embed.title == "Caller's Collection"
+        assert sent_embed.description == "Your collection is empty. Try `ns drop`."
 
     async def test_collection_uses_resolved_player_when_argument_provided(self) -> None:
         collection_command = _get_command(self.bot, "collection")
@@ -1050,8 +1030,8 @@ class CommandsCollectionTests(IsolatedAsyncioTestCase):
         resolve_member.assert_awaited_once_with(ctx, "@Target")
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
-        self.assertEqual(sent_embed.title, "Target's Collection")
-        self.assertEqual(sent_embed.description, "Target has an empty collection.")
+        assert sent_embed.title == "Target's Collection"
+        assert sent_embed.description == "Target has an empty collection."
 
     async def test_collection_uses_replied_player_when_argument_omitted(self) -> None:
         collection_command = _get_command(self.bot, "collection")
@@ -1074,8 +1054,8 @@ class CommandsCollectionTests(IsolatedAsyncioTestCase):
 
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
-        self.assertEqual(sent_embed.title, "Target's Collection")
-        self.assertEqual(sent_embed.description, "Target has an empty collection.")
+        assert sent_embed.title == "Target's Collection"
+        assert sent_embed.description == "Target has an empty collection."
 
     async def test_collection_sends_error_when_player_resolution_fails(self) -> None:
         collection_command = _get_command(self.bot, "collection")
@@ -1098,8 +1078,8 @@ class CommandsCollectionTests(IsolatedAsyncioTestCase):
         resolve_member.assert_awaited_once_with(ctx, "ghost")
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
-        self.assertEqual(sent_embed.title, "Collection")
-        self.assertEqual(sent_embed.description, "Could not find that player.")
+        assert sent_embed.title == "Collection"
+        assert sent_embed.description == "Could not find that player."
 
     async def test_collection_lists_each_instance_separately(self) -> None:
         collection_command = _get_command(self.bot, "collection")
@@ -1126,10 +1106,10 @@ class CommandsCollectionTests(IsolatedAsyncioTestCase):
 
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
-        self.assertEqual(sent_embed.title, "Caller's Collection")
-        self.assertEqual(sent_embed.description.count("Spaghetti"), 3)
-        self.assertNotIn("×", sent_embed.description)
-        self.assertIn("#", sent_embed.description)
+        assert sent_embed.title == "Caller's Collection"
+        assert sent_embed.description.count("Spaghetti") == 3
+        assert "×" not in sent_embed.description
+        assert "#" in sent_embed.description
 
     async def test_collection_uses_pagination_view_for_multi_page_results(self) -> None:
         collection_command = _get_command(self.bot, "collection")
@@ -1152,9 +1132,9 @@ class CommandsCollectionTests(IsolatedAsyncioTestCase):
 
         ctx.send.assert_awaited_once()
         send_kwargs = ctx.send.await_args.kwargs
-        self.assertIn("view", send_kwargs)
-        self.assertIsInstance(send_kwargs["view"], SortableCollectionView)
-        self.assertEqual(send_kwargs["embed"].footer.text, "Page 1/2 • Sort: Alphabetical (Asc)")
+        assert "view" in send_kwargs
+        assert isinstance(send_kwargs["view"], SortableCollectionView)
+        assert send_kwargs["embed"].footer.text == "Page 1/2 • Sort: Alphabetical (Asc)"
 
     async def test_wish_list_uses_pagination_view_for_multi_page_results(self) -> None:
         wish_list_command = _get_group_command(self.bot, "wish", "list")
@@ -1183,9 +1163,9 @@ class CommandsCollectionTests(IsolatedAsyncioTestCase):
 
         ctx.send.assert_awaited_once()
         send_kwargs = ctx.send.await_args.kwargs
-        self.assertIn("view", send_kwargs)
-        self.assertIsInstance(send_kwargs["view"], SortableCardListView)
-        self.assertEqual(send_kwargs["embed"].footer.text, "Page 1/2 • Sort: Alphabetical (Asc)")
+        assert "view" in send_kwargs
+        assert isinstance(send_kwargs["view"], SortableCardListView)
+        assert send_kwargs["embed"].footer.text == "Page 1/2 • Sort: Alphabetical (Asc)"
 
     async def test_wish_list_sends_error_when_player_resolution_fails(self) -> None:
         wish_list_command = _get_group_command(self.bot, "wish", "list")
@@ -1209,8 +1189,8 @@ class CommandsCollectionTests(IsolatedAsyncioTestCase):
         wish_list_impl.assert_not_awaited()
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
-        self.assertEqual(sent_embed.title, "Wishlist")
-        self.assertEqual(sent_embed.description, "Could not find that player.")
+        assert sent_embed.title == "Wishlist"
+        assert sent_embed.description == "Could not find that player."
 
     async def test_wl_accepts_optional_player_argument(self) -> None:
         wish_list_short = _get_command(self.bot, "wl")
@@ -1235,8 +1215,8 @@ class CommandsCollectionTests(IsolatedAsyncioTestCase):
         wish_list_impl.assert_awaited_once_with(ctx, target)
 
 
-class CommandsCooldownTests(IsolatedAsyncioTestCase):
-    def setUp(self) -> None:
+class CommandsCooldownTests:
+    def setup_method(self) -> None:
         self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)
         register_commands(self.bot)
 
@@ -1262,12 +1242,12 @@ class CommandsCooldownTests(IsolatedAsyncioTestCase):
 
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
-        self.assertEqual(sent_embed.title, "Caller's Cooldowns")
-        self.assertIn("Drop:", sent_embed.description)
-        self.assertIn("Pull:", sent_embed.description)
-        self.assertIn("Slots:", sent_embed.description)
-        self.assertIn("Flip:", sent_embed.description)
-        self.assertIn("Ready", sent_embed.description)
+        assert sent_embed.title == "Caller's Cooldowns"
+        assert "Drop:" in sent_embed.description
+        assert "Pull:" in sent_embed.description
+        assert "Slots:" in sent_embed.description
+        assert "Flip:" in sent_embed.description
+        assert "Ready" in sent_embed.description
 
     async def test_cooldown_uses_resolved_player_when_argument_provided(self) -> None:
         cooldown_command = _get_command(self.bot, "cooldown")
@@ -1303,11 +1283,11 @@ class CommandsCooldownTests(IsolatedAsyncioTestCase):
         resolve_member.assert_awaited_once_with(ctx, "@Target")
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
-        self.assertEqual(sent_embed.title, "Target's Cooldowns")
+        assert sent_embed.title == "Target's Cooldowns"
 
 
-class CommandsBuyTests(IsolatedAsyncioTestCase):
-    def setUp(self) -> None:
+class CommandsBuyTests:
+    def setup_method(self) -> None:
         self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)
         register_commands(self.bot)
 
@@ -1322,8 +1302,8 @@ class CommandsBuyTests(IsolatedAsyncioTestCase):
 
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
-        self.assertEqual(sent_embed.title, "Buy")
-        self.assertIn("ns buy drop", sent_embed.description)
+        assert sent_embed.title == "Buy"
+        assert "ns buy drop" in sent_embed.description
 
     async def test_buy_drop_purchases_with_starter(self) -> None:
         buy_drop_command = _get_group_command(self.bot, "buy", "drop")
@@ -1343,10 +1323,10 @@ class CommandsBuyTests(IsolatedAsyncioTestCase):
         buy_tickets.assert_called_once_with(1, 100, 3)
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
-        self.assertEqual(sent_embed.title, "Buy")
-        self.assertIn("Purchased: **3 drop ticket(s)**", sent_embed.description)
-        self.assertIn("Starter Balance: **4**", sent_embed.description)
-        self.assertIn("Drop Tickets: **7**", sent_embed.description)
+        assert sent_embed.title == "Buy"
+        assert "Purchased: **3 drop ticket(s)**" in sent_embed.description
+        assert "Starter Balance: **4**" in sent_embed.description
+        assert "Drop Tickets: **7**" in sent_embed.description
 
     async def test_buy_pull_purchases_with_starter(self) -> None:
         buy_pull_command = _get_group_command(self.bot, "buy", "pull")
@@ -1366,14 +1346,14 @@ class CommandsBuyTests(IsolatedAsyncioTestCase):
         buy_tickets.assert_called_once_with(1, 100, 3)
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
-        self.assertEqual(sent_embed.title, "Buy")
-        self.assertIn("Purchased: **3 pull ticket(s)**", sent_embed.description)
-        self.assertIn("Starter Balance: **4**", sent_embed.description)
-        self.assertIn("Pull Tickets: **8**", sent_embed.description)
+        assert sent_embed.title == "Buy"
+        assert "Purchased: **3 pull ticket(s)**" in sent_embed.description
+        assert "Starter Balance: **4**" in sent_embed.description
+        assert "Pull Tickets: **8**" in sent_embed.description
 
 
-class CommandsDropTests(IsolatedAsyncioTestCase):
-    def setUp(self) -> None:
+class CommandsDropTests:
+    def setup_method(self) -> None:
         self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)
         register_commands(self.bot)
 
@@ -1406,11 +1386,11 @@ class CommandsDropTests(IsolatedAsyncioTestCase):
 
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
-        self.assertIn("drop ticket used", sent_embed.footer.text)
+        assert "drop ticket used" in sent_embed.footer.text
 
 
-class CommandsCooldownReplyTargetTests(IsolatedAsyncioTestCase):
-    def setUp(self) -> None:
+class CommandsCooldownReplyTargetTests:
+    def setup_method(self) -> None:
         self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)
         register_commands(self.bot)
 
@@ -1449,11 +1429,11 @@ class CommandsCooldownReplyTargetTests(IsolatedAsyncioTestCase):
 
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
-        self.assertEqual(sent_embed.title, "Target's Cooldowns")
+        assert sent_embed.title == "Target's Cooldowns"
 
 
-class CommandsSlotsTests(IsolatedAsyncioTestCase):
-    def setUp(self) -> None:
+class CommandsSlotsTests:
+    def setup_method(self) -> None:
         self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)
         register_commands(self.bot)
 
@@ -1482,8 +1462,8 @@ class CommandsSlotsTests(IsolatedAsyncioTestCase):
         animate.assert_not_awaited()
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
-        self.assertEqual(sent_embed.title, "Slots Cooldown")
-        self.assertIn("remaining", sent_embed.description)
+        assert sent_embed.title == "Slots Cooldown"
+        assert "remaining" in sent_embed.description
 
     async def test_slots_awards_dough_on_two_match(self) -> None:
         slots_command = _get_command(self.bot, "slots")
@@ -1519,10 +1499,10 @@ class CommandsSlotsTests(IsolatedAsyncioTestCase):
         add_starter.assert_not_called()
         animate.assert_awaited_once()
         final_embed = message.edit.await_args.kwargs["embed"]
-        self.assertEqual(final_embed.title, "Slots")
-        self.assertIn("Two matched", final_embed.description)
-        self.assertIn("+250 dough", final_embed.description)
-        self.assertIn("4250", final_embed.description)
+        assert final_embed.title == "Slots"
+        assert "Two matched" in final_embed.description
+        assert "+250 dough" in final_embed.description
+        assert "4250" in final_embed.description
 
     async def test_slots_awards_dough_and_starter_on_three_match(self) -> None:
         slots_command = _get_command(self.bot, "slots")
@@ -1554,16 +1534,16 @@ class CommandsSlotsTests(IsolatedAsyncioTestCase):
         add_dough.assert_called_once_with(1, 100, 900)
         add_starter.assert_called_once_with(1, 100, 2)
         animate.assert_awaited_once()
-        self.assertGreaterEqual(message.edit.await_count, 1)
+        assert message.edit.await_count >= 1
         final_embed = message.edit.await_args.kwargs["embed"]
-        self.assertEqual(final_embed.title, "Slots")
-        self.assertIn("Jackpot", final_embed.description)
-        self.assertIn("+900 dough", final_embed.description)
-        self.assertIn("+2 starter", final_embed.description)
+        assert final_embed.title == "Slots"
+        assert "Jackpot" in final_embed.description
+        assert "+900 dough" in final_embed.description
+        assert "+2 starter" in final_embed.description
 
 
-class CommandsFlipTests(IsolatedAsyncioTestCase):
-    def setUp(self) -> None:
+class CommandsFlipTests:
+    def setup_method(self) -> None:
         self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)
         register_commands(self.bot)
 
@@ -1580,8 +1560,8 @@ class CommandsFlipTests(IsolatedAsyncioTestCase):
 
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
-        self.assertEqual(sent_embed.title, "Flip")
-        self.assertIn("positive integer", sent_embed.description)
+        assert sent_embed.title == "Flip"
+        assert "positive integer" in sent_embed.description
 
     async def test_flip_rejects_invalid_side(self) -> None:
         flip_command = _get_command(self.bot, "flip")
@@ -1596,9 +1576,9 @@ class CommandsFlipTests(IsolatedAsyncioTestCase):
 
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
-        self.assertEqual(sent_embed.title, "Flip")
-        self.assertIn("heads", sent_embed.description)
-        self.assertIn("tails", sent_embed.description)
+        assert sent_embed.title == "Flip"
+        assert "heads" in sent_embed.description
+        assert "tails" in sent_embed.description
 
     async def test_flip_shows_cooldown_message(self) -> None:
         flip_command = _get_command(self.bot, "flip")
@@ -1617,8 +1597,8 @@ class CommandsFlipTests(IsolatedAsyncioTestCase):
 
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
-        self.assertEqual(sent_embed.title, "Flip Cooldown")
-        self.assertIn("remaining", sent_embed.description)
+        assert sent_embed.title == "Flip Cooldown"
+        assert "remaining" in sent_embed.description
 
     async def test_flip_shows_insufficient_dough_message(self) -> None:
         flip_command = _get_command(self.bot, "flip")
@@ -1637,9 +1617,9 @@ class CommandsFlipTests(IsolatedAsyncioTestCase):
 
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
-        self.assertEqual(sent_embed.title, "Flip")
-        self.assertIn("do not have enough dough", sent_embed.description)
-        self.assertIn("Balance: **5**", sent_embed.description)
+        assert sent_embed.title == "Flip"
+        assert "do not have enough dough" in sent_embed.description
+        assert "Balance: **5**" in sent_embed.description
 
     async def test_flip_shows_heads_on_win_after_delay(self) -> None:
         flip_command = _get_command(self.bot, "flip")
@@ -1665,15 +1645,15 @@ class CommandsFlipTests(IsolatedAsyncioTestCase):
         execute_flip.assert_called_once()
         ctx.send.assert_awaited_once()
         first_embed = ctx.send.await_args.kwargs["embed"]
-        self.assertEqual(first_embed.title, "Flip")
-        self.assertIn("coin is", first_embed.description)
-        self.assertNotIn("Result", first_embed.description)
+        assert first_embed.title == "Flip"
+        assert "coin is" in first_embed.description
+        assert "Result" not in first_embed.description
         sleep_mock.assert_awaited_once_with(3.0)
 
         message.edit.assert_awaited_once()
         final_embed = message.edit.await_args.kwargs["embed"]
-        self.assertIn("Heads", final_embed.description)
-        self.assertIn("+10", final_embed.description)
+        assert "Heads" in final_embed.description
+        assert "+10" in final_embed.description
 
     async def test_flip_shows_tails_on_loss_after_delay(self) -> None:
         flip_command = _get_command(self.bot, "flip")
@@ -1699,13 +1679,13 @@ class CommandsFlipTests(IsolatedAsyncioTestCase):
         execute_flip.assert_called_once()
         ctx.send.assert_awaited_once()
         first_embed = ctx.send.await_args.kwargs["embed"]
-        self.assertIn("coin is", first_embed.description)
+        assert "coin is" in first_embed.description
         sleep_mock.assert_awaited_once_with(3.0)
 
         message.edit.assert_awaited_once()
         final_embed = message.edit.await_args.kwargs["embed"]
-        self.assertIn("Tails", final_embed.description)
-        self.assertIn("-10", final_embed.description)
+        assert "Tails" in final_embed.description
+        assert "-10" in final_embed.description
 
     async def test_flip_respects_heads_call_illusion(self) -> None:
         flip_command = _get_command(self.bot, "flip")
@@ -1729,9 +1709,9 @@ class CommandsFlipTests(IsolatedAsyncioTestCase):
             await flip_command.callback(ctx, stake_str="10", side_str="heads")
 
         first_embed = ctx.send.await_args.kwargs["embed"]
-        self.assertIn("Call: **Heads**", first_embed.description)
+        assert "Call: **Heads**" in first_embed.description
         final_embed = message.edit.await_args.kwargs["embed"]
-        self.assertIn("Result: **Heads**", final_embed.description)
+        assert "Result: **Heads**" in final_embed.description
 
     async def test_flip_respects_t_alias_call_illusion(self) -> None:
         flip_command = _get_command(self.bot, "flip")
@@ -1755,16 +1735,16 @@ class CommandsFlipTests(IsolatedAsyncioTestCase):
             await flip_command.callback(ctx, stake_str="10", side_str="t")
 
         first_embed = ctx.send.await_args.kwargs["embed"]
-        self.assertIn("Call: **Tails**", first_embed.description)
+        assert "Call: **Tails**" in first_embed.description
         final_embed = message.edit.await_args.kwargs["embed"]
-        self.assertIn("Result: **Tails**", final_embed.description)
+        assert "Result: **Tails**" in final_embed.description
 
 
-class CommandsSlotsAnimationTests(IsolatedAsyncioTestCase):
+class CommandsSlotsAnimationTests:
     async def test_slots_reel_content_hides_status_emoji_until_result(self) -> None:
         symbols = ["🍞", "🍞", "🍞"]
-        self.assertEqual(_slots_reel_content(symbols), "🍞🍞🍞")
-        self.assertEqual(_slots_reel_content(symbols, result_emoji="🎉"), "🍞🍞🍞🎉")
+        assert _slots_reel_content(symbols) == "🍞🍞🍞"
+        assert _slots_reel_content(symbols, result_emoji="🎉") == "🍞🍞🍞🎉"
 
     async def test_animate_slots_spin_uses_tapered_frame_delays(self) -> None:
         message = AsyncMock()
@@ -1775,21 +1755,20 @@ class CommandsSlotsAnimationTests(IsolatedAsyncioTestCase):
             patch("bot.commands_gambling.asyncio.sleep", new=AsyncMock()) as sleep_mock,
         ):
             await _animate_slots_spin(message, ["🍇", "🍝", "🧀"])
-
-        self.assertEqual(message.edit.await_count, 4)
+        assert message.edit.await_count == 4
 
         observed_delays = [call.args[0] for call in sleep_mock.await_args_list]
-        self.assertEqual(len(observed_delays), 4)
-        self.assertAlmostEqual(observed_delays[0], SLOTS_SPIN_FRAME_MIN_DELAY_SECONDS)
-        self.assertAlmostEqual(observed_delays[-1], SLOTS_SPIN_FRAME_MAX_DELAY_SECONDS)
-        self.assertTrue(all(left <= right for left, right in zip(observed_delays, observed_delays[1:])))
+        assert len(observed_delays) == 4
+        assert round(abs((observed_delays[0]) - (SLOTS_SPIN_FRAME_MIN_DELAY_SECONDS)), 7) == 0
+        assert round(abs((observed_delays[-1]) - (SLOTS_SPIN_FRAME_MAX_DELAY_SECONDS)), 7) == 0
+        assert all(left <= right for left, right in zip(observed_delays, observed_delays[1:]))
 
         intermediate_contents = [call.kwargs["content"] for call in message.edit.await_args_list]
-        self.assertTrue(all("✅" not in text and "❌" not in text and "🎉" not in text for text in intermediate_contents))
+        assert all("✅" not in text and "❌" not in text and "🎉" not in text for text in intermediate_contents)
 
 
-class CommandsInfoTests(IsolatedAsyncioTestCase):
-    def setUp(self) -> None:
+class CommandsInfoTests:
+    def setup_method(self) -> None:
         self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)
         register_commands(self.bot)
 
@@ -1821,12 +1800,12 @@ class CommandsInfoTests(IsolatedAsyncioTestCase):
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
         field_values = {field.name: field.value for field in sent_embed.fields}
-        self.assertEqual(field_values.get("Cards"), "7")
-        self.assertEqual(field_values.get("Dough"), "123")
-        self.assertEqual(field_values.get("Starter"), "9")
-        self.assertEqual(field_values.get("Drop Tickets"), "4")
-        self.assertEqual(field_values.get("Pull Tickets"), "6")
-        self.assertEqual(field_values.get("Wishes"), "3")
+        assert field_values.get("Cards") == "7"
+        assert field_values.get("Dough") == "123"
+        assert field_values.get("Starter") == "9"
+        assert field_values.get("Drop Tickets") == "4"
+        assert field_values.get("Pull Tickets") == "6"
+        assert field_values.get("Wishes") == "3"
 
     async def test_info_uses_replied_player_when_argument_omitted(self) -> None:
         info_command = _get_command(self.bot, "info")
@@ -1859,11 +1838,11 @@ class CommandsInfoTests(IsolatedAsyncioTestCase):
 
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
-        self.assertEqual(sent_embed.title, "Target's Info")
+        assert sent_embed.title == "Target's Info"
 
 
-class CommandsGiftTests(IsolatedAsyncioTestCase):
-    def setUp(self) -> None:
+class CommandsGiftTests:
+    def setup_method(self) -> None:
         self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)
         register_commands(self.bot)
 
@@ -1890,8 +1869,8 @@ class CommandsGiftTests(IsolatedAsyncioTestCase):
         gift_card.assert_not_called()
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
-        self.assertEqual(sent_embed.title, "Gift")
-        self.assertIn("cannot gift cards to bots", sent_embed.description)
+        assert sent_embed.title == "Gift"
+        assert "cannot gift cards to bots" in sent_embed.description
 
     async def test_gift_card_success_sends_immediate_embed(self) -> None:
         gift_card_command = _get_group_command(self.bot, "gift", "card")
@@ -1935,12 +1914,12 @@ class CommandsGiftTests(IsolatedAsyncioTestCase):
         get_instance.assert_called_once_with(1, 200, "a")
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
-        self.assertEqual(sent_embed.title, "Gift")
-        self.assertIn("Sent to: <@200>", sent_embed.description)
-        self.assertIn("Sender: <@100>", sent_embed.description)
-        self.assertIn("Card:", sent_embed.description)
-        self.assertNotIn("view", ctx.send.await_args.kwargs)
-        self.assertEqual(sent_embed.thumbnail.url, "attachment://gift.png")
+        assert sent_embed.title == "Gift"
+        assert "Sent to: <@200>" in sent_embed.description
+        assert "Sender: <@100>" in sent_embed.description
+        assert "Card:" in sent_embed.description
+        assert "view" not in ctx.send.await_args.kwargs
+        assert sent_embed.thumbnail.url == "attachment://gift.png"
 
     async def test_gift_dough_success_updates_balances(self) -> None:
         gift_dough_command = _get_group_command(self.bot, "gift", "dough")
@@ -1967,10 +1946,10 @@ class CommandsGiftTests(IsolatedAsyncioTestCase):
         gift_dough.assert_called_once_with(guild_id=1, sender_id=100, recipient_id=200, amount=20)
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
-        self.assertEqual(sent_embed.title, "Gift")
-        self.assertIn("Sent: **20** dough", sent_embed.description)
-        self.assertIn("Your Balance: **70** dough", sent_embed.description)
-        self.assertIn("Target's Balance: **30** dough", sent_embed.description)
+        assert sent_embed.title == "Gift"
+        assert "Sent: **20** dough" in sent_embed.description
+        assert "Your Balance: **70** dough" in sent_embed.description
+        assert "Target's Balance: **30** dough" in sent_embed.description
 
     async def test_gift_starter_success_updates_balances(self) -> None:
         gift_starter_command = _get_group_command(self.bot, "gift", "starter")
@@ -1997,10 +1976,10 @@ class CommandsGiftTests(IsolatedAsyncioTestCase):
         gift_starter.assert_called_once_with(guild_id=1, sender_id=100, recipient_id=200, amount=3)
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
-        self.assertEqual(sent_embed.title, "Gift")
-        self.assertIn("Sent: **3** starter", sent_embed.description)
-        self.assertIn("Your Starter: **9**", sent_embed.description)
-        self.assertIn("Target's Starter: **4**", sent_embed.description)
+        assert sent_embed.title == "Gift"
+        assert "Sent: **3** starter" in sent_embed.description
+        assert "Your Starter: **9**" in sent_embed.description
+        assert "Target's Starter: **4**" in sent_embed.description
 
     async def test_gift_drop_success_updates_balances(self) -> None:
         gift_drop_command = _get_group_command(self.bot, "gift", "drop")
@@ -2027,10 +2006,10 @@ class CommandsGiftTests(IsolatedAsyncioTestCase):
         gift_drop.assert_called_once_with(guild_id=1, sender_id=100, recipient_id=200, amount=2)
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
-        self.assertEqual(sent_embed.title, "Gift")
-        self.assertIn("Sent: **2** drop tickets", sent_embed.description)
-        self.assertIn("Your Drop Tickets: **6**", sent_embed.description)
-        self.assertIn("Target's Drop Tickets: **2**", sent_embed.description)
+        assert sent_embed.title == "Gift"
+        assert "Sent: **2** drop tickets" in sent_embed.description
+        assert "Your Drop Tickets: **6**" in sent_embed.description
+        assert "Target's Drop Tickets: **2**" in sent_embed.description
 
     async def test_gift_pull_success_updates_balances(self) -> None:
         gift_pull_command = _get_group_command(self.bot, "gift", "pull")
@@ -2057,14 +2036,14 @@ class CommandsGiftTests(IsolatedAsyncioTestCase):
         gift_pull.assert_called_once_with(guild_id=1, sender_id=100, recipient_id=200, amount=2)
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
-        self.assertEqual(sent_embed.title, "Gift")
-        self.assertIn("Sent: **2** pull tickets", sent_embed.description)
-        self.assertIn("Your Pull Tickets: **6**", sent_embed.description)
-        self.assertIn("Target's Pull Tickets: **2**", sent_embed.description)
+        assert sent_embed.title == "Gift"
+        assert "Sent: **2** pull tickets" in sent_embed.description
+        assert "Your Pull Tickets: **6**" in sent_embed.description
+        assert "Target's Pull Tickets: **2**" in sent_embed.description
 
 
-class CommandsVoteTests(IsolatedAsyncioTestCase):
-    def setUp(self) -> None:
+class CommandsVoteTests:
+    def setup_method(self) -> None:
         self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)
         register_commands(self.bot)
 
@@ -2085,13 +2064,10 @@ class CommandsVoteTests(IsolatedAsyncioTestCase):
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
         sent_view = ctx.send.await_args.kwargs["view"]
-        self.assertEqual(sent_embed.title, "Vote")
-        self.assertIn("The reward system is temporarily unavailable.", sent_embed.description)
-        self.assertIn(
-            "You can still vote, but you won't earn starter for now.",
-            sent_embed.description,
-        )
-        self.assertIsInstance(sent_view, discord.ui.View)
+        assert sent_embed.title == "Vote"
+        assert "The reward system is temporarily unavailable." in sent_embed.description
+        assert "You can still vote, but you won't earn starter for now." in sent_embed.description
+        assert isinstance(sent_view, discord.ui.View)
 
     async def test_vote_claims_starter_when_topgg_vote_detected(self) -> None:
         vote_command = _get_command(self.bot, "vote")
@@ -2118,12 +2094,12 @@ class CommandsVoteTests(IsolatedAsyncioTestCase):
 
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
-        self.assertIn("Claimed:", sent_embed.description)
-        self.assertIn("Starter Balance: **5**", sent_embed.description)
+        assert "Claimed:" in sent_embed.description
+        assert "Starter Balance: **5**" in sent_embed.description
 
 
-class CommandsBurnTests(IsolatedAsyncioTestCase):
-    def setUp(self) -> None:
+class CommandsBurnTests:
+    def setup_method(self) -> None:
         self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)
         register_commands(self.bot)
 
@@ -2166,9 +2142,9 @@ class CommandsBurnTests(IsolatedAsyncioTestCase):
 
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
-        self.assertEqual(sent_embed.title, "Burn Confirmation")
-        self.assertIn("`#a", sent_embed.description)
-        self.assertNotIn("`#?`", sent_embed.description)
+        assert sent_embed.title == "Burn Confirmation"
+        assert "`#a" in sent_embed.description
+        assert "`#?`" not in sent_embed.description
 
     async def test_burn_supports_folder_selector(self) -> None:
         burn_command = _get_command(self.bot, "burn")
@@ -2216,11 +2192,11 @@ class CommandsBurnTests(IsolatedAsyncioTestCase):
 
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
-        self.assertEqual(sent_embed.title, "Burn Confirmation")
+        assert sent_embed.title == "Burn Confirmation"
 
 
-class CommandsMonopolyTests(IsolatedAsyncioTestCase):
-    def setUp(self) -> None:
+class CommandsMonopolyTests:
+    def setup_method(self) -> None:
         self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)
         register_commands(self.bot)
 
@@ -2269,21 +2245,21 @@ class CommandsMonopolyTests(IsolatedAsyncioTestCase):
 
         image_payload.assert_called_once()
         payload_args, payload_kwargs = image_payload.call_args
-        self.assertEqual(payload_args, ("SPG", 321))
-        self.assertEqual(payload_kwargs["morph_key"], None)
-        self.assertEqual(payload_kwargs["frame_key"], None)
-        self.assertEqual(payload_kwargs["font_key"], None)
+        assert payload_args == ("SPG", 321)
+        assert payload_kwargs["morph_key"] is None
+        assert payload_kwargs["frame_key"] is None
+        assert payload_kwargs["font_key"] is None
         sleep_mock.assert_awaited_once_with(3.0)
 
         ctx.send.assert_awaited_once()
         suspense_embed = ctx.send.await_args.kwargs["embed"]
-        self.assertIn("The dice are", suspense_embed.description)
+        assert "The dice are" in suspense_embed.description
 
         message.edit.assert_awaited_once()
         final_embed = message.edit.await_args.kwargs["embed"]
         final_attachments = message.edit.await_args.kwargs["attachments"]
-        self.assertEqual(final_embed.thumbnail.url, "attachment://mpreg.png")
-        self.assertEqual(final_attachments, [image_file])
+        assert final_embed.thumbnail.url == "attachment://mpreg.png"
+        assert final_attachments == [image_file]
 
     async def test_monopoly_roll_uses_generic_thumbnail_metadata(self) -> None:
         monopoly_roll_command = _get_group_command(self.bot, "monopoly", "roll")
@@ -2330,25 +2306,25 @@ class CommandsMonopolyTests(IsolatedAsyncioTestCase):
 
         image_payload.assert_called_once()
         payload_args, payload_kwargs = image_payload.call_args
-        self.assertEqual(payload_args, ("SPG", 222))
-        self.assertEqual(payload_kwargs["morph_key"], "foil")
-        self.assertEqual(payload_kwargs["frame_key"], "gold")
-        self.assertEqual(payload_kwargs["font_key"], "papyrus")
+        assert payload_args == ("SPG", 222)
+        assert payload_kwargs["morph_key"] == "foil"
+        assert payload_kwargs["frame_key"] == "gold"
+        assert payload_kwargs["font_key"] == "papyrus"
         sleep_mock.assert_awaited_once_with(3.0)
 
         ctx.send.assert_awaited_once()
         suspense_embed = ctx.send.await_args.kwargs["embed"]
-        self.assertIn("The dice are", suspense_embed.description)
+        assert "The dice are" in suspense_embed.description
 
         message.edit.assert_awaited_once()
         final_embed = message.edit.await_args.kwargs["embed"]
         final_attachments = message.edit.await_args.kwargs["attachments"]
-        self.assertEqual(final_embed.thumbnail.url, "attachment://property.png")
-        self.assertEqual(final_attachments, [image_file])
+        assert final_embed.thumbnail.url == "attachment://property.png"
+        assert final_attachments == [image_file]
 
 
-class CommandsMorphTests(IsolatedAsyncioTestCase):
-    def setUp(self) -> None:
+class CommandsMorphTests:
+    def setup_method(self) -> None:
         self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)
         register_commands(self.bot)
 
@@ -2377,11 +2353,11 @@ class CommandsMorphTests(IsolatedAsyncioTestCase):
 
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
-        self.assertEqual(sent_embed.title, "Morph Confirmation")
-        self.assertIn("Current Morph", sent_embed.description)
-        self.assertIn("Roll Result: **?**", sent_embed.description)
-        self.assertIn("Roll Cost: **9** dough", sent_embed.description)
-        self.assertIn("view", ctx.send.await_args.kwargs)
+        assert sent_embed.title == "Morph Confirmation"
+        assert "Current Morph" in sent_embed.description
+        assert "Roll Result: **?**" in sent_embed.description
+        assert "Roll Cost: **9** dough" in sent_embed.description
+        assert "view" in ctx.send.await_args.kwargs
 
     async def test_morph_error_surfaces_service_message(self) -> None:
         morph_command = _get_command(self.bot, "morph")
@@ -2402,12 +2378,12 @@ class CommandsMorphTests(IsolatedAsyncioTestCase):
 
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
-        self.assertEqual(sent_embed.title, "Morph")
-        self.assertEqual(sent_embed.description, "You do not have enough dough.")
+        assert sent_embed.title == "Morph"
+        assert sent_embed.description == "You do not have enough dough."
 
 
-class CommandsFrameTests(IsolatedAsyncioTestCase):
-    def setUp(self) -> None:
+class CommandsFrameTests:
+    def setup_method(self) -> None:
         self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)
         register_commands(self.bot)
 
@@ -2436,11 +2412,11 @@ class CommandsFrameTests(IsolatedAsyncioTestCase):
 
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
-        self.assertEqual(sent_embed.title, "Frame Confirmation")
-        self.assertIn("Current Frame", sent_embed.description)
-        self.assertIn("Roll Result: **?**", sent_embed.description)
-        self.assertIn("Roll Cost: **9** dough", sent_embed.description)
-        self.assertIn("view", ctx.send.await_args.kwargs)
+        assert sent_embed.title == "Frame Confirmation"
+        assert "Current Frame" in sent_embed.description
+        assert "Roll Result: **?**" in sent_embed.description
+        assert "Roll Cost: **9** dough" in sent_embed.description
+        assert "view" in ctx.send.await_args.kwargs
 
     async def test_frame_error_surfaces_service_message(self) -> None:
         frame_command = _get_command(self.bot, "frame")
@@ -2461,12 +2437,12 @@ class CommandsFrameTests(IsolatedAsyncioTestCase):
 
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
-        self.assertEqual(sent_embed.title, "Frame")
-        self.assertEqual(sent_embed.description, "You do not have enough dough.")
+        assert sent_embed.title == "Frame"
+        assert sent_embed.description == "You do not have enough dough."
 
 
-class CommandsFontTests(IsolatedAsyncioTestCase):
-    def setUp(self) -> None:
+class CommandsFontTests:
+    def setup_method(self) -> None:
         self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)
         register_commands(self.bot)
 
@@ -2495,11 +2471,11 @@ class CommandsFontTests(IsolatedAsyncioTestCase):
 
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
-        self.assertEqual(sent_embed.title, "Font Confirmation")
-        self.assertIn("Current Font", sent_embed.description)
-        self.assertIn("Roll Result: **?**", sent_embed.description)
-        self.assertIn("Roll Cost: **9** dough", sent_embed.description)
-        self.assertIn("view", ctx.send.await_args.kwargs)
+        assert sent_embed.title == "Font Confirmation"
+        assert "Current Font" in sent_embed.description
+        assert "Roll Result: **?**" in sent_embed.description
+        assert "Roll Cost: **9** dough" in sent_embed.description
+        assert "view" in ctx.send.await_args.kwargs
 
     async def test_font_error_surfaces_service_message(self) -> None:
         font_command = _get_command(self.bot, "font")
@@ -2520,11 +2496,11 @@ class CommandsFontTests(IsolatedAsyncioTestCase):
 
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
-        self.assertEqual(sent_embed.title, "Font")
-        self.assertEqual(sent_embed.description, "You do not have enough dough.")
+        assert sent_embed.title == "Font"
+        assert sent_embed.description == "You do not have enough dough."
 
 
-class DropPreviewRegressionTests(TestCase):
+class DropPreviewRegressionTests:
     def test_drop_preview_uses_placeholder_when_third_fetch_fails(self) -> None:
         try:
             from PIL import Image
@@ -2551,8 +2527,7 @@ class DropPreviewRegressionTests(TestCase):
                     ("FUS", 3),
                 ]
             )
-
-        self.assertIsNotNone(preview)
+        assert preview is not None
         if preview is None:
             self.fail("Expected drop preview bytes")
         composed = Image.open(io.BytesIO(preview)).convert("RGB")
@@ -2566,7 +2541,7 @@ class DropPreviewRegressionTests(TestCase):
 
         pixel_slot_2 = composed.getpixel((x_slot_2, y))
         pixel_slot_3 = composed.getpixel((x_slot_3, y))
-        self.assertNotEqual(pixel_slot_2, pixel_slot_3)
+        assert pixel_slot_2 != pixel_slot_3
 
     def test_drop_preview_uses_normalized_card_size(self) -> None:
         try:
@@ -2589,8 +2564,7 @@ class DropPreviewRegressionTests(TestCase):
                     ("FUS", 3),
                 ]
             )
-
-        self.assertIsNotNone(preview)
+        assert preview is not None
         if preview is None:
             self.fail("Expected drop preview bytes")
 
@@ -2600,7 +2574,7 @@ class DropPreviewRegressionTests(TestCase):
         pad = 16
         expected_width = (card_w * 3) + (gap * 2) + (pad * 2)
         expected_height = card_h + (pad * 2)
-        self.assertEqual(composed.size, (expected_width, expected_height))
+        assert composed.size == (expected_width, expected_height)
 
     def test_drop_preview_background_is_transparent(self) -> None:
         try:
@@ -2623,17 +2597,15 @@ class DropPreviewRegressionTests(TestCase):
                     ("FUS", 3),
                 ]
             )
-
-        self.assertIsNotNone(preview)
+        assert preview is not None
         if preview is None:
             self.fail("Expected drop preview bytes")
 
         composed = Image.open(io.BytesIO(preview)).convert("RGBA")
-        # The top-left pixel is outside all card surfaces and should stay fully transparent.
-        self.assertEqual(composed.getpixel((0, 0)), (0, 0, 0, 0))
+        assert composed.getpixel((0, 0)) == (0, 0, 0, 0)
 
 
-class CardRenderRegressionTests(TestCase):
+class CardRenderRegressionTests:
     def test_render_card_image_bytes_applies_common_border_color(self) -> None:
         try:
             from PIL import Image
@@ -2651,13 +2623,12 @@ class CardRenderRegressionTests(TestCase):
             return_value=png_bytes((220, 30, 30)),
         ):
             rendered = render_card_image_bytes("SPG")
-
-        self.assertIsNotNone(rendered)
+        assert rendered is not None
         if rendered is None:
             self.fail("Expected rendered card image bytes")
 
         image = Image.open(io.BytesIO(rendered)).convert("RGBA")
-        self.assertEqual(image.size, DEFAULT_CARD_RENDER_SIZE)
+        assert image.size == DEFAULT_CARD_RENDER_SIZE
 
         expected_color = RARITY_BORDER_COLORS["common"]
         sample_x = DEFAULT_CARD_RENDER_SIZE[0] // 2
@@ -2669,7 +2640,7 @@ class CardRenderRegressionTests(TestCase):
         sampled_rgba = image.getpixel((sample_x, min(DEFAULT_CARD_RENDER_SIZE[1] - 1, sample_y + 2)))
         sampled = (sampled_rgba[0], sampled_rgba[1], sampled_rgba[2])
         channel_diffs = [abs(sampled[idx] - expected_color[idx]) for idx in range(3)]
-        self.assertLessEqual(max(channel_diffs), 8)
+        assert max(channel_diffs) <= 8
 
     def test_render_card_image_bytes_applies_bottom_gradient_and_generation_text(
         self,
@@ -2691,9 +2662,8 @@ class CardRenderRegressionTests(TestCase):
         ):
             rendered_gen_1 = render_card_image_bytes("SPG", generation=1)
             rendered_gen_2 = render_card_image_bytes("SPG", generation=2)
-
-        self.assertIsNotNone(rendered_gen_1)
-        self.assertIsNotNone(rendered_gen_2)
+        assert rendered_gen_1 is not None
+        assert rendered_gen_2 is not None
         if rendered_gen_1 is None or rendered_gen_2 is None:
             self.fail("Expected rendered card image bytes")
 
@@ -2701,10 +2671,8 @@ class CardRenderRegressionTests(TestCase):
 
         bottom_sample = image.getpixel((DEFAULT_CARD_RENDER_SIZE[0] // 2, DEFAULT_CARD_RENDER_SIZE[1] - 32))
         upper_sample = image.getpixel((DEFAULT_CARD_RENDER_SIZE[0] // 2, DEFAULT_CARD_RENDER_SIZE[1] // 2))
-        self.assertNotEqual(bottom_sample, upper_sample)
-
-        # Different generation text should produce different rendered output.
-        self.assertNotEqual(rendered_gen_1, rendered_gen_2)
+        assert bottom_sample != upper_sample
+        assert rendered_gen_1 != rendered_gen_2
 
     def test_render_card_image_bytes_applies_buttery_frame(self) -> None:
         try:
@@ -2731,13 +2699,11 @@ class CardRenderRegressionTests(TestCase):
         ):
             base_rendered = render_card_image_bytes("SPG", generation=10)
             framed_rendered = render_card_image_bytes("SPG", generation=10, frame_key="buttery")
-
-        self.assertIsNotNone(base_rendered)
-        self.assertIsNotNone(framed_rendered)
+        assert base_rendered is not None
+        assert framed_rendered is not None
         if base_rendered is None or framed_rendered is None:
             self.fail("Expected rendered card image bytes")
-
-        self.assertNotEqual(base_rendered, framed_rendered)
+        assert base_rendered != framed_rendered
 
     def test_render_card_image_bytes_scales_body_down_when_frame_enabled(self) -> None:
         try:
@@ -2762,9 +2728,8 @@ class CardRenderRegressionTests(TestCase):
         ):
             base_rendered = render_card_image_bytes("SPG", generation=10)
             framed_rendered = render_card_image_bytes("SPG", generation=10, frame_key="buttery")
-
-        self.assertIsNotNone(base_rendered)
-        self.assertIsNotNone(framed_rendered)
+        assert base_rendered is not None
+        assert framed_rendered is not None
         if base_rendered is None or framed_rendered is None:
             self.fail("Expected rendered card image bytes")
 
@@ -2773,8 +2738,8 @@ class CardRenderRegressionTests(TestCase):
 
         sample_x = DEFAULT_CARD_RENDER_SIZE[0] // 2
         sample_y = 12
-        self.assertGreater(base_image.getpixel((sample_x, sample_y))[3], 0)
-        self.assertEqual(framed_image.getpixel((sample_x, sample_y))[3], 0)
+        assert base_image.getpixel((sample_x, sample_y))[3] > 0
+        assert framed_image.getpixel((sample_x, sample_y))[3] == 0
 
     def test_render_card_image_bytes_applies_black_and_white_morph(self) -> None:
         try:
@@ -2790,16 +2755,15 @@ class CardRenderRegressionTests(TestCase):
 
         with patch("bot.images.read_local_card_image_bytes", return_value=png_bytes()):
             rendered = render_card_image_bytes("SPG", generation=10, morph_key="black_and_white")
-
-        self.assertIsNotNone(rendered)
+        assert rendered is not None
         if rendered is None:
             self.fail("Expected rendered card image bytes")
 
         image = Image.open(io.BytesIO(rendered)).convert("RGB")
         sampled = image.getpixel((DEFAULT_CARD_RENDER_SIZE[0] // 2, DEFAULT_CARD_RENDER_SIZE[1] // 2))
         red, green, blue = sampled
-        self.assertLessEqual(abs(red - green), 10)
-        self.assertLessEqual(abs(green - blue), 10)
+        assert abs(red - green) <= 10
+        assert abs(green - blue) <= 10
 
     def test_render_card_image_bytes_applies_inverse_morph(self) -> None:
         try:
@@ -2821,14 +2785,13 @@ class CardRenderRegressionTests(TestCase):
             ),
         ):
             rendered = render_card_image_bytes("SPG", generation=10, morph_key="inverse")
-
-        self.assertIsNotNone(rendered)
+        assert rendered is not None
         if rendered is None:
             self.fail("Expected rendered card image bytes")
 
         image = Image.open(io.BytesIO(rendered)).convert("RGB")
         sampled = image.getpixel((DEFAULT_CARD_RENDER_SIZE[0] // 2, DEFAULT_CARD_RENDER_SIZE[1] // 2))
-        self.assertEqual(sampled, (215, 145, 75))
+        assert sampled == (215, 145, 75)
 
     def test_render_card_image_bytes_applies_rose_tint_morph(self) -> None:
         try:
@@ -2851,9 +2814,8 @@ class CardRenderRegressionTests(TestCase):
         ):
             base = render_card_image_bytes("SPG", generation=10)
             tinted = render_card_image_bytes("SPG", generation=10, morph_key="tint_rose")
-
-        self.assertIsNotNone(base)
-        self.assertIsNotNone(tinted)
+        assert base is not None
+        assert tinted is not None
         if base is None or tinted is None:
             self.fail("Expected rendered card image bytes")
 
@@ -2863,10 +2825,9 @@ class CardRenderRegressionTests(TestCase):
         y = DEFAULT_CARD_RENDER_SIZE[1] // 2
         base_r, base_g, base_b = base_image.getpixel((x, y))
         tinted_r, tinted_g, tinted_b = tinted_image.getpixel((x, y))
-
-        self.assertGreater(tinted_r, base_r)
-        self.assertLess(tinted_g, base_g)
-        self.assertLess(tinted_b, base_b)
+        assert tinted_r > base_r
+        assert tinted_g < base_g
+        assert tinted_b < base_b
 
     def test_render_card_image_bytes_applies_warm_tint_morph(self) -> None:
         try:
@@ -2889,9 +2850,8 @@ class CardRenderRegressionTests(TestCase):
         ):
             base = render_card_image_bytes("SPG", generation=10)
             warm = render_card_image_bytes("SPG", generation=10, morph_key="tint_warm")
-
-        self.assertIsNotNone(base)
-        self.assertIsNotNone(warm)
+        assert base is not None
+        assert warm is not None
         if base is None or warm is None:
             self.fail("Expected rendered card image bytes")
 
@@ -2901,10 +2861,9 @@ class CardRenderRegressionTests(TestCase):
         y = DEFAULT_CARD_RENDER_SIZE[1] // 2
         base_r, base_g, base_b = base_image.getpixel((x, y))
         warm_r, warm_g, warm_b = warm_image.getpixel((x, y))
-
-        self.assertGreater(warm_r, base_r)
-        self.assertGreater(warm_g, base_g)
-        self.assertLess(warm_b, base_b)
+        assert warm_r > base_r
+        assert warm_g > base_g
+        assert warm_b < base_b
 
     def test_render_card_image_bytes_applies_upside_down_morph(self) -> None:
         try:
@@ -2931,9 +2890,8 @@ class CardRenderRegressionTests(TestCase):
         ):
             base = render_card_image_bytes("SPG", generation=10)
             upside_down = render_card_image_bytes("SPG", generation=10, morph_key="upside_down")
-
-        self.assertIsNotNone(base)
-        self.assertIsNotNone(upside_down)
+        assert base is not None
+        assert upside_down is not None
         if base is None or upside_down is None:
             self.fail("Expected rendered card image bytes")
 
@@ -2947,25 +2905,22 @@ class CardRenderRegressionTests(TestCase):
         base_bottom = base_image.getpixel((center_x, bottom_y))
         flipped_top = upside_down_image.getpixel((center_x, top_y))
         flipped_bottom = upside_down_image.getpixel((center_x, bottom_y))
+        assert flipped_top == base_bottom
+        assert flipped_bottom == base_top
 
-        self.assertEqual(flipped_top, base_bottom)
-        self.assertEqual(flipped_bottom, base_top)
 
-
-class LocalImageBytesTests(TestCase):
+class LocalImageBytesTests:
     def test_get_card_image_bytes_returns_local_bytes(self) -> None:
         with patch(
             "bot.command_utils.read_local_card_image_bytes",
             return_value=b"local-bytes",
         ) as read_local:
             resolved = _get_card_image_bytes("SPG")
-
-        self.assertEqual(resolved, b"local-bytes")
+        assert resolved == b"local-bytes"
         read_local.assert_called_once_with("SPG")
 
     def test_get_card_image_bytes_returns_none_when_local_missing(self) -> None:
         with patch("bot.command_utils.read_local_card_image_bytes", return_value=None) as read_local:
             resolved = _get_card_image_bytes("SPG")
-
-        self.assertIsNone(resolved)
+        assert resolved is None
         read_local.assert_called_once_with("SPG")

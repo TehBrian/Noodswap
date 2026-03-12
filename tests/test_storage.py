@@ -1,6 +1,5 @@
 import sqlite3
 import tempfile
-from tests.pytest_compat import TestCase
 from contextlib import closing
 from pathlib import Path
 from types import SimpleNamespace
@@ -10,13 +9,13 @@ from bot import storage
 from bot.services import TradeTerms
 
 
-class StorageTests(TestCase):
-    def setUp(self) -> None:
+class StorageTests:
+    def setup_method(self) -> None:
         self._tmp_dir = tempfile.TemporaryDirectory()
         self._original_db_path = storage.DB_PATH
         storage.DB_PATH = Path(self._tmp_dir.name) / "test.db"
 
-    def tearDown(self) -> None:
+    def teardown_method(self) -> None:
         storage.DB_PATH = self._original_db_path
         self._tmp_dir.cleanup()
 
@@ -25,58 +24,58 @@ class StorageTests(TestCase):
 
         with closing(sqlite3.connect(storage.DB_PATH)) as conn:
             row = conn.execute("SELECT version FROM schema_migrations LIMIT 1").fetchone()
-            self.assertIsNotNone(row)
-            self.assertEqual(int(row[0]), storage.TARGET_SCHEMA_VERSION)
+            assert row is not None
+            assert int(row[0]) == storage.TARGET_SCHEMA_VERSION
 
             columns = conn.execute("PRAGMA table_info(players)").fetchall()
             column_names = {str(column[1]) for column in columns}
-            self.assertIn("married_instance_id", column_names)
-            self.assertIn("last_dropped_instance_id", column_names)
-            self.assertIn("starter", column_names)
-            self.assertIn("drop_tickets", column_names)
-            self.assertIn("pull_tickets", column_names)
-            self.assertIn("last_slots_at", column_names)
-            self.assertIn("last_flip_at", column_names)
-            self.assertIn("active_team_name", column_names)
-            self.assertIn("monopoly_position", column_names)
-            self.assertIn("last_monopoly_roll_at", column_names)
-            self.assertIn("monopoly_in_jail", column_names)
-            self.assertIn("monopoly_jail_roll_attempts", column_names)
-            self.assertIn("monopoly_consecutive_doubles", column_names)
+            assert "married_instance_id" in column_names
+            assert "last_dropped_instance_id" in column_names
+            assert "starter" in column_names
+            assert "drop_tickets" in column_names
+            assert "pull_tickets" in column_names
+            assert "last_slots_at" in column_names
+            assert "last_flip_at" in column_names
+            assert "active_team_name" in column_names
+            assert "monopoly_position" in column_names
+            assert "last_monopoly_roll_at" in column_names
+            assert "monopoly_in_jail" in column_names
+            assert "monopoly_jail_roll_attempts" in column_names
+            assert "monopoly_consecutive_doubles" in column_names
 
             pot_row = conn.execute("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'gambling_pot'").fetchone()
-            self.assertIsNotNone(pot_row)
+            assert pot_row is not None
 
             instance_columns = conn.execute("PRAGMA table_info(card_instances)").fetchall()
             instance_column_names = {str(column[1]) for column in instance_columns}
-            self.assertIn("morph_key", instance_column_names)
-            self.assertIn("frame_key", instance_column_names)
-            self.assertIn("font_key", instance_column_names)
+            assert "morph_key" in instance_column_names
+            assert "frame_key" in instance_column_names
+            assert "font_key" in instance_column_names
 
             wishlist_row = conn.execute("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'wishlist_cards'").fetchone()
-            self.assertIsNotNone(wishlist_row)
+            assert wishlist_row is not None
 
             tags_row = conn.execute("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'player_tags'").fetchone()
-            self.assertIsNotNone(tags_row)
+            assert tags_row is not None
 
             instance_tags_row = conn.execute("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'card_instance_tags'").fetchone()
-            self.assertIsNotNone(instance_tags_row)
+            assert instance_tags_row is not None
 
             teams_row = conn.execute("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'player_teams'").fetchone()
-            self.assertIsNotNone(teams_row)
+            assert teams_row is not None
 
             team_members_row = conn.execute("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'team_members'").fetchone()
-            self.assertIsNotNone(team_members_row)
+            assert team_members_row is not None
 
             battles_row = conn.execute("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'battle_sessions'").fetchone()
-            self.assertIsNotNone(battles_row)
+            assert battles_row is not None
 
     def test_init_db_does_not_create_player_cards_table(self) -> None:
         storage.init_db()
 
         with closing(sqlite3.connect(storage.DB_PATH)) as conn:
             row = conn.execute("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'player_cards'").fetchone()
-            self.assertIsNone(row)
+            assert row is None
 
     def test_marry_selects_lowest_generation_copy(self) -> None:
         guild_id = 1
@@ -89,11 +88,11 @@ class StorageTests(TestCase):
         storage.add_card_to_player(guild_id, user_id, card_id, 900)
 
         success, message, married_instance_id, married_generation = storage.marry_card(guild_id, user_id, card_id)
-        self.assertTrue(success)
-        self.assertEqual(message, "")
-        self.assertEqual(married_generation, 50)
-        self.assertEqual(married_instance_id, instance_b)
-        self.assertNotEqual(married_instance_id, instance_a)
+        assert success
+        assert message == ""
+        assert married_generation == 50
+        assert married_instance_id == instance_b
+        assert married_instance_id != instance_a
 
     def test_claim_vote_reward_always_adds_starter(self) -> None:
         guild_id = 1
@@ -106,14 +105,14 @@ class StorageTests(TestCase):
             user_id=user_id,
             reward_amount=1,
         )
-        self.assertEqual(starter_total, 1)
+        assert starter_total == 1
 
         starter_total = storage.claim_vote_reward(
             guild_id=guild_id,
             user_id=user_id,
             reward_amount=1,
         )
-        self.assertEqual(starter_total, 2)
+        assert starter_total == 2
 
     def test_slots_cooldown_and_starter_award(self) -> None:
         guild_id = 1
@@ -127,7 +126,7 @@ class StorageTests(TestCase):
             now=5_000.0,
             cooldown_seconds=1_320.0,
         )
-        self.assertEqual(first_remaining, 0.0)
+        assert first_remaining == 0.0
 
         second_remaining = storage.consume_slots_cooldown_if_ready(
             guild_id=guild_id,
@@ -135,11 +134,11 @@ class StorageTests(TestCase):
             now=5_100.0,
             cooldown_seconds=1_320.0,
         )
-        self.assertGreater(second_remaining, 0.0)
+        assert second_remaining > 0.0
 
         starter_total = storage.add_starter(guild_id, user_id, 3)
-        self.assertEqual(starter_total, 3)
-        self.assertEqual(storage.get_player_starter(guild_id, user_id), 3)
+        assert starter_total == 3
+        assert storage.get_player_starter(guild_id, user_id) == 3
 
     def test_buy_drop_tickets_with_starter_requires_sufficient_balance(self) -> None:
         guild_id = 1
@@ -147,17 +146,17 @@ class StorageTests(TestCase):
 
         storage.init_db()
         purchased, starter_balance, drop_tickets, spent = storage.buy_drop_tickets_with_starter(guild_id, user_id, 2)
-        self.assertFalse(purchased)
-        self.assertEqual(starter_balance, 0)
-        self.assertEqual(drop_tickets, 0)
-        self.assertEqual(spent, 0)
+        assert not (purchased)
+        assert starter_balance == 0
+        assert drop_tickets == 0
+        assert spent == 0
 
         storage.add_starter(guild_id, user_id, 3)
         purchased, starter_balance, drop_tickets, spent = storage.buy_drop_tickets_with_starter(guild_id, user_id, 2)
-        self.assertTrue(purchased)
-        self.assertEqual(starter_balance, 1)
-        self.assertEqual(drop_tickets, 2)
-        self.assertEqual(spent, 2)
+        assert purchased
+        assert starter_balance == 1
+        assert drop_tickets == 2
+        assert spent == 2
 
     def test_buy_pull_tickets_with_starter_requires_sufficient_balance(self) -> None:
         guild_id = 1
@@ -165,17 +164,17 @@ class StorageTests(TestCase):
 
         storage.init_db()
         purchased, starter_balance, pull_tickets, spent = storage.buy_pull_tickets_with_starter(guild_id, user_id, 2)
-        self.assertFalse(purchased)
-        self.assertEqual(starter_balance, 0)
-        self.assertEqual(pull_tickets, 0)
-        self.assertEqual(spent, 0)
+        assert not (purchased)
+        assert starter_balance == 0
+        assert pull_tickets == 0
+        assert spent == 0
 
         storage.add_starter(guild_id, user_id, 3)
         purchased, starter_balance, pull_tickets, spent = storage.buy_pull_tickets_with_starter(guild_id, user_id, 2)
-        self.assertTrue(purchased)
-        self.assertEqual(starter_balance, 1)
-        self.assertEqual(pull_tickets, 2)
-        self.assertEqual(spent, 2)
+        assert purchased
+        assert starter_balance == 1
+        assert pull_tickets == 2
+        assert spent == 2
 
     def test_consume_pull_cooldown_or_ticket_bypasses_without_changing_timestamp(self) -> None:
         guild_id = 1
@@ -200,11 +199,10 @@ class StorageTests(TestCase):
             cooldown_seconds=360.0,
         )
         _last_drop_at, after_last_pull_at = storage.get_player_cooldown_timestamps(guild_id, user_id)
-
-        self.assertTrue(used_ticket)
-        self.assertEqual(remaining, 0.0)
-        self.assertEqual(before_last_pull_at, after_last_pull_at)
-        self.assertEqual(storage.get_player_pull_tickets(guild_id, user_id), 0)
+        assert used_ticket
+        assert remaining == 0.0
+        assert before_last_pull_at == after_last_pull_at
+        assert storage.get_player_pull_tickets(guild_id, user_id) == 0
 
     def test_consume_drop_cooldown_or_ticket_bypasses_without_changing_timestamp(
         self,
@@ -227,11 +225,10 @@ class StorageTests(TestCase):
             cooldown_seconds=360.0,
         )
         after_last_drop_at, _ = storage.get_player_cooldown_timestamps(guild_id, user_id)
-
-        self.assertTrue(used_ticket)
-        self.assertEqual(remaining, 0.0)
-        self.assertEqual(before_last_drop_at, after_last_drop_at)
-        self.assertEqual(storage.get_player_drop_tickets(guild_id, user_id), 0)
+        assert used_ticket
+        assert remaining == 0.0
+        assert before_last_drop_at == after_last_drop_at
+        assert storage.get_player_drop_tickets(guild_id, user_id) == 0
 
     def test_flip_cooldown_helper_and_timestamp(self) -> None:
         guild_id = 1
@@ -245,8 +242,8 @@ class StorageTests(TestCase):
             now=10_000.0,
             cooldown_seconds=120.0,
         )
-        self.assertEqual(first_remaining, 0.0)
-        self.assertEqual(storage.get_player_flip_timestamp(guild_id, user_id), 10_000.0)
+        assert first_remaining == 0.0
+        assert storage.get_player_flip_timestamp(guild_id, user_id) == 10_000.0
 
         second_remaining = storage.consume_flip_cooldown_if_ready(
             guild_id=guild_id,
@@ -254,7 +251,7 @@ class StorageTests(TestCase):
             now=10_050.0,
             cooldown_seconds=120.0,
         )
-        self.assertGreater(second_remaining, 0.0)
+        assert second_remaining > 0.0
 
     def test_execute_flip_wager_validates_stake_and_balance(self) -> None:
         guild_id = 1
@@ -269,9 +266,9 @@ class StorageTests(TestCase):
             cooldown_seconds=120.0,
             did_win=True,
         )
-        self.assertEqual(status, "invalid_stake")
-        self.assertEqual(remaining, 0.0)
-        self.assertEqual(balance, 0)
+        assert status == "invalid_stake"
+        assert remaining == 0.0
+        assert balance == 0
 
         status, remaining, balance = storage.execute_flip_wager(
             guild_id,
@@ -281,7 +278,7 @@ class StorageTests(TestCase):
             cooldown_seconds=120.0,
             did_win=True,
         )
-        self.assertEqual(status, "insufficient_dough")
+        assert status == "insufficient_dough"
 
     def test_flip_loss_adds_to_gambling_pot(self) -> None:
         guild_id = 1
@@ -297,15 +294,14 @@ class StorageTests(TestCase):
             cooldown_seconds=1.0,
             did_win=False,
         )
-
-        self.assertEqual(status, "lost")
-        self.assertEqual(remaining, 0.0)
-        self.assertEqual(balance, 75)
+        assert status == "lost"
+        assert remaining == 0.0
+        assert balance == 75
         pot_dough, pot_starter, pot_drop_tickets, pot_pull_tickets = storage.get_gambling_pot(guild_id)
-        self.assertEqual(pot_dough, 25)
-        self.assertEqual(pot_starter, 0)
-        self.assertEqual(pot_drop_tickets, 0)
-        self.assertEqual(pot_pull_tickets, 0)
+        assert pot_dough == 25
+        assert pot_starter == 0
+        assert pot_drop_tickets == 0
+        assert pot_pull_tickets == 0
 
     def test_monopoly_roll_sets_cooldown_when_not_doubles(self) -> None:
         guild_id = 1
@@ -319,13 +315,12 @@ class StorageTests(TestCase):
                 now=10_000.0,
                 cooldown_seconds=660.0,
             )
-
-        self.assertEqual(result.status, "ok")
-        self.assertFalse(result.doubles)
+        assert result.status == "ok"
+        assert not (result.doubles)
         _position, last_roll_at, in_jail, _jail_attempts, doubles_count = storage.get_monopoly_state(guild_id, user_id)
-        self.assertEqual(last_roll_at, 10_000.0)
-        self.assertFalse(in_jail)
-        self.assertEqual(doubles_count, 0)
+        assert last_roll_at == 10_000.0
+        assert not (in_jail)
+        assert doubles_count == 0
 
     def test_monopoly_roll_doubles_does_not_consume_cooldown(self) -> None:
         guild_id = 1
@@ -339,13 +334,12 @@ class StorageTests(TestCase):
                 now=20_000.0,
                 cooldown_seconds=660.0,
             )
-
-        self.assertEqual(result.status, "ok")
-        self.assertTrue(result.doubles)
+        assert result.status == "ok"
+        assert result.doubles
         _position, last_roll_at, in_jail, _jail_attempts, doubles_count = storage.get_monopoly_state(guild_id, user_id)
-        self.assertEqual(last_roll_at, 0.0)
-        self.assertFalse(in_jail)
-        self.assertEqual(doubles_count, 1)
+        assert last_roll_at == 0.0
+        assert not (in_jail)
+        assert doubles_count == 1
 
     def test_monopoly_property_rent_is_one_sixth_of_card_value(self) -> None:
         guild_id = 1
@@ -374,13 +368,12 @@ class StorageTests(TestCase):
                 now=30_000.0,
                 cooldown_seconds=660.0,
             )
-
-        self.assertEqual(result.status, "ok")
+        assert result.status == "ok"
 
         roller_dough, _, _ = storage.get_player_info(guild_id, roller_id)
         owner_dough, _, _ = storage.get_player_info(guild_id, owner_id)
-        self.assertEqual(roller_dough, 10_000 - expected_rent)
-        self.assertEqual(owner_dough, expected_rent)
+        assert roller_dough == 10_000 - expected_rent
+        assert owner_dough == expected_rent
 
     def test_monopoly_property_landing_uses_dupe_card_name_and_thumbnail_metadata(
         self,
@@ -404,9 +397,9 @@ class StorageTests(TestCase):
             )
 
         card_name = str(storage.CARD_CATALOG[common_card_id]["name"])
-        self.assertTrue(any(f"Landed on **{card_name}**" in line for line in result.lines))
-        self.assertEqual(result.thumbnail_card_id, common_card_id)
-        self.assertEqual(result.thumbnail_generation, generation)
+        assert any(f"Landed on **{card_name}**" in line for line in result.lines)
+        assert result.thumbnail_card_id == common_card_id
+        assert result.thumbnail_generation == generation
 
     def test_monopoly_roll_mpreg_includes_metadata_and_display_line(self) -> None:
         guild_id = 1
@@ -428,13 +421,12 @@ class StorageTests(TestCase):
                 now=40_000.0,
                 cooldown_seconds=660.0,
             )
-
-        self.assertEqual(result.status, "ok")
-        self.assertEqual(result.mpreg_card_id, "SPG")
-        self.assertEqual(result.mpreg_generation, 321)
-        self.assertIsNotNone(result.mpreg_dupe_code)
-        self.assertEqual(result.thumbnail_card_id, "SPG")
-        self.assertEqual(result.thumbnail_generation, 321)
+        assert result.status == "ok"
+        assert result.mpreg_card_id == "SPG"
+        assert result.mpreg_generation == 321
+        assert result.mpreg_dupe_code is not None
+        assert result.thumbnail_card_id == "SPG"
+        assert result.thumbnail_generation == 321
 
         expected_line = storage.card_dupe_display(
             "SPG",
@@ -444,7 +436,7 @@ class StorageTests(TestCase):
             frame_key=result.mpreg_frame_key,
             font_key=result.mpreg_font_key,
         )
-        self.assertIn(expected_line, result.lines)
+        assert expected_line in result.lines
 
     def test_monopoly_card_move_to_free_parking_awards_pot(self) -> None:
         guild_id = 1
@@ -491,18 +483,17 @@ class StorageTests(TestCase):
                 now=50_000.0,
                 cooldown_seconds=660.0,
             )
-
-        self.assertEqual(result.status, "ok")
-        self.assertTrue(any("Free Parking jackpot" in line for line in result.lines))
+        assert result.status == "ok"
+        assert any("Free Parking jackpot" in line for line in result.lines)
 
         pot_dough, pot_starter, pot_drop_tickets, pot_pull_tickets = storage.get_gambling_pot(guild_id)
-        self.assertEqual(pot_dough, 0)
-        self.assertEqual(pot_starter, 0)
-        self.assertEqual(pot_drop_tickets, 0)
-        self.assertEqual(pot_pull_tickets, 0)
+        assert pot_dough == 0
+        assert pot_starter == 0
+        assert pot_drop_tickets == 0
+        assert pot_pull_tickets == 0
 
         player_dough, _, _ = storage.get_player_info(guild_id, user_id)
-        self.assertEqual(player_dough, 1734)
+        assert player_dough == 1734
 
     def test_execute_flip_wager_win_loss_and_cooldown(self) -> None:
         guild_id = 1
@@ -518,9 +509,9 @@ class StorageTests(TestCase):
             cooldown_seconds=120.0,
             did_win=True,
         )
-        self.assertEqual(status, "won")
-        self.assertEqual(remaining, 0.0)
-        self.assertEqual(balance, 60)
+        assert status == "won"
+        assert remaining == 0.0
+        assert balance == 60
 
         status, remaining, balance = storage.execute_flip_wager(
             guild_id,
@@ -530,9 +521,9 @@ class StorageTests(TestCase):
             cooldown_seconds=120.0,
             did_win=False,
         )
-        self.assertEqual(status, "cooldown")
-        self.assertGreater(remaining, 0.0)
-        self.assertEqual(balance, 60)
+        assert status == "cooldown"
+        assert remaining > 0.0
+        assert balance == 60
 
         status, remaining, balance = storage.execute_flip_wager(
             guild_id,
@@ -542,9 +533,9 @@ class StorageTests(TestCase):
             cooldown_seconds=120.0,
             did_win=False,
         )
-        self.assertEqual(status, "lost")
-        self.assertEqual(remaining, 0.0)
-        self.assertEqual(balance, 50)
+        assert status == "lost"
+        assert remaining == 0.0
+        assert balance == 50
 
     def test_burn_candidate_selects_highest_generation_copy(self) -> None:
         guild_id = 1
@@ -557,12 +548,12 @@ class StorageTests(TestCase):
         storage.add_card_to_player(guild_id, user_id, card_id, 400)
 
         selected = storage.get_burn_candidate_by_card_id(guild_id, user_id, card_id)
-        self.assertIsNotNone(selected)
+        assert selected is not None
         if selected is None:
             return
         _instance_id, selected_card_id, selected_generation, _selected_dupe_code = selected
-        self.assertEqual(selected_card_id, card_id)
-        self.assertEqual(selected_generation, 900)
+        assert selected_card_id == card_id
+        assert selected_generation == 900
 
     def test_trade_transfers_highest_generation_and_updates_dough(self) -> None:
         guild_id = 1
@@ -575,7 +566,7 @@ class StorageTests(TestCase):
         storage.add_card_to_player(guild_id, seller_id, card_id, 800)
         storage.add_dough(guild_id, buyer_id, 100)
         selected = storage.get_burn_candidate_by_card_id(guild_id, seller_id, card_id)
-        self.assertIsNotNone(selected)
+        assert selected is not None
         if selected is None:
             return
         _, _, _, selected_dupe_code = selected
@@ -588,24 +579,22 @@ class StorageTests(TestCase):
             dupe_code=selected_dupe_code,
             terms=TradeTerms(mode="dough", amount=30),
         )
-
-        self.assertTrue(success)
-        self.assertEqual(message, "")
-        self.assertEqual(traded_generation, 800)
-        self.assertIsNotNone(traded_dupe_code)
+        assert success
+        assert message == ""
+        assert traded_generation == 800
+        assert traded_dupe_code is not None
 
         seller_instances = storage.get_player_card_instances(guild_id, seller_id)
         buyer_instances = storage.get_player_card_instances(guild_id, buyer_id)
-
-        self.assertEqual(len(seller_instances), 1)
-        self.assertEqual(seller_instances[0][2], 20)
-        self.assertEqual(len(buyer_instances), 1)
-        self.assertEqual(buyer_instances[0][2], 800)
+        assert len(seller_instances) == 1
+        assert seller_instances[0][2] == 20
+        assert len(buyer_instances) == 1
+        assert buyer_instances[0][2] == 800
 
         seller_dough, _, _ = storage.get_player_info(guild_id, seller_id)
         buyer_dough, _, _ = storage.get_player_info(guild_id, buyer_id)
-        self.assertEqual(seller_dough, 30)
-        self.assertEqual(buyer_dough, 70)
+        assert seller_dough == 30
+        assert buyer_dough == 70
 
     def test_trade_fails_when_seller_has_no_card(self) -> None:
         guild_id = 1
@@ -623,16 +612,15 @@ class StorageTests(TestCase):
             dupe_code="0",
             terms=TradeTerms(mode="dough", amount=10),
         )
-
-        self.assertFalse(success)
-        self.assertEqual(message, "Trade failed: seller no longer has that card code.")
-        self.assertIsNone(traded_generation)
-        self.assertIsNone(traded_dupe_code)
+        assert not (success)
+        assert message == "Trade failed: seller no longer has that card code."
+        assert traded_generation is None
+        assert traded_dupe_code is None
 
         seller_dough, _, _ = storage.get_player_info(guild_id, seller_id)
         buyer_dough, _, _ = storage.get_player_info(guild_id, buyer_id)
-        self.assertEqual(seller_dough, 0)
-        self.assertEqual(buyer_dough, 100)
+        assert seller_dough == 0
+        assert buyer_dough == 100
 
     def test_trade_fails_when_buyer_has_insufficient_dough(self) -> None:
         guild_id = 1
@@ -643,7 +631,7 @@ class StorageTests(TestCase):
         storage.add_card_to_player(guild_id, seller_id, "SPG", 100)
         storage.add_dough(guild_id, buyer_id, 5)
         selected = storage.get_burn_candidate_by_card_id(guild_id, seller_id, "SPG")
-        self.assertIsNotNone(selected)
+        assert selected is not None
         if selected is None:
             return
         _, _, _, selected_dupe_code = selected
@@ -656,21 +644,20 @@ class StorageTests(TestCase):
             dupe_code=selected_dupe_code,
             terms=TradeTerms(mode="dough", amount=20),
         )
-
-        self.assertFalse(success)
-        self.assertEqual(message, "Trade failed: buyer does not have enough dough.")
-        self.assertIsNone(traded_generation)
-        self.assertIsNone(traded_dupe_code)
+        assert not (success)
+        assert message == "Trade failed: buyer does not have enough dough."
+        assert traded_generation is None
+        assert traded_dupe_code is None
 
         seller_instances = storage.get_player_card_instances(guild_id, seller_id)
         buyer_instances = storage.get_player_card_instances(guild_id, buyer_id)
-        self.assertEqual(len(seller_instances), 1)
-        self.assertEqual(len(buyer_instances), 0)
+        assert len(seller_instances) == 1
+        assert len(buyer_instances) == 0
 
         seller_dough, _, _ = storage.get_player_info(guild_id, seller_id)
         buyer_dough, _, _ = storage.get_player_info(guild_id, buyer_id)
-        self.assertEqual(seller_dough, 0)
-        self.assertEqual(buyer_dough, 5)
+        assert seller_dough == 0
+        assert buyer_dough == 5
 
     def test_trade_starter_mode_transfers_card_and_starter(self) -> None:
         guild_id = 1
@@ -681,7 +668,7 @@ class StorageTests(TestCase):
         storage.add_card_to_player(guild_id, seller_id, "SPG", 100)
         storage.add_starter(guild_id, buyer_id, 10)
         selected = storage.get_burn_candidate_by_card_id(guild_id, seller_id, "SPG")
-        self.assertIsNotNone(selected)
+        assert selected is not None
         if selected is None:
             return
         _, _, _, dupe_code = selected
@@ -694,17 +681,16 @@ class StorageTests(TestCase):
             dupe_code=dupe_code,
             terms=TradeTerms(mode="starter", amount=4),
         )
-
-        self.assertTrue(success)
-        self.assertEqual(message, "")
-        self.assertEqual(gen, 100)
-        self.assertIsNone(received)
+        assert success
+        assert message == ""
+        assert gen == 100
+        assert received is None
 
         buyer_instances = storage.get_player_card_instances(guild_id, buyer_id)
-        self.assertEqual(len(buyer_instances), 1)
-        self.assertEqual(buyer_instances[0][1], "SPG")
-        self.assertEqual(storage.get_player_starter(guild_id, seller_id), 4)
-        self.assertEqual(storage.get_player_starter(guild_id, buyer_id), 6)
+        assert len(buyer_instances) == 1
+        assert buyer_instances[0][1] == "SPG"
+        assert storage.get_player_starter(guild_id, seller_id) == 4
+        assert storage.get_player_starter(guild_id, buyer_id) == 6
 
     def test_trade_starter_mode_fails_when_buyer_has_insufficient_starter(self) -> None:
         guild_id = 1
@@ -715,7 +701,7 @@ class StorageTests(TestCase):
         storage.add_card_to_player(guild_id, seller_id, "SPG", 100)
         storage.add_starter(guild_id, buyer_id, 2)
         selected = storage.get_burn_candidate_by_card_id(guild_id, seller_id, "SPG")
-        self.assertIsNotNone(selected)
+        assert selected is not None
         if selected is None:
             return
         _, _, _, dupe_code = selected
@@ -728,15 +714,14 @@ class StorageTests(TestCase):
             dupe_code=dupe_code,
             terms=TradeTerms(mode="starter", amount=5),
         )
-
-        self.assertFalse(success)
-        self.assertEqual(message, "Trade failed: buyer does not have enough starter.")
-        self.assertIsNone(gen)
-        self.assertIsNone(received)
+        assert not (success)
+        assert message == "Trade failed: buyer does not have enough starter."
+        assert gen is None
+        assert received is None
         # Nothing transferred
         seller_instances = storage.get_player_card_instances(guild_id, seller_id)
-        self.assertEqual(len(seller_instances), 1)
-        self.assertEqual(storage.get_player_starter(guild_id, buyer_id), 2)
+        assert len(seller_instances) == 1
+        assert storage.get_player_starter(guild_id, buyer_id) == 2
 
     def test_trade_tickets_mode_transfers_card_and_tickets(self) -> None:
         guild_id = 1
@@ -748,7 +733,7 @@ class StorageTests(TestCase):
         storage.add_starter(guild_id, buyer_id, 5)
         storage.buy_drop_tickets_with_starter(guild_id, buyer_id, 5)
         selected = storage.get_burn_candidate_by_card_id(guild_id, seller_id, "SPG")
-        self.assertIsNotNone(selected)
+        assert selected is not None
         if selected is None:
             return
         _, _, _, dupe_code = selected
@@ -761,16 +746,15 @@ class StorageTests(TestCase):
             dupe_code=dupe_code,
             terms=TradeTerms(mode="drop", amount=3),
         )
-
-        self.assertTrue(success)
-        self.assertEqual(message, "")
-        self.assertEqual(gen, 100)
-        self.assertIsNone(received)
+        assert success
+        assert message == ""
+        assert gen == 100
+        assert received is None
 
         buyer_instances = storage.get_player_card_instances(guild_id, buyer_id)
-        self.assertEqual(len(buyer_instances), 1)
-        self.assertEqual(storage.get_player_drop_tickets(guild_id, seller_id), 3)
-        self.assertEqual(storage.get_player_drop_tickets(guild_id, buyer_id), 2)
+        assert len(buyer_instances) == 1
+        assert storage.get_player_drop_tickets(guild_id, seller_id) == 3
+        assert storage.get_player_drop_tickets(guild_id, buyer_id) == 2
 
     def test_trade_tickets_mode_fails_when_buyer_has_insufficient_tickets(self) -> None:
         guild_id = 1
@@ -782,7 +766,7 @@ class StorageTests(TestCase):
         storage.add_starter(guild_id, buyer_id, 1)
         storage.buy_drop_tickets_with_starter(guild_id, buyer_id, 1)
         selected = storage.get_burn_candidate_by_card_id(guild_id, seller_id, "SPG")
-        self.assertIsNotNone(selected)
+        assert selected is not None
         if selected is None:
             return
         _, _, _, dupe_code = selected
@@ -795,13 +779,12 @@ class StorageTests(TestCase):
             dupe_code=dupe_code,
             terms=TradeTerms(mode="drop", amount=5),
         )
-
-        self.assertFalse(success)
-        self.assertEqual(message, "Trade failed: buyer does not have enough drop tickets.")
-        self.assertIsNone(gen)
-        self.assertIsNone(received)
+        assert not (success)
+        assert message == "Trade failed: buyer does not have enough drop tickets."
+        assert gen is None
+        assert received is None
         seller_instances = storage.get_player_card_instances(guild_id, seller_id)
-        self.assertEqual(len(seller_instances), 1)
+        assert len(seller_instances) == 1
 
     def test_trade_pull_tickets_mode_transfers_card_and_tickets(self) -> None:
         guild_id = 1
@@ -813,7 +796,7 @@ class StorageTests(TestCase):
         storage.add_starter(guild_id, buyer_id, 5)
         storage.buy_pull_tickets_with_starter(guild_id, buyer_id, 5)
         selected = storage.get_burn_candidate_by_card_id(guild_id, seller_id, "SPG")
-        self.assertIsNotNone(selected)
+        assert selected is not None
         if selected is None:
             return
         _, _, _, dupe_code = selected
@@ -826,13 +809,12 @@ class StorageTests(TestCase):
             dupe_code=dupe_code,
             terms=TradeTerms(mode="pull", amount=3),
         )
-
-        self.assertTrue(success)
-        self.assertEqual(message, "")
-        self.assertEqual(gen, 100)
-        self.assertIsNone(received)
-        self.assertEqual(storage.get_player_pull_tickets(guild_id, seller_id), 3)
-        self.assertEqual(storage.get_player_pull_tickets(guild_id, buyer_id), 2)
+        assert success
+        assert message == ""
+        assert gen == 100
+        assert received is None
+        assert storage.get_player_pull_tickets(guild_id, seller_id) == 3
+        assert storage.get_player_pull_tickets(guild_id, buyer_id) == 2
 
     def test_trade_card_mode_swaps_both_instances(self) -> None:
         guild_id = 1
@@ -855,23 +837,22 @@ class StorageTests(TestCase):
             dupe_code=seller_dupe,
             terms=TradeTerms(mode="card", req_dupe_code=buyer_dupe),
         )
-
-        self.assertTrue(success)
-        self.assertEqual(message, "")
-        self.assertEqual(gen, 100)
-        self.assertIsNotNone(received)
+        assert success
+        assert message == ""
+        assert gen == 100
+        assert received is not None
         if received is None:
             return
         r_card_id, r_gen, _r_dupe = received
-        self.assertEqual(r_card_id, "PEN")
-        self.assertEqual(r_gen, 200)
+        assert r_card_id == "PEN"
+        assert r_gen == 200
 
         seller_after = storage.get_player_card_instances(guild_id, seller_id)
         buyer_after = storage.get_player_card_instances(guild_id, buyer_id)
-        self.assertEqual(len(seller_after), 1)
-        self.assertEqual(seller_after[0][1], "PEN")
-        self.assertEqual(len(buyer_after), 1)
-        self.assertEqual(buyer_after[0][1], "SPG")
+        assert len(seller_after) == 1
+        assert seller_after[0][1] == "PEN"
+        assert len(buyer_after) == 1
+        assert buyer_after[0][1] == "SPG"
 
     def test_trade_card_mode_fails_when_buyer_no_longer_has_req_card(self) -> None:
         guild_id = 1
@@ -891,14 +872,13 @@ class StorageTests(TestCase):
             dupe_code=seller_dupe,
             terms=TradeTerms(mode="card", req_dupe_code="zzz"),
         )
-
-        self.assertFalse(success)
-        self.assertEqual(message, "Trade failed: buyer no longer has the requested card.")
-        self.assertIsNone(gen)
-        self.assertIsNone(received)
+        assert not (success)
+        assert message == "Trade failed: buyer no longer has the requested card."
+        assert gen is None
+        assert received is None
         # Seller still has their card
         seller_instances_after = storage.get_player_card_instances(guild_id, seller_id)
-        self.assertEqual(len(seller_instances_after), 1)
+        assert len(seller_instances_after) == 1
 
     def test_trade_card_mode_clears_marriage_for_both_users(self) -> None:
         guild_id = 1
@@ -916,8 +896,8 @@ class StorageTests(TestCase):
         # Marry both cards
         storage.marry_card(guild_id, seller_id, "SPG")
         storage.marry_card(guild_id, buyer_id, "PEN")
-        self.assertIsNotNone(storage.get_last_pulled_instance(guild_id, seller_id))
-        self.assertIsNotNone(storage.get_last_pulled_instance(guild_id, buyer_id))
+        assert storage.get_last_pulled_instance(guild_id, seller_id) is not None
+        assert storage.get_last_pulled_instance(guild_id, buyer_id) is not None
 
         success, _, _, _, _ = storage.execute_trade(
             guild_id=guild_id,
@@ -927,13 +907,13 @@ class StorageTests(TestCase):
             dupe_code=seller_dupe,
             terms=TradeTerms(mode="card", req_dupe_code=buyer_dupe),
         )
-        self.assertTrue(success)
+        assert success
 
         # Both marriages cleared (index 2 = married_instance_id)
         seller_info = storage.get_player_info(guild_id, seller_id)
         buyer_info = storage.get_player_info(guild_id, buyer_id)
-        self.assertIsNone(seller_info[2])
-        self.assertIsNone(buyer_info[2])
+        assert seller_info[2] is None
+        assert buyer_info[2] is None
 
     def test_gift_card_transfers_selected_instance_without_dough_change(self) -> None:
         guild_id = 1
@@ -944,7 +924,7 @@ class StorageTests(TestCase):
         storage.add_card_to_player(guild_id, sender_id, "SPG", 100)
         storage.add_card_to_player(guild_id, sender_id, "SPG", 200)
         selected = storage.get_burn_candidate_by_card_id(guild_id, sender_id, "SPG")
-        self.assertIsNotNone(selected)
+        assert selected is not None
         if selected is None:
             return
         _, _card_id, _generation, selected_dupe_code = selected
@@ -955,24 +935,23 @@ class StorageTests(TestCase):
             recipient_id=recipient_id,
             card_code=selected_dupe_code,
         )
-
-        self.assertTrue(success)
-        self.assertEqual(message, "")
-        self.assertEqual(gifted_card_id, "SPG")
-        self.assertEqual(gifted_generation, 200)
-        self.assertEqual(gifted_dupe_code, selected_dupe_code)
+        assert success
+        assert message == ""
+        assert gifted_card_id == "SPG"
+        assert gifted_generation == 200
+        assert gifted_dupe_code == selected_dupe_code
 
         sender_instances = storage.get_player_card_instances(guild_id, sender_id)
         recipient_instances = storage.get_player_card_instances(guild_id, recipient_id)
-        self.assertEqual(len(sender_instances), 1)
-        self.assertEqual(sender_instances[0][2], 100)
-        self.assertEqual(len(recipient_instances), 1)
-        self.assertEqual(recipient_instances[0][2], 200)
+        assert len(sender_instances) == 1
+        assert sender_instances[0][2] == 100
+        assert len(recipient_instances) == 1
+        assert recipient_instances[0][2] == 200
 
         sender_dough, _, _ = storage.get_player_info(guild_id, sender_id)
         recipient_dough, _, _ = storage.get_player_info(guild_id, recipient_id)
-        self.assertEqual(sender_dough, 0)
-        self.assertEqual(recipient_dough, 0)
+        assert sender_dough == 0
+        assert recipient_dough == 0
 
     def test_gift_card_clears_sender_last_pulled_pointer(self) -> None:
         guild_id = 1
@@ -982,7 +961,7 @@ class StorageTests(TestCase):
         storage.init_db()
         storage.add_card_to_player(guild_id, sender_id, "SPG", 300)
         selected = storage.get_last_pulled_instance(guild_id, sender_id)
-        self.assertIsNotNone(selected)
+        assert selected is not None
         if selected is None:
             return
         _instance_id, _card_id, _generation, dupe_code = selected
@@ -993,12 +972,12 @@ class StorageTests(TestCase):
             recipient_id=recipient_id,
             card_code=dupe_code,
         )
-        self.assertTrue(success)
-        self.assertEqual(message, "")
-        self.assertEqual(gifted_card_id, "SPG")
-        self.assertEqual(gifted_generation, 300)
-        self.assertEqual(gifted_dupe_code, dupe_code)
-        self.assertIsNone(storage.get_last_pulled_instance(guild_id, sender_id))
+        assert success
+        assert message == ""
+        assert gifted_card_id == "SPG"
+        assert gifted_generation == 300
+        assert gifted_dupe_code == dupe_code
+        assert storage.get_last_pulled_instance(guild_id, sender_id) is None
 
     def test_gift_starter_transfers_balances(self) -> None:
         guild_id = 1
@@ -1014,13 +993,12 @@ class StorageTests(TestCase):
             recipient_id=recipient_id,
             amount=3,
         )
-
-        self.assertTrue(gifted)
-        self.assertEqual(message, "")
-        self.assertEqual(sender_balance, 2)
-        self.assertEqual(recipient_balance, 3)
-        self.assertEqual(storage.get_player_starter(guild_id, sender_id), 2)
-        self.assertEqual(storage.get_player_starter(guild_id, recipient_id), 3)
+        assert gifted
+        assert message == ""
+        assert sender_balance == 2
+        assert recipient_balance == 3
+        assert storage.get_player_starter(guild_id, sender_id) == 2
+        assert storage.get_player_starter(guild_id, recipient_id) == 3
 
     def test_gift_starter_fails_when_insufficient_balance(self) -> None:
         guild_id = 1
@@ -1036,13 +1014,12 @@ class StorageTests(TestCase):
             recipient_id=recipient_id,
             amount=2,
         )
-
-        self.assertFalse(gifted)
-        self.assertEqual(message, "You do not have enough starter.")
-        self.assertEqual(sender_balance, 1)
-        self.assertEqual(recipient_balance, 0)
-        self.assertEqual(storage.get_player_starter(guild_id, sender_id), 1)
-        self.assertEqual(storage.get_player_starter(guild_id, recipient_id), 0)
+        assert not (gifted)
+        assert message == "You do not have enough starter."
+        assert sender_balance == 1
+        assert recipient_balance == 0
+        assert storage.get_player_starter(guild_id, sender_id) == 1
+        assert storage.get_player_starter(guild_id, recipient_id) == 0
 
     def test_gift_drop_tickets_transfers_balances(self) -> None:
         guild_id = 1
@@ -1052,7 +1029,7 @@ class StorageTests(TestCase):
         storage.init_db()
         storage.add_starter(guild_id, sender_id, 4)
         purchased, _starter, _tickets, _spent = storage.buy_drop_tickets_with_starter(guild_id, sender_id, 4)
-        self.assertTrue(purchased)
+        assert purchased
 
         gifted, message, sender_balance, recipient_balance = storage.execute_gift_drop_tickets(
             guild_id=guild_id,
@@ -1060,13 +1037,12 @@ class StorageTests(TestCase):
             recipient_id=recipient_id,
             amount=3,
         )
-
-        self.assertTrue(gifted)
-        self.assertEqual(message, "")
-        self.assertEqual(sender_balance, 1)
-        self.assertEqual(recipient_balance, 3)
-        self.assertEqual(storage.get_player_drop_tickets(guild_id, sender_id), 1)
-        self.assertEqual(storage.get_player_drop_tickets(guild_id, recipient_id), 3)
+        assert gifted
+        assert message == ""
+        assert sender_balance == 1
+        assert recipient_balance == 3
+        assert storage.get_player_drop_tickets(guild_id, sender_id) == 1
+        assert storage.get_player_drop_tickets(guild_id, recipient_id) == 3
 
     def test_gift_drop_tickets_fails_when_insufficient_balance(self) -> None:
         guild_id = 1
@@ -1076,7 +1052,7 @@ class StorageTests(TestCase):
         storage.init_db()
         storage.add_starter(guild_id, sender_id, 1)
         purchased, _starter, _tickets, _spent = storage.buy_drop_tickets_with_starter(guild_id, sender_id, 1)
-        self.assertTrue(purchased)
+        assert purchased
 
         gifted, message, sender_balance, recipient_balance = storage.execute_gift_drop_tickets(
             guild_id=guild_id,
@@ -1084,13 +1060,12 @@ class StorageTests(TestCase):
             recipient_id=recipient_id,
             amount=2,
         )
-
-        self.assertFalse(gifted)
-        self.assertEqual(message, "You do not have enough drop tickets.")
-        self.assertEqual(sender_balance, 1)
-        self.assertEqual(recipient_balance, 0)
-        self.assertEqual(storage.get_player_drop_tickets(guild_id, sender_id), 1)
-        self.assertEqual(storage.get_player_drop_tickets(guild_id, recipient_id), 0)
+        assert not (gifted)
+        assert message == "You do not have enough drop tickets."
+        assert sender_balance == 1
+        assert recipient_balance == 0
+        assert storage.get_player_drop_tickets(guild_id, sender_id) == 1
+        assert storage.get_player_drop_tickets(guild_id, recipient_id) == 0
 
     def test_gift_pull_tickets_transfers_balances(self) -> None:
         guild_id = 1
@@ -1100,7 +1075,7 @@ class StorageTests(TestCase):
         storage.init_db()
         storage.add_starter(guild_id, sender_id, 4)
         purchased, _starter, _tickets, _spent = storage.buy_pull_tickets_with_starter(guild_id, sender_id, 4)
-        self.assertTrue(purchased)
+        assert purchased
 
         gifted, message, sender_balance, recipient_balance = storage.execute_gift_pull_tickets(
             guild_id=guild_id,
@@ -1108,13 +1083,12 @@ class StorageTests(TestCase):
             recipient_id=recipient_id,
             amount=3,
         )
-
-        self.assertTrue(gifted)
-        self.assertEqual(message, "")
-        self.assertEqual(sender_balance, 1)
-        self.assertEqual(recipient_balance, 3)
-        self.assertEqual(storage.get_player_pull_tickets(guild_id, sender_id), 1)
-        self.assertEqual(storage.get_player_pull_tickets(guild_id, recipient_id), 3)
+        assert gifted
+        assert message == ""
+        assert sender_balance == 1
+        assert recipient_balance == 3
+        assert storage.get_player_pull_tickets(guild_id, sender_id) == 1
+        assert storage.get_player_pull_tickets(guild_id, recipient_id) == 3
 
     def test_player_leaderboard_info_aggregates_cards_wishes_and_value(self) -> None:
         guild_id = 1
@@ -1139,20 +1113,18 @@ class StorageTests(TestCase):
 
         first = by_user[first_user]
         second = by_user[second_user]
-
-        self.assertEqual(first[1], 2)
-        self.assertEqual(first[2], 2)
-        self.assertEqual(first[3], 25)
-        self.assertEqual(first[4], 2)
-        self.assertEqual(first[5], 1)
-        self.assertGreater(first[6], 0)
-
-        self.assertEqual(second[1], 1)
-        self.assertEqual(second[2], 1)
-        self.assertEqual(second[3], 80)
-        self.assertEqual(second[4], 0)
-        self.assertEqual(second[5], 0)
-        self.assertGreater(second[6], 0)
+        assert first[1] == 2
+        assert first[2] == 2
+        assert first[3] == 25
+        assert first[4] == 2
+        assert first[5] == 1
+        assert first[6] > 0
+        assert second[1] == 1
+        assert second[2] == 1
+        assert second[3] == 80
+        assert second[4] == 0
+        assert second[5] == 0
+        assert second[6] > 0
 
     def test_marry_fails_if_card_already_married_by_another_player(self) -> None:
         guild_id = 1
@@ -1165,18 +1137,18 @@ class StorageTests(TestCase):
         storage.add_card_to_player(guild_id, second_user, card_id, 130)
 
         first_success, first_message, _, _ = storage.marry_card(guild_id, first_user, card_id)
-        self.assertTrue(first_success)
-        self.assertEqual(first_message, "")
+        assert first_success
+        assert first_message == ""
 
         second_success, second_message, second_instance_id, second_generation = storage.marry_card(
             guild_id,
             second_user,
             card_id,
         )
-        self.assertFalse(second_success)
-        self.assertEqual(second_message, "That card is already married by another player.")
-        self.assertIsNone(second_instance_id)
-        self.assertIsNone(second_generation)
+        assert not (second_success)
+        assert second_message == "That card is already married by another player."
+        assert second_instance_id is None
+        assert second_generation is None
 
     def test_marry_card_instance_fails_if_already_married_to_different_instance(
         self,
@@ -1190,8 +1162,8 @@ class StorageTests(TestCase):
         second_instance_id = storage.add_card_to_player(guild_id, user_id, card_id, 200)
 
         success, message, _, _, _ = storage.marry_card_instance(guild_id, user_id, first_instance_id)
-        self.assertTrue(success)
-        self.assertEqual(message, "")
+        assert success
+        assert message == ""
 
         (
             second_success,
@@ -1204,11 +1176,11 @@ class StorageTests(TestCase):
             user_id,
             second_instance_id,
         )
-        self.assertFalse(second_success)
-        self.assertEqual(second_message, "You are already married. Use `ns divorce` first.")
-        self.assertIsNone(second_card_id)
-        self.assertIsNone(second_generation)
-        self.assertIsNone(second_dupe_code)
+        assert not (second_success)
+        assert second_message == "You are already married. Use `ns divorce` first."
+        assert second_card_id is None
+        assert second_generation is None
+        assert second_dupe_code is None
 
     def test_remove_card_clears_last_pulled_pointer(self) -> None:
         guild_id = 1
@@ -1219,14 +1191,13 @@ class StorageTests(TestCase):
         instance_id = storage.add_card_to_player(guild_id, user_id, card_id, 250)
 
         removed = storage.remove_card_from_player(guild_id, user_id, card_id)
-        self.assertIsNotNone(removed)
+        assert removed is not None
         if removed is None:
             return
         removed_instance_id, removed_generation = removed
-        self.assertEqual(removed_instance_id, instance_id)
-        self.assertEqual(removed_generation, 250)
-
-        self.assertIsNone(storage.get_last_pulled_instance(guild_id, user_id))
+        assert removed_instance_id == instance_id
+        assert removed_generation == 250
+        assert storage.get_last_pulled_instance(guild_id, user_id) is None
 
     def test_get_last_pulled_instance_clears_stale_pointer(self) -> None:
         guild_id = 1
@@ -1242,18 +1213,17 @@ class StorageTests(TestCase):
                     "DELETE FROM card_instances WHERE instance_id = ?",
                     (instance_id,),
                 )
-
-        self.assertIsNone(storage.get_last_pulled_instance(guild_id, user_id))
+        assert storage.get_last_pulled_instance(guild_id, user_id) is None
 
         with closing(sqlite3.connect(storage.DB_PATH)) as conn:
             row = conn.execute(
                 "SELECT last_dropped_instance_id FROM players WHERE guild_id = ? AND user_id = ?",
                 (storage.GLOBAL_GUILD_ID, user_id),
             ).fetchone()
-        self.assertIsNotNone(row)
+        assert row is not None
         if row is None:
             return
-        self.assertIsNone(row[0])
+        assert row[0] is None
 
     def test_get_last_pulled_instance_clears_pointer_after_trade_transfer(self) -> None:
         guild_id = 1
@@ -1264,7 +1234,7 @@ class StorageTests(TestCase):
         storage.init_db()
         storage.add_card_to_player(guild_id, seller_id, card_id, 300)
         selected = storage.get_last_pulled_instance(guild_id, seller_id)
-        self.assertIsNotNone(selected)
+        assert selected is not None
         if selected is None:
             return
         _instance_id, _card_id, _generation, dupe_code = selected
@@ -1278,22 +1248,21 @@ class StorageTests(TestCase):
             dupe_code=dupe_code,
             terms=TradeTerms(mode="dough", amount=10),
         )
-        self.assertTrue(success)
-        self.assertEqual(message, "")
-        self.assertEqual(traded_generation, 300)
-        self.assertEqual(traded_dupe_code, dupe_code)
-
-        self.assertIsNone(storage.get_last_pulled_instance(guild_id, seller_id))
+        assert success
+        assert message == ""
+        assert traded_generation == 300
+        assert traded_dupe_code == dupe_code
+        assert storage.get_last_pulled_instance(guild_id, seller_id) is None
 
         with closing(sqlite3.connect(storage.DB_PATH)) as conn:
             row = conn.execute(
                 "SELECT last_dropped_instance_id FROM players WHERE guild_id = ? AND user_id = ?",
                 (storage.GLOBAL_GUILD_ID, seller_id),
             ).fetchone()
-        self.assertIsNotNone(row)
+        assert row is not None
         if row is None:
             return
-        self.assertIsNone(row[0])
+        assert row[0] is None
 
     def test_dupe_codes_assign_sequential_and_reuse_lowest_free(self) -> None:
         guild_id = 1
@@ -1310,12 +1279,12 @@ class StorageTests(TestCase):
                 (storage.GLOBAL_GUILD_ID,),
             ).fetchall()
         dupe_by_instance = {int(row[0]): str(row[1]) for row in dupe_rows}
-        self.assertEqual(dupe_by_instance[instance_0], "0")
-        self.assertEqual(dupe_by_instance[instance_1], "1")
-        self.assertEqual(dupe_by_instance[instance_2], "2")
+        assert dupe_by_instance[instance_0] == "0"
+        assert dupe_by_instance[instance_1] == "1"
+        assert dupe_by_instance[instance_2] == "2"
 
         burned = storage.burn_instance(guild_id, user_id, instance_1)
-        self.assertIsNotNone(burned)
+        assert burned is not None
 
         reused_instance = storage.add_card_to_player(guild_id, user_id, "MAC", 103)
         next_instance = storage.add_card_to_player(guild_id, user_id, "LIN", 104)
@@ -1326,8 +1295,8 @@ class StorageTests(TestCase):
                 (storage.GLOBAL_GUILD_ID,),
             ).fetchall()
         dupe_by_instance = {int(row[0]): str(row[1]) for row in dupe_rows}
-        self.assertEqual(dupe_by_instance[reused_instance], "1")
-        self.assertEqual(dupe_by_instance[next_instance], "3")
+        assert dupe_by_instance[reused_instance] == "1"
+        assert dupe_by_instance[next_instance] == "3"
 
     def test_get_instance_by_code_accepts_hash_prefix(self) -> None:
         guild_id = 1
@@ -1336,7 +1305,7 @@ class StorageTests(TestCase):
         storage.init_db()
         instance_id = storage.add_card_to_player(guild_id, user_id, "SPG", 123)
         instance = storage.get_instance_by_id(guild_id, instance_id)
-        self.assertIsNotNone(instance)
+        assert instance is not None
         if instance is None:
             return
         _found_instance_id, _card_id, _generation, dupe_code = instance
@@ -1344,9 +1313,8 @@ class StorageTests(TestCase):
         by_plain_code = storage.get_instance_by_code(guild_id, user_id, dupe_code.upper())
         by_hash_code = storage.get_instance_by_code(guild_id, user_id, f"#{dupe_code.upper()}")
         by_hash_global = storage.get_instance_by_dupe_code(guild_id, f"#{dupe_code.upper()}")
-
-        self.assertEqual(by_plain_code, by_hash_code)
-        self.assertIsNotNone(by_hash_global)
+        assert by_plain_code == by_hash_code
+        assert by_hash_global is not None
         if by_hash_global is None or by_plain_code is None:
             return
 
@@ -1358,11 +1326,8 @@ class StorageTests(TestCase):
             global_dupe_code,
         ) = by_hash_global
         plain_instance_id, plain_card_id, plain_generation, plain_dupe_code = by_plain_code
-        self.assertEqual(global_user_id, user_id)
-        self.assertEqual(
-            (global_instance_id, global_card_id, global_generation, global_dupe_code),
-            (plain_instance_id, plain_card_id, plain_generation, plain_dupe_code),
-        )
+        assert global_user_id == user_id
+        assert (global_instance_id, global_card_id, global_generation, global_dupe_code) == (plain_instance_id, plain_card_id, plain_generation, plain_dupe_code)
 
     def test_init_db_v5_ensures_dupe_code_column_and_index(self) -> None:
         with closing(sqlite3.connect(storage.DB_PATH)) as conn:
@@ -1389,15 +1354,15 @@ class StorageTests(TestCase):
 
         with closing(sqlite3.connect(storage.DB_PATH)) as conn:
             version_row = conn.execute("SELECT version FROM schema_migrations LIMIT 1").fetchone()
-            self.assertIsNotNone(version_row)
-            self.assertEqual(int(version_row[0]), storage.TARGET_SCHEMA_VERSION)
+            assert version_row is not None
+            assert int(version_row[0]) == storage.TARGET_SCHEMA_VERSION
 
             columns = conn.execute("PRAGMA table_info(card_instances)").fetchall()
             column_names = {str(column[1]) for column in columns}
-            self.assertIn("dupe_code", column_names)
+            assert "dupe_code" in column_names
 
             index_row = conn.execute("SELECT name FROM sqlite_master WHERE type = 'index' AND name = 'idx_card_instances_dupe_code'").fetchone()
-            self.assertIsNotNone(index_row)
+            assert index_row is not None
 
     def test_wishlist_add_remove_and_read(self) -> None:
         guild_id = 1
@@ -1406,22 +1371,22 @@ class StorageTests(TestCase):
         storage.init_db()
 
         added = storage.add_card_to_wishlist(guild_id, user_id, "SPG")
-        self.assertTrue(added)
+        assert added
 
         added_again = storage.add_card_to_wishlist(guild_id, user_id, "SPG")
-        self.assertFalse(added_again)
+        assert not (added_again)
 
         storage.add_card_to_wishlist(guild_id, user_id, "PEN")
 
         cards = storage.get_wishlist_cards(guild_id, user_id)
-        self.assertEqual(cards, ["PEN", "SPG"])
+        assert cards == ["PEN", "SPG"]
 
         removed = storage.remove_card_from_wishlist(guild_id, user_id, "SPG")
-        self.assertTrue(removed)
-        self.assertEqual(storage.get_wishlist_cards(guild_id, user_id), ["PEN"])
+        assert removed
+        assert storage.get_wishlist_cards(guild_id, user_id) == ["PEN"]
 
         removed_missing = storage.remove_card_from_wishlist(guild_id, user_id, "SPG")
-        self.assertFalse(removed_missing)
+        assert not (removed_missing)
 
     def test_apply_morph_to_instance_persists_and_charges_dough(self) -> None:
         guild_id = 1
@@ -1438,12 +1403,12 @@ class StorageTests(TestCase):
             "black_and_white",
             9,
         )
-        self.assertTrue(applied)
-        self.assertEqual(message, "")
-        self.assertEqual(storage.get_instance_morph(guild_id, instance_id), "black_and_white")
+        assert applied
+        assert message == ""
+        assert storage.get_instance_morph(guild_id, instance_id) == "black_and_white"
 
         dough, _, _ = storage.get_player_info(guild_id, user_id)
-        self.assertEqual(dough, 41)
+        assert dough == 41
 
     def test_apply_morph_to_instance_rejects_insufficient_dough(self) -> None:
         guild_id = 1
@@ -1459,9 +1424,9 @@ class StorageTests(TestCase):
             "black_and_white",
             99,
         )
-        self.assertFalse(applied)
-        self.assertEqual(message, "You do not have enough dough.")
-        self.assertIsNone(storage.get_instance_morph(guild_id, instance_id))
+        assert not (applied)
+        assert message == "You do not have enough dough."
+        assert storage.get_instance_morph(guild_id, instance_id) is None
 
     def test_apply_frame_to_instance_persists_and_charges_dough(self) -> None:
         guild_id = 1
@@ -1478,12 +1443,12 @@ class StorageTests(TestCase):
             "buttery",
             9,
         )
-        self.assertTrue(applied)
-        self.assertEqual(message, "")
-        self.assertEqual(storage.get_instance_frame(guild_id, instance_id), "buttery")
+        assert applied
+        assert message == ""
+        assert storage.get_instance_frame(guild_id, instance_id) == "buttery"
 
         dough, _, _ = storage.get_player_info(guild_id, user_id)
-        self.assertEqual(dough, 41)
+        assert dough == 41
 
     def test_apply_frame_to_instance_rejects_insufficient_dough(self) -> None:
         guild_id = 1
@@ -1499,9 +1464,9 @@ class StorageTests(TestCase):
             "buttery",
             99,
         )
-        self.assertFalse(applied)
-        self.assertEqual(message, "You do not have enough dough.")
-        self.assertIsNone(storage.get_instance_frame(guild_id, instance_id))
+        assert not (applied)
+        assert message == "You do not have enough dough."
+        assert storage.get_instance_frame(guild_id, instance_id) is None
 
     def test_apply_font_to_instance_persists_and_charges_dough(self) -> None:
         guild_id = 1
@@ -1518,12 +1483,12 @@ class StorageTests(TestCase):
             "serif",
             9,
         )
-        self.assertTrue(applied)
-        self.assertEqual(message, "")
-        self.assertEqual(storage.get_instance_font(guild_id, instance_id), "serif")
+        assert applied
+        assert message == ""
+        assert storage.get_instance_font(guild_id, instance_id) == "serif"
 
         dough, _, _ = storage.get_player_info(guild_id, user_id)
-        self.assertEqual(dough, 41)
+        assert dough == 41
 
     def test_apply_font_to_instance_rejects_insufficient_dough(self) -> None:
         guild_id = 1
@@ -1539,9 +1504,9 @@ class StorageTests(TestCase):
             "mono",
             99,
         )
-        self.assertFalse(applied)
-        self.assertEqual(message, "You do not have enough dough.")
-        self.assertIsNone(storage.get_instance_font(guild_id, instance_id))
+        assert not (applied)
+        assert message == "You do not have enough dough."
+        assert storage.get_instance_font(guild_id, instance_id) is None
 
     def test_wishlist_is_global_across_guilds(self) -> None:
         user_id = 930
@@ -1550,9 +1515,8 @@ class StorageTests(TestCase):
 
         storage.add_card_to_wishlist(1, user_id, "SPG")
         storage.add_card_to_wishlist(2, user_id, "PEN")
-
-        self.assertEqual(storage.get_wishlist_cards(1, user_id), ["PEN", "SPG"])
-        self.assertEqual(storage.get_wishlist_cards(2, user_id), ["PEN", "SPG"])
+        assert storage.get_wishlist_cards(1, user_id) == ["PEN", "SPG"]
+        assert storage.get_wishlist_cards(2, user_id) == ["PEN", "SPG"]
 
     def test_get_card_wish_counts_aggregates_per_card(self) -> None:
         storage.init_db()
@@ -1564,30 +1528,26 @@ class StorageTests(TestCase):
 
         counts_guild_1 = storage.get_card_wish_counts(1)
         counts_guild_2 = storage.get_card_wish_counts(2)
-
-        self.assertEqual(counts_guild_1.get("SPG"), 3)
-        self.assertEqual(counts_guild_1.get("PEN"), 1)
-        self.assertIsNone(counts_guild_1.get("FUS"))
-        self.assertEqual(counts_guild_2.get("SPG"), 3)
+        assert counts_guild_1.get("SPG") == 3
+        assert counts_guild_1.get("PEN") == 1
+        assert counts_guild_1.get("FUS") is None
+        assert counts_guild_2.get("SPG") == 3
 
     def test_player_tags_create_list_lock_and_delete(self) -> None:
         guild_id = 1
         user_id = 1200
 
         storage.init_db()
-
-        self.assertTrue(storage.create_player_tag(guild_id, user_id, "Favorites"))
-        self.assertFalse(storage.create_player_tag(guild_id, user_id, "favorites"))
+        assert storage.create_player_tag(guild_id, user_id, "Favorites")
+        assert not (storage.create_player_tag(guild_id, user_id, "favorites"))
 
         listed = storage.list_player_tags(guild_id, user_id)
-        self.assertEqual(listed, [("favorites", False, 0)])
-
-        self.assertTrue(storage.set_player_tag_locked(guild_id, user_id, "Favorites", True))
+        assert listed == [("favorites", False, 0)]
+        assert storage.set_player_tag_locked(guild_id, user_id, "Favorites", True)
         listed_after_lock = storage.list_player_tags(guild_id, user_id)
-        self.assertEqual(listed_after_lock, [("favorites", True, 0)])
-
-        self.assertTrue(storage.delete_player_tag(guild_id, user_id, "Favorites"))
-        self.assertEqual(storage.list_player_tags(guild_id, user_id), [])
+        assert listed_after_lock == [("favorites", True, 0)]
+        assert storage.delete_player_tag(guild_id, user_id, "Favorites")
+        assert storage.list_player_tags(guild_id, user_id) == []
 
     def test_assign_and_unassign_tag_to_card_instance(self) -> None:
         guild_id = 1
@@ -1596,16 +1556,14 @@ class StorageTests(TestCase):
         storage.init_db()
         instance_id = storage.add_card_to_player(guild_id, user_id, "SPG", 111)
         storage.create_player_tag(guild_id, user_id, "food")
-
-        self.assertTrue(storage.assign_tag_to_instance(guild_id, user_id, instance_id, "food"))
-        self.assertFalse(storage.assign_tag_to_instance(guild_id, user_id, instance_id, "food"))
+        assert storage.assign_tag_to_instance(guild_id, user_id, instance_id, "food")
+        assert not (storage.assign_tag_to_instance(guild_id, user_id, instance_id, "food"))
 
         tagged = storage.get_instances_by_tag(guild_id, user_id, "food")
-        self.assertEqual(len(tagged), 1)
-        self.assertEqual(tagged[0][0], instance_id)
-
-        self.assertTrue(storage.unassign_tag_from_instance(guild_id, user_id, instance_id, "food"))
-        self.assertFalse(storage.unassign_tag_from_instance(guild_id, user_id, instance_id, "food"))
+        assert len(tagged) == 1
+        assert tagged[0][0] == instance_id
+        assert storage.unassign_tag_from_instance(guild_id, user_id, instance_id, "food")
+        assert not (storage.unassign_tag_from_instance(guild_id, user_id, instance_id, "food"))
 
     def test_locked_tag_blocks_burn(self) -> None:
         guild_id = 1
@@ -1618,13 +1576,13 @@ class StorageTests(TestCase):
         storage.set_player_tag_locked(guild_id, user_id, "keep", True)
 
         locked_tags = storage.get_locked_tags_for_instance(guild_id, user_id, instance_id)
-        self.assertEqual(locked_tags, ["keep"])
+        assert locked_tags == ["keep"]
 
         burned = storage.burn_instance(guild_id, user_id, instance_id)
-        self.assertIsNone(burned)
+        assert burned is None
 
         still_owned = storage.get_instance_by_id(guild_id, instance_id)
-        self.assertIsNotNone(still_owned)
+        assert still_owned is not None
 
     def test_burn_instances_blocks_all_when_any_locked(self) -> None:
         guild_id = 1
@@ -1638,11 +1596,10 @@ class StorageTests(TestCase):
         storage.set_player_tag_locked(guild_id, user_id, "keep", True)
 
         burned_rows, locked_by_instance = storage.burn_instances(guild_id, user_id, [open_instance, locked_instance])
-
-        self.assertIsNone(burned_rows)
-        self.assertIn(locked_instance, locked_by_instance)
-        self.assertIsNotNone(storage.get_instance_by_id(guild_id, open_instance))
-        self.assertIsNotNone(storage.get_instance_by_id(guild_id, locked_instance))
+        assert burned_rows is None
+        assert locked_instance in locked_by_instance
+        assert storage.get_instance_by_id(guild_id, open_instance) is not None
+        assert storage.get_instance_by_id(guild_id, locked_instance) is not None
 
     def test_deleting_tag_cascades_instance_assignments(self) -> None:
         guild_id = 1
@@ -1652,16 +1609,15 @@ class StorageTests(TestCase):
         instance_id = storage.add_card_to_player(guild_id, user_id, "SPG", 333)
         storage.create_player_tag(guild_id, user_id, "archive")
         storage.assign_tag_to_instance(guild_id, user_id, instance_id, "archive")
-
-        self.assertTrue(storage.delete_player_tag(guild_id, user_id, "archive"))
-        self.assertEqual(storage.get_instances_by_tag(guild_id, user_id, "archive"), [])
+        assert storage.delete_player_tag(guild_id, user_id, "archive")
+        assert storage.get_instances_by_tag(guild_id, user_id, "archive") == []
 
     def test_team_assignment_enforces_three_card_limit(self) -> None:
         guild_id = 1
         user_id = 1301
 
         storage.init_db()
-        self.assertTrue(storage.create_player_team(guild_id, user_id, "alpha"))
+        assert storage.create_player_team(guild_id, user_id, "alpha")
 
         instance_ids = [
             storage.add_card_to_player(guild_id, user_id, "SPG", 100),
@@ -1672,12 +1628,12 @@ class StorageTests(TestCase):
 
         for instance_id in instance_ids[:3]:
             success, message = storage.assign_instance_to_team(guild_id, user_id, instance_id, "alpha")
-            self.assertTrue(success)
-            self.assertEqual(message, "")
+            assert success
+            assert message == ""
 
         success, message = storage.assign_instance_to_team(guild_id, user_id, instance_ids[3], "alpha")
-        self.assertFalse(success)
-        self.assertEqual(message, "Team capacity reached (3 cards max).")
+        assert not (success)
+        assert message == "Team capacity reached (3 cards max)."
 
     def test_set_active_team_and_list_marks_active(self) -> None:
         guild_id = 1
@@ -1686,12 +1642,11 @@ class StorageTests(TestCase):
         storage.init_db()
         storage.create_player_team(guild_id, user_id, "alpha")
         storage.create_player_team(guild_id, user_id, "beta")
-
-        self.assertTrue(storage.set_active_team(guild_id, user_id, "beta"))
-        self.assertEqual(storage.get_active_team_name(guild_id, user_id), "beta")
+        assert storage.set_active_team(guild_id, user_id, "beta")
+        assert storage.get_active_team_name(guild_id, user_id) == "beta"
 
         listed = storage.list_player_teams(guild_id, user_id)
-        self.assertEqual(listed, [("alpha", 0, False), ("beta", 0, True)])
+        assert listed == [("alpha", 0, False), ("beta", 0, True)]
 
     def test_create_and_accept_battle_proposal(self) -> None:
         guild_id = 1
@@ -1718,11 +1673,11 @@ class StorageTests(TestCase):
             challenged_id,
             25,
         )
-        self.assertTrue(created)
-        self.assertEqual(message, "")
-        self.assertIsNotNone(battle_id)
-        self.assertEqual(challenger_team, "a")
-        self.assertEqual(challenged_team, "b")
+        assert created
+        assert message == ""
+        assert battle_id is not None
+        assert challenger_team == "a"
+        assert challenged_team == "b"
 
         if battle_id is None:
             return
@@ -1734,39 +1689,39 @@ class StorageTests(TestCase):
                 challenged_id,
                 accepted=True,
             )
-        self.assertEqual(status, "accepted")
-        self.assertEqual(resolve_message, "Battle accepted. The battle arena is now active.")
+        assert status == "accepted"
+        assert resolve_message == "Battle accepted. The battle arena is now active."
 
         battle = storage.get_battle_session(guild_id, battle_id)
-        self.assertIsNotNone(battle)
+        assert battle is not None
         if battle is None:
             return
-        self.assertEqual(battle["status"], "active")
-        self.assertEqual(battle["acting_user_id"], challenged_id)
+        assert battle["status"] == "active"
+        assert battle["acting_user_id"] == challenged_id
 
         challenger_dough, _, _ = storage.get_player_info(guild_id, challenger_id)
         challenged_dough, _, _ = storage.get_player_info(guild_id, challenged_id)
-        self.assertEqual(challenger_dough, 75)
-        self.assertEqual(challenged_dough, 75)
+        assert challenger_dough == 75
+        assert challenged_dough == 75
 
         state = storage.get_battle_state(guild_id, battle_id)
-        self.assertIsNotNone(state)
+        assert state is not None
         if state is None:
             return
         challenger_combatants = state["challenger_combatants"]
         challenged_combatants = state["challenged_combatants"]
-        self.assertTrue(isinstance(challenger_combatants, list))
-        self.assertTrue(isinstance(challenged_combatants, list))
+        assert isinstance(challenger_combatants, list)
+        assert isinstance(challenged_combatants, list)
         if isinstance(challenger_combatants, list):
-            self.assertEqual(len(challenger_combatants), 1)
-            self.assertTrue(bool(challenger_combatants[0]["is_active"]))
-            self.assertGreater(int(challenger_combatants[0]["attack"]), 0)
-            self.assertGreater(int(challenger_combatants[0]["defense"]), 0)
+            assert len(challenger_combatants) == 1
+            assert bool(challenger_combatants[0]["is_active"])
+            assert int(challenger_combatants[0]["attack"]) > 0
+            assert int(challenger_combatants[0]["defense"]) > 0
         if isinstance(challenged_combatants, list):
-            self.assertEqual(len(challenged_combatants), 1)
-            self.assertTrue(bool(challenged_combatants[0]["is_active"]))
-            self.assertGreater(int(challenged_combatants[0]["attack"]), 0)
-            self.assertGreater(int(challenged_combatants[0]["defense"]), 0)
+            assert len(challenged_combatants) == 1
+            assert bool(challenged_combatants[0]["is_active"])
+            assert int(challenged_combatants[0]["attack"]) > 0
+            assert int(challenged_combatants[0]["defense"]) > 0
 
     def test_battle_attack_advances_turn(self) -> None:
         guild_id = 1
@@ -1796,13 +1751,13 @@ class StorageTests(TestCase):
         )
 
         created, _msg, battle_id, _a, _b = storage.create_battle_proposal(guild_id, challenger_id, challenged_id, 10)
-        self.assertTrue(created)
-        self.assertIsNotNone(battle_id)
+        assert created
+        assert battle_id is not None
         if battle_id is None:
             return
         with patch("bot.storage.random.choice", return_value=challenger_id):
             status, _accept_msg = storage.resolve_battle_proposal(guild_id, battle_id, challenged_id, accepted=True)
-        self.assertEqual(status, "accepted")
+        assert status == "accepted"
 
         action_status, _action_message, _winner_id, next_actor_id = storage.execute_battle_turn_action(
             guild_id,
@@ -1810,13 +1765,13 @@ class StorageTests(TestCase):
             challenger_id,
             "attack",
         )
-        self.assertIn(action_status, {"advanced", "finished"})
+        assert action_status in {"advanced", "finished"}
         if action_status == "advanced":
-            self.assertEqual(next_actor_id, challenged_id)
+            assert next_actor_id == challenged_id
             battle = storage.get_battle_session(guild_id, battle_id)
-            self.assertIsNotNone(battle)
+            assert battle is not None
             if battle is not None:
-                self.assertEqual(battle["acting_user_id"], challenged_id)
+                assert battle["acting_user_id"] == challenged_id
 
     def test_battle_surrender_pays_winner(self) -> None:
         guild_id = 1
@@ -1846,13 +1801,13 @@ class StorageTests(TestCase):
         )
 
         created, _msg, battle_id, _a, _b = storage.create_battle_proposal(guild_id, challenger_id, challenged_id, 25)
-        self.assertTrue(created)
-        self.assertIsNotNone(battle_id)
+        assert created
+        assert battle_id is not None
         if battle_id is None:
             return
         with patch("bot.storage.random.choice", return_value=challenger_id):
             status, _accept_msg = storage.resolve_battle_proposal(guild_id, battle_id, challenged_id, accepted=True)
-        self.assertEqual(status, "accepted")
+        assert status == "accepted"
 
         action_status, _action_message, winner_id, _next_actor = storage.execute_battle_turn_action(
             guild_id,
@@ -1860,13 +1815,13 @@ class StorageTests(TestCase):
             challenger_id,
             "surrender",
         )
-        self.assertEqual(action_status, "finished")
-        self.assertEqual(winner_id, challenged_id)
+        assert action_status == "finished"
+        assert winner_id == challenged_id
 
         challenger_dough, _, _ = storage.get_player_info(guild_id, challenger_id)
         challenged_dough, _, _ = storage.get_player_info(guild_id, challenged_id)
-        self.assertEqual(challenger_dough, 75)
-        self.assertEqual(challenged_dough, 125)
+        assert challenger_dough == 75
+        assert challenged_dough == 125
 
     def test_create_battle_proposal_rejects_player_with_open_battle(self) -> None:
         guild_id = 1
@@ -1898,8 +1853,8 @@ class StorageTests(TestCase):
             challenged_id,
             10,
         )
-        self.assertTrue(created)
-        self.assertIsNotNone(battle_id)
+        assert created
+        assert battle_id is not None
 
         created_second, message_second, _battle_id_second, _team_a, _team_c = storage.create_battle_proposal(
             guild_id,
@@ -1907,8 +1862,8 @@ class StorageTests(TestCase):
             third_user_id,
             10,
         )
-        self.assertFalse(created_second)
-        self.assertEqual(message_second, "You already have an active or pending battle.")
+        assert not (created_second)
+        assert message_second == "You already have an active or pending battle."
 
     def test_end_open_battles_for_shutdown_closes_pending_and_active(self) -> None:
         guild_id = 1
@@ -1949,8 +1904,8 @@ class StorageTests(TestCase):
             challenged_id,
             10,
         )
-        self.assertTrue(created_pending)
-        self.assertIsNotNone(pending_battle_id)
+        assert created_pending
+        assert pending_battle_id is not None
         if pending_battle_id is None:
             return
 
@@ -1960,7 +1915,7 @@ class StorageTests(TestCase):
             challenged_id,
             accepted=False,
         )
-        self.assertEqual(status, "denied")
+        assert status == "denied"
 
         created_pending_open, _msg, pending_open_battle_id, _a, _b = storage.create_battle_proposal(
             guild_id,
@@ -1968,8 +1923,8 @@ class StorageTests(TestCase):
             pending_challenged_id,
             9,
         )
-        self.assertTrue(created_pending_open)
-        self.assertIsNotNone(pending_open_battle_id)
+        assert created_pending_open
+        assert pending_open_battle_id is not None
         if pending_open_battle_id is None:
             return
 
@@ -1979,8 +1934,8 @@ class StorageTests(TestCase):
             challenged_id,
             15,
         )
-        self.assertTrue(created_active)
-        self.assertIsNotNone(active_battle_id)
+        assert created_active
+        assert active_battle_id is not None
         if active_battle_id is None:
             return
 
@@ -1991,7 +1946,7 @@ class StorageTests(TestCase):
                 challenged_id,
                 accepted=True,
             )
-        self.assertEqual(status, "accepted")
+        assert status == "accepted"
 
         created_new_pending, _msg, new_pending_battle_id, _a, _b = storage.create_battle_proposal(
             guild_id,
@@ -1999,24 +1954,24 @@ class StorageTests(TestCase):
             challenged_id,
             20,
         )
-        self.assertFalse(created_new_pending)
-        self.assertIsNone(new_pending_battle_id)
+        assert not (created_new_pending)
+        assert new_pending_battle_id is None
 
         ended_count = storage.end_open_battles_for_shutdown()
-        self.assertEqual(ended_count, 2)
+        assert ended_count == 2
 
         active_battle = storage.get_battle_session(guild_id, active_battle_id)
-        self.assertIsNotNone(active_battle)
+        assert active_battle is not None
         if active_battle is not None:
-            self.assertEqual(active_battle["status"], "finished")
-            self.assertEqual(active_battle["last_action"], "Battle ended: bot shutdown.")
-            self.assertIsNone(active_battle["acting_user_id"])
+            assert active_battle["status"] == "finished"
+            assert active_battle["last_action"] == "Battle ended: bot shutdown."
+            assert active_battle["acting_user_id"] is None
 
         pending_battle = storage.get_battle_session(guild_id, pending_open_battle_id)
-        self.assertIsNotNone(pending_battle)
+        assert pending_battle is not None
         if pending_battle is not None:
-            self.assertEqual(pending_battle["status"], "finished")
-            self.assertEqual(pending_battle["last_action"], "Battle ended: bot shutdown.")
+            assert pending_battle["status"] == "finished"
+            assert pending_battle["last_action"] == "Battle ended: bot shutdown."
 
         created_after_shutdown, message_after_shutdown, _battle_id, _a, _b = storage.create_battle_proposal(
             guild_id,
@@ -2024,5 +1979,5 @@ class StorageTests(TestCase):
             challenged_id,
             20,
         )
-        self.assertTrue(created_after_shutdown)
-        self.assertEqual(message_after_shutdown, "")
+        assert created_after_shutdown
+        assert message_after_shutdown == ""

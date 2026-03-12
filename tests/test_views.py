@@ -1,4 +1,3 @@
-from tests.pytest_compat import IsolatedAsyncioTestCase
 from unittest.mock import patch
 
 from bot.presentation import battle_arena_description
@@ -73,7 +72,7 @@ class _FakeMessage:
         self.replies.append(kwargs)
 
 
-class ViewTests(IsolatedAsyncioTestCase):
+class ViewTests:
     async def test_battle_arena_description_adds_winner_celebration_emojis(
         self,
     ) -> None:
@@ -114,11 +113,10 @@ class ViewTests(IsolatedAsyncioTestCase):
             ),
             last_action="<@20> won.",
         )
-
-        self.assertIn("Winner: 🏆 <@20> 🥇", description)
-        self.assertIn("`HP  80/100`", description)
-        self.assertIn("`SPG#0` (ACTIVE) • HP:80 ATK:18 DEF:12", description)
-        self.assertLess(description.index("`HP  80/100`"), description.index("`SPG#0` (ACTIVE)"))
+        assert "Winner: 🏆 <@20> 🥇" in description
+        assert "`HP  80/100`" in description
+        assert "`SPG#0` (ACTIVE) • HP:80 ATK:18 DEF:12" in description
+        assert description.index("`HP  80/100`") < description.index("`SPG#0` (ACTIVE)")
 
     async def test_battle_embed_title_celebrates_finished_winner(self) -> None:
         snapshot = BattleSnapshot(
@@ -162,7 +160,7 @@ class ViewTests(IsolatedAsyncioTestCase):
         )
 
         embed = _battle_embed(snapshot)
-        self.assertEqual(embed.title, "Battle Arena 🏆")
+        assert embed.title == "Battle Arena 🏆"
 
     async def test_battle_embed_title_stays_plain_for_active_battle(self) -> None:
         snapshot = BattleSnapshot(
@@ -206,7 +204,7 @@ class ViewTests(IsolatedAsyncioTestCase):
         )
 
         embed = _battle_embed(snapshot)
-        self.assertEqual(embed.title, "Battle Arena")
+        assert embed.title == "Battle Arena"
 
     async def test_player_leaderboard_view_ranks_by_selected_criteria(self) -> None:
         view = PlayerLeaderboardView(
@@ -222,27 +220,27 @@ class ViewTests(IsolatedAsyncioTestCase):
         )
 
         cards_embed = view.build_embed()
-        self.assertIn("<@2>", cards_embed.description)
-        self.assertIn("Cards: **9**", cards_embed.description)
-        self.assertIn("Cards: **9** • <@2>", cards_embed.description)
+        assert "<@2>" in cards_embed.description
+        assert "Cards: **9**" in cards_embed.description
+        assert "Cards: **9** • <@2>" in cards_embed.description
 
         interaction = _FakeInteraction(user_id=10)
         view.criteria_select._values = ["wishes"]
         await view.criteria_select.callback(interaction)
 
         edited_embed = interaction.response.edited_messages[0]["embed"]
-        self.assertIn("<@1>", edited_embed.description)
-        self.assertIn("Wishes: **8**", edited_embed.description)
-        self.assertIn("Wishes: **8** • <@1>", edited_embed.description)
+        assert "<@1>" in edited_embed.description
+        assert "Wishes: **8**" in edited_embed.description
+        assert "Wishes: **8** • <@1>" in edited_embed.description
 
         interaction_votes = _FakeInteraction(user_id=10)
         view.criteria_select._values = ["votes"]
         await view.criteria_select.callback(interaction_votes)
 
         votes_embed = interaction_votes.response.edited_messages[0]["embed"]
-        self.assertIn("<@3>", votes_embed.description)
-        self.assertIn("Votes: **9**", votes_embed.description)
-        self.assertIn("Votes: **9** • <@3>", votes_embed.description)
+        assert "<@3>" in votes_embed.description
+        assert "Votes: **9**" in votes_embed.description
+        assert "Votes: **9** • <@3>" in votes_embed.description
 
     async def test_player_leaderboard_view_rejects_unauthorized_user(self) -> None:
         view = PlayerLeaderboardView(
@@ -255,18 +253,16 @@ class ViewTests(IsolatedAsyncioTestCase):
         interaction = _FakeInteraction(user_id=99)
         view.criteria_select._values = ["dough"]
         await view.criteria_select.callback(interaction)
-
-        self.assertEqual(len(interaction.response.sent_messages), 1)
+        assert len(interaction.response.sent_messages) == 1
         sent = interaction.response.sent_messages[0]
-        self.assertTrue(sent.get("ephemeral"))
-        self.assertIn("Only the command user", sent["embed"].description)
+        assert sent.get("ephemeral")
+        assert "Only the command user" in sent["embed"].description
 
     async def test_help_view_shows_overview_by_default(self) -> None:
         view = HelpView(user_id=10)
         embed = view.build_overview_embed()
-
-        self.assertEqual(embed.title, "Help")
-        self.assertIn("Noodswap", embed.description)
+        assert embed.title == "Help"
+        assert "Noodswap" in embed.description
 
     async def test_help_view_select_swaps_to_category_page(self) -> None:
         view = HelpView(user_id=10)
@@ -274,61 +270,60 @@ class ViewTests(IsolatedAsyncioTestCase):
 
         view.category_select._values = ["economy"]
         await view.category_select.callback(interaction)
-
-        self.assertEqual(len(interaction.response.edited_messages), 1)
+        assert len(interaction.response.edited_messages) == 1
         edited_embed = interaction.response.edited_messages[0]["embed"]
-        self.assertEqual(edited_embed.title, "Help: Economy")
-        self.assertIn("`drop`", edited_embed.description)
-        self.assertNotIn("`slots`", edited_embed.description)
-        self.assertNotIn("`flip`", edited_embed.description)
-        self.assertNotIn("`team`", edited_embed.description)
-        self.assertNotIn("`battle`", edited_embed.description)
+        assert edited_embed.title == "Help: Economy"
+        assert "`drop`" in edited_embed.description
+        assert "`slots`" not in edited_embed.description
+        assert "`flip`" not in edited_embed.description
+        assert "`team`" not in edited_embed.description
+        assert "`battle`" not in edited_embed.description
 
         interaction.response.edited_messages.clear()
         view.category_select._values = ["gambling"]
         await view.category_select.callback(interaction)
-        self.assertEqual(len(interaction.response.edited_messages), 1)
+        assert len(interaction.response.edited_messages) == 1
         gambling_embed = interaction.response.edited_messages[0]["embed"]
-        self.assertEqual(gambling_embed.title, "Help: Gambling")
-        self.assertIn("`slots`", gambling_embed.description)
-        self.assertIn("`flip <stake> [heads|tails]`", gambling_embed.description)
-        self.assertNotIn("`monopoly roll`", gambling_embed.description)
+        assert gambling_embed.title == "Help: Gambling"
+        assert "`slots`" in gambling_embed.description
+        assert "`flip <stake> [heads|tails]`" in gambling_embed.description
+        assert "`monopoly roll`" not in gambling_embed.description
 
         interaction.response.edited_messages.clear()
         view.category_select._values = ["monopoly"]
         await view.category_select.callback(interaction)
-        self.assertEqual(len(interaction.response.edited_messages), 1)
+        assert len(interaction.response.edited_messages) == 1
         monopoly_embed = interaction.response.edited_messages[0]["embed"]
-        self.assertEqual(monopoly_embed.title, "Help: Monopoly")
-        self.assertIn("`monopoly roll`", monopoly_embed.description)
-        self.assertIn("`monopoly fine`", monopoly_embed.description)
-        self.assertIn("`monopoly board`", monopoly_embed.description)
-        self.assertIn("`monopoly pot`", monopoly_embed.description)
+        assert monopoly_embed.title == "Help: Monopoly"
+        assert "`monopoly roll`" in monopoly_embed.description
+        assert "`monopoly fine`" in monopoly_embed.description
+        assert "`monopoly board`" in monopoly_embed.description
+        assert "`monopoly pot`" in monopoly_embed.description
 
         interaction.response.edited_messages.clear()
         view.category_select._values = ["battle"]
         await view.category_select.callback(interaction)
-        self.assertEqual(len(interaction.response.edited_messages), 1)
+        assert len(interaction.response.edited_messages) == 1
         battle_embed = interaction.response.edited_messages[0]["embed"]
-        self.assertEqual(battle_embed.title, "Help: Battle")
-        self.assertIn("`team add <team_name>`", battle_embed.description)
-        self.assertIn("`team remove <team_name>`", battle_embed.description)
-        self.assertIn("`team list`", battle_embed.description)
-        self.assertIn("`team assign <team_name> <card_code>`", battle_embed.description)
-        self.assertIn("`team unassign <team_name> <card_code>`", battle_embed.description)
-        self.assertIn("`team cards <team_name>`", battle_embed.description)
-        self.assertIn("`team active [team_name]`", battle_embed.description)
-        self.assertIn("`battle <player> <stake>`", battle_embed.description)
+        assert battle_embed.title == "Help: Battle"
+        assert "`team add <team_name>`" in battle_embed.description
+        assert "`team remove <team_name>`" in battle_embed.description
+        assert "`team list`" in battle_embed.description
+        assert "`team assign <team_name> <card_code>`" in battle_embed.description
+        assert "`team unassign <team_name> <card_code>`" in battle_embed.description
+        assert "`team cards <team_name>`" in battle_embed.description
+        assert "`team active [team_name]`" in battle_embed.description
+        assert "`battle <player> <stake>`" in battle_embed.description
 
     async def test_help_view_category_option_order_includes_gambling_and_battle(
         self,
     ) -> None:
         view = HelpView(user_id=10)
         option_values = [option.value for option in view.category_select.options]
-        self.assertIn("gambling", option_values)
-        self.assertIn("battle", option_values)
-        self.assertLess(option_values.index("economy"), option_values.index("gambling"))
-        self.assertLess(option_values.index("gambling"), option_values.index("battle"))
+        assert "gambling" in option_values
+        assert "battle" in option_values
+        assert option_values.index("economy") < option_values.index("gambling")
+        assert option_values.index("gambling") < option_values.index("battle")
 
     async def test_help_view_select_rejects_unauthorized_user(self) -> None:
         view = HelpView(user_id=10)
@@ -336,17 +331,16 @@ class ViewTests(IsolatedAsyncioTestCase):
 
         view.category_select._values = ["overview"]
         await view.category_select.callback(interaction)
-
-        self.assertEqual(len(interaction.response.sent_messages), 1)
+        assert len(interaction.response.sent_messages) == 1
         sent = interaction.response.sent_messages[0]
-        self.assertTrue(sent.get("ephemeral"))
-        self.assertIn("Only the command user", sent["embed"].description)
+        assert sent.get("ephemeral")
+        assert "Only the command user" in sent["embed"].description
 
     async def test_drop_allows_any_user_to_claim(self) -> None:
         view = DropView(guild_id=1, user_id=100, choices=[("SPG", 50)])
         interaction = _FakeInteraction(user_id=200)
         callback = view.children[0].callback
-        self.assertIsNotNone(callback)
+        assert callback is not None
 
         with patch(
             "bot.view_drop.execute_drop_claim",
@@ -355,32 +349,31 @@ class ViewTests(IsolatedAsyncioTestCase):
             await callback(interaction)
 
         execute_claim.assert_called_once()
-        self.assertEqual(len(interaction.response.edited_messages), 1)
-        self.assertEqual(len(interaction.message.replies), 1)
-        self.assertIn("<@200> pulled", interaction.message.replies[0]["embed"].description)
+        assert len(interaction.response.edited_messages) == 1
+        assert len(interaction.message.replies) == 1
+        assert "<@200> pulled" in interaction.message.replies[0]["embed"].description
 
     async def test_drop_rejects_when_already_resolved(self) -> None:
         view = DropView(guild_id=1, user_id=100, choices=[("SPG", 50)])
         view.finished = True
         interaction = _FakeInteraction(user_id=100)
         callback = view.children[0].callback
-        self.assertIsNotNone(callback)
+        assert callback is not None
 
         with patch("bot.view_drop.execute_drop_claim") as execute_claim:
             await callback(interaction)
             execute_claim.assert_not_called()
-
-        self.assertEqual(len(interaction.response.sent_messages), 1)
+        assert len(interaction.response.sent_messages) == 1
         sent = interaction.response.sent_messages[0]
-        self.assertTrue(sent.get("ephemeral"))
-        self.assertIn("already resolved", sent["embed"].description)
+        assert sent.get("ephemeral")
+        assert "already resolved" in sent["embed"].description
 
     async def test_drop_rejects_claim_when_card_already_claimed(self) -> None:
         view = DropView(guild_id=1, user_id=100, choices=[("SPG", 50), ("PEN", 60)])
         first_interaction = _FakeInteraction(user_id=200)
         second_interaction = _FakeInteraction(user_id=300)
         callback = view.children[0].callback
-        self.assertIsNotNone(callback)
+        assert callback is not None
 
         with patch(
             "bot.view_drop.execute_drop_claim",
@@ -390,27 +383,23 @@ class ViewTests(IsolatedAsyncioTestCase):
             await callback(second_interaction)
 
         execute_claim.assert_called_once()
-        self.assertEqual(len(second_interaction.response.sent_messages), 1)
-        self.assertIn(
-            "already been claimed",
-            second_interaction.response.sent_messages[0]["embed"].description,
-        )
+        assert len(second_interaction.response.sent_messages) == 1
+        assert "already been claimed" in second_interaction.response.sent_messages[0]["embed"].description
 
     async def test_drop_stays_open_until_all_cards_claimed(self) -> None:
         view = DropView(guild_id=1, user_id=100, choices=[("SPG", 50), ("PEN", 60)])
         first_interaction = _FakeInteraction(user_id=200)
         callback = view.children[0].callback
-        self.assertIsNotNone(callback)
+        assert callback is not None
 
         with patch(
             "bot.view_drop.execute_drop_claim",
             return_value=type("Result", (), {"is_error": False, "dupe_code": "abc"})(),
         ):
             await callback(first_interaction)
-
-        self.assertFalse(view.finished)
-        self.assertTrue(view.children[0].disabled)
-        self.assertFalse(view.children[1].disabled)
+        assert not (view.finished)
+        assert view.children[0].disabled
+        assert not (view.children[1].disabled)
 
     async def test_drop_timeout_disables_buttons_and_edits_message(self) -> None:
         view = DropView(guild_id=1, user_id=100, choices=[("SPG", 50), ("PEN", 60)])
@@ -418,18 +407,17 @@ class ViewTests(IsolatedAsyncioTestCase):
         view.message = fake_message
 
         await view.on_timeout()
-
-        self.assertTrue(all(getattr(item, "disabled", False) for item in view.children))
-        self.assertEqual(len(fake_message.edits), 1)
-        self.assertEqual(fake_message.edits[0].get("view"), view)
-        self.assertNotIn("embed", fake_message.edits[0])
-        self.assertEqual(len(fake_message.replies), 0)
+        assert all(getattr(item, "disabled", False) for item in view.children)
+        assert len(fake_message.edits) == 1
+        assert fake_message.edits[0].get("view") == view
+        assert "embed" not in fake_message.edits[0]
+        assert len(fake_message.replies) == 0
 
     async def test_drop_rejects_when_user_pull_cooldown_active(self) -> None:
         view = DropView(guild_id=1, user_id=100, choices=[("SPG", 50)])
         interaction = _FakeInteraction(user_id=200)
         callback = view.children[0].callback
-        self.assertIsNotNone(callback)
+        assert callback is not None
 
         with patch(
             "bot.view_drop.execute_drop_claim",
@@ -438,10 +426,10 @@ class ViewTests(IsolatedAsyncioTestCase):
             await callback(interaction)
 
         execute_claim.assert_called_once()
-        self.assertEqual(len(interaction.response.sent_messages), 1)
+        assert len(interaction.response.sent_messages) == 1
         sent = interaction.response.sent_messages[0]
-        self.assertEqual(sent["embed"].title, "Pull Cooldown")
-        self.assertTrue(sent.get("ephemeral"))
+        assert sent["embed"].title == "Pull Cooldown"
+        assert sent.get("ephemeral")
 
     async def test_trade_rejects_non_buyer(self) -> None:
         view = TradeView(
@@ -457,11 +445,10 @@ class ViewTests(IsolatedAsyncioTestCase):
         with patch("bot.view_trade.resolve_trade_offer") as resolve_trade:
             await view._resolve(interaction, accepted=True)
             resolve_trade.assert_not_called()
-
-        self.assertEqual(len(interaction.response.sent_messages), 1)
+        assert len(interaction.response.sent_messages) == 1
         sent = interaction.response.sent_messages[0]
-        self.assertTrue(sent.get("ephemeral"))
-        self.assertEqual(sent["embed"].title, "Trade")
+        assert sent.get("ephemeral")
+        assert sent["embed"].title == "Trade"
 
     async def test_trade_accept_success_sends_followup_and_keeps_offer(self) -> None:
         view = TradeView(
@@ -489,17 +476,16 @@ class ViewTests(IsolatedAsyncioTestCase):
         ) as resolve_trade:
             await view._resolve(interaction, accepted=True)
             resolve_trade.assert_called_once()
-
-        self.assertTrue(view.finished)
-        self.assertTrue(all(getattr(item, "disabled", False) for item in view.children))
-        self.assertEqual(len(interaction.response.edited_messages), 1)
+        assert view.finished
+        assert all(getattr(item, "disabled", False) for item in view.children)
+        assert len(interaction.response.edited_messages) == 1
         edited = interaction.response.edited_messages[0]
-        self.assertEqual(edited.get("view"), view)
-        self.assertNotIn("embed", edited)
-        self.assertEqual(len(interaction.message.replies), 1)
+        assert edited.get("view") == view
+        assert "embed" not in edited
+        assert len(interaction.message.replies) == 1
         accepted = interaction.message.replies[0]
-        self.assertEqual(accepted["embed"].title, "Trade Accepted")
-        self.assertIn("G-123", accepted["embed"].description)
+        assert accepted["embed"].title == "Trade Accepted"
+        assert "G-123" in accepted["embed"].description
 
     async def test_trade_timeout_disables_buttons_and_edits_message(self) -> None:
         view = TradeView(
@@ -514,10 +500,9 @@ class ViewTests(IsolatedAsyncioTestCase):
         view.message = fake_message
 
         await view.on_timeout()
-
-        self.assertTrue(all(getattr(item, "disabled", False) for item in view.children))
-        self.assertEqual(len(fake_message.edits), 1)
-        self.assertEqual(fake_message.edits[0]["embed"].title, "Trade Expired")
+        assert all(getattr(item, "disabled", False) for item in view.children)
+        assert len(fake_message.edits) == 1
+        assert fake_message.edits[0]["embed"].title == "Trade Expired"
 
     async def test_trade_accept_card_mode_shows_both_cards(self) -> None:
         view = TradeView(
@@ -546,15 +531,14 @@ class ViewTests(IsolatedAsyncioTestCase):
             )(),
         ):
             await view._resolve(interaction, accepted=True)
-
-        self.assertEqual(len(interaction.message.replies), 1)
+        assert len(interaction.message.replies) == 1
         accepted = interaction.message.replies[0]
-        self.assertEqual(accepted["embed"].title, "Trade Accepted")
+        assert accepted["embed"].title == "Trade Accepted"
         desc = accepted["embed"].description
-        self.assertIn("Seller gave", desc)
-        self.assertIn("Buyer gave", desc)
-        self.assertIn("SPG", desc)
-        self.assertIn("PEN", desc)
+        assert "Seller gave" in desc
+        assert "Buyer gave" in desc
+        assert "SPG" in desc
+        assert "PEN" in desc
 
     async def test_burn_confirm_sends_followup_embed_and_keeps_prompt(self) -> None:
         view = BurnConfirmView(
@@ -590,12 +574,12 @@ class ViewTests(IsolatedAsyncioTestCase):
             await view.confirm_button.callback(interaction)
 
         execute_burn.assert_called_once_with(1, 10, instance_id=77, delta_range=8)
-        self.assertTrue(view.finished)
-        self.assertEqual(len(interaction.response.edited_messages), 1)
-        self.assertEqual(interaction.response.edited_messages[0].get("view"), view)
-        self.assertNotIn("embed", interaction.response.edited_messages[0])
-        self.assertEqual(len(interaction.message.replies), 1)
-        self.assertEqual(interaction.message.replies[0]["embed"].title, "**Card Burned**")
+        assert view.finished
+        assert len(interaction.response.edited_messages) == 1
+        assert interaction.response.edited_messages[0].get("view") == view
+        assert "embed" not in interaction.response.edited_messages[0]
+        assert len(interaction.message.replies) == 1
+        assert interaction.message.replies[0]["embed"].title == "**Card Burned**"
 
     async def test_burn_confirm_blocks_when_card_in_locked_tag(self) -> None:
         view = BurnConfirmView(
@@ -631,10 +615,10 @@ class ViewTests(IsolatedAsyncioTestCase):
             await view.confirm_button.callback(interaction)
 
         execute_burn.assert_called_once_with(1, 10, instance_id=77, delta_range=8)
-        self.assertTrue(view.finished)
-        self.assertEqual(len(interaction.response.edited_messages), 1)
-        self.assertEqual(len(interaction.message.replies), 1)
-        self.assertEqual(interaction.message.replies[0]["embed"].title, "Burn Blocked")
+        assert view.finished
+        assert len(interaction.response.edited_messages) == 1
+        assert len(interaction.message.replies) == 1
+        assert interaction.message.replies[0]["embed"].title == "Burn Blocked"
 
     async def test_burn_cancel_sends_followup_embed_and_keeps_prompt(self) -> None:
         view = BurnConfirmView(
@@ -648,13 +632,12 @@ class ViewTests(IsolatedAsyncioTestCase):
         interaction = _FakeInteraction(user_id=10)
 
         await view.cancel_button.callback(interaction)
-
-        self.assertTrue(view.finished)
-        self.assertEqual(len(interaction.response.edited_messages), 1)
-        self.assertEqual(interaction.response.edited_messages[0].get("view"), view)
-        self.assertNotIn("embed", interaction.response.edited_messages[0])
-        self.assertEqual(len(interaction.message.replies), 1)
-        self.assertEqual(interaction.message.replies[0]["embed"].title, "Burn Cancelled")
+        assert view.finished
+        assert len(interaction.response.edited_messages) == 1
+        assert interaction.response.edited_messages[0].get("view") == view
+        assert "embed" not in interaction.response.edited_messages[0]
+        assert len(interaction.message.replies) == 1
+        assert interaction.message.replies[0]["embed"].title == "Burn Cancelled"
 
     async def test_morph_confirm_applies_and_replies_with_summary(self) -> None:
         view = MorphConfirmView(
@@ -689,15 +672,15 @@ class ViewTests(IsolatedAsyncioTestCase):
             await view.confirm_button.callback(interaction)
 
         resolve_morph.assert_called_once()
-        self.assertTrue(view.finished)
-        self.assertEqual(len(interaction.response.edited_messages), 1)
-        self.assertEqual(interaction.response.edited_messages[0].get("view"), view)
-        self.assertEqual(len(interaction.message.replies), 1)
+        assert view.finished
+        assert len(interaction.response.edited_messages) == 1
+        assert interaction.response.edited_messages[0].get("view") == view
+        assert len(interaction.message.replies) == 1
         sent_embed = interaction.message.replies[0]["embed"]
-        self.assertEqual(sent_embed.title, "Morph Rolled")
-        self.assertIn("Trait Rarity: **Common** (x1.00)", sent_embed.description)
-        self.assertIn("Morph Cost: **9**", sent_embed.description)
-        self.assertIn("Dough Remaining: **41**", sent_embed.description)
+        assert sent_embed.title == "Morph Rolled"
+        assert "Trait Rarity: **Common** (x1.00)" in sent_embed.description
+        assert "Morph Cost: **9**" in sent_embed.description
+        assert "Dough Remaining: **41**" in sent_embed.description
 
     async def test_morph_confirm_rejects_unauthorized_user(self) -> None:
         view = MorphConfirmView(
@@ -717,13 +700,9 @@ class ViewTests(IsolatedAsyncioTestCase):
         with patch("bot.view_confirmations.resolve_morph_roll") as resolve_morph:
             await view.confirm_button.callback(interaction)
             resolve_morph.assert_not_called()
-
-        self.assertEqual(len(interaction.response.sent_messages), 1)
-        self.assertTrue(interaction.response.sent_messages[0].get("ephemeral"))
-        self.assertIn(
-            "Only the command user",
-            interaction.response.sent_messages[0]["embed"].description,
-        )
+        assert len(interaction.response.sent_messages) == 1
+        assert interaction.response.sent_messages[0].get("ephemeral")
+        assert "Only the command user" in interaction.response.sent_messages[0]["embed"].description
 
     async def test_morph_timeout_clears_attachments_and_edits_embed(self) -> None:
         view = MorphConfirmView(
@@ -742,14 +721,13 @@ class ViewTests(IsolatedAsyncioTestCase):
         view.message = fake_message
 
         await view.on_timeout()
-
-        self.assertTrue(view.confirm_button.disabled)
-        self.assertTrue(view.cancel_button.disabled)
-        self.assertEqual(len(fake_message.edits), 1)
+        assert view.confirm_button.disabled
+        assert view.cancel_button.disabled
+        assert len(fake_message.edits) == 1
         edit_kwargs = fake_message.edits[0]
-        self.assertEqual(edit_kwargs["view"], view)
-        self.assertNotIn("embed", edit_kwargs)
-        self.assertNotIn("attachments", edit_kwargs)
+        assert edit_kwargs["view"] == view
+        assert "embed" not in edit_kwargs
+        assert "attachments" not in edit_kwargs
 
     async def test_frame_confirm_applies_and_replies_with_summary(self) -> None:
         view = FrameConfirmView(
@@ -784,15 +762,15 @@ class ViewTests(IsolatedAsyncioTestCase):
             await view.confirm_button.callback(interaction)
 
         resolve_frame.assert_called_once()
-        self.assertTrue(view.finished)
-        self.assertEqual(len(interaction.response.edited_messages), 1)
-        self.assertEqual(interaction.response.edited_messages[0].get("view"), view)
-        self.assertEqual(len(interaction.message.replies), 1)
+        assert view.finished
+        assert len(interaction.response.edited_messages) == 1
+        assert interaction.response.edited_messages[0].get("view") == view
+        assert len(interaction.message.replies) == 1
         sent_embed = interaction.message.replies[0]["embed"]
-        self.assertEqual(sent_embed.title, "Frame Rolled")
-        self.assertIn("Trait Rarity: **Common** (x1.00)", sent_embed.description)
-        self.assertIn("Frame Cost: **9**", sent_embed.description)
-        self.assertIn("Dough Remaining: **41**", sent_embed.description)
+        assert sent_embed.title == "Frame Rolled"
+        assert "Trait Rarity: **Common** (x1.00)" in sent_embed.description
+        assert "Frame Cost: **9**" in sent_embed.description
+        assert "Dough Remaining: **41**" in sent_embed.description
 
     async def test_frame_timeout_clears_attachments_and_edits_embed(self) -> None:
         view = FrameConfirmView(
@@ -811,14 +789,13 @@ class ViewTests(IsolatedAsyncioTestCase):
         view.message = fake_message
 
         await view.on_timeout()
-
-        self.assertTrue(view.confirm_button.disabled)
-        self.assertTrue(view.cancel_button.disabled)
-        self.assertEqual(len(fake_message.edits), 1)
+        assert view.confirm_button.disabled
+        assert view.cancel_button.disabled
+        assert len(fake_message.edits) == 1
         edit_kwargs = fake_message.edits[0]
-        self.assertEqual(edit_kwargs["view"], view)
-        self.assertNotIn("embed", edit_kwargs)
-        self.assertNotIn("attachments", edit_kwargs)
+        assert edit_kwargs["view"] == view
+        assert "embed" not in edit_kwargs
+        assert "attachments" not in edit_kwargs
 
     async def test_font_confirm_applies_and_replies_with_summary(self) -> None:
         view = FontConfirmView(
@@ -853,15 +830,15 @@ class ViewTests(IsolatedAsyncioTestCase):
             await view.confirm_button.callback(interaction)
 
         resolve_font.assert_called_once()
-        self.assertTrue(view.finished)
-        self.assertEqual(len(interaction.response.edited_messages), 1)
-        self.assertEqual(interaction.response.edited_messages[0].get("view"), view)
-        self.assertEqual(len(interaction.message.replies), 1)
+        assert view.finished
+        assert len(interaction.response.edited_messages) == 1
+        assert interaction.response.edited_messages[0].get("view") == view
+        assert len(interaction.message.replies) == 1
         sent_embed = interaction.message.replies[0]["embed"]
-        self.assertEqual(sent_embed.title, "Font Rolled")
-        self.assertIn("Trait Rarity: **Uncommon** (x1.02)", sent_embed.description)
-        self.assertIn("Font Cost: **9**", sent_embed.description)
-        self.assertIn("Dough Remaining: **41**", sent_embed.description)
+        assert sent_embed.title == "Font Rolled"
+        assert "Trait Rarity: **Uncommon** (x1.02)" in sent_embed.description
+        assert "Font Cost: **9**" in sent_embed.description
+        assert "Dough Remaining: **41**" in sent_embed.description
 
     async def test_font_timeout_clears_attachments_and_edits_embed(self) -> None:
         view = FontConfirmView(
@@ -880,14 +857,13 @@ class ViewTests(IsolatedAsyncioTestCase):
         view.message = fake_message
 
         await view.on_timeout()
-
-        self.assertTrue(view.confirm_button.disabled)
-        self.assertTrue(view.cancel_button.disabled)
-        self.assertEqual(len(fake_message.edits), 1)
+        assert view.confirm_button.disabled
+        assert view.cancel_button.disabled
+        assert len(fake_message.edits) == 1
         edit_kwargs = fake_message.edits[0]
-        self.assertEqual(edit_kwargs["view"], view)
-        self.assertNotIn("embed", edit_kwargs)
-        self.assertNotIn("attachments", edit_kwargs)
+        assert edit_kwargs["view"] == view
+        assert "embed" not in edit_kwargs
+        assert "attachments" not in edit_kwargs
 
     async def test_card_catalog_pagination_buttons_update_page(self) -> None:
         entries = [
@@ -899,11 +875,10 @@ class ViewTests(IsolatedAsyncioTestCase):
 
         interaction = _FakeInteraction(user_id=10)
         await view.next_page_button.callback(interaction)
-
-        self.assertEqual(view.page_index, 1)
-        self.assertEqual(len(interaction.response.edited_messages), 1)
+        assert view.page_index == 1
+        assert len(interaction.response.edited_messages) == 1
         edited_embed = interaction.response.edited_messages[0]["embed"]
-        self.assertIn("PEN", edited_embed.description)
+        assert "PEN" in edited_embed.description
 
     async def test_card_catalog_rejects_unauthorized_navigation(self) -> None:
         entries = [("SPG", 4), ("PEN", 3)]
@@ -911,10 +886,9 @@ class ViewTests(IsolatedAsyncioTestCase):
 
         interaction = _FakeInteraction(user_id=99)
         await view.next_page_button.callback(interaction)
-
-        self.assertEqual(view.page_index, 0)
-        self.assertEqual(len(interaction.response.sent_messages), 1)
-        self.assertTrue(interaction.response.sent_messages[0].get("ephemeral"))
+        assert view.page_index == 0
+        assert len(interaction.response.sent_messages) == 1
+        assert interaction.response.sent_messages[0].get("ephemeral")
 
     async def test_card_catalog_sort_select_changes_order_and_resets_page(self) -> None:
         entries = [
@@ -928,13 +902,12 @@ class ViewTests(IsolatedAsyncioTestCase):
         interaction = _FakeInteraction(user_id=10)
         view.sort_select._values = ["alphabetical"]
         await view.sort_select.callback(interaction)
-
-        self.assertEqual(view.page_index, 0)
-        self.assertEqual(view.sort_mode, "alphabetical")
-        self.assertEqual(len(interaction.response.edited_messages), 1)
+        assert view.page_index == 0
+        assert view.sort_mode == "alphabetical"
+        assert len(interaction.response.edited_messages) == 1
         edited_embed = interaction.response.edited_messages[0]["embed"]
-        self.assertIn("Barolo", edited_embed.description)
-        self.assertIn("Sort: Alphabetical", edited_embed.footer.text)
+        assert "Barolo" in edited_embed.description
+        assert "Sort: Alphabetical" in edited_embed.footer.text
 
     def test_card_catalog_defaults_to_alphabetical_sort(self) -> None:
         entries = [
@@ -945,8 +918,8 @@ class ViewTests(IsolatedAsyncioTestCase):
         view = CardCatalogView(user_id=10, entries=entries, page_size=1)
 
         embed = view.build_embed()
-        self.assertIn("Barolo", embed.description)
-        self.assertIn("Sort: Alphabetical", embed.footer.text)
+        assert "Barolo" in embed.description
+        assert "Sort: Alphabetical" in embed.footer.text
 
     async def test_card_catalog_wishes_sort_prioritizes_highest_count(self) -> None:
         entries = [
@@ -959,12 +932,11 @@ class ViewTests(IsolatedAsyncioTestCase):
         interaction = _FakeInteraction(user_id=10)
         view.sort_select._values = ["wishes"]
         await view.sort_select.callback(interaction)
-
-        self.assertEqual(view.sort_mode, "wishes")
+        assert view.sort_mode == "wishes"
         edited_embed = interaction.response.edited_messages[0]["embed"]
-        self.assertIn("Barolo", edited_embed.description)
-        self.assertIn("Wishes: **3**", edited_embed.description)
-        self.assertIn("Sort: Wishes", edited_embed.footer.text)
+        assert "Barolo" in edited_embed.description
+        assert "Wishes: **3**" in edited_embed.description
+        assert "Sort: Wishes" in edited_embed.footer.text
 
     async def test_card_catalog_sort_direction_toggle_flips_order_and_resets_page(
         self,
@@ -983,12 +955,11 @@ class ViewTests(IsolatedAsyncioTestCase):
         view.page_index = 2
         toggle_interaction = _FakeInteraction(user_id=10)
         await view.sort_direction_button.callback(toggle_interaction)
-
-        self.assertEqual(view.page_index, 0)
-        self.assertFalse(view.sort_descending)
+        assert view.page_index == 0
+        assert not (view.sort_descending)
         edited_embed = toggle_interaction.response.edited_messages[0]["embed"]
-        self.assertIn("Spaghetti", edited_embed.description)
-        self.assertIn("Sort: Wishes (Asc)", edited_embed.footer.text)
+        assert "Spaghetti" in edited_embed.description
+        assert "Sort: Wishes (Asc)" in edited_embed.footer.text
 
     async def test_card_catalog_sort_mode_resets_direction_to_default(self) -> None:
         entries = [
@@ -999,15 +970,14 @@ class ViewTests(IsolatedAsyncioTestCase):
         view = CardCatalogView(user_id=10, entries=entries, page_size=1)
         toggle_interaction = _FakeInteraction(user_id=10)
         await view.sort_direction_button.callback(toggle_interaction)
-        self.assertTrue(view.sort_descending)
+        assert view.sort_descending
 
         interaction = _FakeInteraction(user_id=10)
         view.sort_select._values = ["series"]
         await view.sort_select.callback(interaction)
-
-        self.assertFalse(view.sort_descending)
+        assert not (view.sort_descending)
         edited_embed = interaction.response.edited_messages[0]["embed"]
-        self.assertIn("Sort: Series (Asc)", edited_embed.footer.text)
+        assert "Sort: Series (Asc)" in edited_embed.footer.text
 
     async def test_card_catalog_rejects_unauthorized_sort_direction_toggle(
         self,
@@ -1017,10 +987,9 @@ class ViewTests(IsolatedAsyncioTestCase):
 
         interaction = _FakeInteraction(user_id=99)
         await view.sort_direction_button.callback(interaction)
-
-        self.assertFalse(view.sort_descending)
-        self.assertEqual(len(interaction.response.sent_messages), 1)
-        self.assertTrue(interaction.response.sent_messages[0].get("ephemeral"))
+        assert not (view.sort_descending)
+        assert len(interaction.response.sent_messages) == 1
+        assert interaction.response.sent_messages[0].get("ephemeral")
 
     async def test_card_catalog_gallery_toggle_enables_single_card_mode(self) -> None:
         entries = [
@@ -1032,12 +1001,11 @@ class ViewTests(IsolatedAsyncioTestCase):
 
         interaction = _FakeInteraction(user_id=10)
         await view.gallery_toggle_button.callback(interaction)
-
-        self.assertTrue(view.gallery_mode)
-        self.assertEqual(view.gallery_toggle_button.label, "Gallery: On")
-        self.assertEqual(view.total_pages, 3)
+        assert view.gallery_mode
+        assert view.gallery_toggle_button.label == "Gallery: On"
+        assert view.total_pages == 3
         edited_embed = interaction.response.edited_messages[0]["embed"]
-        self.assertIn("1.", edited_embed.description)
+        assert "1." in edited_embed.description
 
     async def test_card_catalog_gallery_toggle_preserves_currentish_page_floor(
         self,
@@ -1048,13 +1016,13 @@ class ViewTests(IsolatedAsyncioTestCase):
 
         to_gallery = _FakeInteraction(user_id=10)
         await view.gallery_toggle_button.callback(to_gallery)
-        self.assertTrue(view.gallery_mode)
-        self.assertEqual(view.page_index, 10)
+        assert view.gallery_mode
+        assert view.page_index == 10
 
         back_to_list = _FakeInteraction(user_id=10)
         await view.gallery_toggle_button.callback(back_to_list)
-        self.assertFalse(view.gallery_mode)
-        self.assertEqual(view.page_index, 1)
+        assert not (view.gallery_mode)
+        assert view.page_index == 1
 
     async def test_card_catalog_gallery_to_list_biases_backward(self) -> None:
         entries = [("SPG", idx) for idx in range(25)]
@@ -1065,9 +1033,8 @@ class ViewTests(IsolatedAsyncioTestCase):
 
         interaction = _FakeInteraction(user_id=10)
         await view.gallery_toggle_button.callback(interaction)
-
-        self.assertFalse(view.gallery_mode)
-        self.assertEqual(view.page_index, 1)
+        assert not (view.gallery_mode)
+        assert view.page_index == 1
 
     async def test_card_catalog_gallery_last_page_stays_gallery_mode(self) -> None:
         entries = [("SPG", idx) for idx in range(12)]
@@ -1077,11 +1044,10 @@ class ViewTests(IsolatedAsyncioTestCase):
 
         interaction = _FakeInteraction(user_id=10)
         await view.last_page_button.callback(interaction)
-
-        self.assertTrue(view.gallery_mode)
-        self.assertEqual(view.page_index, 11)
+        assert view.gallery_mode
+        assert view.page_index == 11
         edited_embed = interaction.response.edited_messages[0]["embed"]
-        self.assertIn("12.", edited_embed.description)
+        assert "12." in edited_embed.description
 
     async def test_card_catalog_gallery_mode_includes_attachment_when_image_available(
         self,
@@ -1100,8 +1066,8 @@ class ViewTests(IsolatedAsyncioTestCase):
             await view.next_page_button.callback(interaction)
 
         edit_kwargs = interaction.response.edited_messages[0]
-        self.assertIn("attachments", edit_kwargs)
-        self.assertEqual(edit_kwargs["attachments"], [fake_file])
+        assert "attachments" in edit_kwargs
+        assert edit_kwargs["attachments"] == [fake_file]
 
     async def test_paginated_lines_view_navigation_updates_page(self) -> None:
         lines = ["One", "Two", "Three"]
@@ -1115,11 +1081,10 @@ class ViewTests(IsolatedAsyncioTestCase):
 
         interaction = _FakeInteraction(user_id=10)
         await view.next_page_button.callback(interaction)
-
-        self.assertEqual(view.page_index, 1)
-        self.assertEqual(len(interaction.response.edited_messages), 1)
+        assert view.page_index == 1
+        assert len(interaction.response.edited_messages) == 1
         edited_embed = interaction.response.edited_messages[0]["embed"]
-        self.assertEqual(edited_embed.description, "Two")
+        assert edited_embed.description == "Two"
 
     async def test_paginated_lines_view_rejects_unauthorized_navigation(self) -> None:
         lines = ["One", "Two"]
@@ -1133,11 +1098,10 @@ class ViewTests(IsolatedAsyncioTestCase):
 
         interaction = _FakeInteraction(user_id=99)
         await view.next_page_button.callback(interaction)
-
-        self.assertEqual(view.page_index, 0)
-        self.assertEqual(len(interaction.response.sent_messages), 1)
-        self.assertTrue(interaction.response.sent_messages[0].get("ephemeral"))
-        self.assertEqual(interaction.response.sent_messages[0]["embed"].title, "Wishlist")
+        assert view.page_index == 0
+        assert len(interaction.response.sent_messages) == 1
+        assert interaction.response.sent_messages[0].get("ephemeral")
+        assert interaction.response.sent_messages[0]["embed"].title == "Wishlist"
 
     async def test_sortable_card_list_sort_select_changes_order_and_resets_page(
         self,
@@ -1155,13 +1119,12 @@ class ViewTests(IsolatedAsyncioTestCase):
         interaction = _FakeInteraction(user_id=10)
         view.sort_select._values = ["alphabetical"]
         await view.sort_select.callback(interaction)
-
-        self.assertEqual(view.page_index, 0)
-        self.assertEqual(view.sort_mode, "alphabetical")
-        self.assertEqual(len(interaction.response.edited_messages), 1)
+        assert view.page_index == 0
+        assert view.sort_mode == "alphabetical"
+        assert len(interaction.response.edited_messages) == 1
         edited_embed = interaction.response.edited_messages[0]["embed"]
-        self.assertIn("Barolo", edited_embed.description)
-        self.assertIn("Sort: Alphabetical", edited_embed.footer.text)
+        assert "Barolo" in edited_embed.description
+        assert "Sort: Alphabetical" in edited_embed.footer.text
 
     async def test_sortable_card_list_rejects_unauthorized_sort_select(self) -> None:
         card_ids = ["SPG", "PEN"]
@@ -1176,11 +1139,10 @@ class ViewTests(IsolatedAsyncioTestCase):
         interaction = _FakeInteraction(user_id=99)
         view.sort_select._values = ["alphabetical"]
         await view.sort_select.callback(interaction)
-
-        self.assertEqual(view.sort_mode, "alphabetical")
-        self.assertEqual(len(interaction.response.sent_messages), 1)
-        self.assertTrue(interaction.response.sent_messages[0].get("ephemeral"))
-        self.assertEqual(interaction.response.sent_messages[0]["embed"].title, "Wishlist")
+        assert view.sort_mode == "alphabetical"
+        assert len(interaction.response.sent_messages) == 1
+        assert interaction.response.sent_messages[0].get("ephemeral")
+        assert interaction.response.sent_messages[0]["embed"].title == "Wishlist"
 
     async def test_sortable_card_list_wishes_sort_uses_wish_counts(self) -> None:
         card_ids = ["SPG", "BLA", "BAR"]
@@ -1196,11 +1158,10 @@ class ViewTests(IsolatedAsyncioTestCase):
         interaction = _FakeInteraction(user_id=10)
         view.sort_select._values = ["wishes"]
         await view.sort_select.callback(interaction)
-
-        self.assertEqual(view.sort_mode, "wishes")
+        assert view.sort_mode == "wishes"
         edited_embed = interaction.response.edited_messages[0]["embed"]
-        self.assertIn("Black Truffle Ravioli", edited_embed.description)
-        self.assertIn("Sort: Wishes", edited_embed.footer.text)
+        assert "Black Truffle Ravioli" in edited_embed.description
+        assert "Sort: Wishes" in edited_embed.footer.text
 
     async def test_sortable_card_list_sort_direction_toggle_flips_order_and_resets_page(
         self,
@@ -1222,12 +1183,11 @@ class ViewTests(IsolatedAsyncioTestCase):
         view.page_index = 2
         toggle_interaction = _FakeInteraction(user_id=10)
         await view.sort_direction_button.callback(toggle_interaction)
-
-        self.assertEqual(view.page_index, 0)
-        self.assertFalse(view.sort_descending)
+        assert view.page_index == 0
+        assert not (view.sort_descending)
         edited_embed = toggle_interaction.response.edited_messages[0]["embed"]
-        self.assertIn("Spaghetti", edited_embed.description)
-        self.assertIn("Sort: Wishes (Asc)", edited_embed.footer.text)
+        assert "Spaghetti" in edited_embed.description
+        assert "Sort: Wishes (Asc)" in edited_embed.footer.text
 
     async def test_sortable_card_list_sort_mode_resets_direction_to_default(
         self,
@@ -1243,15 +1203,14 @@ class ViewTests(IsolatedAsyncioTestCase):
 
         toggle_interaction = _FakeInteraction(user_id=10)
         await view.sort_direction_button.callback(toggle_interaction)
-        self.assertTrue(view.sort_descending)
+        assert view.sort_descending
 
         interaction = _FakeInteraction(user_id=10)
         view.sort_select._values = ["series"]
         await view.sort_select.callback(interaction)
-
-        self.assertFalse(view.sort_descending)
+        assert not (view.sort_descending)
         edited_embed = interaction.response.edited_messages[0]["embed"]
-        self.assertIn("Sort: Series (Asc)", edited_embed.footer.text)
+        assert "Sort: Series (Asc)" in edited_embed.footer.text
 
     async def test_sortable_card_list_rejects_unauthorized_sort_direction_toggle(
         self,
@@ -1267,10 +1226,9 @@ class ViewTests(IsolatedAsyncioTestCase):
 
         interaction = _FakeInteraction(user_id=99)
         await view.sort_direction_button.callback(interaction)
-
-        self.assertFalse(view.sort_descending)
-        self.assertEqual(len(interaction.response.sent_messages), 1)
-        self.assertTrue(interaction.response.sent_messages[0].get("ephemeral"))
+        assert not (view.sort_descending)
+        assert len(interaction.response.sent_messages) == 1
+        assert interaction.response.sent_messages[0].get("ephemeral")
 
     async def test_sortable_card_list_gallery_toggle_enables_single_card_mode(
         self,
@@ -1286,12 +1244,11 @@ class ViewTests(IsolatedAsyncioTestCase):
 
         interaction = _FakeInteraction(user_id=10)
         await view.gallery_toggle_button.callback(interaction)
-
-        self.assertTrue(view.gallery_mode)
-        self.assertEqual(view.gallery_toggle_button.label, "Gallery: On")
-        self.assertEqual(view.total_pages, 3)
+        assert view.gallery_mode
+        assert view.gallery_toggle_button.label == "Gallery: On"
+        assert view.total_pages == 3
         edited_embed = interaction.response.edited_messages[0]["embed"]
-        self.assertIn("1.", edited_embed.description)
+        assert "1." in edited_embed.description
 
     async def test_sortable_card_list_gallery_toggle_preserves_currentish_page_floor(
         self,
@@ -1308,13 +1265,13 @@ class ViewTests(IsolatedAsyncioTestCase):
 
         to_gallery = _FakeInteraction(user_id=10)
         await view.gallery_toggle_button.callback(to_gallery)
-        self.assertTrue(view.gallery_mode)
-        self.assertEqual(view.page_index, 10)
+        assert view.gallery_mode
+        assert view.page_index == 10
 
         back_to_list = _FakeInteraction(user_id=10)
         await view.gallery_toggle_button.callback(back_to_list)
-        self.assertFalse(view.gallery_mode)
-        self.assertEqual(view.page_index, 1)
+        assert not (view.gallery_mode)
+        assert view.page_index == 1
 
     async def test_sortable_card_list_gallery_to_list_biases_backward(self) -> None:
         card_ids = ["SPG" for _ in range(25)]
@@ -1331,9 +1288,8 @@ class ViewTests(IsolatedAsyncioTestCase):
 
         interaction = _FakeInteraction(user_id=10)
         await view.gallery_toggle_button.callback(interaction)
-
-        self.assertFalse(view.gallery_mode)
-        self.assertEqual(view.page_index, 1)
+        assert not (view.gallery_mode)
+        assert view.page_index == 1
 
     async def test_sortable_card_list_gallery_last_page_stays_gallery_mode(
         self,
@@ -1351,11 +1307,10 @@ class ViewTests(IsolatedAsyncioTestCase):
 
         interaction = _FakeInteraction(user_id=10)
         await view.last_page_button.callback(interaction)
-
-        self.assertTrue(view.gallery_mode)
-        self.assertEqual(view.page_index, 11)
+        assert view.gallery_mode
+        assert view.page_index == 11
         edited_embed = interaction.response.edited_messages[0]["embed"]
-        self.assertIn("12.", edited_embed.description)
+        assert "12." in edited_embed.description
 
     async def test_sortable_collection_view_defaults_to_alphabetical_sort(self) -> None:
         instances = [
@@ -1374,8 +1329,8 @@ class ViewTests(IsolatedAsyncioTestCase):
         )
 
         embed = view.build_embed()
-        self.assertIn("Barolo", embed.description)
-        self.assertIn("Sort: Alphabetical", embed.footer.text)
+        assert "Barolo" in embed.description
+        assert "Sort: Alphabetical" in embed.footer.text
 
     async def test_sortable_collection_view_wishes_sort(self) -> None:
         instances = [
@@ -1396,11 +1351,10 @@ class ViewTests(IsolatedAsyncioTestCase):
         interaction = _FakeInteraction(user_id=10)
         view.sort_select._values = ["wishes"]
         await view.sort_select.callback(interaction)
-
-        self.assertEqual(view.sort_mode, "wishes")
+        assert view.sort_mode == "wishes"
         edited_embed = interaction.response.edited_messages[0]["embed"]
-        self.assertIn("Black Truffle Ravioli", edited_embed.description)
-        self.assertIn("Sort: Wishes", edited_embed.footer.text)
+        assert "Black Truffle Ravioli" in edited_embed.description
+        assert "Sort: Wishes" in edited_embed.footer.text
 
     async def test_sortable_collection_view_actual_value_sort_prioritizes_computed_value(
         self,
@@ -1423,13 +1377,12 @@ class ViewTests(IsolatedAsyncioTestCase):
         interaction = _FakeInteraction(user_id=10)
         view.sort_select._values = ["actual_value"]
         await view.sort_select.callback(interaction)
-
-        self.assertEqual(view.sort_mode, "actual_value")
-        self.assertEqual(view._sorted_instances[0][0], 2)
-        self.assertEqual(view._sorted_instances[1][0], 3)
-        self.assertEqual(view._sorted_instances[2][0], 1)
+        assert view.sort_mode == "actual_value"
+        assert view._sorted_instances[0][0] == 2
+        assert view._sorted_instances[1][0] == 3
+        assert view._sorted_instances[2][0] == 1
         edited_embed = interaction.response.edited_messages[0]["embed"]
-        self.assertIn("Sort: Actual Value", edited_embed.footer.text)
+        assert "Sort: Actual Value" in edited_embed.footer.text
 
     async def test_sortable_collection_view_generation_sort_prioritizes_lowest_generation(
         self,
@@ -1453,11 +1406,10 @@ class ViewTests(IsolatedAsyncioTestCase):
         interaction = _FakeInteraction(user_id=10)
         view.sort_select._values = ["generation"]
         await view.sort_select.callback(interaction)
-
-        self.assertEqual(view.sort_mode, "generation")
-        self.assertEqual([row[0] for row in view._sorted_instances], [4, 2, 3, 1])
+        assert view.sort_mode == "generation"
+        assert [row[0] for row in view._sorted_instances] == [4, 2, 3, 1]
         edited_embed = interaction.response.edited_messages[0]["embed"]
-        self.assertIn("Sort: Generation", edited_embed.footer.text)
+        assert "Sort: Generation" in edited_embed.footer.text
 
     async def test_sortable_collection_view_sort_direction_toggle_flips_order_and_resets_page(
         self,
@@ -1485,12 +1437,11 @@ class ViewTests(IsolatedAsyncioTestCase):
         view.page_index = 2
         toggle_interaction = _FakeInteraction(user_id=10)
         await view.sort_direction_button.callback(toggle_interaction)
-
-        self.assertEqual(view.page_index, 0)
-        self.assertTrue(view.sort_descending)
-        self.assertEqual([row[0] for row in view._sorted_instances], [1, 2, 3, 4])
+        assert view.page_index == 0
+        assert view.sort_descending
+        assert [row[0] for row in view._sorted_instances] == [1, 2, 3, 4]
         edited_embed = toggle_interaction.response.edited_messages[0]["embed"]
-        self.assertIn("Sort: Generation (Desc)", edited_embed.footer.text)
+        assert "Sort: Generation (Desc)" in edited_embed.footer.text
 
     async def test_sortable_collection_view_sort_mode_resets_direction_to_default(
         self,
@@ -1513,15 +1464,14 @@ class ViewTests(IsolatedAsyncioTestCase):
 
         toggle_interaction = _FakeInteraction(user_id=10)
         await view.sort_direction_button.callback(toggle_interaction)
-        self.assertTrue(view.sort_descending)
+        assert view.sort_descending
 
         interaction = _FakeInteraction(user_id=10)
         view.sort_select._values = ["actual_value"]
         await view.sort_select.callback(interaction)
-
-        self.assertTrue(view.sort_descending)
+        assert view.sort_descending
         edited_embed = interaction.response.edited_messages[0]["embed"]
-        self.assertIn("Sort: Actual Value (Desc)", edited_embed.footer.text)
+        assert "Sort: Actual Value (Desc)" in edited_embed.footer.text
 
     async def test_sortable_collection_view_rejects_unauthorized_sort_direction_toggle(
         self,
@@ -1542,10 +1492,9 @@ class ViewTests(IsolatedAsyncioTestCase):
 
         interaction = _FakeInteraction(user_id=99)
         await view.sort_direction_button.callback(interaction)
-
-        self.assertFalse(view.sort_descending)
-        self.assertEqual(len(interaction.response.sent_messages), 1)
-        self.assertTrue(interaction.response.sent_messages[0].get("ephemeral"))
+        assert not (view.sort_descending)
+        assert len(interaction.response.sent_messages) == 1
+        assert interaction.response.sent_messages[0].get("ephemeral")
 
     async def test_sortable_collection_view_marks_locked_instances_with_emoji(
         self,
@@ -1566,8 +1515,8 @@ class ViewTests(IsolatedAsyncioTestCase):
         )
 
         embed = view.build_embed()
-        self.assertIn("🔒", embed.description)
-        self.assertIn("`  `", embed.description)
+        assert "🔒" in embed.description
+        assert "`  `" in embed.description
 
     async def test_sortable_collection_view_shows_folder_emoji_before_lock_marker(
         self,
@@ -1589,8 +1538,8 @@ class ViewTests(IsolatedAsyncioTestCase):
         )
 
         embed = view.build_embed()
-        self.assertIn("🔥 🔒", embed.description)
-        self.assertIn("📦 `  `", embed.description)
+        assert "🔥 🔒" in embed.description
+        assert "📦 `  `" in embed.description
 
     async def test_sortable_collection_view_gallery_toggle(self) -> None:
         instances = [
@@ -1610,10 +1559,9 @@ class ViewTests(IsolatedAsyncioTestCase):
 
         interaction = _FakeInteraction(user_id=10)
         await view.gallery_toggle_button.callback(interaction)
-
-        self.assertTrue(view.gallery_mode)
-        self.assertEqual(view.gallery_toggle_button.label, "Gallery: On")
-        self.assertEqual(view.total_pages, 3)
+        assert view.gallery_mode
+        assert view.gallery_toggle_button.label == "Gallery: On"
+        assert view.total_pages == 3
 
     async def test_sortable_collection_view_rejects_unauthorized_navigation(
         self,
@@ -1634,11 +1582,10 @@ class ViewTests(IsolatedAsyncioTestCase):
 
         interaction = _FakeInteraction(user_id=99)
         await view.next_page_button.callback(interaction)
-
-        self.assertEqual(view.page_index, 0)
-        self.assertEqual(len(interaction.response.sent_messages), 1)
-        self.assertTrue(interaction.response.sent_messages[0].get("ephemeral"))
-        self.assertEqual(interaction.response.sent_messages[0]["embed"].title, "Collection")
+        assert view.page_index == 0
+        assert len(interaction.response.sent_messages) == 1
+        assert interaction.response.sent_messages[0].get("ephemeral")
+        assert interaction.response.sent_messages[0]["embed"].title == "Collection"
 
     async def test_sortable_card_list_gallery_mode_includes_attachment_when_image_available(
         self,
@@ -1663,5 +1610,5 @@ class ViewTests(IsolatedAsyncioTestCase):
             await view.next_page_button.callback(interaction)
 
         edit_kwargs = interaction.response.edited_messages[0]
-        self.assertIn("attachments", edit_kwargs)
-        self.assertEqual(edit_kwargs["attachments"], [fake_file])
+        assert "attachments" in edit_kwargs
+        assert edit_kwargs["attachments"] == [fake_file]
