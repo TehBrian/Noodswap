@@ -797,7 +797,7 @@ class CommandsLookupTests:
 
         with patch(
             "bot.commands_catalog.get_instance_by_dupe_code",
-            return_value=(123, 999, "SPG", 101, "abc"),
+            return_value=(123, 999, "SPG", 101, "abc", 222, 333),
         ) as lookup_dupe:
             await lookup_command.callback(ctx, card_id="AbC")
 
@@ -806,7 +806,9 @@ class CommandsLookupTests:
         sent_embed = ctx.send.await_args.kwargs["embed"]
         assert sent_embed.title == "Card Lookup"
         assert "`#abc`" in sent_embed.description
-        assert "Owner: <@999>" in sent_embed.description
+        assert "Owned by: <@999>" in sent_embed.description
+        assert "Dropped by: <@222>" in sent_embed.description
+        assert "Pulled by: <@333>" in sent_embed.description
         assert "G-101" in sent_embed.description
         assert "dough" in sent_embed.description
         assert "**Value Breakdown**" in sent_embed.description
@@ -824,7 +826,7 @@ class CommandsLookupTests:
 
         with patch(
             "bot.commands_catalog.get_instance_by_dupe_code",
-            return_value=(123, 999, "SPG", 101, "abc"),
+            return_value=(123, 999, "SPG", 101, "abc", None, None),
         ) as lookup_dupe:
             await lookup_command.callback(ctx, card_id="#AbC")
 
@@ -833,7 +835,9 @@ class CommandsLookupTests:
         sent_embed = ctx.send.await_args.kwargs["embed"]
         assert sent_embed.title == "Card Lookup"
         assert "`#abc`" in sent_embed.description
-        assert "Owner: <@999>" in sent_embed.description
+        assert "Owned by: <@999>" in sent_embed.description
+        assert "Dropped by: Unknown" in sent_embed.description
+        assert "Pulled by: Unknown" in sent_embed.description
         assert "G-101" in sent_embed.description
         assert "dough" in sent_embed.description
         assert "**Value Breakdown**" in sent_embed.description
@@ -852,7 +856,7 @@ class CommandsLookupTests:
 
         with patch(
             "bot.commands_catalog.get_instance_by_dupe_code",
-            return_value=(123, 999, "SPG", 101, "abc"),
+            return_value=(123, 999, "SPG", 101, "abc", 222, 333),
         ) as lookup_dupe:
             await lookup_command.callback(ctx, card_id="AbC")
 
@@ -861,7 +865,9 @@ class CommandsLookupTests:
         sent_embed = ctx.send.await_args.kwargs["embed"]
         assert sent_embed.title == "Card Lookup (HD)"
         assert "`#abc`" in sent_embed.description
-        assert "Owner: <@999>" in sent_embed.description
+        assert "Owned by: <@999>" in sent_embed.description
+        assert "Dropped by: <@222>" in sent_embed.description
+        assert "Pulled by: <@333>" in sent_embed.description
         assert re.search(r"HP: \*\*\d+\*\* • ATK: \*\*\d+\*\* • DEF: \*\*\d+\*\*", sent_embed.description)
 
     async def test_lookup_prefers_exact_dupe_code_over_card_id(self) -> None:
@@ -875,7 +881,7 @@ class CommandsLookupTests:
 
         with patch(
             "bot.commands_catalog.get_instance_by_dupe_code",
-            return_value=(777, 999, "SPG", 88, "spg"),
+            return_value=(777, 999, "SPG", 88, "spg", 999, 111),
         ) as lookup_dupe:
             await lookup_command.callback(ctx, card_id="spg")
 
@@ -884,7 +890,9 @@ class CommandsLookupTests:
         sent_embed = ctx.send.await_args.kwargs["embed"]
         assert sent_embed.title == "Card Lookup"
         assert "`#spg`" in sent_embed.description
-        assert "Owner: <@999>" in sent_embed.description
+        assert "Owned by: <@999>" in sent_embed.description
+        assert "Dropped by: <@999>" in sent_embed.description
+        assert "Pulled by: <@111>" in sent_embed.description
         assert "dough" in sent_embed.description
         assert "Base:" not in sent_embed.description
         assert "Trait Multiplier" in sent_embed.description

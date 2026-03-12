@@ -57,6 +57,7 @@ class DropView(InteractionView):
                     generation,
                     now=discord.utils.utcnow().timestamp(),
                     pull_cooldown_seconds=PULL_COOLDOWN_SECONDS,
+                    dropped_by_user_id=self.user_id,
                 )
                 if claim_result.is_error:
                     cooldown_remaining = claim_result.cooldown_remaining_seconds or 0.0

@@ -92,6 +92,7 @@ def execute_drop_claim(
     *,
     now: float,
     pull_cooldown_seconds: float,
+    dropped_by_user_id: int | None = None,
 ) -> DropClaimExecution:
     _, cooldown_remaining = consume_pull_cooldown_or_ticket(
         guild_id,
@@ -109,7 +110,14 @@ def execute_drop_claim(
             cooldown_remaining_seconds=cooldown_remaining,
         )
 
-    instance_id = add_card_to_player(guild_id, user_id, card_id, generation)
+    instance_id = add_card_to_player(
+        guild_id,
+        user_id,
+        card_id,
+        generation,
+        dropped_by_user_id=dropped_by_user_id,
+        pulled_by_user_id=user_id,
+    )
     persisted = get_instance_by_id(guild_id, instance_id)
     resolved_dupe_code: Optional[str] = None
     if persisted is not None:

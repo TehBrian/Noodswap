@@ -798,6 +798,41 @@ class ServicesTests:
         assert claim.instance_id is not None
         assert claim.dupe_code is not None
 
+    def test_execute_drop_claim_persists_drop_and_pull_provenance(self) -> None:
+        guild_id = 1
+        dropped_by_user_id = 610
+        pulled_by_user_id = 611
+
+        claim = services.execute_drop_claim(
+            guild_id,
+            pulled_by_user_id,
+            "SPG",
+            777,
+            now=time.time(),
+            pull_cooldown_seconds=240,
+            dropped_by_user_id=dropped_by_user_id,
+        )
+        assert not (claim.is_error)
+        assert claim.dupe_code is not None
+
+        looked_up = storage.get_instance_by_dupe_code(guild_id, claim.dupe_code)
+        assert looked_up is not None
+        if looked_up is None:
+            return
+
+        (
+            _instance_id,
+            owner_user_id,
+            _card_id,
+            _generation,
+            _dupe_code,
+            stored_dropped_by_user_id,
+            stored_pulled_by_user_id,
+        ) = looked_up
+        assert owner_user_id == pulled_by_user_id
+        assert stored_dropped_by_user_id == dropped_by_user_id
+        assert stored_pulled_by_user_id == pulled_by_user_id
+
     def test_resolve_trade_offer_denied_returns_denied_status(self) -> None:
         result = services.resolve_trade_offer(
             guild_id=1,

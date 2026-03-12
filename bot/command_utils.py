@@ -181,6 +181,8 @@ def _lookup_trait_breakdown_description(
     dupe_code: str | None,
     *,
     owner_mention: str | None,
+    dropped_by_mention: str | None,
+    pulled_by_mention: str | None,
     morph_key: str | None,
     frame_key: str | None,
     font_key: str | None,
@@ -221,9 +223,10 @@ def _lookup_trait_breakdown_description(
 
     lines.append(dupe_display)
 
-    if owner_mention is not None:
-        lines.append("")
-        lines.append(f"Owner: {owner_mention}")
+    lines.append("")
+    lines.append(f"Owned by: {owner_mention or 'Unknown'}")
+    lines.append(f"Dropped by: {dropped_by_mention or 'Unknown'}")
+    lines.append(f"Pulled by: {pulled_by_mention or 'Unknown'}")
 
     hp, attack, defense = value_to_stats(computed_value)
     lines.append("")

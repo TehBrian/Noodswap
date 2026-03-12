@@ -1400,7 +1400,10 @@ def apply_font_to_instance(
         return True, ""
 
 
-def get_instance_by_dupe_code(guild_id: int, card_code: str) -> Optional[tuple[int, int, str, int, str]]:
+def get_instance_by_dupe_code(
+    guild_id: int,
+    card_code: str,
+) -> Optional[tuple[int, int, str, int, str, int | None, int | None]]:
     guild_id = _scope_guild_id(guild_id)
     parsed = split_card_code(card_code)
     if parsed is None:
@@ -2164,7 +2167,15 @@ def get_card_quantity(guild_id: int, user_id: int, card_id: str) -> int:
         return instances.count_by_card(guild_id, user_id, card_id)
 
 
-def add_card_to_player(guild_id: int, user_id: int, card_id: str, generation: int) -> int:
+def add_card_to_player(
+    guild_id: int,
+    user_id: int,
+    card_id: str,
+    generation: int,
+    *,
+    dropped_by_user_id: int | None = None,
+    pulled_by_user_id: int | None = None,
+) -> int:
     guild_id = _scope_guild_id(guild_id)
     if generation < GENERATION_MIN or generation > GENERATION_MAX:
         raise ValueError("generation out of allowed bounds")
@@ -2174,7 +2185,14 @@ def add_card_to_player(guild_id: int, user_id: int, card_id: str, generation: in
         players = PlayerRepository(conn, STARTING_DOUGH)
         instances = CardInstanceRepository(conn)
         players.ensure_player(guild_id, user_id)
-        instance_id = instances.create_owned_instance(guild_id, user_id, card_id, generation)
+        instance_id = instances.create_owned_instance(
+            guild_id,
+            user_id,
+            card_id,
+            generation,
+            dropped_by_user_id=dropped_by_user_id,
+            pulled_by_user_id=pulled_by_user_id,
+        )
         players.set_last_pulled_instance(guild_id, user_id, instance_id)
         return instance_id
 

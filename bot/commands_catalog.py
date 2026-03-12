@@ -291,6 +291,8 @@ def register_catalog_commands(bot: commands.Bot) -> None:
                     matched_card_id,
                     matched_generation,
                     matched_dupe_code,
+                    matched_dropped_by_id,
+                    matched_pulled_by_id,
                 ) = matched_instance
                 morph_key = get_instance_morph(_guild_id(ctx), matched_instance_id)
                 frame_key = get_instance_frame(_guild_id(ctx), matched_instance_id)
@@ -302,6 +304,8 @@ def register_catalog_commands(bot: commands.Bot) -> None:
                         matched_generation,
                         matched_dupe_code,
                         owner_mention=f"<@{matched_owner_id}>",
+                        dropped_by_mention=(f"<@{matched_dropped_by_id}>" if matched_dropped_by_id is not None else None),
+                        pulled_by_mention=(f"<@{matched_pulled_by_id}>" if matched_pulled_by_id is not None else None),
                         morph_key=morph_key,
                         frame_key=frame_key,
                         font_key=font_key,

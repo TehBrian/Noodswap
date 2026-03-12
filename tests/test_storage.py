@@ -1324,10 +1324,14 @@ class StorageTests:
             global_card_id,
             global_generation,
             global_dupe_code,
+            global_dropped_by_user_id,
+            global_pulled_by_user_id,
         ) = by_hash_global
         plain_instance_id, plain_card_id, plain_generation, plain_dupe_code = by_plain_code
         assert global_user_id == user_id
         assert (global_instance_id, global_card_id, global_generation, global_dupe_code) == (plain_instance_id, plain_card_id, plain_generation, plain_dupe_code)
+        assert global_dropped_by_user_id is None
+        assert global_pulled_by_user_id is None
 
     def test_init_db_v5_ensures_dupe_code_column_and_index(self) -> None:
         with closing(sqlite3.connect(storage.DB_PATH)) as conn:

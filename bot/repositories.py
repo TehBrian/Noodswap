@@ -1725,10 +1725,14 @@ class CardInstanceRepository:
             str(row["dupe_code"]),
         )
 
-    def get_by_dupe_code(self, guild_id: int, dupe_code: str) -> Optional[tuple[int, int, str, int, str]]:
+    def get_by_dupe_code(
+        self,
+        guild_id: int,
+        dupe_code: str,
+    ) -> Optional[tuple[int, int, str, int, str, int | None, int | None]]:
         row = self.conn.execute(
             """
-            SELECT instance_id, user_id, card_id, generation, dupe_code
+            SELECT instance_id, user_id, card_id, generation, dupe_code, dropped_by_user_id, pulled_by_user_id
             FROM card_instances
             WHERE guild_id = ? AND dupe_code = ?
             LIMIT 1
@@ -1743,6 +1747,8 @@ class CardInstanceRepository:
             str(row["card_id"]),
             int(row["generation"]),
             str(row["dupe_code"]),
+            int(row["dropped_by_user_id"]) if row["dropped_by_user_id"] is not None else None,
+            int(row["pulled_by_user_id"]) if row["pulled_by_user_id"] is not None else None,
         )
 
     def count_by_card(self, guild_id: int, user_id: int, card_id: str) -> int:
@@ -1756,14 +1762,39 @@ class CardInstanceRepository:
         ).fetchone()
         return int(row["c"]) if row else 0
 
-    def create_owned_instance(self, guild_id: int, user_id: int, card_id: str, generation: int) -> int:
+    def create_owned_instance(
+        self,
+        guild_id: int,
+        user_id: int,
+        card_id: str,
+        generation: int,
+        *,
+        dropped_by_user_id: int | None = None,
+        pulled_by_user_id: int | None = None,
+    ) -> int:
         dupe_code = self._next_available_dupe_code()
         cursor = self.conn.execute(
             """
-            INSERT INTO card_instances (guild_id, user_id, card_id, generation, dupe_code)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO card_instances (
+                guild_id,
+                user_id,
+                card_id,
+                generation,
+                dupe_code,
+                dropped_by_user_id,
+                pulled_by_user_id
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?)
             """,
-            (guild_id, user_id, card_id, generation, dupe_code),
+            (
+                guild_id,
+                user_id,
+                card_id,
+                generation,
+                dupe_code,
+                dropped_by_user_id,
+                pulled_by_user_id,
+            ),
         )
         if cursor.lastrowid is None:
             raise RuntimeError("Failed to persist card instance")
