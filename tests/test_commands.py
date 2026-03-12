@@ -663,8 +663,8 @@ class CommandsAliasRegistrationTests:
         assert "cd" in cooldown_command.aliases
         assert "d" in _get_command(self.bot, "drop").aliases
         assert "h" in _get_command(self.bot, "help").aliases
+        assert "ty" in _get_command(self.bot, "types").aliases
         assert "ca" in _get_command(self.bot, "cards").aliases
-        assert "ds" in _get_command(self.bot, "dupes").aliases
         assert "l" in _get_command(self.bot, "lookup").aliases
         assert "lhd" in _get_command(self.bot, "lookuphd").aliases
         assert "c" in _get_command(self.bot, "collection").aliases
@@ -1146,8 +1146,8 @@ class CommandsCollectionTests:
         assert isinstance(send_kwargs["view"], SortableCollectionView)
         assert send_kwargs["embed"].footer.text == "Page 1/2 • Sort: Alphabetical (Asc)"
 
-    async def test_dupes_shows_empty_state_when_no_duplicate_cards(self) -> None:
-        dupes_command = _get_command(self.bot, "dupes")
+    async def test_cards_shows_empty_state_when_no_duplicate_cards(self) -> None:
+        cards_command = _get_command(self.bot, "cards")
 
         ctx = AsyncMock()
         ctx.guild = _FakeGuild(1)
@@ -1164,15 +1164,15 @@ class CommandsCollectionTests:
             "bot.commands_economy.get_player_card_instances",
             return_value=unique_instances,
         ):
-            await dupes_command.callback(ctx, player=None)
+            await cards_command.callback(ctx, player=None)
 
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
-        assert sent_embed.title == "Caller's Dupes"
-        assert sent_embed.description == "You have no dupes."
+        assert sent_embed.title == "Caller's Cards"
+        assert sent_embed.description == "You have no extra cards."
 
-    async def test_dupes_lists_only_instances_for_duplicate_card_ids(self) -> None:
-        dupes_command = _get_command(self.bot, "dupes")
+    async def test_cards_lists_only_instances_for_duplicate_card_ids(self) -> None:
+        cards_command = _get_command(self.bot, "cards")
 
         ctx = AsyncMock()
         ctx.guild = _FakeGuild(1)
@@ -1198,13 +1198,13 @@ class CommandsCollectionTests:
             patch("bot.commands_economy.get_instance_frame", return_value=None),
             patch("bot.commands_economy.get_instance_font", return_value=None),
         ):
-            await dupes_command.callback(ctx, player=None)
+            await cards_command.callback(ctx, player=None)
 
         ctx.send.assert_awaited_once()
         send_kwargs = ctx.send.await_args.kwargs
         sent_embed = send_kwargs["embed"]
         sent_view = send_kwargs["view"]
-        assert sent_embed.title == "Caller's Dupes"
+        assert sent_embed.title == "Caller's Cards"
         assert sent_embed.description.count("Spaghetti") == 2
         assert sent_embed.description.count("Penne") == 2
         assert "(`BAR`)" not in sent_embed.description

@@ -11,7 +11,8 @@ This document defines behavior and presentation for commands and interaction flo
 - `info [player]` / `i [player]`
 - `leaderboard` / `le`
 - `collection [player]` / `c [player]`
-- `cards` / `ca`
+- `cards [player]` / `ca [player]`
+- `types` / `ty`
 - `lookup <card_id|card_code|query>` / `l <card_id|card_code|query>`
 - `lookuphd <card_id|card_code|query>` / `lhd <card_id|card_code|query>`
 - `help` / `h`
@@ -289,9 +290,9 @@ Card identity terms:
 - default sort mode is `Alphabetical`
 - includes a `Gallery` toggle that switches to one-card-per-page image mode while keeping page navigation
 
-## Cards Catalog UX
+## Card Types Catalog UX
 
-- `cards` / `ca` shows all available catalog cards
+- `types` / `ty` shows all available card types
 - Catalog includes a sort dropdown with modes: `Wishes`, `Rarity`, `Series`, `Base Value`, `Alphabetical`
 - Default sort mode is `Alphabetical`
 - includes a `Gallery` toggle that switches to one-card-per-page image mode while keeping page navigation

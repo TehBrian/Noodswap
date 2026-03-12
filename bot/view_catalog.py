@@ -146,7 +146,7 @@ class CardCatalogView(InteractionView):
         page_entries = self._sorted_entries[start:end]
         image_file: discord.File | None = None
         if not page_entries:
-            description = "No cards available."
+            description = "No card types available."
         elif self.gallery_mode:
             card_id, wish_count = page_entries[0]
             description = f"{start + 1}. {card_base_display(card_id)} • Wishes: **{wish_count}**"
@@ -157,7 +157,7 @@ class CardCatalogView(InteractionView):
             ]
             description = multiline_text(lines)
 
-        embed = italy_embed("All Cards", description)
+        embed = italy_embed("All Card Types", description)
         if self.gallery_mode and page_entries:
             image_url, image_file = embed_image_payload(page_entries[0][0])
             if image_url is not None:
@@ -195,7 +195,7 @@ class CardCatalogView(InteractionView):
     async def _guard_user(self, interaction: discord.Interaction) -> bool:
         if interaction.user.id != self.user_id:
             await interaction.response.send_message(
-                embed=italy_embed("All Cards", "Only the command user can control this catalog."),
+                embed=italy_embed("All Card Types", "Only the command user can control this catalog."),
                 ephemeral=True,
             )
             return False

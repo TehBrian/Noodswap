@@ -1569,7 +1569,7 @@ def execute_monopoly_roll(
 
         die_a, die_b, is_doubles = roll_dice()
         rolled_spaces = die_a + die_b
-        lines: list[str] = [f"Dice: **{die_a} + {die_b} = {rolled_spaces}**", ""]
+        lines: list[str] = [f"Dice: **{die_a} + {die_b} = {rolled_spaces}**"]
         mpreg_card_id: str | None = None
         mpreg_generation: int | None = None
         mpreg_dupe_code: str | None = None
@@ -1586,7 +1586,7 @@ def execute_monopoly_roll(
             if is_doubles:
                 players.set_monopoly_in_jail(guild_id, user_id, False)
                 players.set_monopoly_jail_roll_attempts(guild_id, user_id, 0)
-                lines.append("Doubles rolled in jail. You are free and move by the roll.")
+                lines.append("Doubles rolled in jail! You are now free and move by the roll.")
             else:
                 jail_attempts += 1
                 players.set_monopoly_jail_roll_attempts(guild_id, user_id, jail_attempts)
@@ -1622,7 +1622,7 @@ def execute_monopoly_roll(
             players.set_monopoly_jail_roll_attempts(guild_id, user_id, 0)
             players.set_monopoly_consecutive_doubles(guild_id, user_id, 0)
             players.set_last_monopoly_roll_at(guild_id, user_id, now)
-            lines.append("Three doubles in a row. You were jailed for speeding.")
+            lines.append("Three doubles in a row! ⚠️ You were jailed for speeding.")
             return MonopolyRollResult(
                 status="speeding_jail",
                 cooldown_remaining=0.0,
@@ -1665,17 +1665,22 @@ def execute_monopoly_roll(
             if pot_pull_tickets > 0:
                 players.add_pull_tickets(guild_id, user_id, pot_pull_tickets)
             pot.clear(guild_id)
-            lines.append(
-                "Free Parking jackpot: "
-                f"**+{pot_dough} dough, +{pot_starter} starter, +{pot_drop_tickets} drop tickets, +{pot_pull_tickets} pull tickets**"
-            )
+            lines.append("You landed on Free Parking and won the jackpot!")
+            if pot_dough:
+                lines.append(f"**+{pot_dough} dough**")
+            if pot_starter:
+                lines.append(f"**+{pot_starter} starter**")
+            if pot_drop_tickets:
+                lines.append(f"**+{pot_drop_tickets} drop tickets**")
+            if pot_pull_tickets:
+                lines.append(f"**+{pot_pull_tickets} pull tickets**")
 
         elif space.kind == "go_to_jail":
             players.set_monopoly_position(guild_id, user_id, 10)
             players.set_monopoly_in_jail(guild_id, user_id, True)
             players.set_monopoly_jail_roll_attempts(guild_id, user_id, 0)
             players.set_monopoly_consecutive_doubles(guild_id, user_id, 0)
-            lines.append("Go directly to jail.")
+            lines.append("Uh oh! Go directly to jail. ⛓️")
             is_doubles = False
 
         elif space.kind == "mpreg":

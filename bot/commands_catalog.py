@@ -254,9 +254,9 @@ def register_catalog_commands(bot: commands.Bot) -> None:
             ),
         )
 
-    @bot.command(name="cards", aliases=["ca"])
-    async def cards(ctx: commands.Context):
-        if not await _require_guild(ctx, "All Cards"):
+    @bot.command(name="types", aliases=["ty"])
+    async def types(ctx: commands.Context):
+        if not await _require_guild(ctx, "All Card Types"):
             return
 
         wish_counts = get_card_wish_counts(_guild_id(ctx))

@@ -339,16 +339,16 @@ def register_economy_commands(bot: commands.Bot) -> None:
         message = await _reply(ctx, embed=view.build_embed(), view=view)
         view.message = message
 
-    @bot.command(name="dupes", aliases=["ds"])
-    async def dupes(ctx: commands.Context, *, player: str | None = None):
-        if not await _require_guild(ctx, "Dupes"):
+    @bot.command(name="cards", aliases=["ca"])
+    async def cards(ctx: commands.Context, *, player: str | None = None):
+        if not await _require_guild(ctx, "Cards"):
             return
 
         resolved_member, resolve_error = await resolve_optional_player_argument(ctx, player)
         if resolved_member is None:
             await _reply(
                 ctx,
-                embed=italy_embed("Dupes", resolve_error or "Could not resolve player."),
+                embed=italy_embed("Cards", resolve_error or "Could not resolve player."),
             )
             return
         target_member = resolved_member
@@ -360,12 +360,12 @@ def register_economy_commands(bot: commands.Bot) -> None:
         dupe_card_ids = {card_id for card_id, count in card_counts.items() if count > 1}
         dupe_instances = [item for item in instances if item[1] in dupe_card_ids]
 
-        title = f"{target_member.display_name}'s Dupes"
+        title = f"{target_member.display_name}'s Cards"
         if not dupe_instances:
             if target_member.id == ctx.author.id:
-                description = "You have no dupes."
+                description = "You have no extra cards."
             else:
-                description = f"{target_member.display_name} has no dupes."
+                description = f"{target_member.display_name} has no extra cards."
             await _reply(ctx, embed=italy_embed(title, description))
             return
 
@@ -389,7 +389,7 @@ def register_economy_commands(bot: commands.Bot) -> None:
                 for instance_id, _card_id, _generation, _dupe_code in dupe_instances
             },
             card_line_formatter=card_dupe_display_concise,
-            guard_title="Dupes",
+            guard_title="Cards",
         )
         message = await _reply(ctx, embed=view.build_embed(), view=view)
         view.message = message

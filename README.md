@@ -124,9 +124,9 @@ This bot uses privileged intents. Enable these for your application in Discord D
 - `ns info [player]` / `ns i [player]` — show your info or another player's info (mention/username).
 - `ns leaderboard` / `ns le` — show a paginated player leaderboard with criteria dropdown (`cards`, `wishes`, `dough`, `starter`, `collection value`).
 - `ns collection [player]` / `ns c [player]` — show your collection or another player's collection with interactive sorting and gallery toggle (defaults to yourself).
-- `ns dupes [player]` / `ns ds [player]` — show only duplicated card instances from a collection, with the same sorting as collection plus generation and actual value.
-- `ns cards` / `ns ca` — show all available cards with interactive sorting (wishes, rarity, series, base value, alphabetical; default alphabetical), plus a gallery toggle for one-card image mode.
-- `ns lookup <card_id|card_code|query>` / `ns l <card_id|card_code|query>` — show base card details, or exact dupe details when a card code is provided.
+- `ns cards [player]` / `ns ca [player]` — show only duplicated owned cards from a collection, with the same sorting as collection plus generation and actual value.
+- `ns types` / `ns ty` — show all available card types with interactive sorting (wishes, rarity, series, base value, alphabetical; default alphabetical), plus a gallery toggle for one-card image mode.
+- `ns lookup <card_id|card_code|query>` / `ns l <card_id|card_code|query>` — show card type details, or exact owned-card details when a card code is provided.
 - `ns lookuphd <card_id|card_code|query>` / `ns lhd <card_id|card_code|query>` — same as lookup, but renders the card image at `1000x1400`.
 - `ns help` / `ns h` — show command help.
 - `ns drop` / `ns d` — open a drop with 3 random cards; anyone can claim unclaimed cards via buttons. If drop cooldown is active, one `drop ticket` is auto-consumed instead.
