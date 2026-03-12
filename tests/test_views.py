@@ -1665,7 +1665,3 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         edit_kwargs = interaction.response.edited_messages[0]
         self.assertIn("attachments", edit_kwargs)
         self.assertEqual(edit_kwargs["attachments"], [fake_file])
-
-
-if __name__ == "__main__":
-    unittest.main()

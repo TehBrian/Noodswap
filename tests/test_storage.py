@@ -2026,7 +2026,3 @@ class StorageTests(unittest.TestCase):
         )
         self.assertTrue(created_after_shutdown)
         self.assertEqual(message_after_shutdown, "")
-
-
-if __name__ == "__main__":
-    unittest.main()

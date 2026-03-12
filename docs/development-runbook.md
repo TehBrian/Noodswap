@@ -123,7 +123,7 @@ Notes:
 ## Unit tests
 
 - Run tests:
-  - `uv run python -m unittest discover -s tests -p 'test_*.py' -b`
+  - `uv run pytest tests -v --tb=short`
 - VS Code task shortcut:
   - `check:tests`
 - SQLite guardrail:

@@ -18,7 +18,7 @@ This file is the primary handoff guide for AI coding agents working on Noodswap.
 3. Read `docs/data-model.md` before changing inventory/marry/trade/burn logic.
 4. Run syntax validation:
    - `uv run python -m py_compile bot/main.py bot/*.py scripts/*.py tests/*.py`
-   - `uv run python -m unittest discover -s tests -p 'test_*.py'`
+   - `uv run pytest tests -v --tb=short`
    - SQLite guardrail is enforced by `tests/test_sqlite_guardrails.py` (no raw `with sqlite3.connect(...) as conn:`).
 5. If changing command output, read `docs/commands-and-ux.md` (embed style contract).
 

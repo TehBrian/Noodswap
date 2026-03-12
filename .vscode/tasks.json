@@ -33,16 +33,7 @@
       "label": "check:tests",
       "type": "shell",
       "command": "${workspaceFolder}/.venv/bin/python",
-      "args": [
-        "-m",
-        "unittest",
-        "discover",
-        "-s",
-        "tests",
-        "-p",
-        "'test_*.py'",
-        "-b"
-      ],
+      "args": ["-m", "pytest", "tests", "-v", "--tb=short"],
       "group": "test"
     },
     {

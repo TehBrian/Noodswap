@@ -1043,7 +1043,3 @@ class ServicesTests(unittest.TestCase):
         self.assertEqual(result.rolled_rarity, "uncommon")
         self.assertEqual(result.rolled_multiplier, 1.02)
         self.assertEqual(storage.get_instance_font(guild_id, instance_id), "serif")
-
-
-if __name__ == "__main__":
-    unittest.main()

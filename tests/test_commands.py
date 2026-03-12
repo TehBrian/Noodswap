@@ -2969,7 +2969,3 @@ class LocalImageBytesTests(unittest.TestCase):
 
         self.assertIsNone(resolved)
         read_local.assert_called_once_with("SPG")
-
-
-if __name__ == "__main__":
-    unittest.main()
