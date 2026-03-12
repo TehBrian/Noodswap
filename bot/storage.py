@@ -1844,7 +1844,8 @@ def execute_monopoly_roll(
             if not current_in_jail:
                 players.set_monopoly_consecutive_doubles(guild_id, user_id, 0)
         else:
-            lines.append("Doubles rolled: cooldown was not consumed. Roll again immediately.")
+            lines.append("")
+            lines.append("Doubles rolled! 🍀 Cooldown was not consumed. Roll again immediately.")
 
         return MonopolyRollResult(
             status="ok",
