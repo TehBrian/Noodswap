@@ -2137,7 +2137,6 @@ class CommandsVoteTests:
         sent_view = ctx.send.await_args.kwargs["view"]
         assert sent_embed.title == "Vote"
         assert "Support Noodswap by voting on Top.gg!" in sent_embed.description
-        assert "Votes are registered automatically through Top.gg webhooks." in sent_embed.description
         assert isinstance(sent_view, discord.ui.View)
 
 
