@@ -118,7 +118,6 @@ from .command_utils import (
     list_player_teams as list_player_teams,
     morph_label as morph_label,
     morph_rarity as morph_rarity,
-    morph_transition_image_payload as morph_transition_image_payload,
     multiline_text as multiline_text,
     normalize_card_id as normalize_card_id,
     normalize_trade_mode as normalize_trade_mode,
@@ -488,19 +487,6 @@ def register_economy_commands(bot: commands.Bot) -> None:
         )
         before_frame_key = get_instance_frame(_guild_id(ctx), prepared.instance_id)
         before_font_key = get_instance_font(_guild_id(ctx), prepared.instance_id)
-        image_url, image_file = morph_transition_image_payload(
-            prepared.card_id,
-            generation=prepared.generation,
-            before_morph_key=prepared.current_morph_key,
-            after_morph_key=prepared.current_morph_key,
-            before_frame_key=before_frame_key,
-            after_frame_key=before_frame_key,
-            before_font_key=before_font_key,
-            after_font_key=before_font_key,
-            hide_after=True,
-        )
-        if image_url is not None:
-            confirm_embed.set_image(url=image_url)
 
         view = MorphConfirmView(
             guild_id=_guild_id(ctx),
@@ -515,10 +501,7 @@ def register_economy_commands(bot: commands.Bot) -> None:
             cost=prepared.cost,
         )
 
-        send_kwargs: dict[str, object] = {"embed": confirm_embed, "view": view}
-        if image_file is not None:
-            send_kwargs["file"] = image_file
-        message = await _reply(ctx, **send_kwargs)
+        message = await _reply(ctx, embed=confirm_embed, view=view)
         view.message = message
 
     @bot.command(name="frame", aliases=["fr"])
@@ -555,19 +538,6 @@ def register_economy_commands(bot: commands.Bot) -> None:
         )
         current_morph_key = get_instance_morph(_guild_id(ctx), prepared.instance_id)
         current_font_key = get_instance_font(_guild_id(ctx), prepared.instance_id)
-        image_url, image_file = morph_transition_image_payload(
-            prepared.card_id,
-            generation=prepared.generation,
-            before_morph_key=current_morph_key,
-            after_morph_key=current_morph_key,
-            before_frame_key=prepared.current_frame_key,
-            after_frame_key=prepared.current_frame_key,
-            before_font_key=current_font_key,
-            after_font_key=current_font_key,
-            hide_after=True,
-        )
-        if image_url is not None:
-            confirm_embed.set_image(url=image_url)
 
         view = FrameConfirmView(
             guild_id=_guild_id(ctx),
@@ -582,10 +552,7 @@ def register_economy_commands(bot: commands.Bot) -> None:
             cost=prepared.cost,
         )
 
-        send_kwargs: dict[str, object] = {"embed": confirm_embed, "view": view}
-        if image_file is not None:
-            send_kwargs["file"] = image_file
-        message = await _reply(ctx, **send_kwargs)
+        message = await _reply(ctx, embed=confirm_embed, view=view)
         view.message = message
 
     @bot.command(name="font", aliases=["fo"])
@@ -619,19 +586,6 @@ def register_economy_commands(bot: commands.Bot) -> None:
         )
         current_morph_key = get_instance_morph(_guild_id(ctx), prepared.instance_id)
         current_frame_key = get_instance_frame(_guild_id(ctx), prepared.instance_id)
-        image_url, image_file = morph_transition_image_payload(
-            prepared.card_id,
-            generation=prepared.generation,
-            before_morph_key=current_morph_key,
-            after_morph_key=current_morph_key,
-            before_frame_key=current_frame_key,
-            after_frame_key=current_frame_key,
-            before_font_key=prepared.current_font_key,
-            after_font_key=prepared.current_font_key,
-            hide_after=True,
-        )
-        if image_url is not None:
-            confirm_embed.set_image(url=image_url)
 
         view = FontConfirmView(
             guild_id=_guild_id(ctx),
@@ -646,10 +600,7 @@ def register_economy_commands(bot: commands.Bot) -> None:
             cost=prepared.cost,
         )
 
-        send_kwargs: dict[str, object] = {"embed": confirm_embed, "view": view}
-        if image_file is not None:
-            send_kwargs["file"] = image_file
-        message = await _reply(ctx, **send_kwargs)
+        message = await _reply(ctx, embed=confirm_embed, view=view)
         view.message = message
 
     @bot.command(name="trade", aliases=["t"])
