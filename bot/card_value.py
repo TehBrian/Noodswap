@@ -7,7 +7,7 @@ from typing import Callable, Mapping, TypedDict
 
 from .settings import GENERATION_MAX, GENERATION_MIN
 
-GENERATION_ROLL_TAU = 0.95
+GENERATION_ROLL_TAU = 0.69
 
 
 class CardValueRecord(TypedDict):

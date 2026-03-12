@@ -48,7 +48,7 @@
       "args": [
         "scripts/generation_economy_report.py",
         "--tau",
-        "0.95",
+        "0.69",
         "--active-days",
         "7"
       ],
