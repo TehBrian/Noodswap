@@ -1847,7 +1847,8 @@ def execute_monopoly_roll(
                 frame_key = instances.get_frame_key(guild_id, selected_instance_id)
                 font_key = instances.get_font_key(guild_id, selected_instance_id)
                 card_name = str(CARD_CATALOG[str(card_id)]["name"])
-                lines.append(f"Landed on **{card_name}** {space.emoji}")
+                lines.append("")
+                lines.append(f"Landed on **{card_name}** {space.emoji}! (#{dupe_code})")
                 rent_due = (
                     card_value(
                         card_id,
@@ -1867,10 +1868,11 @@ def execute_monopoly_roll(
                 thumbnail_morph_key = morph_key
                 thumbnail_frame_key = frame_key
                 thumbnail_font_key = font_key
-                lines.append(f"Rent paid to <@{owner_id}> for {card_id} #{dupe_code} (gen {generation}): **{paid}/{rent_due} dough**")
+                lines.append(f"Rent paid to <@{owner_id}>: **{paid}/{rent_due} dough**")
             else:
-                lines.append(f"Landed on an unowned **{space.rarity}** property {space.emoji}")
-                lines.append(f"No owner had a {space.rarity} dupe. No rent due.")
+                lines.append("")
+                lines.append(f"Landed on a **{space.rarity}** {space.emoji} property.")
+                lines.append(f"No one owns a {space.rarity} card. No rent due.")
 
         current_position = players.get_monopoly_position(guild_id, user_id)
         current_in_jail = players.get_monopoly_in_jail(guild_id, user_id)
