@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock
 from aiohttp.test_utils import make_mocked_request
 
 from bot import storage
+from bot.settings import VOTE_STARTER_REWARD
 from bot.topgg_webhook import (
     TopggWebhookConfig,
     TopggWebhookServer,
@@ -105,7 +106,7 @@ class TopggWebhookHandlerTests(unittest.IsolatedAsyncioTestCase):
         response = await self.server._handle_vote(request)
 
         self.assertEqual(response.status, 200)
-        self.assertEqual(storage.get_player_starter(0, 123), 1)
+        self.assertEqual(storage.get_player_starter(0, 123), VOTE_STARTER_REWARD)
         self.assertEqual(storage.get_player_votes(0, 123), 1)
 
     async def test_duplicate_vote_claims_reward_each_time(self) -> None:
@@ -129,7 +130,7 @@ class TopggWebhookHandlerTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(first_response.status, 200)
         self.assertEqual(second_response.status, 200)
-        self.assertEqual(storage.get_player_starter(0, 456), 2)
+        self.assertEqual(storage.get_player_starter(0, 456), VOTE_STARTER_REWARD * 2)
         self.assertEqual(storage.get_player_votes(0, 456), 2)
 
     async def test_rejects_non_json_content_type_when_enforced(self) -> None:
