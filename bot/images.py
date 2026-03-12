@@ -1153,7 +1153,10 @@ def render_card_surface(
 
     if raw_image is not None:
         try:
-            source_image = Image.open(io.BytesIO(raw_image)).convert("RGB")
+            _img = Image.open(io.BytesIO(raw_image)).convert("RGBA")
+            _bg = Image.new("RGBA", _img.size, (255, 255, 255, 255))
+            _bg.alpha_composite(_img)
+            source_image = _bg.convert("RGB")
         except Exception:
             source_image = None
 
