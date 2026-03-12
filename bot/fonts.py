@@ -74,8 +74,8 @@ FONT_FILE_MAP: Final[dict[str, dict[str, str]]] = {
     },
     # Pixel style family.
     FONT_PIXEL: {
-        "regular": "Menlo.ttc",
-        "bold": "Menlo Bold.ttc",
+        "regular": "PixelifySans-Regular.ttf",
+        "bold": "PixelifySans-Bold.ttf",
     },
     # Playful style.
     FONT_PLAYFUL: {
