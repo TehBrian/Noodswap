@@ -244,7 +244,7 @@ class CommandsWishlistTests(unittest.IsolatedAsyncioTestCase):
             patch("bot.command_utils.search_card_ids_by_name", return_value=["SPG"]),
             patch("bot.command_utils.add_card_to_wishlist", return_value=True) as add_wishlist,
         ):
-            await wish_add_command.callback(ctx, card_id="spaghetti")
+            await wish_add_command.callback(ctx, "spaghetti")
 
         add_wishlist.assert_called_once_with(1, 100, "SPG")
         ctx.send.assert_awaited_once()
@@ -263,7 +263,7 @@ class CommandsWishlistTests(unittest.IsolatedAsyncioTestCase):
         ctx.reply = ctx.send
 
         with patch("bot.command_utils.add_card_to_wishlist", return_value=True) as add_wishlist:
-            await wish_add_command.callback(ctx, card_id="cheddar")
+            await wish_add_command.callback(ctx, "cheddar")
 
         add_wishlist.assert_not_called()
         ctx.send.assert_awaited_once()
@@ -328,7 +328,7 @@ class CommandsTagTests(unittest.IsolatedAsyncioTestCase):
         ctx.reply = ctx.send
 
         with patch("bot.command_utils.get_instance_by_code", return_value=None):
-            await tag_assign_command.callback(ctx, tag_name="safe", card_code="0")
+            await tag_assign_command.callback(ctx, "safe", "0")
 
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
@@ -350,7 +350,7 @@ class CommandsTagTests(unittest.IsolatedAsyncioTestCase):
             patch("bot.command_utils.is_tag_assigned_to_instance", return_value=True),
             patch("bot.command_utils.assign_tag_to_instance", return_value=False) as assign_tag,
         ):
-            await tag_assign_command.callback(ctx, tag_name="safe", card_code="0")
+            await tag_assign_command.callback(ctx, "safe", "0")
 
         assign_tag.assert_not_called()
         ctx.send.assert_awaited_once()
@@ -404,7 +404,7 @@ class CommandsTagTests(unittest.IsolatedAsyncioTestCase):
         ctx.reply = ctx.send
 
         with patch("bot.command_utils.remove_card_from_wishlist", return_value=True) as remove_wishlist:
-            await wish_remove_command.callback(ctx, card_id="cheddar")
+            await wish_remove_command.callback(ctx, "cheddar")
 
         remove_wishlist.assert_not_called()
         ctx.send.assert_awaited_once()
@@ -458,7 +458,7 @@ class CommandsFolderTests(unittest.IsolatedAsyncioTestCase):
             ),
             patch("bot.command_utils.assign_instance_to_folder", return_value=False) as assign_folder,
         ):
-            await folder_assign_command.callback(ctx, folder_name="vault", card_code="0")
+            await folder_assign_command.callback(ctx, "vault", "0")
 
         assign_folder.assert_not_called()
         ctx.send.assert_awaited_once()
