@@ -64,6 +64,10 @@ class _FakeGuild:
     def get_member(self, user_id: int) -> Any | None:
         return self._members.get(user_id)
 
+    @property
+    def members(self) -> list[Any]:
+        return list(self._members.values())
+
 
 class _FakeMember:
     def __init__(self, user_id: int, display_name: str = "User"):

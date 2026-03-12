@@ -1531,6 +1531,7 @@ def execute_monopoly_roll(
     *,
     now: float,
     cooldown_seconds: float,
+    valid_guild_member_ids: set[int] | None = None,
 ) -> MonopolyRollResult:
     guild_id = _scope_guild_id(guild_id)
     with get_db_connection() as conn:
@@ -1801,7 +1802,10 @@ def execute_monopoly_roll(
             candidates = [
                 (instance_id, owner_id, card_id, generation, dupe_code)
                 for instance_id, owner_id, card_id, generation, dupe_code in instances.list_owner_instances_for_guild(guild_id)
-                if owner_id != user_id and str(card_id) in CARD_CATALOG and str(CARD_CATALOG[str(card_id)]["rarity"]).lower() == space.rarity
+                if owner_id != user_id 
+                and str(card_id) in CARD_CATALOG 
+                and str(CARD_CATALOG[str(card_id)]["rarity"]).lower() == space.rarity
+                and (valid_guild_member_ids is None or owner_id in valid_guild_member_ids)
             ]
             if candidates:
                 selected_instance_id, owner_id, card_id, generation, dupe_code = random.choice(candidates)
