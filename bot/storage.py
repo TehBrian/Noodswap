@@ -1558,7 +1558,7 @@ def execute_monopoly_roll(
 
         die_a, die_b, is_doubles = roll_dice()
         rolled_spaces = die_a + die_b
-        lines: list[str] = [f"Dice: **{die_a} + {die_b} = {rolled_spaces}**"]
+        lines: list[str] = [f"Dice: **{die_a} + {die_b} = {rolled_spaces}**", ""]
         mpreg_card_id: str | None = None
         mpreg_generation: int | None = None
         mpreg_dupe_code: str | None = None

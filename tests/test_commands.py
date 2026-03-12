@@ -2189,6 +2189,7 @@ class CommandsMonopolyTests(unittest.IsolatedAsyncioTestCase):
             doubles=False,
             lines=(
                 "Dice: **1 + 2 = 3**",
+                "",
                 "Mpreg square effect: you gave birth to a dupe.",
             ),
             mpreg_card_id="SPG",
@@ -2247,7 +2248,7 @@ class CommandsMonopolyTests(unittest.IsolatedAsyncioTestCase):
             position=3,
             in_jail=False,
             doubles=False,
-            lines=("Dice: **1 + 2 = 3**", "Landed on **Sample Card** 🟫"),
+            lines=("Dice: **1 + 2 = 3**", "", "Landed on **Sample Card** 🟫"),
             mpreg_card_id=None,
             mpreg_generation=None,
             mpreg_morph_key=None,
