@@ -30,7 +30,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--force-db",
         action="store_true",
-        help="Replace existing runtime DB from assets/noodswap.seed.db when present.",
+        help="Replace existing runtime DB from assets/bot.seed.db when present.",
     )
     return parser.parse_args()
 
@@ -47,7 +47,7 @@ def main() -> None:
     runtime_log_dir = runtime_dir / "logs"
 
     seed_dir = repo_root / "assets"
-    seed_db_path = seed_dir / "noodswap.seed.db"
+    seed_db_path = seed_dir / "bot.seed.db"
     seed_image_dir = seed_dir / "card_images"
     seed_fonts_dir = seed_dir / "fonts"
     seed_frames_dir = seed_dir / "frames"
@@ -55,7 +55,7 @@ def main() -> None:
     runtime_db_dir.mkdir(parents=True, exist_ok=True)
     runtime_log_dir.mkdir(parents=True, exist_ok=True)
 
-    runtime_db_path = runtime_db_dir / "noodswap.db"
+    runtime_db_path = runtime_db_dir / "bot.db"
     if not runtime_db_path.exists() or args.force_db:
         if seed_db_path.is_file() and seed_db_path.stat().st_size > 0:
             shutil.copy2(seed_db_path, runtime_db_path)

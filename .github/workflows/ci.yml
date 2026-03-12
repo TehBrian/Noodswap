@@ -26,10 +26,10 @@ jobs:
         run: uv sync --group dev
 
       - name: Ruff
-        run: uv run ruff check noodswap scripts tests
+        run: uv run ruff check bot scripts tests
 
       - name: Compile check
-        run: uv run python -m py_compile bot.py noodswap/*.py scripts/*.py tests/*.py
+        run: uv run python -m py_compile bot/main.py bot/*.py scripts/*.py tests/*.py
 
       - name: Migration smoke check
         run: uv run python scripts/migration_smoke.py

@@ -5,8 +5,8 @@ This document describes persistent storage for Noodswap.
 ## Database
 
 - Engine: SQLite
-- File location: `runtime/db/noodswap.db`
-- Access: through functions in `noodswap/storage.py`
+- File location: `runtime/db/bot.db`
+- Access: through functions in `bot/storage.py`
 
 ## Tables
 
@@ -287,7 +287,7 @@ Current migration set:
 	- Adds `players.votes` for cumulative successful top.gg vote claims.
 
 Notes:
-- Startup migration is in-code (`noodswap/migrations.py`) and invoked by `storage.init_db()` using incremental version checks.
+- Startup migration is in-code (`bot/migrations.py`) and invoked by `storage.init_db()` using incremental version checks.
 - Existing DB files are upgraded in place when the bot starts.
 
 ## Domain invariants
@@ -325,5 +325,5 @@ Notes:
 
 - SQLite writes are local and single-process oriented.
 - Critical multi-step writes use `BEGIN IMMEDIATE` to reduce race windows.
-- Connection lock wait is configured via `DB_LOCK_TIMEOUT_SECONDS` in `noodswap/settings.py`.
+- Connection lock wait is configured via `DB_LOCK_TIMEOUT_SECONDS` in `bot/settings.py`.
 - If adding high-frequency multi-step operations, use explicit transactions carefully.

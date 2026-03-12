@@ -1,16 +1,16 @@
 import unittest
 from collections import Counter
 
-from noodswap.cards import CARD_CATALOG, SERIES_CATALOG, default_card_image
-from noodswap.card_economy import random_generation
-from noodswap.rarities import (
+from bot.cards import CARD_CATALOG, SERIES_CATALOG, default_card_image
+from bot.card_economy import random_generation
+from bot.rarities import (
     RARITY_CURVE_LINEAR_RATE,
     RARITY_ORDER,
     RARITY_TAIL_CURVATURE,
     RARITY_TOTAL_WEIGHT,
     build_rarity_weights,
 )
-from noodswap.settings import GENERATION_MAX, GENERATION_MIN
+from bot.settings import GENERATION_MAX, GENERATION_MIN
 
 
 class CardsImageTests(unittest.TestCase):

@@ -5,8 +5,8 @@ from unittest.mock import AsyncMock, patch
 import discord
 from discord.ext import commands
 
-from noodswap.app import _resolve_command_prefix, create_bot
-from noodswap.presentation import command_syntax_for_error
+from bot.app import _resolve_command_prefix, create_bot
+from bot.presentation import command_syntax_for_error
 
 
 class AppPrefixTests(unittest.TestCase):
@@ -38,7 +38,7 @@ class AppPrefixTests(unittest.TestCase):
 
 class AppShutdownTests(unittest.IsolatedAsyncioTestCase):
     async def test_close_ends_open_battles_before_shutdown(self) -> None:
-        with patch("noodswap.app.end_open_battles_for_shutdown", return_value=2) as mocked_cleanup:
+        with patch("bot.app.end_open_battles_for_shutdown", return_value=2) as mocked_cleanup:
             bot = create_bot()
             try:
                 await bot.close()
@@ -55,7 +55,7 @@ class AppCommandErrorTests(unittest.IsolatedAsyncioTestCase):
 
     async def asyncTearDown(self) -> None:
         if not self.bot.is_closed():
-            with patch("noodswap.app.end_open_battles_for_shutdown", return_value=0):
+            with patch("bot.app.end_open_battles_for_shutdown", return_value=0):
                 await self.bot.close()
 
     async def test_missing_required_argument_includes_reason_and_usage(self) -> None:

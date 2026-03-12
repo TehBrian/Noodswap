@@ -24,8 +24,8 @@ sudo useradd --system --create-home --home-dir /home/noodswap-user --shell /usr/
 sudo usermod -aG docker noodswap-user
 sudo -u noodswap-user mkdir -p /home/noodswap-user/noodswap
 sudo -u noodswap-user bash -lc 'cd /home/noodswap-user/noodswap && git clone https://github.com/TehBrian/Noodswap.git . && cd deploy && cp .env.example .env && cp runtime.env.example runtime.env && mkdir -p ../runtime/db ../runtime/card_images ../runtime/logs'
-sudo chown noodswap-user:noodswap-user /home/noodswap-user/noodswap/deploy/update.sh
-sudo chmod 750 /home/noodswap-user/noodswap/deploy/update.sh
+sudo chown noodswap-user:noodswap-user /home/noodswap-user/bot/deploy/update.sh
+sudo chmod 750 /home/noodswap-user/bot/deploy/update.sh
 ```
 
 Edit `deploy/.env`:
@@ -54,7 +54,7 @@ If SSH user is different (for example `ubuntu`), allow sudo for deploy script on
 
 ```bash
 sudo tee /etc/sudoers.d/ubuntu-noodswap-deploy >/dev/null <<'EOF'
-ubuntu ALL=(noodswap-user) NOPASSWD: /home/noodswap-user/noodswap/deploy/update.sh
+ubuntu ALL=(noodswap-user) NOPASSWD: /home/noodswap-user/bot/deploy/update.sh
 EOF
 sudo chmod 440 /etc/sudoers.d/ubuntu-noodswap-deploy
 sudo visudo -cf /etc/sudoers.d/ubuntu-noodswap-deploy
@@ -88,7 +88,7 @@ After deploy workflow completes:
 
 1. `docker ps` shows `noodswap-bot` running.
 2. Workflow deploy step confirms container image equals `IMAGE_REPOSITORY:<sha>`.
-3. `runtime/db/noodswap.db` persists across restarts.
+3. `runtime/db/bot.db` persists across restarts.
 4. Container health status reaches `healthy` (SQLite `PRAGMA quick_check` passes).
 
 ## Notes

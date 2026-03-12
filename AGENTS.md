@@ -6,9 +6,9 @@ This file is the primary handoff guide for AI coding agents working on Noodswap.
 
 - **Project:** `Noodswap` (Discord bot, `discord.py`)
 - **Runtime:** Python 3.14+ (currently validated on 3.14.3)
-- **Entrypoint:** `bot.py` (thin launcher)
-- **Main package:** `noodswap/`
-- **State storage:** Local SQLite database (`runtime/db/noodswap.db` by default)
+- **Entrypoint:** `bot/main.py` (thin launcher)
+- **Main package:** `bot/`
+- **State storage:** Local SQLite database (`runtime/db/bot.db` by default)
 - **Command prefix:** `ns `
 
 ## 2) Fast Onboarding Checklist
@@ -17,32 +17,32 @@ This file is the primary handoff guide for AI coding agents working on Noodswap.
 2. Read `docs/README.md` for architecture and subsystem links.
 3. Read `docs/data-model.md` before changing inventory/marry/trade/burn logic.
 4. Run syntax validation:
-   - `uv run python -m py_compile bot.py noodswap/*.py scripts/*.py tests/*.py`
+   - `uv run python -m py_compile bot/main.py bot/*.py scripts/*.py tests/*.py`
    - `uv run python -m unittest discover -s tests -p 'test_*.py'`
    - SQLite guardrail is enforced by `tests/test_sqlite_guardrails.py` (no raw `with sqlite3.connect(...) as conn:`).
 5. If changing command output, read `docs/commands-and-ux.md` (embed style contract).
 
 ## 3) Architecture Map
 
-- `bot.py`: bootstrap only (`from noodswap.app import main`)
-- `noodswap/app.py`: bot creation, intents, startup lifecycle, command registration
-- `noodswap/commands.py`: thin command registration entrypoint
-- `noodswap/command_utils.py`: shared command helper functions/constants used by registrars
-- `noodswap/commands_social.py`: social/player-facing command registrar (`wish/tag/folder/team/battle/cooldown/leaderboard/info`)
-- `noodswap/commands_catalog.py`: catalog/discovery command registrar (`buy/cards/lookup/vote/help`)
-- `noodswap/commands_economy.py`: economy command registrar (`drop/marry/divorce/collection/burn/morph/frame/font/trade/gift`)
-- `noodswap/commands_gambling.py`: gambling command registrar (`slots/flip/monopoly`)
-- `noodswap/commands_admin.py`: owner/admin command registrar (`dbexport/dbreset`)
-- `noodswap/services.py`: command-facing use-case orchestration (`drop/burn/marry/divorce/trade` prep/exec)
-- `noodswap/views/`: interactive `discord.ui.View` flows (drop/trade/burn-confirm)
-- `noodswap/presentation.py`: shared embed style + reusable command description formatting helpers
-- `noodswap/cards/`: card catalog + generation/pull/burn helper functions
-- `noodswap/rarities.py`: rarity weights used in pull selection
-- `noodswap/storage.py`: SQLite domain persistence operations
-- `noodswap/migrations.py`: SQLite schema versioning and startup migration steps
-- `noodswap/repositories.py`: repository-style DB access helpers used by storage facade
-- `noodswap/settings.py`: constants (`PULL_COOLDOWN_SECONDS`, `COMMAND_PREFIX`, `DB_PATH`)
-- `noodswap/utils.py`: utility helpers (`format_cooldown`)
+- `bot/main.py`: bootstrap only (`from bot.app import main`)
+- `bot/app.py`: bot creation, intents, startup lifecycle, command registration
+- `bot/commands.py`: thin command registration entrypoint
+- `bot/command_utils.py`: shared command helper functions/constants used by registrars
+- `bot/commands_social.py`: social/player-facing command registrar (`wish/tag/folder/team/battle/cooldown/leaderboard/info`)
+- `bot/commands_catalog.py`: catalog/discovery command registrar (`buy/cards/lookup/vote/help`)
+- `bot/commands_economy.py`: economy command registrar (`drop/marry/divorce/collection/burn/morph/frame/font/trade/gift`)
+- `bot/commands_gambling.py`: gambling command registrar (`slots/flip/monopoly`)
+- `bot/commands_admin.py`: owner/admin command registrar (`dbexport/dbreset`)
+- `bot/services.py`: command-facing use-case orchestration (`drop/burn/marry/divorce/trade` prep/exec)
+- `bot/views/`: interactive `discord.ui.View` flows (drop/trade/burn-confirm)
+- `bot/presentation.py`: shared embed style + reusable command description formatting helpers
+- `bot/cards/`: card catalog + generation/pull/burn helper functions
+- `bot/rarities.py`: rarity weights used in pull selection
+- `bot/storage.py`: SQLite domain persistence operations
+- `bot/migrations.py`: SQLite schema versioning and startup migration steps
+- `bot/repositories.py`: repository-style DB access helpers used by storage facade
+- `bot/settings.py`: constants (`PULL_COOLDOWN_SECONDS`, `COMMAND_PREFIX`, `DB_PATH`)
+- `bot/utils.py`: utility helpers (`format_cooldown`)
 
 ## 4) Critical Invariants (Do Not Break)
 
@@ -73,12 +73,12 @@ Migration behavior in `init_db()`:
 
 ## 6) High-Risk Change Areas
 
-- `noodswap/storage.py`: ownership, marriage integrity, and trade safety.
-- `noodswap/migrations.py`: migration safety/versioning and schema transition behavior.
-- `noodswap/repositories.py`: SQL behavior changes affecting ownership/trade/marriage semantics.
-- `noodswap/views/`: interaction race conditions and timeout behavior.
-- `noodswap/commands.py`: UX consistency, embeds, and argument handling.
-- `noodswap/cards/`: catalog IDs and rarity/value consistency.
+- `bot/storage.py`: ownership, marriage integrity, and trade safety.
+- `bot/migrations.py`: migration safety/versioning and schema transition behavior.
+- `bot/repositories.py`: SQL behavior changes affecting ownership/trade/marriage semantics.
+- `bot/views/`: interaction race conditions and timeout behavior.
+- `bot/commands.py`: UX consistency, embeds, and argument handling.
+- `bot/cards/`: catalog IDs and rarity/value consistency.
 
 ## 7) Agent Change Protocol
 
@@ -91,12 +91,12 @@ When making non-trivial changes:
 
 ## 8) Common Tasks
 
-- **Add card:** add metadata in `noodswap/data/cards.json`, then run `uv run python scripts/rebalance_base_values.py --mode missing` to fill only absent base values.
+- **Add card:** add metadata in `bot/data/cards.json`, then run `uv run python scripts/rebalance_base_values.py --mode missing` to fill only absent base values.
    - Keep image paths under `runtime/card_images`; image files can be populated later.
    - General flow: add card metadata -> run missing-only rebalance -> skip image creation for now.
-- **Tune pull odds:** edit `RARITY_WEIGHTS` in `noodswap/rarities.py`.
-- **Change cooldown:** edit `PULL_COOLDOWN_SECONDS` in `noodswap/settings.py`.
-- **Adjust embed theme:** edit `ITALY_RED` and helper in `noodswap/presentation.py`.
+- **Tune pull odds:** edit `RARITY_WEIGHTS` in `bot/rarities.py`.
+- **Change cooldown:** edit `PULL_COOLDOWN_SECONDS` in `bot/settings.py`.
+- **Adjust embed theme:** edit `ITALY_RED` and helper in `bot/presentation.py`.
 
 ## 9) Current Known Gaps
 

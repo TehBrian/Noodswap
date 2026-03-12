@@ -5,8 +5,8 @@ from unittest.mock import AsyncMock
 
 from aiohttp.test_utils import make_mocked_request
 
-from noodswap import storage
-from noodswap.topgg_webhook import (
+from bot import storage
+from bot.topgg_webhook import (
     TopggWebhookConfig,
     TopggWebhookServer,
     _extract_user_id,
@@ -40,7 +40,7 @@ class TopggWebhookHelpersTests(unittest.TestCase):
                 secret="secret",
                 host="127.0.0.1",
                 port=8080,
-                path="/noodswap/topgg-vote-webhook",
+                path="/bot/topgg-vote-webhook",
                 allowed_ip_networks=allowlist,
             )
         )
@@ -54,7 +54,7 @@ class TopggWebhookHelpersTests(unittest.TestCase):
                 secret="secret",
                 host="127.0.0.1",
                 port=8080,
-                path="/noodswap/topgg-vote-webhook",
+                path="/bot/topgg-vote-webhook",
                 allowed_ip_networks=allowlist,
             )
         )
@@ -73,7 +73,7 @@ class TopggWebhookHandlerTests(unittest.IsolatedAsyncioTestCase):
                 secret="secret",
                 host="127.0.0.1",
                 port=8080,
-                path="/noodswap/topgg-vote-webhook",
+                path="/bot/topgg-vote-webhook",
                 expected_bot_id="",
             )
         )
@@ -85,7 +85,7 @@ class TopggWebhookHandlerTests(unittest.IsolatedAsyncioTestCase):
     async def test_rejects_request_with_invalid_secret(self) -> None:
         request = make_mocked_request(
             "POST",
-            "/noodswap/topgg-vote-webhook",
+            "/bot/topgg-vote-webhook",
             headers={"Authorization": "wrong"},
         )
         request.json = AsyncMock(return_value={"user": "123"})
@@ -97,7 +97,7 @@ class TopggWebhookHandlerTests(unittest.IsolatedAsyncioTestCase):
     async def test_claims_vote_reward_on_valid_payload(self) -> None:
         request = make_mocked_request(
             "POST",
-            "/noodswap/topgg-vote-webhook",
+            "/bot/topgg-vote-webhook",
             headers={"Authorization": "secret", "Content-Type": "application/json"},
         )
         request.json = AsyncMock(return_value={"user": "123"})
@@ -111,14 +111,14 @@ class TopggWebhookHandlerTests(unittest.IsolatedAsyncioTestCase):
     async def test_duplicate_vote_claims_reward_each_time(self) -> None:
         first_request = make_mocked_request(
             "POST",
-            "/noodswap/topgg-vote-webhook",
+            "/bot/topgg-vote-webhook",
             headers={"Authorization": "secret", "Content-Type": "application/json"},
         )
         first_request.json = AsyncMock(return_value={"user": "456"})
 
         second_request = make_mocked_request(
             "POST",
-            "/noodswap/topgg-vote-webhook",
+            "/bot/topgg-vote-webhook",
             headers={"Authorization": "secret", "Content-Type": "application/json"},
         )
         second_request.json = AsyncMock(return_value={"user": "456"})
@@ -135,7 +135,7 @@ class TopggWebhookHandlerTests(unittest.IsolatedAsyncioTestCase):
     async def test_rejects_non_json_content_type_when_enforced(self) -> None:
         request = make_mocked_request(
             "POST",
-            "/noodswap/topgg-vote-webhook",
+            "/bot/topgg-vote-webhook",
             headers={"Authorization": "secret", "Content-Type": "text/plain"},
         )
         request.json = AsyncMock(return_value={"user": "123"})
@@ -147,7 +147,7 @@ class TopggWebhookHandlerTests(unittest.IsolatedAsyncioTestCase):
     async def test_rejects_payload_too_large_from_content_length(self) -> None:
         request = make_mocked_request(
             "POST",
-            "/noodswap/topgg-vote-webhook",
+            "/bot/topgg-vote-webhook",
             headers={
                 "Authorization": "secret",
                 "Content-Type": "application/json",

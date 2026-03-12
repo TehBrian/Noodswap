@@ -31,7 +31,7 @@ Discord trading-card style bot using `discord.py`.
    ```
 5. Run:
    ```bash
-   uv run python bot.py
+   uv run python -m bot.main
    ```
 
 ## Deployment (Docker + GitHub Actions)
@@ -56,7 +56,7 @@ Use a deploy path such as `/home/noodswap-user/noodswap` owned by a dedicated Li
 ```bash
 sudo useradd --system --create-home --home-dir /home/noodswap-user --shell /usr/sbin/nologin noodswap-user
 sudo -u noodswap-user mkdir -p /home/noodswap-user/noodswap
-sudo -u noodswap-user bash -lc 'cd /home/noodswap-user/noodswap/deploy && cp .env.example .env && cp runtime.env.example runtime.env && mkdir -p ../runtime/db ../runtime/card_images ../runtime/logs'
+sudo -u noodswap-user bash -lc 'cd /home/noodswap-user/bot/deploy && cp .env.example .env && cp runtime.env.example runtime.env && mkdir -p ../runtime/db ../runtime/card_images ../runtime/logs'
 ```
 
 Set required values:
@@ -99,13 +99,13 @@ Behavior notes:
 - The workflow waits for that exact GHCR tag to become available before running the deploy step, avoiding stale `latest` races.
 - After deploy, workflow verifies `noodswap-bot` is running and that its configured image exactly equals `IMAGE_REPOSITORY:<that-sha>`.
 - `deploy/update.sh` now performs a runtime writability preflight and fails before container startup if `runtime/{db,card_images,logs}` is not writable.
-- Production compose includes a SQLite healthcheck (`PRAGMA quick_check`) against `runtime/db/noodswap.db`.
+- Production compose includes a SQLite healthcheck (`PRAGMA quick_check`) against `runtime/db/bot.db`.
 
 Full Actions deploy instructions: `docs/deploy-github-actions.md`.
 
 ### Persistence notes
 
-- SQLite DB: `runtime/db/noodswap.db`
+- SQLite DB: `runtime/db/bot.db`
 - Cached card images: `runtime/card_images`
 - Seed fixtures live under `assets/` and can initialize fresh runtime directories.
 - Immutable render assets (fonts, frames) live under `assets/` and are baked into the image.
@@ -178,7 +178,7 @@ This bot uses privileged intents. Enable these for your application in Discord D
 
 ### Owner-only admin commands
 
-- `ns dbexport` — upload the SQLite file (`noodswap.db`) to Discord.
+- `ns dbexport` — upload the SQLite file (`bot.db`) to Discord.
 - `ns dbreset` — delete all persisted player/card data.
 
 ### Optional: runtime asset initialization
@@ -202,7 +202,7 @@ Machine-readable output is available with `--json`.
 
 ## Notes / current limitations
 
-- Data is persisted in local SQLite (`runtime/db/noodswap.db`) by default.
+- Data is persisted in local SQLite (`runtime/db/bot.db`) by default.
 - `.env` files are gitignored; keep real tokens only in untracked local env files or deployment secret managers.
 - No anti-abuse logging or sharding yet.
 - Alias conflict in the original spec (`d` for both `drop` and `divorce`) is resolved as:
@@ -226,16 +226,16 @@ Machine-readable output is available with `--json`.
 
 ## Architecture
 
-- `bot.py` — thin launcher.
-- `noodswap/app.py` — bot creation, intents, startup wiring.
-- `noodswap/commands.py` — Discord command handlers (presentation layer).
-- `noodswap/views/` — interactive button views for drops/trades and pagination helpers.
-- `noodswap/presentation.py` — shared embed styling helpers.
-- `noodswap/storage.py` — SQLite persistence functions (domain/data layer).
-- `noodswap/cards/` — card catalog and card-related logic.
-- `noodswap/rarities.py` — rarity weights.
-- `noodswap/settings.py` — global config constants.
-- `noodswap/utils.py` — shared utility helpers.
+- `bot/main.py` — thin launcher.
+- `bot/app.py` — bot creation, intents, startup wiring.
+- `bot/commands.py` — Discord command handlers (presentation layer).
+- `bot/views/` — interactive button views for drops/trades and pagination helpers.
+- `bot/presentation.py` — shared embed styling helpers.
+- `bot/storage.py` — SQLite persistence functions (domain/data layer).
+- `bot/cards/` — card catalog and card-related logic.
+- `bot/rarities.py` — rarity weights.
+- `bot/settings.py` — global config constants.
+- `bot/utils.py` — shared utility helpers.
 
 ## Future work (important)
 
@@ -244,4 +244,4 @@ Machine-readable output is available with `--json`.
 - Migrate to slash commands/app commands while keeping prefix aliases if desired.
 - Add anti-abuse checks (alt farming, suspicious transfer patterns).
 - Add paginated collection views and richer card metadata/assets.
-- Automate runtime state operations for production deploys: scheduled SQLite backups to remote storage, restore-on-empty bootstrap for `runtime/db/noodswap.db`, and first-run card-image cache bootstrap from a published artifact.
+- Automate runtime state operations for production deploys: scheduled SQLite backups to remote storage, restore-on-empty bootstrap for `runtime/db/bot.db`, and first-run card-image cache bootstrap from a published artifact.

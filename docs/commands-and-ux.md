@@ -70,7 +70,7 @@ All user-facing responses should be embeds with:
 
 - helper: `italy_embed(title, description="")` for general flows
 - helper: `italy_marry_embed(title, description="")` for marriage/divorce flows
-- colors defined in `noodswap/presentation.py`
+- colors defined in `bot/presentation.py`
 
 This includes:
 - success responses
@@ -82,7 +82,7 @@ This includes:
 
 ## Card image presentation
 
-- Wherever a card image is shown (single-card embeds and drop previews), render through the shared card-image pipeline in `noodswap/images.py`.
+- Wherever a card image is shown (single-card embeds and drop previews), render through the shared card-image pipeline in `bot/images.py`.
 - Per-instance morph state (`card_instances.morph_key`) must be applied when rendering owned-instance images.
 - Per-instance frame state (`card_instances.frame_key`) must be applied when rendering owned-instance images.
 - Per-instance font state (`card_instances.font_key`) must be applied when rendering owned-instance images.

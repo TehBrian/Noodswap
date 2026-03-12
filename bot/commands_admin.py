@@ -11,8 +11,8 @@ def register_admin_commands(bot: commands.Bot) -> None:
 
         await _reply(
             ctx,
-            embed=italy_embed("DB Export", "Exporting current `noodswap.db`."),
-            file=discord.File(DB_PATH, filename="noodswap.db"),
+            embed=italy_embed("DB Export", "Exporting current `bot.db`."),
+            file=discord.File(DB_PATH, filename="bot.db"),
         )
 
     @bot.command(name="dbreset")

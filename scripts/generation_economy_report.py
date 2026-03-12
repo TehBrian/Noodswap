@@ -7,8 +7,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from noodswap.cards import generation_value_multiplier
-from noodswap.settings import DB_PATH, GENERATION_MAX, GENERATION_MIN
+from bot.cards import generation_value_multiplier
+from bot.settings import DB_PATH, GENERATION_MAX, GENERATION_MIN
 
 
 def _parse_args() -> argparse.Namespace:

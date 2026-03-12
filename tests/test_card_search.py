@@ -1,6 +1,6 @@
 import unittest
 
-from noodswap.card_search import search_card_ids
+from bot.card_search import search_card_ids
 
 
 class CardSearchTests(unittest.TestCase):

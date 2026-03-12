@@ -5,8 +5,8 @@ This document defines the execution plan for Stage 3 module-boundary hardening.
 ## Scope
 
 Included:
-- `noodswap/views/` internal split by interaction domain.
-- `noodswap/cards/` internal split by concern (catalog/search/display/economy).
+- `bot/views/` internal split by interaction domain.
+- `bot/cards/` internal split by concern (catalog/search/display/economy).
 - `storage.py` and `repositories.py` boundary tightening.
 
 Explicitly excluded:
@@ -18,20 +18,20 @@ Explicitly excluded:
 
 ## Completed slices
 
-- Slice 1 (done): extracted pagination emoji resolution/constants into `noodswap/view_pagination.py`.
-- Slice 2 (done): extracted display-format helpers into `noodswap/card_display.py` with compatibility wrappers on the `noodswap.cards` import surface.
-- Slice 3 (done): extracted `HelpCategorySelect` and `HelpView` into `noodswap/view_help.py` while preserving `from noodswap.views import HelpView` compatibility.
-- Slice 4 (done): extracted `DropView` into `noodswap/view_drop.py` while preserving `from noodswap.views import DropView` compatibility.
-- Slice 5 (done): extracted `TradeView` into `noodswap/view_trade.py` while preserving `from noodswap.views import TradeView` compatibility.
-- Slice 6 (done): extracted burn/morph/frame/font confirmation views into `noodswap/view_confirmations.py` while preserving imports from `noodswap.views`.
-- Slice 7 (done): extracted `CardCatalogView` into `noodswap/view_catalog.py` while preserving `from noodswap.views import CardCatalogView` compatibility.
-- Slice 8 (done): extracted `PaginatedLinesView` and `PlayerLeaderboardView` into `noodswap/view_text.py` while preserving imports from `noodswap.views`.
-- Slice 9 (done): extracted `SortableCardListView` and `SortableCollectionView` into `noodswap/view_sortable_lists.py` while preserving imports from `noodswap.views` and existing test monkeypatch targets.
-- Slice 10 (done): extracted card search + code-parsing helpers into `noodswap/card_search.py` with compatibility wrappers retained on the `noodswap.cards` import surface.
-- Slice 11 (done): extracted generation/value/payout + rarity-odds helpers into `noodswap/card_economy.py` with compatibility wrappers retained on the `noodswap.cards` import surface.
+- Slice 1 (done): extracted pagination emoji resolution/constants into `bot/view_pagination.py`.
+- Slice 2 (done): extracted display-format helpers into `bot/card_display.py` with compatibility wrappers on the `bot.cards` import surface.
+- Slice 3 (done): extracted `HelpCategorySelect` and `HelpView` into `bot/view_help.py` while preserving `from bot.views import HelpView` compatibility.
+- Slice 4 (done): extracted `DropView` into `bot/view_drop.py` while preserving `from bot.views import DropView` compatibility.
+- Slice 5 (done): extracted `TradeView` into `bot/view_trade.py` while preserving `from bot.views import TradeView` compatibility.
+- Slice 6 (done): extracted burn/morph/frame/font confirmation views into `bot/view_confirmations.py` while preserving imports from `bot.views`.
+- Slice 7 (done): extracted `CardCatalogView` into `bot/view_catalog.py` while preserving `from bot.views import CardCatalogView` compatibility.
+- Slice 8 (done): extracted `PaginatedLinesView` and `PlayerLeaderboardView` into `bot/view_text.py` while preserving imports from `bot.views`.
+- Slice 9 (done): extracted `SortableCardListView` and `SortableCollectionView` into `bot/view_sortable_lists.py` while preserving imports from `bot.views` and existing test monkeypatch targets.
+- Slice 10 (done): extracted card search + code-parsing helpers into `bot/card_search.py` with compatibility wrappers retained on the `bot.cards` import surface.
+- Slice 11 (done): extracted generation/value/payout + rarity-odds helpers into `bot/card_economy.py` with compatibility wrappers retained on the `bot.cards` import surface.
 - Slice 12 (done): removed unused one-line `storage.ensure_player(...)` pass-through wrapper to keep direct repository access out of non-transactional helper exports.
-- Slice 13 (done): converted `noodswap.cards` and `noodswap.views` to package paths (`noodswap/cards/__init__.py`, `noodswap/views/__init__.py`) and added `noodswap/cards/*` + `noodswap/views/*` submodule surfaces matching the Stage 3 target layout.
-- Slice 14 (done): completed callback slimming by moving burn-confirm execution into `services.py` and switching view callbacks to direct service/image imports (no `noodswap.views` facade indirection within callback execution paths).
+- Slice 13 (done): converted `bot.cards` and `bot.views` to package paths (`bot/cards/__init__.py`, `bot/views/__init__.py`) and added `bot/cards/*` + `bot/views/*` submodule surfaces matching the Stage 3 target layout.
+- Slice 14 (done): completed callback slimming by moving burn-confirm execution into `services.py` and switching view callbacks to direct service/image imports (no `bot.views` facade indirection within callback execution paths).
 
 ## Preconditions
 
@@ -47,20 +47,20 @@ Current pain point:
 - Legacy view code was concentrated in one surface and mixed unrelated interaction concerns.
 
 Target structure:
-- `noodswap/views/help.py`
-- `noodswap/views/drop.py`
-- `noodswap/views/trade.py`
-- `noodswap/views/confirmations.py`
-- `noodswap/views/catalog.py`
-- `noodswap/views/pagination.py`
-- `noodswap/views/__init__.py`
+- `bot/views/help.py`
+- `bot/views/drop.py`
+- `bot/views/trade.py`
+- `bot/views/confirmations.py`
+- `bot/views/catalog.py`
+- `bot/views/pagination.py`
+- `bot/views/__init__.py`
 
 Incremental steps:
-1. Create `noodswap/views/` package and move pagination helpers first.
+1. Create `bot/views/` package and move pagination helpers first.
 2. Move help views (`HelpView`, `HelpCategorySelect`) next.
 3. Move `DropView` and `TradeView` once imports are stable.
 4. Move confirmation views (burn/morph/frame/font).
-5. Re-export all existing symbols from `noodswap/views/__init__.py`.
+5. Re-export all existing symbols from `bot/views/__init__.py`.
 6. Keep legacy import path working in `commands.py` throughout.
 
 Acceptance checks:
@@ -74,11 +74,11 @@ Current pain point:
 - Legacy card code mixed data loading, search, display formatting, and value-generation logic in one surface.
 
 Target structure:
-- `noodswap/cards/catalog.py`
-- `noodswap/cards/search.py`
-- `noodswap/cards/display.py`
-- `noodswap/cards/economy.py`
-- `noodswap/cards/__init__.py`
+- `bot/cards/catalog.py`
+- `bot/cards/search.py`
+- `bot/cards/display.py`
+- `bot/cards/economy.py`
+- `bot/cards/__init__.py`
 
 Incremental steps:
 1. Move pure formatter helpers into `display.py`.
@@ -120,7 +120,7 @@ Acceptance checks:
 ## Validation commands
 
 ```bash
-uv run python -m py_compile bot.py noodswap/*.py scripts/*.py tests/*.py
+uv run python -m py_compile bot/main.py bot/*.py scripts/*.py tests/*.py
 uv run python scripts/migration_smoke.py
 uv run python -m unittest discover -s tests -p 'test_*.py' -b
 ```

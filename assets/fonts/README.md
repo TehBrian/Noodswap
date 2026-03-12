@@ -3,7 +3,7 @@
 Bundled card fonts for text overlay rendering.
 
 Styles are selected by font key in bot data, then mapped to explicit files in
-`noodswap/fonts.py` (`FONT_FILE_MAP`). Keep runtime filenames in sync with that
+`bot/fonts.py` (`FONT_FILE_MAP`). Keep runtime filenames in sync with that
 mapping.
 
 Required files by style:

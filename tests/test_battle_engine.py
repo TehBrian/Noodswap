@@ -1,7 +1,7 @@
 import random
 import unittest
 
-from noodswap.battle_engine import (
+from bot.battle_engine import (
     MAX_ROLL,
     MIN_ROLL,
     build_battle_card,

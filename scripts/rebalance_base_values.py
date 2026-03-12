@@ -2,8 +2,8 @@ import argparse
 import json
 from pathlib import Path
 
-DEFAULT_CARDS_PATH = Path("noodswap/data/cards.json")
-DEFAULT_BASE_VALUES_PATH = Path("noodswap/data/base_values.json")
+DEFAULT_CARDS_PATH = Path("bot/data/cards.json")
+DEFAULT_BASE_VALUES_PATH = Path("bot/data/base_values.json")
 
 # Tuned for strong rarity separation with a steeper late-tier curve and
 # celestial values capped at 1200.

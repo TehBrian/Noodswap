@@ -4,7 +4,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from noodswap import services, storage
+from bot import services, storage
 
 
 class ServicesTests(unittest.TestCase):
@@ -349,7 +349,7 @@ class ServicesTests(unittest.TestCase):
         instance_id = storage.add_card_to_player(guild_id, user_id, "SPG", 333)
         storage.apply_morph_to_instance(guild_id, user_id, instance_id, "black_and_white", 1)
 
-        with patch("noodswap.services.AVAILABLE_MORPHS", ["black_and_white"]):
+        with patch("bot.services.AVAILABLE_MORPHS", ["black_and_white"]):
             result = services.prepare_morph(guild_id=guild_id, user_id=user_id, card_code=None)
 
         self.assertTrue(result.is_error)
@@ -362,7 +362,7 @@ class ServicesTests(unittest.TestCase):
         instance_id = storage.add_card_to_player(guild_id, user_id, "SPG", 333)
 
         with patch(
-            "noodswap.services.available_frame_keys",
+            "bot.services.available_frame_keys",
             return_value=["buttery", "gilded", "drizzled"],
         ):
             result = services.prepare_frame(guild_id=guild_id, user_id=user_id, card_code=None)
@@ -408,7 +408,7 @@ class ServicesTests(unittest.TestCase):
         instance_id = storage.add_card_to_player(guild_id, user_id, "SPG", 333)
         storage.apply_frame_to_instance(guild_id, user_id, instance_id, "buttery", 1)
 
-        with patch("noodswap.services.available_frame_keys", return_value=["buttery"]):
+        with patch("bot.services.available_frame_keys", return_value=["buttery"]):
             result = services.prepare_frame(guild_id=guild_id, user_id=user_id, card_code=None)
 
         self.assertTrue(result.is_error)
@@ -463,7 +463,7 @@ class ServicesTests(unittest.TestCase):
         instance_id = storage.add_card_to_player(guild_id, user_id, "SPG", 333)
         storage.apply_font_to_instance(guild_id, user_id, instance_id, "serif", 1)
 
-        with patch("noodswap.services.AVAILABLE_FONTS", ["serif"]):
+        with patch("bot.services.AVAILABLE_FONTS", ["serif"]):
             result = services.prepare_font(guild_id=guild_id, user_id=user_id, card_code=None)
 
         self.assertTrue(result.is_error)
@@ -948,7 +948,7 @@ class ServicesTests(unittest.TestCase):
         storage.add_dough(guild_id, user_id, 50)
         instance_id = storage.add_card_to_player(guild_id, user_id, "SPG", 333)
 
-        with patch("noodswap.services.weighted_trait_choice", return_value="black_and_white"):
+        with patch("bot.services.weighted_trait_choice", return_value="black_and_white"):
             result = services.resolve_morph_roll(
                 guild_id,
                 user_id,
@@ -974,10 +974,10 @@ class ServicesTests(unittest.TestCase):
 
         with (
             patch(
-                "noodswap.services.available_frame_keys",
+                "bot.services.available_frame_keys",
                 return_value=["buttery", "gilded", "drizzled"],
             ),
-            patch("noodswap.services.weighted_trait_choice", return_value="buttery"),
+            patch("bot.services.weighted_trait_choice", return_value="buttery"),
         ):
             result = services.resolve_frame_roll(
                 guild_id,
@@ -1002,7 +1002,7 @@ class ServicesTests(unittest.TestCase):
         storage.add_dough(guild_id, user_id, 50)
         instance_id = storage.add_card_to_player(guild_id, user_id, "SPG", 333)
 
-        with patch("noodswap.services.weighted_trait_choice", return_value="serif"):
+        with patch("bot.services.weighted_trait_choice", return_value="serif"):
             result = services.resolve_font_roll(
                 guild_id,
                 user_id,

@@ -18,7 +18,7 @@ This runbook is for contributors and coding agents.
 - Initialize runtime state from seed data:
   - `uv run python scripts/init_runtime.py`
 - Start bot:
-  - `uv run python bot.py`
+  - `uv run python -m bot.main`
 
 ## Docker runtime
 
@@ -57,14 +57,14 @@ Recommended local sequence (fastest useful signal first):
 
 1. Run lint:
   - VS Code task: `check:ruff`
-  - direct: `uv run ruff check noodswap scripts tests`
+  - direct: `uv run ruff check bot scripts tests`
 2. Run quick validation:
   - VS Code task: `check:quick`
 3. Run full validation:
   - VS Code task: `check:all`
 
 - Compile check:
-  - `uv run python -m py_compile bot.py noodswap/*.py`
+  - `uv run python -m py_compile bot/main.py bot/*.py`
 - Check diagnostics in editor Problems view.
 - VS Code task shortcut (compile + migration smoke):
   - `check:quick`
@@ -84,20 +84,20 @@ When adding a new card to the live catalog, use this workflow to keep metadata a
 
 Use this default process unless there is a specific reason to do otherwise:
 
-1. Add the card metadata entry in `noodswap/data/cards.json`.
+1. Add the card metadata entry in `bot/data/cards.json`.
 2. Run `uv run python scripts/rebalance_base_values.py --mode missing` to fill only absent base values.
 3. Keep card image paths under `runtime/card_images`; image files can be populated later as needed.
 
-1. Add the new card entry to `noodswap/data/cards.json` with:
+1. Add the new card entry to `bot/data/cards.json` with:
   - unique `card_id`
   - `name`, `series`, `rarity`
   - optional `image` path (no need to add a default/local image file up front)
-2. Do not manually write a base value in `noodswap/data/base_values.json` for new card IDs.
+2. Do not manually write a base value in `bot/data/base_values.json` for new card IDs.
 3. Generate missing base values only:
   - preview: `uv run python scripts/rebalance_base_values.py --mode missing --dry-run`
   - write: `uv run python scripts/rebalance_base_values.py --mode missing`
 4. Validate quickly:
-  - `uv run python -m py_compile bot.py noodswap/*.py scripts/*.py`
+  - `uv run python -m py_compile bot/main.py bot/*.py scripts/*.py`
   - `uv run python scripts/migration_smoke.py`
 
 Notes:
@@ -141,18 +141,18 @@ Notes:
 
 ## Subsystem guide
 
-- Catalog/cards logic: `noodswap/cards/`
-- Rarity tuning: `noodswap/rarities.py`
-- DB and ownership semantics: `noodswap/storage.py`
-- Command/use-case orchestration: `noodswap/services.py`
-- Command Discord wiring + routing: `noodswap/commands.py` + `noodswap/commands_*.py`
-- Interaction UX: `noodswap/views/`
-- Shared embed theme + reusable description formatting: `noodswap/presentation.py`
+- Catalog/cards logic: `bot/cards/`
+- Rarity tuning: `bot/rarities.py`
+- DB and ownership semantics: `bot/storage.py`
+- Command/use-case orchestration: `bot/services.py`
+- Command Discord wiring + routing: `bot/commands.py` + `bot/commands_*.py`
+- Interaction UX: `bot/views/`
+- Shared embed theme + reusable description formatting: `bot/presentation.py`
 
 ## Operational conventions
 
-- Keep user-facing command failures embed-based through app-level `on_command_error` in `noodswap/app.py`.
-- Prefer changing operational knobs in `noodswap/settings.py` (drop count, interaction timeouts, generation bounds, cooldowns).
+- Keep user-facing command failures embed-based through app-level `on_command_error` in `bot/app.py`.
+- Prefer changing operational knobs in `bot/settings.py` (drop count, interaction timeouts, generation bounds, cooldowns).
 - For direct sqlite usage outside `storage.get_db_connection()`, explicitly close connections.
 
 ## High-risk edits
@@ -160,7 +160,7 @@ Notes:
 Use extra caution when editing:
 
 - migration logic in `init_db()`
-- schema version constants / migration steps in `noodswap/storage.py`
+- schema version constants / migration steps in `bot/storage.py`
 - trade transfer logic
 - marriage uniqueness constraints
 - generation selection ordering

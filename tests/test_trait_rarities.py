@@ -1,7 +1,7 @@
 import unittest
 
-from noodswap.rarities import RARITY_ORDER
-from noodswap.trait_rarities import (
+from bot.rarities import RARITY_ORDER
+from bot.trait_rarities import (
     TRAIT_RARITY_MULTIPLIERS,
     TRAIT_RARITY_WEIGHTS,
     TRAIT_TOTAL_WEIGHT,

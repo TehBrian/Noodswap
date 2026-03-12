@@ -15,7 +15,7 @@ IpNetwork = ipaddress.IPv4Network | ipaddress.IPv6Network
 
 
 def _normalize_route_path(path: str) -> str:
-    normalized = path.strip() or "/noodswap/topgg-vote-webhook"
+    normalized = path.strip() or "/bot/topgg-vote-webhook"
     if not normalized.startswith("/"):
         normalized = f"/{normalized}"
     return normalized

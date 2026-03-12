@@ -6,8 +6,8 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from noodswap import storage
-from noodswap.services import TradeTerms
+from bot import storage
+from bot.services import TradeTerms
 
 
 class StorageTests(unittest.TestCase):
@@ -263,7 +263,7 @@ class StorageTests(unittest.TestCase):
         user_id = 1248
         storage.init_db()
 
-        with patch("noodswap.storage.roll_dice", return_value=(1, 2, False)):
+        with patch("bot.storage.roll_dice", return_value=(1, 2, False)):
             result = storage.execute_monopoly_roll(
                 guild_id,
                 user_id,
@@ -283,7 +283,7 @@ class StorageTests(unittest.TestCase):
         user_id = 1249
         storage.init_db()
 
-        with patch("noodswap.storage.roll_dice", return_value=(3, 3, True)):
+        with patch("bot.storage.roll_dice", return_value=(3, 3, True)):
             result = storage.execute_monopoly_roll(
                 guild_id,
                 user_id,
@@ -318,7 +318,7 @@ class StorageTests(unittest.TestCase):
         )
         expected_rent = full_value // 12
 
-        with patch("noodswap.storage.roll_dice", return_value=(1, 2, False)):
+        with patch("bot.storage.roll_dice", return_value=(1, 2, False)):
             result = storage.execute_monopoly_roll(
                 guild_id,
                 roller_id,
@@ -346,7 +346,7 @@ class StorageTests(unittest.TestCase):
         storage.add_card_to_player(guild_id, owner_id, common_card_id, generation)
         storage.add_dough(guild_id, roller_id, 10_000)
 
-        with patch("noodswap.storage.roll_dice", return_value=(1, 2, False)):
+        with patch("bot.storage.roll_dice", return_value=(1, 2, False)):
             result = storage.execute_monopoly_roll(
                 guild_id,
                 roller_id,
@@ -365,13 +365,13 @@ class StorageTests(unittest.TestCase):
         storage.init_db()
 
         with (
-            patch("noodswap.storage.roll_dice", return_value=(1, 2, False)),
+            patch("bot.storage.roll_dice", return_value=(1, 2, False)),
             patch(
-                "noodswap.storage.board_space",
+                "bot.storage.board_space",
                 return_value=SimpleNamespace(kind="mpreg", name="Mpreg", emoji="🤰", rarity=None),
             ),
-            patch("noodswap.storage.random_epic_or_better_card_id", return_value="SPG"),
-            patch("noodswap.storage.random_generation", return_value=321),
+            patch("bot.storage.random_epic_or_better_card_id", return_value="SPG"),
+            patch("bot.storage.random_generation", return_value=321),
         ):
             result = storage.execute_monopoly_roll(
                 guild_id,
@@ -1565,7 +1565,7 @@ class StorageTests(unittest.TestCase):
         if battle_id is None:
             return
 
-        with patch("noodswap.storage.random.choice", return_value=challenged_id):
+        with patch("bot.storage.random.choice", return_value=challenged_id):
             status, resolve_message = storage.resolve_battle_proposal(
                 guild_id,
                 battle_id,
@@ -1638,7 +1638,7 @@ class StorageTests(unittest.TestCase):
         self.assertIsNotNone(battle_id)
         if battle_id is None:
             return
-        with patch("noodswap.storage.random.choice", return_value=challenger_id):
+        with patch("bot.storage.random.choice", return_value=challenger_id):
             status, _accept_msg = storage.resolve_battle_proposal(guild_id, battle_id, challenged_id, accepted=True)
         self.assertEqual(status, "accepted")
 
@@ -1688,7 +1688,7 @@ class StorageTests(unittest.TestCase):
         self.assertIsNotNone(battle_id)
         if battle_id is None:
             return
-        with patch("noodswap.storage.random.choice", return_value=challenger_id):
+        with patch("bot.storage.random.choice", return_value=challenger_id):
             status, _accept_msg = storage.resolve_battle_proposal(guild_id, battle_id, challenged_id, accepted=True)
         self.assertEqual(status, "accepted")
 
@@ -1822,7 +1822,7 @@ class StorageTests(unittest.TestCase):
         if active_battle_id is None:
             return
 
-        with patch("noodswap.storage.random.choice", return_value=challenger_id):
+        with patch("bot.storage.random.choice", return_value=challenger_id):
             status, _resolve_message = storage.resolve_battle_proposal(
                 guild_id,
                 active_battle_id,

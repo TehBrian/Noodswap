@@ -50,7 +50,7 @@
 - add lightweight economy event ledger tables for pull/burn/trade telemetry so balancing reports can use true time-window flow metrics instead of ownership snapshots
 
 6. Deploy-state automation
-- Add automated SQLite backup/restore workflow (scheduled backup to remote object storage + restore-on-empty bootstrap for `runtime/db/noodswap.db`).
+- Add automated SQLite backup/restore workflow (scheduled backup to remote object storage + restore-on-empty bootstrap for `runtime/db/bot.db`).
 - Publish/import a versioned card-image cache artifact so new hosts can bootstrap `runtime/card_images` without manual copy steps.
 
 ## Refactor backlog (staged)
@@ -80,7 +80,7 @@ Stage 3 implementation guide: `docs/refactor-phase-3.md`.
 
 - Expanded `trade` mode beyond dough-only: `trade <player> <card_code> <mode> <amount|req_card_code>` now supports `dough`, `starter`, `drop` (aliases: `tickets`/`ticket`/`drop_tickets`), and `card` (card-for-card swap where both sides exchange a specific owned dupe). Card mode clears marriage and last-pulled pointers for both transferred instances. Either side losing their card between offer and accept causes a deterministic failure (no partial-fill).
 - Reworked `gift` into explicit immediate-transfer subcommands (`ns gift dough <player> <dough>`, `ns gift starter <player> <starter>`, `ns gift drop <player> <tickets>`, and `ns gift card <player> <card_code>`) so runtime behavior and docs align around one-step transfers.
-- Finalized command-module split: `noodswap/commands.py` is now a thin registrar entrypoint delegating to domain modules (`commands_social`, `commands_catalog`, `commands_economy`, `commands_gambling`, `commands_admin`) with shared helpers in `command_utils.py`.
+- Finalized command-module split: `bot/commands.py` is now a thin registrar entrypoint delegating to domain modules (`commands_social`, `commands_catalog`, `commands_economy`, `commands_gambling`, `commands_admin`) with shared helpers in `command_utils.py`.
 - Updated `wish add`, `tag/folder/team assign`, and `tag/folder/team unassign` to accept multiple space-separated targets with dedupe + mixed-result feedback (including team remaining-slot `before -> after` reporting), and changed batch burn semantics to partial execution (burn eligible targets, report skipped locked/unavailable targets) instead of all-or-nothing lock blocking.
 - Added persistent `players.votes` tracking for successful top.gg webhook claims, surfaced the count in `info`, and added `Votes` as a sortable `leaderboard` criterion.
 - Added per-player folders (`player_folders` + `card_instance_folders`) with one-folder-per-instance assignment, folder emoji metadata, and lock inheritance that treats locked tags and locked folders as equivalent burn blockers.
@@ -91,19 +91,19 @@ Stage 3 implementation guide: `docs/refactor-phase-3.md`.
 - Added `flip` / `f` command with dough wagering, a dedicated 2-minute cooldown (`players.last_flip_at`), and intentional house-edge odds (46% win / 54% lose) to keep long-run expected value negative.
 - Started team-battle foundation rollout: added migration `v14` (`players.active_team_name`, `player_teams`, `team_members`, `battle_sessions`), added `team` command group (`add/remove/list/assign/unassign/cards/active`), and added `battle <player> <stake>` proposal flow with accept/deny interaction view and one-open-battle-per-player guard.
 - Extended battle implementation with persisted combatant state (`battle_combatants`), stake escrow on accept, turn-resolution storage/services (`attack`/`defend`/`switch`/`surrender`/timeout skip), and live arena interaction view updates per turn.
-- Stage 3 kickoff (non-breaking): extracted pagination emoji resolution/constants from `views.py` into `noodswap/view_pagination.py`, and extracted card display-format helpers into `noodswap/card_display.py` while keeping `noodswap.cards` public functions as compatibility wrappers.
-- Continued Stage 3 (non-breaking): extracted help interaction classes (`HelpCategorySelect`, `HelpView`) into `noodswap/view_help.py` and kept `HelpView` available through `noodswap.views` for existing imports.
-- Continued Stage 3 (non-breaking): extracted `DropView` into `noodswap/view_drop.py` and `TradeView` into `noodswap/view_trade.py` while keeping both importable from `noodswap.views`.
-- Continued Stage 3 (non-breaking): extracted confirmation interaction classes (`BurnConfirmView`, `MorphConfirmView`, `FrameConfirmView`, `FontConfirmView`) into `noodswap/view_confirmations.py` and preserved `noodswap.views` monkeypatch targets used by tests.
-- Continued Stage 3 (non-breaking): extracted `CardCatalogView` into `noodswap/view_catalog.py` and preserved `noodswap.views` compatibility imports and image payload patch targets.
-- Continued Stage 3 (non-breaking): extracted `PaginatedLinesView` and `PlayerLeaderboardView` into `noodswap/view_text.py` and preserved `noodswap.views` compatibility imports.
-- Continued Stage 3 (non-breaking): extracted `SortableCardListView` and `SortableCollectionView` into `noodswap/view_sortable_lists.py` and preserved `noodswap.views` compatibility imports and image payload patch targets.
-- Continued Stage 3 (non-breaking): extracted search/code-parsing helpers from `cards.py` into `noodswap/card_search.py` while keeping `noodswap.cards` wrappers stable.
-- Continued Stage 3 (non-breaking): extracted generation/value/payout + rarity-odds helpers from `cards.py` into `noodswap/card_economy.py` while keeping `noodswap.cards` wrappers stable.
+- Stage 3 kickoff (non-breaking): extracted pagination emoji resolution/constants from `views.py` into `bot/view_pagination.py`, and extracted card display-format helpers into `bot/card_display.py` while keeping `bot.cards` public functions as compatibility wrappers.
+- Continued Stage 3 (non-breaking): extracted help interaction classes (`HelpCategorySelect`, `HelpView`) into `bot/view_help.py` and kept `HelpView` available through `bot.views` for existing imports.
+- Continued Stage 3 (non-breaking): extracted `DropView` into `bot/view_drop.py` and `TradeView` into `bot/view_trade.py` while keeping both importable from `bot.views`.
+- Continued Stage 3 (non-breaking): extracted confirmation interaction classes (`BurnConfirmView`, `MorphConfirmView`, `FrameConfirmView`, `FontConfirmView`) into `bot/view_confirmations.py` and preserved `bot.views` monkeypatch targets used by tests.
+- Continued Stage 3 (non-breaking): extracted `CardCatalogView` into `bot/view_catalog.py` and preserved `bot.views` compatibility imports and image payload patch targets.
+- Continued Stage 3 (non-breaking): extracted `PaginatedLinesView` and `PlayerLeaderboardView` into `bot/view_text.py` and preserved `bot.views` compatibility imports.
+- Continued Stage 3 (non-breaking): extracted `SortableCardListView` and `SortableCollectionView` into `bot/view_sortable_lists.py` and preserved `bot.views` compatibility imports and image payload patch targets.
+- Continued Stage 3 (non-breaking): extracted search/code-parsing helpers from `cards.py` into `bot/card_search.py` while keeping `bot.cards` wrappers stable.
+- Continued Stage 3 (non-breaking): extracted generation/value/payout + rarity-odds helpers from `cards.py` into `bot/card_economy.py` while keeping `bot.cards` wrappers stable.
 - Continued Stage 3 boundary tightening (non-breaking): removed the unused `storage.ensure_player(...)` pass-through wrapper.
-- Finalized Stage 3 package layout (non-breaking): converted `noodswap.cards` and `noodswap.views` from single-module shims to package paths (`noodswap/cards/__init__.py`, `noodswap/views/__init__.py`) and added package submodules (`catalog/search/display/economy` and `help/drop/trade/confirmations/catalog/pagination/sortable_lists/text`).
+- Finalized Stage 3 package layout (non-breaking): converted `bot.cards` and `bot.views` from single-module shims to package paths (`bot/cards/__init__.py`, `bot/views/__init__.py`) and added package submodules (`catalog/search/display/economy` and `help/drop/trade/confirmations/catalog/pagination/sortable_lists/text`).
 - Started Stage 3 callback slimming by moving drop-claim, trade accept/deny, and trait roll-confirm execution into `services.py` (`execute_drop_claim`, `resolve_trade_offer`, `resolve_morph_roll`, `resolve_frame_roll`, `resolve_font_roll`) and updating `views.py` callbacks to delegate to those use-cases.
-- Completed Stage 3 callback slimming by moving burn confirmation execution into `services.py` (`execute_burn_confirmation`), removing remaining `noodswap.views` callback indirection in view modules, and updating view tests to patch canonical module-level symbols.
+- Completed Stage 3 callback slimming by moving burn confirmation execution into `services.py` (`execute_burn_confirmation`), removing remaining `bot.views` callback indirection in view modules, and updating view tests to patch canonical module-level symbols.
 - Added follow-up roadmap item to automate deploy-state bootstrap (SQLite backup/restore and card-image cache artifact import) so host migrations do not require manual DB/image copy steps.
 - Added `leaderboard` / `le` with invoker-scoped pagination + criterion dropdown (`Cards`, `Wishes`, `Dough`, `Starter`, `Collection Value`) to rank players by global player metrics.
 - Added webhook-only top.gg vote registration with signed event intake and automatic `starter` reward claiming.
@@ -120,7 +120,7 @@ Stage 3 implementation guide: `docs/refactor-phase-3.md`.
 - Added more tint morph variants (`tint_warm`, `tint_cool`, `tint_violet`) and tuned tint strengths to keep each color treatment visually distinct.
 - Changed drop claiming to be contestable: any user can claim any unclaimed drop card, each card can only be claimed once, and drops remain active until timeout (or all cards are claimed).
 - Reduced pull cooldown from 6 minutes to 4 minutes and updated cooldown messaging to use pull terminology.
-- Added a shared card-render pipeline (`noodswap/images.py`) that normalizes card output to portrait `5:7`, applies rounded rarity-based borders, and routes both single-card embeds and drop-preview composites through the same renderer to support future dupe-specific visual customization.
+- Added a shared card-render pipeline (`bot/images.py`) that normalizes card output to portrait `5:7`, applies rounded rarity-based borders, and routes both single-card embeds and drop-preview composites through the same renderer to support future dupe-specific visual customization.
 - Changed `cards.random_generation()` from triangular mode-at-max selection to a right-skewed beta roll, iteratively tuning parameters from initial (`betavariate(5.2, 1.8)`) through refinement steps to final (`betavariate(1.6, 1.04)`), empirically validated at n=5M to observe stable quantiles and gen-1 frequency (~105 per 5M pulls, 1 in ~48k).
 - Added `scripts/generation_economy_report.py` to report inverse-value (`tau`) target odds versus current owned-inventory snapshot metrics (`gen=1`, `<=10`, `<=100`, `<=500`, expected pulls, and top-end supply per 1k active pullers).
 - Replaced beta-based `cards.random_generation()` sampling with an inverse-value discrete sampler (`P(gen) ∝ 1 / generation_multiplier(gen)^0.95`) so generation supply aligns directly with multiplier-driven value.

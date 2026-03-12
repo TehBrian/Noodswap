@@ -12,12 +12,11 @@ COPY pyproject.toml /app/pyproject.toml
 RUN pip install --no-cache-dir uv
 RUN uv sync --no-dev
 
-COPY bot.py /app/bot.py
-COPY noodswap /app/noodswap
+COPY bot /app/bot
 COPY scripts /app/scripts
 
 RUN chown -R noodswap:noodswap /app
 
 USER noodswap
 
-CMD ["/app/.venv/bin/python", "bot.py"]
+CMD ["/app/.venv/bin/python", "-m", "bot.main"]

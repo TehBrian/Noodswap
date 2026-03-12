@@ -4,13 +4,13 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from noodswap.cards import (
+from bot.cards import (
     CARD_CATALOG,
     RARITY_CARD_COUNTS,
     effective_rarity_odds,
     target_rarity_odds,
 )
-from noodswap.rarities import (
+from bot.rarities import (
     RARITY_CURVE_LINEAR_RATE,
     RARITY_CURVE_SMOOTHING,
     RARITY_TAIL_CURVATURE,
@@ -113,7 +113,7 @@ def print_configured_weights_report(*, drop_size: int, claims_per_player: int) -
     ordered = list(RARITY_WEIGHTS.keys())
 
     print("Noodswap rarity odds report")
-    print("Source: configured noodswap.rarities.RARITY_WEIGHTS")
+    print("Source: configured bot.rarities.RARITY_WEIGHTS")
     print(f"Total cards in catalog: {len(CARD_CATALOG)}")
     print(f"Cards per drop: {drop_size}")
     print(f"Approx claims per player per drop: {claims_per_player}")

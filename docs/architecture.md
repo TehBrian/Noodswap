@@ -7,41 +7,41 @@ This document describes the current runtime architecture of Noodswap.
 Noodswap is structured in a pragmatic layered style:
 
 Presentation layer:
-  - `noodswap/commands.py` (thin prefix command registration entrypoint)
-  - `noodswap/commands_social.py` / `noodswap/commands_catalog.py` / `noodswap/commands_economy.py` / `noodswap/commands_gambling.py` / `noodswap/commands_admin.py` (domain command registrars)
-  - `noodswap/command_utils.py` (shared command helper layer)
-  - `noodswap/views/` (button interactions: drop/trade/burn confirm + trait confirms)
-  - `noodswap/presentation.py` (shared embed styles + reusable command description formatting)
+  - `bot/commands.py` (thin prefix command registration entrypoint)
+  - `bot/commands_social.py` / `bot/commands_catalog.py` / `bot/commands_economy.py` / `bot/commands_gambling.py` / `bot/commands_admin.py` (domain command registrars)
+  - `bot/command_utils.py` (shared command helper layer)
+  - `bot/views/` (button interactions: drop/trade/burn confirm + trait confirms)
+  - `bot/presentation.py` (shared embed styles + reusable command description formatting)
 - Use-case/service layer:
-  - `noodswap/services.py` (command-facing orchestration for drop/burn/marry/divorce/trade prep)
+  - `bot/services.py` (command-facing orchestration for drop/burn/marry/divorce/trade prep)
 - Domain/config layer:
-  - `noodswap/cards/` (catalog, pull/generation helpers, burn value logic)
-  - `noodswap/card_search.py` (card search + dupe code parsing helpers used by `cards.py` wrappers)
-  - `noodswap/card_economy.py` (generation/value/payout + rarity-odds helpers used by `cards.py` wrappers)
-  - `noodswap/images.py` (local card image lookup + card render pipeline)
-  - `noodswap/morphs.py` / `noodswap/frames.py` / `noodswap/fonts.py` (trait option metadata + normalization)
-  - `noodswap/rarities.py` (rarity weight constants)
-  - `noodswap/settings.py` (global settings/constants)
-  - `noodswap/utils.py` (small utility helpers)
+  - `bot/cards/` (catalog, pull/generation helpers, burn value logic)
+  - `bot/card_search.py` (card search + dupe code parsing helpers used by `cards.py` wrappers)
+  - `bot/card_economy.py` (generation/value/payout + rarity-odds helpers used by `cards.py` wrappers)
+  - `bot/images.py` (local card image lookup + card render pipeline)
+  - `bot/morphs.py` / `bot/frames.py` / `bot/fonts.py` (trait option metadata + normalization)
+  - `bot/rarities.py` (rarity weight constants)
+  - `bot/settings.py` (global settings/constants)
+  - `bot/utils.py` (small utility helpers)
 - Data/persistence layer:
-  - `noodswap/storage.py` (SQLite data operations)
-  - `noodswap/migrations.py` (schema versioning + startup migration steps)
-  - `noodswap/repositories.py` (repository-style SQL boundaries used by `storage.py`)
+  - `bot/storage.py` (SQLite data operations)
+  - `bot/migrations.py` (schema versioning + startup migration steps)
+  - `bot/repositories.py` (repository-style SQL boundaries used by `storage.py`)
 - Application bootstrap:
-  - `bot.py` (thin launcher)
-  - `noodswap/app.py` (bot factory, intents, startup)
+  - `bot/main.py` (thin launcher)
+  - `bot/app.py` (bot factory, intents, startup)
 
 ## Cross-cutting concerns
 
-- Centralized command error handling is in `noodswap/app.py` (`on_command_error`).
-- Shared operational constants are in `noodswap/settings.py` (cooldowns, timeouts, generation bounds).
-- Interaction button disable behavior is encapsulated per-view in `noodswap/views/` modules.
-- Card visual customization flows are instance-based (`morph_key`, `frame_key`, `font_key`) and resolved through `noodswap/images.py` during render.
+- Centralized command error handling is in `bot/app.py` (`on_command_error`).
+- Shared operational constants are in `bot/settings.py` (cooldowns, timeouts, generation bounds).
+- Interaction button disable behavior is encapsulated per-view in `bot/views/` modules.
+- Card visual customization flows are instance-based (`morph_key`, `frame_key`, `font_key`) and resolved through `bot/images.py` during render.
 
 ## Startup flow
 
-1. `python bot.py`
-2. `bot.py` calls `noodswap.app.main()`
+1. `python -m bot.main`
+2. `bot/main.py` calls `bot.app.main()`
 3. `main()` resolves token from `DISCORD_TOKEN` or `DISCORD_TOKEN_FILE`
 4. `main()` calls `storage.init_db()`
 5. `create_bot()` builds the `commands.Bot`, registers handlers, and returns bot
@@ -90,8 +90,8 @@ Selection rules currently implemented:
 
 All user-visible command and interaction messages are embed-based and should use:
 
-- `noodswap.presentation.italy_embed()`
-- `noodswap.presentation.italy_marry_embed()` for marriage/divorce flows
+- `bot.presentation.italy_embed()`
+- `bot.presentation.italy_marry_embed()` for marriage/divorce flows
 - Italy themed colors (`ITALY_RED`, `ITALY_PINK`)
 
 When adding new user-facing output, keep this consistent.
@@ -111,19 +111,19 @@ When adding new user-facing output, keep this consistent.
 Stage 3 completed this layout while preserving stable public imports.
 
 - Views split target:
-  - `noodswap/views/help.py`
-  - `noodswap/views/drop.py`
-  - `noodswap/views/trade.py`
-  - `noodswap/views/confirmations.py` (burn/morph/frame/font)
-  - `noodswap/views/catalog.py` (cards/collection/wishlist paged views)
-  - `noodswap/views/pagination.py` (shared pagination components)
-  - `noodswap/views/__init__.py` re-exporting current symbols used by command registrar modules
+  - `bot/views/help.py`
+  - `bot/views/drop.py`
+  - `bot/views/trade.py`
+  - `bot/views/confirmations.py` (burn/morph/frame/font)
+  - `bot/views/catalog.py` (cards/collection/wishlist paged views)
+  - `bot/views/pagination.py` (shared pagination components)
+  - `bot/views/__init__.py` re-exporting current symbols used by command registrar modules
 - Cards split target:
-  - `noodswap/cards/catalog.py` (load/validate catalog + series + image map)
-  - `noodswap/cards/search.py` (query + lookup helpers)
-  - `noodswap/cards/display.py` (display labels + code formatting)
-  - `noodswap/cards/economy.py` (generation/value/payout helpers)
-  - `noodswap/cards/__init__.py` re-exporting legacy `noodswap.cards` API during migration
+  - `bot/cards/catalog.py` (load/validate catalog + series + image map)
+  - `bot/cards/search.py` (query + lookup helpers)
+  - `bot/cards/display.py` (display labels + code formatting)
+  - `bot/cards/economy.py` (generation/value/payout helpers)
+  - `bot/cards/__init__.py` re-exporting legacy `bot.cards` API during migration
 - Storage/repository boundary target:
   - `storage.py` owns transaction scope and domain invariants for multi-step operations.
   - `repositories.py` owns direct SQL statements and row-shape translation.
