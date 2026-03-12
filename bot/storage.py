@@ -1818,7 +1818,7 @@ def execute_monopoly_roll(
                         frame_key=frame_key,
                         font_key=font_key,
                     )
-                    // 12
+                    // 6
                 )
                 paid = _deduct_up_to(players, guild_id, user_id, rent_due)
                 if paid > 0:

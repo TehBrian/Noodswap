@@ -298,7 +298,7 @@ class StorageTests(unittest.TestCase):
         self.assertFalse(in_jail)
         self.assertEqual(doubles_count, 1)
 
-    def test_monopoly_property_rent_is_one_twelfth_of_card_value(self) -> None:
+    def test_monopoly_property_rent_is_one_sixth_of_card_value(self) -> None:
         guild_id = 1
         roller_id = 1250
         owner_id = 1251
@@ -316,7 +316,7 @@ class StorageTests(unittest.TestCase):
             frame_key=None,
             font_key=None,
         )
-        expected_rent = full_value // 12
+        expected_rent = full_value // 6
 
         with patch("bot.storage.roll_dice", return_value=(1, 2, False)):
             result = storage.execute_monopoly_roll(
