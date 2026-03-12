@@ -2574,7 +2574,7 @@ def execute_trade(
             players.add_starter(guild_id, buyer_id, -amount)
             return True, "", generation, traded_dupe_code, None
 
-        if mode == "tickets":
+        if mode == "drop":
             if amount is None or amount <= 0:
                 return False, "Invalid trade amount.", None, None, None
             buyer_tickets = players.get_drop_tickets(guild_id, buyer_id)

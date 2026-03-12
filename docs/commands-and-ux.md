@@ -237,8 +237,8 @@ Card identity terms:
 - Trade mode is the third argument and selects what the buyer pays:
   - `dough` — buyer pays dough (`ns trade @Player 0 dough 500`)
   - `starter` — buyer pays starter currency (`ns trade @Player 0 starter 10`)
-  - `tickets` — buyer pays drop tickets (`ns trade @Player 0 tickets 2`)
-    - Aliases: `ticket`, `drop`, `drop_tickets`
+  - `drop` — buyer pays drop tickets (`ns trade @Player 0 drop 2`)
+    - Aliases: `ticket`, `tickets`, `drop_tickets`
   - `card` — card-for-card swap; buyer pays a specific dupe they own (`ns trade @Player 0 card #5`)
 - For `card` mode, both users must own their respective card at accept time; either side losing ownership between offer and accept causes the trade to fail
 - Card mode clears marriage and last-pulled state for swapped instances on both sides

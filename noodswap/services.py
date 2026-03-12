@@ -128,10 +128,10 @@ def execute_drop_claim(
 _TRADE_MODE_ALIASES: dict[str, str] = {
     "dough": "dough",
     "starter": "starter",
-    "tickets": "tickets",
-    "ticket": "tickets",
-    "drop": "tickets",
-    "drop_tickets": "tickets",
+    "drop": "drop",
+    "tickets": "drop",
+    "ticket": "drop",
+    "drop_tickets": "drop",
     "card": "card",
 }
 VALID_TRADE_MODES = frozenset(_TRADE_MODE_ALIASES.values())
@@ -1727,7 +1727,7 @@ def prepare_trade_offer(
         return _err("You cannot trade with bots.")
 
     if mode not in VALID_TRADE_MODES:
-        return _err(f"Invalid trade mode `{mode}`. Use `dough`, `starter`, `tickets`, or `card`.")
+        return _err(f"Invalid trade mode `{mode}`. Use `dough`, `starter`, `drop`, or `card`.")
 
     if mode != "card":
         if amount is None or amount <= 0:

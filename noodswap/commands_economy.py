@@ -503,7 +503,7 @@ def register_economy_commands(bot: commands.Bot) -> None:
                 ctx,
                 embed=italy_embed(
                     "Trade",
-                    f"Unknown trade mode `{mode}`. Use `dough`, `starter`, `tickets`, or `card`.",
+                    f"Unknown trade mode `{mode}`. Use `dough`, `starter`, `drop`, or `card`.",
                 ),
             )
             return

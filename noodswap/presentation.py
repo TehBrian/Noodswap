@@ -56,7 +56,7 @@ def trade_offer_description(
         price_line = f"Price: **{getattr(terms, 'amount')}** dough"
     elif mode == "starter":
         price_line = f"Price: **{getattr(terms, 'amount')}** starter"
-    elif mode == "tickets":
+    elif mode == "drop":
         price_line = f"Price: **{getattr(terms, 'amount')}** drop ticket(s)"
     else:
         # card mode
@@ -284,7 +284,7 @@ HELP_CATEGORY_PAGES: tuple[tuple[str, str, str], ...] = (
 - `gift starter <player> <starter>` (`gift s`) — Send starter to a player.
 - `gift drop <player> <tickets>` — Send drop tickets to a player.
 - `gift card <player> <card_code>` (`gift c`) — Send a card to a player.
-- `trade <player> <card_code> <mode> <amount|req_code>` (`t`) — Offer a trade. Mode: `dough`, `starter`, `tickets`, or `card`.""",
+- `trade <player> <card_code> <mode> <amount|req_code>` (`t`) — Offer a trade. Mode: `dough`, `starter`, `drop`, or `card`.""",
     ),
     (
         "gambling",
@@ -315,8 +315,8 @@ HELP_CATEGORY_PAGES: tuple[tuple[str, str, str], ...] = (
 - `battle <player> <stake>` (`bt`) — Propose a battle to another player.""",
     ),
     (
-        "cosmetics",
-        "Cosmetics",
+        "traits",
+        "Traits",
         """- `morph [card_code]` (`mo`) — Roll for a morph. Defaults to last pulled card.
 - `frame [card_code]` (`fr`) — Roll for a frame. Defaults to last pulled card.
 - `font [card_code]` (`fo`) — Roll for a font. Defaults to last pulled card.""",

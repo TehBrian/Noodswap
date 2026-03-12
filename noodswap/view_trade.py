@@ -15,7 +15,7 @@ def _trade_accepted_payment_text(terms: TradeTerms) -> str:
         return f"**{terms.amount}** dough"
     if terms.mode == "starter":
         return f"**{terms.amount}** starter"
-    if terms.mode == "tickets":
+    if terms.mode == "drop":
         return f"**{terms.amount}** drop ticket(s)"
     # card mode
     return "card swap"
