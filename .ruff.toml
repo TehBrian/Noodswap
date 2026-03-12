@@ -1,9 +1,5 @@
 target-version = "py314"
 line-length = 150
-exclude = ["__pycache__"]
-
-[lint]
-select = ["E9", "F"]
 
 [lint.per-file-ignores]
 "noodswap/app.py" = ["F401"]
