@@ -1211,6 +1211,77 @@ class CommandsCollectionTests:
         assert isinstance(sent_view, SortableCollectionView)
         assert sent_embed.footer.text == "Page 1/1 • Sort: Alphabetical (Asc)"
 
+    async def test_cards_populates_lock_and_folder_markers_by_instance_owner(self) -> None:
+        cards_command = _get_command(self.bot, "cards")
+
+        ctx = AsyncMock()
+        ctx.guild = _FakeGuild(
+            1,
+            members={
+                100: _FakeMember(100, "Caller"),
+                200: _FakeMember(200, "Friend"),
+            },
+        )
+        ctx.author = _FakeMember(100, "Caller")
+        ctx.send = AsyncMock(return_value=SimpleNamespace())
+        ctx.reply = ctx.send
+
+        instances = [
+            (1, 100, "BAR", 200, "0", None, None, None),
+            (2, 100, "PEN", 300, "1", None, None, None),
+            (3, 200, "SPG", 100, "2", None, None, None),
+        ]
+
+        def _locked_instances_for_owner(_guild_id: int, owner_id: int, instance_ids: list[int]) -> set[int]:
+            assert _guild_id == 1
+            if owner_id == 100:
+                assert instance_ids == [1, 2]
+                return {1}
+            if owner_id == 200:
+                assert instance_ids == [3]
+                return {3}
+            raise AssertionError(f"Unexpected owner id: {owner_id}")
+
+        def _folder_emojis_for_owner(_guild_id: int, owner_id: int, instance_ids: list[int]) -> dict[int, str]:
+            assert _guild_id == 1
+            if owner_id == 100:
+                assert instance_ids == [1, 2]
+                return {2: "📦"}
+            if owner_id == 200:
+                assert instance_ids == [3]
+                return {3: "🔥"}
+            raise AssertionError(f"Unexpected owner id: {owner_id}")
+
+        with (
+            patch(
+                "bot.commands_economy.get_all_owned_card_instances",
+                return_value=instances,
+            ),
+            patch("bot.commands_economy.get_card_wish_counts", return_value={}),
+            patch(
+                "bot.commands_economy.get_locked_instance_ids",
+                side_effect=_locked_instances_for_owner,
+            ) as get_locked,
+            patch(
+                "bot.commands_economy.get_folder_emojis_for_instances",
+                side_effect=_folder_emojis_for_owner,
+            ) as get_folder_emojis,
+        ):
+            await cards_command.callback(ctx)
+
+        ctx.send.assert_awaited_once()
+        send_kwargs = ctx.send.await_args.kwargs
+        sent_embed = send_kwargs["embed"]
+        sent_view = send_kwargs["view"]
+        assert isinstance(sent_view, SortableCollectionView)
+        assert sent_view.locked_instance_ids == {1, 3}
+        assert sent_view.folder_emojis_by_instance == {2: "📦", 3: "🔥"}
+        assert "🔒 " in sent_embed.description
+        assert "📦 " in sent_embed.description
+        assert "🔥 🔒 " in sent_embed.description
+        assert get_locked.call_count == 2
+        assert get_folder_emojis.call_count == 2
+
     async def test_wish_list_uses_pagination_view_for_multi_page_results(self) -> None:
         wish_list_command = _get_group_command(self.bot, "wish", "list")
 

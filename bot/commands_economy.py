@@ -345,7 +345,8 @@ def register_economy_commands(bot: commands.Bot) -> None:
         if not await _require_guild(ctx, "Cards"):
             return
 
-        instance_rows = get_all_owned_card_instances(_guild_id(ctx))
+        guild_id = _guild_id(ctx)
+        instance_rows = get_all_owned_card_instances(guild_id)
         title = "All Cards"
         if not instance_rows:
             await _reply(ctx, embed=italy_embed(title, "No cards have been claimed yet. Try `ns drop`."))
@@ -360,9 +361,17 @@ def register_economy_commands(bot: commands.Bot) -> None:
             for instance_id, _owner_id, _card_id, _generation, _card_code, morph_key, frame_key, font_key in instance_rows
         }
         owner_labels_by_instance: dict[int, str] = {}
+        instance_ids_by_owner: dict[int, list[int]] = {}
         for instance_id, owner_id, _card_id, _generation, _card_code, _morph_key, _frame_key, _font_key in instance_rows:
             member = ctx.guild.get_member(owner_id)
             owner_labels_by_instance[instance_id] = member.display_name if member is not None else f"User {owner_id}"
+            instance_ids_by_owner.setdefault(owner_id, []).append(instance_id)
+
+        locked_instance_ids: set[int] = set()
+        folder_emojis_by_instance: dict[int, str] = {}
+        for owner_id, owner_instance_ids in instance_ids_by_owner.items():
+            locked_instance_ids |= get_locked_instance_ids(guild_id, owner_id, owner_instance_ids)
+            folder_emojis_by_instance.update(get_folder_emojis_for_instances(guild_id, owner_id, owner_instance_ids))
 
         def _format_global_card_line(
             card_id: str,
@@ -386,6 +395,8 @@ def register_economy_commands(bot: commands.Bot) -> None:
             instances=instances,
             wish_counts=get_card_wish_counts(_guild_id(ctx)),
             instance_styles=instance_styles,
+            locked_instance_ids=locked_instance_ids,
+            folder_emojis_by_instance=folder_emojis_by_instance,
             card_line_formatter=_format_global_card_line,
             guard_title="Cards",
         )
