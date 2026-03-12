@@ -45,9 +45,7 @@ class DropView(InteractionView):
             async with self._claim_lock:
                 if button_id in self._claimed_button_ids:
                     await interaction.response.send_message(
-                        embed=italy_embed(
-                            "Drop", "That card has already been claimed."
-                        ),
+                        embed=italy_embed("Drop", "That card has already been claimed."),
                         ephemeral=True,
                     )
                     return
@@ -74,31 +72,20 @@ class DropView(InteractionView):
                 self._claimed_button_ids.add(button_id)
 
                 claimed_button = next(
-                    (
-                        item
-                        for item in self.children
-                        if isinstance(item, discord.ui.Button)
-                        and item.custom_id == button_id
-                    ),
+                    (item for item in self.children if isinstance(item, discord.ui.Button) and item.custom_id == button_id),
                     None,
                 )
                 if claimed_button is not None:
                     claimed_button.disabled = True
 
-                if all(
-                    isinstance(item, discord.ui.Button) and item.disabled
-                    for item in self.children
-                ):
+                if all(isinstance(item, discord.ui.Button) and item.disabled for item in self.children):
                     self.finished = True
 
             pulled_dupe_code = claim_result.dupe_code
 
             pulled_embed = italy_embed(
                 "Pulled Card",
-                (
-                    f"<@{interaction.user.id}> pulled "
-                    f"{card_dupe_display(card_id, generation, dupe_code=pulled_dupe_code, pad_dupe_code=False)}."
-                ),
+                (f"<@{interaction.user.id}> pulled {card_dupe_display(card_id, generation, dupe_code=pulled_dupe_code, pad_dupe_code=False)}."),
             )
             image_url, image_file = embed_image_payload(card_id, generation=generation)
             if image_url is not None:

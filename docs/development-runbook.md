@@ -7,7 +7,7 @@ This runbook is for contributors and coding agents.
 - Python: 3.14+
 - Install dependencies:
   - `pip install -r requirements.txt`
-- Install dev dependencies (includes `pylint`):
+- Install dev dependencies (includes `ruff`):
   - `pip install -r requirements-dev.txt`
 - Set token (never commit secrets):
   - `export DISCORD_TOKEN=...`
@@ -30,7 +30,7 @@ This runbook is for contributors and coding agents.
 ## CI/CD overview
 
 - CI workflow: `.github/workflows/ci.yml`
-  - `pylint`, compile check, migration smoke check, unit tests
+  - `ruff`, compile check, migration smoke check, unit tests
 - CD workflow: `.github/workflows/cd.yml`
   - triggered only after CI succeeds on `main`
   - builds/pushes GHCR image (`latest` + commit SHA)
@@ -56,8 +56,8 @@ This runbook is for contributors and coding agents.
 Recommended local sequence (fastest useful signal first):
 
 1. Run lint:
-  - VS Code task: `check:pylint`
-  - direct: `.venv/bin/python -m pylint noodswap scripts tests --score=n`
+  - VS Code task: `check:ruff`
+  - direct: `.venv/bin/ruff check noodswap scripts tests`
 2. Run quick validation:
   - VS Code task: `check:quick`
 3. Run full validation:

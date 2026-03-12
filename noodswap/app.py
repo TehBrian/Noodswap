@@ -2,8 +2,6 @@ import os
 import logging
 
 # compat must be imported before discord to apply runtime patches.
-# pylint: disable=wrong-import-order
-
 from . import (
     compat as _compat,
 )  # noqa: F401 - applies asyncio patch before discord import
@@ -37,11 +35,7 @@ logger = logging.getLogger(__name__)
 def _normalize_secret(value: str) -> str:
     """Trim whitespace and one surrounding quote pair from env/file secrets."""
     normalized = value.strip()
-    if (
-        len(normalized) >= 2
-        and normalized[0] == normalized[-1]
-        and normalized[0] in {'"', "'"}
-    ):
+    if len(normalized) >= 2 and normalized[0] == normalized[-1] and normalized[0] in {'"', "'"}:
         normalized = normalized[1:-1].strip()
     return normalized
 
@@ -83,9 +77,7 @@ def resolve_discord_token() -> str:
         resolved = _normalize_secret(token)
         if resolved and resolved != "replace-with-real-token":
             return resolved
-        raise RuntimeError(
-            "DISCORD_TOKEN is set but is empty/placeholder after normalization."
-        )
+        raise RuntimeError("DISCORD_TOKEN is set but is empty/placeholder after normalization.")
 
     token_file = os.getenv("DISCORD_TOKEN_FILE")
     if token_file:
@@ -96,17 +88,13 @@ def resolve_discord_token() -> str:
             with open(token_file_path, "r", encoding="utf-8") as file:
                 token_from_file = file.read().strip()
         except OSError as exc:
-            raise RuntimeError(
-                "DISCORD_TOKEN_FILE is set but could not be read."
-            ) from exc
+            raise RuntimeError("DISCORD_TOKEN_FILE is set but could not be read.") from exc
 
         resolved = _normalize_secret(token_from_file)
         if resolved and resolved != "replace-with-real-token":
             return resolved
 
-        raise RuntimeError(
-            "DISCORD_TOKEN_FILE is set but token content is empty/placeholder after normalization."
-        )
+        raise RuntimeError("DISCORD_TOKEN_FILE is set but token content is empty/placeholder after normalization.")
 
     raise RuntimeError("Set DISCORD_TOKEN or DISCORD_TOKEN_FILE in your environment.")
 
@@ -152,9 +140,7 @@ def create_bot() -> commands.Bot:
             try:
                 ended_battles = end_open_battles_for_shutdown()
                 if ended_battles > 0:
-                    logger.info(
-                        "Ended %s open battle(s) during shutdown.", ended_battles
-                    )
+                    logger.info("Ended %s open battle(s) during shutdown.", ended_battles)
             except Exception:  # pragma: no cover - defensive shutdown path
                 logger.exception("Failed to end open battles during shutdown.")
             await super().close()
@@ -222,9 +208,7 @@ def create_bot() -> commands.Bot:
         if isinstance(error, commands.CheckFailure):
             await _reply(
                 ctx,
-                embed=italy_embed(
-                    "Permission", "You are not allowed to run this command."
-                ),
+                embed=italy_embed("Permission", "You are not allowed to run this command."),
             )
             return
 
@@ -243,10 +227,7 @@ def create_bot() -> commands.Bot:
 
 def _validate_runtime_font_assets() -> None:
     if not CARD_FONTS_DIR.is_dir():
-        raise RuntimeError(
-            "Font directory is missing: "
-            f"{CARD_FONTS_DIR}. Run scripts/init_runtime.py before starting the bot."
-        )
+        raise RuntimeError(f"Font directory is missing: {CARD_FONTS_DIR}. Run scripts/init_runtime.py before starting the bot.")
 
     missing: list[str] = []
     for font_key in AVAILABLE_FONTS:
@@ -278,6 +259,5 @@ def main() -> None:
         bot.run(token)
     except discord.LoginFailure as exc:
         raise RuntimeError(
-            "Discord token was rejected (401 Unauthorized). "
-            "Check deploy/runtime.env DISCORD_TOKEN for typos/rotation, and remove surrounding quotes."
+            "Discord token was rejected (401 Unauthorized). Check deploy/runtime.env DISCORD_TOKEN for typos/rotation, and remove surrounding quotes."
         ) from exc

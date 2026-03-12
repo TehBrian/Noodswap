@@ -20,9 +20,7 @@ def _replace_directory(src: Path, dst: Path) -> bool:
 
 
 def _parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description="Initialize runtime state from versioned assets."
-    )
+    parser = argparse.ArgumentParser(description="Initialize runtime state from versioned assets.")
     parser.add_argument(
         "--repo-root",
         type=Path,

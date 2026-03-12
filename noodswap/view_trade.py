@@ -45,9 +45,7 @@ class TradeView(InteractionView):
     async def _resolve(self, interaction: discord.Interaction, accepted: bool):
         if interaction.user.id != self.buyer_id:
             await interaction.response.send_message(
-                embed=italy_embed(
-                    "Trade", "Only the offered member can respond to this trade."
-                ),
+                embed=italy_embed("Trade", "Only the offered member can respond to this trade."),
                 ephemeral=True,
             )
             return
@@ -118,11 +116,7 @@ class TradeView(InteractionView):
                         dupe_code=trade_result.received_dupe_code,
                     )
                 accepted_body = (
-                    f"Buyer: <@{self.buyer_id}>\n"
-                    f"Seller: <@{self.seller_id}>\n"
-                    "\n"
-                    f"Seller gave: {traded_card_text}\n"
-                    f"Buyer gave: {received_text}"
+                    f"Buyer: <@{self.buyer_id}>\nSeller: <@{self.seller_id}>\n\nSeller gave: {traded_card_text}\nBuyer gave: {received_text}"
                 )
             else:
                 accepted_body = (

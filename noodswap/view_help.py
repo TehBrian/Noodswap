@@ -31,9 +31,7 @@ class HelpCategorySelect(discord.ui.Select):
     async def callback(self, interaction: discord.Interaction) -> None:
         if interaction.user.id != self.parent_view.user_id:
             await interaction.response.send_message(
-                embed=italy_embed(
-                    "Help", "Only the command user can switch help categories."
-                ),
+                embed=italy_embed("Help", "Only the command user can switch help categories."),
                 ephemeral=True,
             )
             return

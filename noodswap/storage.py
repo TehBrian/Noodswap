@@ -169,9 +169,7 @@ def _normalize_folder_emoji(emoji: str | None) -> Optional[str]:
     return normalized
 
 
-def create_player_folder(
-    guild_id: int, user_id: int, folder_name: str, emoji: str | None = None
-) -> bool:
+def create_player_folder(guild_id: int, user_id: int, folder_name: str, emoji: str | None = None) -> bool:
     guild_id = _scope_guild_id(guild_id)
     normalized_name = _normalize_folder_name(folder_name)
     normalized_emoji = _normalize_folder_emoji(emoji)
@@ -200,9 +198,7 @@ def delete_player_folder(guild_id: int, user_id: int, folder_name: str) -> bool:
         return folders.delete(guild_id, user_id, normalized_name)
 
 
-def list_player_folders(
-    guild_id: int, user_id: int
-) -> list[tuple[str, str, bool, int]]:
+def list_player_folders(guild_id: int, user_id: int) -> list[tuple[str, str, bool, int]]:
     guild_id = _scope_guild_id(guild_id)
     with get_db_connection() as conn:
         players = PlayerRepository(conn, STARTING_DOUGH)
@@ -211,9 +207,7 @@ def list_player_folders(
         return folders.list_with_counts(guild_id, user_id)
 
 
-def set_player_folder_locked(
-    guild_id: int, user_id: int, folder_name: str, locked: bool
-) -> bool:
+def set_player_folder_locked(guild_id: int, user_id: int, folder_name: str, locked: bool) -> bool:
     guild_id = _scope_guild_id(guild_id)
     normalized_name = _normalize_folder_name(folder_name)
     if normalized_name is None:
@@ -227,9 +221,7 @@ def set_player_folder_locked(
         return folders.set_locked(guild_id, user_id, normalized_name, locked)
 
 
-def set_player_folder_emoji(
-    guild_id: int, user_id: int, folder_name: str, emoji: str | None
-) -> bool:
+def set_player_folder_emoji(guild_id: int, user_id: int, folder_name: str, emoji: str | None) -> bool:
     guild_id = _scope_guild_id(guild_id)
     normalized_name = _normalize_folder_name(folder_name)
     normalized_emoji = _normalize_folder_emoji(emoji)
@@ -244,9 +236,7 @@ def set_player_folder_emoji(
         return folders.set_emoji(guild_id, user_id, normalized_name, normalized_emoji)
 
 
-def assign_instance_to_folder(
-    guild_id: int, user_id: int, instance_id: int, folder_name: str
-) -> tuple[bool, str]:
+def assign_instance_to_folder(guild_id: int, user_id: int, instance_id: int, folder_name: str) -> tuple[bool, str]:
     guild_id = _scope_guild_id(guild_id)
     normalized_name = _normalize_folder_name(folder_name)
     if normalized_name is None:
@@ -260,24 +250,17 @@ def assign_instance_to_folder(
         instance_folders = CardInstanceFolderRepository(conn)
         players.ensure_player(guild_id, user_id)
 
-        if (
-            instances.get_owned_instance_for_marry(guild_id, user_id, instance_id)
-            is None
-        ):
+        if instances.get_owned_instance_for_marry(guild_id, user_id, instance_id) is None:
             return False, "You do not own that card code."
         if not folders.exists(guild_id, user_id, normalized_name):
             return False, "Folder not found."
 
-        if not instance_folders.set_folder(
-            guild_id, user_id, instance_id, normalized_name
-        ):
+        if not instance_folders.set_folder(guild_id, user_id, instance_id, normalized_name):
             return False, "Could not assign that card to the folder."
         return True, ""
 
 
-def is_instance_assigned_to_folder(
-    guild_id: int, user_id: int, instance_id: int, folder_name: str
-) -> bool:
+def is_instance_assigned_to_folder(guild_id: int, user_id: int, instance_id: int, folder_name: str) -> bool:
     guild_id = _scope_guild_id(guild_id)
     normalized_name = _normalize_folder_name(folder_name)
     if normalized_name is None:
@@ -290,18 +273,12 @@ def is_instance_assigned_to_folder(
         players.ensure_player(guild_id, user_id)
         if not folders.exists(guild_id, user_id, normalized_name):
             return False
-        return instance_folders.is_assigned(
-            guild_id, user_id, instance_id, normalized_name
-        )
+        return instance_folders.is_assigned(guild_id, user_id, instance_id, normalized_name)
 
 
-def unassign_instance_from_folder(
-    guild_id: int, user_id: int, instance_id: int, folder_name: str | None = None
-) -> bool:
+def unassign_instance_from_folder(guild_id: int, user_id: int, instance_id: int, folder_name: str | None = None) -> bool:
     guild_id = _scope_guild_id(guild_id)
-    normalized_name = (
-        _normalize_folder_name(folder_name) if folder_name is not None else None
-    )
+    normalized_name = _normalize_folder_name(folder_name) if folder_name is not None else None
 
     with get_db_connection() as conn:
         _begin_immediate(conn)
@@ -309,18 +286,12 @@ def unassign_instance_from_folder(
         folders = PlayerFolderRepository(conn)
         instance_folders = CardInstanceFolderRepository(conn)
         players.ensure_player(guild_id, user_id)
-        if normalized_name is not None and not folders.exists(
-            guild_id, user_id, normalized_name
-        ):
+        if normalized_name is not None and not folders.exists(guild_id, user_id, normalized_name):
             return False
-        return instance_folders.clear_folder(
-            guild_id, user_id, instance_id, normalized_name
-        )
+        return instance_folders.clear_folder(guild_id, user_id, instance_id, normalized_name)
 
 
-def get_instances_by_folder(
-    guild_id: int, user_id: int, folder_name: str
-) -> list[tuple[int, str, int, str]]:
+def get_instances_by_folder(guild_id: int, user_id: int, folder_name: str) -> list[tuple[int, str, int, str]]:
     guild_id = _scope_guild_id(guild_id)
     normalized_name = _normalize_folder_name(folder_name)
     if normalized_name is None:
@@ -333,9 +304,7 @@ def get_instances_by_folder(
         players.ensure_player(guild_id, user_id)
         if not folders.exists(guild_id, user_id, normalized_name):
             return []
-        return instance_folders.list_foldered_instances(
-            guild_id, user_id, normalized_name
-        )
+        return instance_folders.list_foldered_instances(guild_id, user_id, normalized_name)
 
 
 def get_folder_emojis_for_instances(
@@ -392,10 +361,7 @@ def list_player_teams(guild_id: int, user_id: int) -> list[tuple[str, int, bool]
         teams = PlayerTeamRepository(conn)
         players.ensure_player(guild_id, user_id)
         active_team_name = players.get_active_team_name(guild_id, user_id)
-        return [
-            (team_name, count, team_name == active_team_name)
-            for team_name, count in teams.list_with_counts(guild_id, user_id)
-        ]
+        return [(team_name, count, team_name == active_team_name) for team_name, count in teams.list_with_counts(guild_id, user_id)]
 
 
 def set_active_team(guild_id: int, user_id: int, team_name: str) -> bool:
@@ -423,9 +389,7 @@ def get_active_team_name(guild_id: int, user_id: int) -> Optional[str]:
         return players.get_active_team_name(guild_id, user_id)
 
 
-def assign_instance_to_team(
-    guild_id: int, user_id: int, instance_id: int, team_name: str
-) -> tuple[bool, str]:
+def assign_instance_to_team(guild_id: int, user_id: int, instance_id: int, team_name: str) -> tuple[bool, str]:
     guild_id = _scope_guild_id(guild_id)
     normalized = _normalize_team_name(team_name)
     if normalized is None:
@@ -439,10 +403,7 @@ def assign_instance_to_team(
         members = TeamMemberRepository(conn)
         players.ensure_player(guild_id, user_id)
 
-        if (
-            instances.get_owned_instance_for_marry(guild_id, user_id, instance_id)
-            is None
-        ):
+        if instances.get_owned_instance_for_marry(guild_id, user_id, instance_id) is None:
             return False, "You do not own that card code."
         if not teams.exists(guild_id, user_id, normalized):
             return False, "Team not found."
@@ -456,9 +417,7 @@ def assign_instance_to_team(
         return True, ""
 
 
-def is_instance_assigned_to_team(
-    guild_id: int, user_id: int, instance_id: int, team_name: str
-) -> bool:
+def is_instance_assigned_to_team(guild_id: int, user_id: int, instance_id: int, team_name: str) -> bool:
     guild_id = _scope_guild_id(guild_id)
     normalized = _normalize_team_name(team_name)
     if normalized is None:
@@ -474,9 +433,7 @@ def is_instance_assigned_to_team(
         return members.is_assigned(guild_id, user_id, normalized, instance_id)
 
 
-def unassign_instance_from_team(
-    guild_id: int, user_id: int, instance_id: int, team_name: str
-) -> bool:
+def unassign_instance_from_team(guild_id: int, user_id: int, instance_id: int, team_name: str) -> bool:
     guild_id = _scope_guild_id(guild_id)
     normalized = _normalize_team_name(team_name)
     if normalized is None:
@@ -490,9 +447,7 @@ def unassign_instance_from_team(
         return members.remove(guild_id, user_id, normalized, instance_id)
 
 
-def get_instances_by_team(
-    guild_id: int, user_id: int, team_name: str
-) -> list[tuple[int, str, int, str]]:
+def get_instances_by_team(guild_id: int, user_id: int, team_name: str) -> list[tuple[int, str, int, str]]:
     guild_id = _scope_guild_id(guild_id)
     normalized = _normalize_team_name(team_name)
     if normalized is None:
@@ -508,9 +463,7 @@ def get_instances_by_team(
         return members.list_team_instances(guild_id, user_id, normalized)
 
 
-def get_active_team_instances(
-    guild_id: int, user_id: int
-) -> list[tuple[int, str, int, str]]:
+def get_active_team_instances(guild_id: int, user_id: int) -> list[tuple[int, str, int, str]]:
     guild_id = _scope_guild_id(guild_id)
     with get_db_connection() as conn:
         players = PlayerRepository(conn, STARTING_DOUGH)
@@ -615,9 +568,7 @@ def create_battle_proposal(
         return True, "", battle_id, challenger_team_name, challenged_team_name
 
 
-def get_battle_session(
-    guild_id: int, battle_id: int
-) -> Optional[dict[str, int | float | str | None]]:
+def get_battle_session(guild_id: int, battle_id: int) -> Optional[dict[str, int | float | str | None]]:
     guild_id = _scope_guild_id(guild_id)
     with get_db_connection() as conn:
         battles = BattleSessionRepository(conn)
@@ -636,12 +587,8 @@ def get_battle_state(guild_id: int, battle_id: int) -> Optional[dict[str, object
         return {
             "battle": battle,
             "combatants": roster,
-            "challenger_combatants": [
-                row for row in roster if row["side"] == "challenger"
-            ],
-            "challenged_combatants": [
-                row for row in roster if row["side"] == "challenged"
-            ],
+            "challenger_combatants": [row for row in roster if row["side"] == "challenger"],
+            "challenged_combatants": [row for row in roster if row["side"] == "challenged"],
         }
 
 
@@ -663,9 +610,7 @@ def _active_row(
     return None
 
 
-def _battle_sides(
-    battle: dict[str, int | float | str | None], actor_id: int
-) -> tuple[Optional[str], Optional[int], Optional[int]]:
+def _battle_sides(battle: dict[str, int | float | str | None], actor_id: int) -> tuple[Optional[str], Optional[int], Optional[int]]:
     challenger_id = int(battle["challenger_id"])
     challenged_id = int(battle["challenged_id"])
     if actor_id == challenger_id:
@@ -704,9 +649,7 @@ def resolve_battle_proposal(
             return "failed", "Only the challenged player can respond to this battle."
 
         if not accepted:
-            denied = battles.mark_denied(
-                guild_id, battle_id, time.time(), "Battle denied."
-            )
+            denied = battles.mark_denied(guild_id, battle_id, time.time(), "Battle denied.")
             if not denied:
                 return "failed", "Could not deny battle proposal."
             return "denied", "The battle was denied."
@@ -732,12 +675,8 @@ def resolve_battle_proposal(
                 "Battle failed: challenged player no longer has enough dough for stake.",
             )
 
-        challenger_instances = members.list_team_instances(
-            guild_id, challenger_id, challenger_team_name
-        )[:TEAM_MAX_CARDS]
-        challenged_instances = members.list_team_instances(
-            guild_id, challenged_id, challenged_team_name
-        )[:TEAM_MAX_CARDS]
+        challenger_instances = members.list_team_instances(guild_id, challenger_id, challenger_team_name)[:TEAM_MAX_CARDS]
+        challenged_instances = members.list_team_instances(guild_id, challenged_id, challenged_team_name)[:TEAM_MAX_CARDS]
         if not challenger_instances:
             return "failed", "Challenger active team has no cards."
         if not challenged_instances:
@@ -762,9 +701,7 @@ def resolve_battle_proposal(
                 bool,
             ]
         ] = []
-        for slot_index, (instance_id, card_id, generation, dupe_code) in enumerate(
-            challenger_instances
-        ):
+        for slot_index, (instance_id, card_id, generation, dupe_code) in enumerate(challenger_instances):
             battle_card = build_battle_card(
                 instance_id,
                 card_id,
@@ -793,9 +730,7 @@ def resolve_battle_proposal(
                     False,
                 )
             )
-        for slot_index, (instance_id, card_id, generation, dupe_code) in enumerate(
-            challenged_instances
-        ):
+        for slot_index, (instance_id, card_id, generation, dupe_code) in enumerate(challenged_instances):
             battle_card = build_battle_card(
                 instance_id,
                 card_id,
@@ -859,11 +794,7 @@ def execute_battle_turn_action(
         if str(battle["status"]) != "active":
             return "failed", "Battle is not active.", None, None
 
-        acting_user_id = (
-            int(battle["acting_user_id"])
-            if battle["acting_user_id"] is not None
-            else None
-        )
+        acting_user_id = int(battle["acting_user_id"]) if battle["acting_user_id"] is not None else None
         if acting_user_id is None:
             return "failed", "Battle has no active turn owner.", None, None
         if actor_id != acting_user_id:
@@ -950,9 +881,7 @@ def execute_battle_turn_action(
             switched_active = _active_row(actor_rows)
             switched_name = "new card"
             if switched_active is not None:
-                switched_name = (
-                    f"{switched_active['card_id']}#{switched_active['dupe_code']}"
-                )
+                switched_name = f"{switched_active['card_id']}#{switched_active['dupe_code']}"
 
             turn_number = int(battle["turn_number"]) + 1
             last_action = f"<@{actor_id}> switched to **{switched_name}**."
@@ -1006,30 +935,18 @@ def execute_battle_turn_action(
                 str(actor_active["card_id"]),
                 int(actor_active["generation"]),
                 str(actor_active["dupe_code"]),
-                morph_key=instances.get_morph_key(
-                    guild_id, int(actor_active["instance_id"])
-                ),
-                frame_key=instances.get_frame_key(
-                    guild_id, int(actor_active["instance_id"])
-                ),
-                font_key=instances.get_font_key(
-                    guild_id, int(actor_active["instance_id"])
-                ),
+                morph_key=instances.get_morph_key(guild_id, int(actor_active["instance_id"])),
+                frame_key=instances.get_frame_key(guild_id, int(actor_active["instance_id"])),
+                font_key=instances.get_font_key(guild_id, int(actor_active["instance_id"])),
             )
             defender = build_battle_card(
                 int(opponent_active["instance_id"]),
                 str(opponent_active["card_id"]),
                 int(opponent_active["generation"]),
                 str(opponent_active["dupe_code"]),
-                morph_key=instances.get_morph_key(
-                    guild_id, int(opponent_active["instance_id"])
-                ),
-                frame_key=instances.get_frame_key(
-                    guild_id, int(opponent_active["instance_id"])
-                ),
-                font_key=instances.get_font_key(
-                    guild_id, int(opponent_active["instance_id"])
-                ),
+                morph_key=instances.get_morph_key(guild_id, int(opponent_active["instance_id"])),
+                frame_key=instances.get_frame_key(guild_id, int(opponent_active["instance_id"])),
+                font_key=instances.get_font_key(guild_id, int(opponent_active["instance_id"])),
             )
 
             combatants.clear_defending_for_side(battle_id, actor_side)
@@ -1051,18 +968,14 @@ def execute_battle_turn_action(
                 )
                 return "advanced", last_action, None, opponent_user_id
 
-            damage_row = combatants.apply_damage_to_active(
-                battle_id, opponent_side, hit.damage
-            )
+            damage_row = combatants.apply_damage_to_active(battle_id, opponent_side, hit.damage)
             if damage_row is None:
                 return "failed", "Could not apply damage.", None, None
 
             defeated = bool(damage_row["is_knocked_out"])
             if defeated:
                 refreshed = combatants.list_for_battle(battle_id)
-                opponent_rows = [
-                    row for row in refreshed if row["side"] == opponent_side
-                ]
+                opponent_rows = [row for row in refreshed if row["side"] == opponent_side]
                 replacement_slot = _first_alive_slot(opponent_rows)
                 if replacement_slot is None:
                     winner = actor_id
@@ -1081,9 +994,7 @@ def execute_battle_turn_action(
                 combatants.set_active_slot(battle_id, opponent_side, replacement_slot)
                 action_text = f"<@{actor_id}> dealt **{hit.damage}** ({hit.effectiveness:.2f}x) and forced a switch."
             else:
-                action_text = (
-                    f"<@{actor_id}> dealt **{hit.damage}** ({hit.effectiveness:.2f}x)."
-                )
+                action_text = f"<@{actor_id}> dealt **{hit.damage}** ({hit.effectiveness:.2f}x)."
 
             turn_number = int(battle["turn_number"]) + 1
             battles.update_turn_state(
@@ -1147,9 +1058,7 @@ def list_player_tags(guild_id: int, user_id: int) -> list[tuple[str, bool, int]]
         return tags.list_with_counts(guild_id, user_id)
 
 
-def set_player_tag_locked(
-    guild_id: int, user_id: int, tag_name: str, locked: bool
-) -> bool:
+def set_player_tag_locked(guild_id: int, user_id: int, tag_name: str, locked: bool) -> bool:
     guild_id = _scope_guild_id(guild_id)
     normalized = _normalize_tag_name(tag_name)
     if normalized is None:
@@ -1163,9 +1072,7 @@ def set_player_tag_locked(
         return tags.set_locked(guild_id, user_id, normalized, locked)
 
 
-def assign_tag_to_instance(
-    guild_id: int, user_id: int, instance_id: int, tag_name: str
-) -> bool:
+def assign_tag_to_instance(guild_id: int, user_id: int, instance_id: int, tag_name: str) -> bool:
     guild_id = _scope_guild_id(guild_id)
     normalized = _normalize_tag_name(tag_name)
     if normalized is None:
@@ -1188,9 +1095,7 @@ def assign_tag_to_instance(
         return instance_tags.add(guild_id, user_id, instance_id, normalized)
 
 
-def is_tag_assigned_to_instance(
-    guild_id: int, user_id: int, instance_id: int, tag_name: str
-) -> bool:
+def is_tag_assigned_to_instance(guild_id: int, user_id: int, instance_id: int, tag_name: str) -> bool:
     guild_id = _scope_guild_id(guild_id)
     normalized = _normalize_tag_name(tag_name)
     if normalized is None:
@@ -1212,9 +1117,7 @@ def is_tag_assigned_to_instance(
         return instance_tags.exists(guild_id, user_id, instance_id, normalized)
 
 
-def unassign_tag_from_instance(
-    guild_id: int, user_id: int, instance_id: int, tag_name: str
-) -> bool:
+def unassign_tag_from_instance(guild_id: int, user_id: int, instance_id: int, tag_name: str) -> bool:
     guild_id = _scope_guild_id(guild_id)
     normalized = _normalize_tag_name(tag_name)
     if normalized is None:
@@ -1234,9 +1137,7 @@ def unassign_tag_from_instance(
         return instance_tags.remove(guild_id, user_id, instance_id, normalized)
 
 
-def get_locked_tags_for_instance(
-    guild_id: int, user_id: int, instance_id: int
-) -> list[str]:
+def get_locked_tags_for_instance(guild_id: int, user_id: int, instance_id: int) -> list[str]:
     guild_id = _scope_guild_id(guild_id)
     with get_db_connection() as conn:
         players = PlayerRepository(conn, STARTING_DOUGH)
@@ -1251,25 +1152,19 @@ def get_locked_tags_for_instance(
         return locked
 
 
-def get_locked_instance_ids(
-    guild_id: int, user_id: int, instance_ids: list[int] | None = None
-) -> set[int]:
+def get_locked_instance_ids(guild_id: int, user_id: int, instance_ids: list[int] | None = None) -> set[int]:
     guild_id = _scope_guild_id(guild_id)
     with get_db_connection() as conn:
         players = PlayerRepository(conn, STARTING_DOUGH)
         folders = PlayerFolderRepository(conn)
         tags = PlayerTagRepository(conn)
         players.ensure_player(guild_id, user_id)
-        locked_by_folder = folders.list_locked_instance_ids(
-            guild_id, user_id, instance_ids
-        )
+        locked_by_folder = folders.list_locked_instance_ids(guild_id, user_id, instance_ids)
         locked_by_tag = tags.list_locked_instance_ids(guild_id, user_id, instance_ids)
         return locked_by_folder | locked_by_tag
 
 
-def get_instances_by_tag(
-    guild_id: int, user_id: int, tag_name: str
-) -> list[tuple[int, str, int, str]]:
+def get_instances_by_tag(guild_id: int, user_id: int, tag_name: str) -> list[tuple[int, str, int, str]]:
     guild_id = _scope_guild_id(guild_id)
     normalized = _normalize_tag_name(tag_name)
     if normalized is None:
@@ -1353,9 +1248,7 @@ def get_player_votes(guild_id: int, user_id: int) -> int:
         return players.get_votes(guild_id, user_id)
 
 
-def get_instance_by_id(
-    guild_id: int, instance_id: int
-) -> Optional[tuple[int, str, int, str]]:
+def get_instance_by_id(guild_id: int, instance_id: int) -> Optional[tuple[int, str, int, str]]:
     guild_id = _scope_guild_id(guild_id)
     with get_db_connection() as conn:
         instances = CardInstanceRepository(conn)
@@ -1383,9 +1276,7 @@ def get_instance_font(guild_id: int, instance_id: int) -> Optional[str]:
         return instances.get_font_key(guild_id, instance_id)
 
 
-def get_instance_by_code(
-    guild_id: int, user_id: int, card_code: str
-) -> Optional[tuple[int, str, int, str]]:
+def get_instance_by_code(guild_id: int, user_id: int, card_code: str) -> Optional[tuple[int, str, int, str]]:
     guild_id = _scope_guild_id(guild_id)
     parsed = split_card_code(card_code)
     if parsed is None:
@@ -1413,9 +1304,7 @@ def apply_morph_to_instance(
         instances = CardInstanceRepository(conn)
         players.ensure_player(guild_id, user_id)
 
-        owned_instance = instances.get_owned_instance_for_marry(
-            guild_id, user_id, instance_id
-        )
+        owned_instance = instances.get_owned_instance_for_marry(guild_id, user_id, instance_id)
         if owned_instance is None:
             return False, "You do not own that card code."
 
@@ -1449,9 +1338,7 @@ def apply_frame_to_instance(
         instances = CardInstanceRepository(conn)
         players.ensure_player(guild_id, user_id)
 
-        owned_instance = instances.get_owned_instance_for_marry(
-            guild_id, user_id, instance_id
-        )
+        owned_instance = instances.get_owned_instance_for_marry(guild_id, user_id, instance_id)
         if owned_instance is None:
             return False, "You do not own that card code."
 
@@ -1485,9 +1372,7 @@ def apply_font_to_instance(
         instances = CardInstanceRepository(conn)
         players.ensure_player(guild_id, user_id)
 
-        owned_instance = instances.get_owned_instance_for_marry(
-            guild_id, user_id, instance_id
-        )
+        owned_instance = instances.get_owned_instance_for_marry(guild_id, user_id, instance_id)
         if owned_instance is None:
             return False, "You do not own that card code."
 
@@ -1507,9 +1392,7 @@ def apply_font_to_instance(
         return True, ""
 
 
-def get_instance_by_dupe_code(
-    guild_id: int, card_code: str
-) -> Optional[tuple[int, int, str, int, str]]:
+def get_instance_by_dupe_code(guild_id: int, card_code: str) -> Optional[tuple[int, int, str, int, str]]:
     guild_id = _scope_guild_id(guild_id)
     parsed = split_card_code(card_code)
     if parsed is None:
@@ -1534,9 +1417,7 @@ def get_player_cooldown_timestamps(guild_id: int, user_id: int) -> tuple[float, 
     with get_db_connection() as conn:
         players = PlayerRepository(conn, STARTING_DOUGH)
         players.ensure_player(guild_id, user_id)
-        return players.get_last_drop_at(guild_id, user_id), players.get_last_pull_at(
-            guild_id, user_id
-        )
+        return players.get_last_drop_at(guild_id, user_id), players.get_last_pull_at(guild_id, user_id)
 
 
 def get_player_slots_timestamp(guild_id: int, user_id: int) -> float:
@@ -1555,9 +1436,7 @@ def get_player_flip_timestamp(guild_id: int, user_id: int) -> float:
         return players.get_last_flip_at(guild_id, user_id)
 
 
-def get_monopoly_state(
-    guild_id: int, user_id: int
-) -> tuple[int, float, bool, int, int]:
+def get_monopoly_state(guild_id: int, user_id: int) -> tuple[int, float, bool, int, int]:
     guild_id = _scope_guild_id(guild_id)
     with get_db_connection() as conn:
         players = PlayerRepository(conn, STARTING_DOUGH)
@@ -1573,18 +1452,12 @@ def get_gambling_pot(guild_id: int) -> tuple[int, int, int]:
         return pot.get_balances(guild_id)
 
 
-def get_monopoly_board_state(
-    guild_id: int, user_id: int
-) -> tuple[int, bool, int, int, str]:
-    position, _last_roll, in_jail, jail_attempts, doubles_count = get_monopoly_state(
-        guild_id, user_id
-    )
+def get_monopoly_board_state(guild_id: int, user_id: int) -> tuple[int, bool, int, int, str]:
+    position, _last_roll, in_jail, jail_attempts, doubles_count = get_monopoly_state(guild_id, user_id)
     return position, in_jail, jail_attempts, doubles_count, render_board(position)
 
 
-def _deduct_up_to(
-    players: PlayerRepository, guild_id: int, user_id: int, amount: int
-) -> int:
+def _deduct_up_to(players: PlayerRepository, guild_id: int, user_id: int, amount: int) -> int:
     if amount <= 0:
         return 0
     current = players.get_dough(guild_id, user_id)
@@ -1594,9 +1467,7 @@ def _deduct_up_to(
     return paid
 
 
-def _apply_random_cooldown_reset(
-    players: PlayerRepository, guild_id: int, user_id: int, now: float
-) -> str:
+def _apply_random_cooldown_reset(players: PlayerRepository, guild_id: int, user_id: int, now: float) -> str:
     cooldown_key = random.choice(["drop", "pull", "slots", "flip"])
     if cooldown_key == "drop":
         players.set_last_drop_at(guild_id, user_id, now)
@@ -1654,7 +1525,7 @@ def execute_monopoly_fine(
         )
 
 
-def execute_monopoly_roll(  # pylint: disable=too-many-branches
+def execute_monopoly_roll(
     guild_id: int,
     user_id: int,
     *,
@@ -1670,9 +1541,7 @@ def execute_monopoly_roll(  # pylint: disable=too-many-branches
         players.ensure_player(guild_id, user_id)
         pot.ensure_row(guild_id)
 
-        position, last_roll_at, in_jail, jail_attempts, doubles_count = (
-            players.get_monopoly_state(guild_id, user_id)
-        )
+        position, last_roll_at, in_jail, jail_attempts, doubles_count = players.get_monopoly_state(guild_id, user_id)
         elapsed = now - last_roll_at
         if elapsed < cooldown_seconds:
             return MonopolyRollResult(
@@ -1705,27 +1574,19 @@ def execute_monopoly_roll(  # pylint: disable=too-many-branches
             if is_doubles:
                 players.set_monopoly_in_jail(guild_id, user_id, False)
                 players.set_monopoly_jail_roll_attempts(guild_id, user_id, 0)
-                lines.append(
-                    "Doubles rolled in jail. You are free and move by the roll."
-                )
+                lines.append("Doubles rolled in jail. You are free and move by the roll.")
             else:
                 jail_attempts += 1
-                players.set_monopoly_jail_roll_attempts(
-                    guild_id, user_id, jail_attempts
-                )
+                players.set_monopoly_jail_roll_attempts(guild_id, user_id, jail_attempts)
                 players.set_monopoly_consecutive_doubles(guild_id, user_id, 0)
                 players.set_last_monopoly_roll_at(guild_id, user_id, now)
                 if jail_attempts >= 3:
-                    paid = _deduct_up_to(
-                        players, guild_id, user_id, MONOPOLY_JAIL_FINE_DOUGH
-                    )
+                    paid = _deduct_up_to(players, guild_id, user_id, MONOPOLY_JAIL_FINE_DOUGH)
                     if paid > 0:
                         pot.add(guild_id, dough=paid)
                     players.set_monopoly_in_jail(guild_id, user_id, False)
                     players.set_monopoly_jail_roll_attempts(guild_id, user_id, 0)
-                    lines.append(
-                        f"Third failed jail roll. Auto-paid **{paid}** dough fine and released."
-                    )
+                    lines.append(f"Third failed jail roll. Auto-paid **{paid}** dough fine and released.")
                 else:
                     return MonopolyRollResult(
                         status="jail_stay",
@@ -1735,9 +1596,7 @@ def execute_monopoly_roll(  # pylint: disable=too-many-branches
                         position=position,
                         in_jail=True,
                         doubles=False,
-                        lines=tuple(
-                            lines + [f"Still in jail ({jail_attempts}/3 failed rolls)."]
-                        ),
+                        lines=tuple(lines + [f"Still in jail ({jail_attempts}/3 failed rolls)."]),
                     )
 
         if is_doubles:
@@ -1792,9 +1651,7 @@ def execute_monopoly_roll(  # pylint: disable=too-many-branches
             if pot_tickets > 0:
                 players.add_drop_tickets(guild_id, user_id, pot_tickets)
             pot.clear(guild_id)
-            lines.append(
-                f"Free Parking jackpot: **+{pot_dough} dough, +{pot_starter} starter, +{pot_tickets} drop tickets**"
-            )
+            lines.append(f"Free Parking jackpot: **+{pot_dough} dough, +{pot_starter} starter, +{pot_tickets} drop tickets**")
 
         elif space.kind == "go_to_jail":
             players.set_monopoly_position(guild_id, user_id, 10)
@@ -1807,9 +1664,7 @@ def execute_monopoly_roll(  # pylint: disable=too-many-branches
         elif space.kind == "mpreg":
             card_id = random_epic_or_better_card_id()
             generation = random_generation()
-            instance_id = instances.create_owned_instance(
-                guild_id, user_id, card_id, generation
-            )
+            instance_id = instances.create_owned_instance(guild_id, user_id, card_id, generation)
             players.set_last_pulled_instance(guild_id, user_id, instance_id)
             created_instance = instances.get_by_id(guild_id, instance_id)
             dupe_code = created_instance[3] if created_instance is not None else None
@@ -1896,9 +1751,7 @@ def execute_monopoly_roll(  # pylint: disable=too-many-branches
                 target = card.move_to % MONOPOLY_BOARD_SIZE
                 if target < new_position:
                     players.add_dough(guild_id, user_id, MONOPOLY_GO_REWARD_DOUGH)
-                    lines.append(
-                        f"Moved past GO by card: **+{MONOPOLY_GO_REWARD_DOUGH} dough**"
-                    )
+                    lines.append(f"Moved past GO by card: **+{MONOPOLY_GO_REWARD_DOUGH} dough**")
                 new_position = target
                 players.set_monopoly_position(guild_id, user_id, target)
                 target_space = board_space(target)
@@ -1935,17 +1788,11 @@ def execute_monopoly_roll(  # pylint: disable=too-many-branches
         elif space.kind == "property" and space.rarity is not None:
             candidates = [
                 (instance_id, owner_id, card_id, generation, dupe_code)
-                for instance_id, owner_id, card_id, generation, dupe_code in instances.list_owner_instances_for_guild(
-                    guild_id
-                )
-                if owner_id != user_id
-                and str(card_id) in CARD_CATALOG
-                and str(CARD_CATALOG[str(card_id)]["rarity"]).lower() == space.rarity
+                for instance_id, owner_id, card_id, generation, dupe_code in instances.list_owner_instances_for_guild(guild_id)
+                if owner_id != user_id and str(card_id) in CARD_CATALOG and str(CARD_CATALOG[str(card_id)]["rarity"]).lower() == space.rarity
             ]
             if candidates:
-                selected_instance_id, owner_id, card_id, generation, dupe_code = (
-                    random.choice(candidates)
-                )
+                selected_instance_id, owner_id, card_id, generation, dupe_code = random.choice(candidates)
                 morph_key = instances.get_morph_key(guild_id, selected_instance_id)
                 frame_key = instances.get_frame_key(guild_id, selected_instance_id)
                 font_key = instances.get_font_key(guild_id, selected_instance_id)
@@ -1970,13 +1817,9 @@ def execute_monopoly_roll(  # pylint: disable=too-many-branches
                 thumbnail_morph_key = morph_key
                 thumbnail_frame_key = frame_key
                 thumbnail_font_key = font_key
-                lines.append(
-                    f"Rent paid to <@{owner_id}> for {card_id} #{dupe_code} (gen {generation}): **{paid}/{rent_due} dough**"
-                )
+                lines.append(f"Rent paid to <@{owner_id}> for {card_id} #{dupe_code} (gen {generation}): **{paid}/{rent_due} dough**")
             else:
-                lines.append(
-                    f"Landed on an unowned **{space.rarity}** property {space.emoji}"
-                )
+                lines.append(f"Landed on an unowned **{space.rarity}** property {space.emoji}")
                 lines.append(f"No owner had a {space.rarity} dupe. No rent due.")
 
         current_position = players.get_monopoly_position(guild_id, user_id)
@@ -1987,9 +1830,7 @@ def execute_monopoly_roll(  # pylint: disable=too-many-branches
             if not current_in_jail:
                 players.set_monopoly_consecutive_doubles(guild_id, user_id, 0)
         else:
-            lines.append(
-                "Doubles rolled: cooldown was not consumed. Roll again immediately."
-            )
+            lines.append("Doubles rolled: cooldown was not consumed. Roll again immediately.")
 
         return MonopolyRollResult(
             status="ok",
@@ -2118,9 +1959,7 @@ def add_starter(guild_id: int, user_id: int, amount: int) -> int:
         return players.get_starter(guild_id, user_id)
 
 
-def buy_drop_tickets_with_starter(
-    guild_id: int, user_id: int, quantity: int
-) -> tuple[bool, int, int, int]:
+def buy_drop_tickets_with_starter(guild_id: int, user_id: int, quantity: int) -> tuple[bool, int, int, int]:
     guild_id = _scope_guild_id(guild_id)
     with get_db_connection() as conn:
         _begin_immediate(conn)
@@ -2211,9 +2050,7 @@ def get_card_quantity(guild_id: int, user_id: int, card_id: str) -> int:
         return instances.count_by_card(guild_id, user_id, card_id)
 
 
-def add_card_to_player(
-    guild_id: int, user_id: int, card_id: str, generation: int
-) -> int:
+def add_card_to_player(guild_id: int, user_id: int, card_id: str, generation: int) -> int:
     guild_id = _scope_guild_id(guild_id)
     if generation < GENERATION_MIN or generation > GENERATION_MAX:
         raise ValueError("generation out of allowed bounds")
@@ -2223,16 +2060,12 @@ def add_card_to_player(
         players = PlayerRepository(conn, STARTING_DOUGH)
         instances = CardInstanceRepository(conn)
         players.ensure_player(guild_id, user_id)
-        instance_id = instances.create_owned_instance(
-            guild_id, user_id, card_id, generation
-        )
+        instance_id = instances.create_owned_instance(guild_id, user_id, card_id, generation)
         players.set_last_pulled_instance(guild_id, user_id, instance_id)
         return instance_id
 
 
-def get_last_pulled_instance(
-    guild_id: int, user_id: int
-) -> Optional[tuple[int, str, int, str]]:
+def get_last_pulled_instance(guild_id: int, user_id: int) -> Optional[tuple[int, str, int, str]]:
     guild_id = _scope_guild_id(guild_id)
     with get_db_connection() as conn:
         players = PlayerRepository(conn, STARTING_DOUGH)
@@ -2240,9 +2073,7 @@ def get_last_pulled_instance(
         return players.get_last_pulled_instance(guild_id, user_id)
 
 
-def get_burn_candidate_by_card_id(
-    guild_id: int, user_id: int, card_id: str
-) -> Optional[tuple[int, str, int, str]]:
+def get_burn_candidate_by_card_id(guild_id: int, user_id: int, card_id: str) -> Optional[tuple[int, str, int, str]]:
     guild_id = _scope_guild_id(guild_id)
     with get_db_connection() as conn:
         players = PlayerRepository(conn, STARTING_DOUGH)
@@ -2251,9 +2082,7 @@ def get_burn_candidate_by_card_id(
         return instances.get_burn_candidate_by_card_id(guild_id, user_id, card_id)
 
 
-def get_player_card_instances(
-    guild_id: int, user_id: int
-) -> list[tuple[int, str, int, str]]:
+def get_player_card_instances(guild_id: int, user_id: int) -> list[tuple[int, str, int, str]]:
     guild_id = _scope_guild_id(guild_id)
     with get_db_connection() as conn:
         players = PlayerRepository(conn, STARTING_DOUGH)
@@ -2290,9 +2119,7 @@ def get_player_leaderboard_info(
             morph_key = instances.get_morph_key(guild_id, instance_id)
             frame_key = instances.get_frame_key(guild_id, instance_id)
             font_key = instances.get_font_key(guild_id, instance_id)
-            total_value_by_user[owner_id] = total_value_by_user.get(
-                owner_id, 0
-            ) + card_value(
+            total_value_by_user[owner_id] = total_value_by_user.get(owner_id, 0) + card_value(
                 card_id,
                 generation,
                 morph_key=morph_key,
@@ -2300,12 +2127,8 @@ def get_player_leaderboard_info(
                 font_key=font_key,
             )
 
-    users: dict[int, tuple[int, int, int]] = {
-        user_id: (dough, starter, votes) for user_id, dough, starter, votes in balances
-    }
-    all_user_ids = (
-        set(users.keys()) | set(wish_counts.keys()) | set(cards_count_by_user.keys())
-    )
+    users: dict[int, tuple[int, int, int]] = {user_id: (dough, starter, votes) for user_id, dough, starter, votes in balances}
+    all_user_ids = set(users.keys()) | set(wish_counts.keys()) | set(cards_count_by_user.keys())
 
     rows: list[tuple[int, int, int, int, int, int, int]] = []
     for user_id in sorted(all_user_ids):
@@ -2483,9 +2306,7 @@ def execute_gift_card(
         return True, "", card_id, generation, dupe_code
 
 
-def remove_card_from_player(
-    guild_id: int, user_id: int, card_id: str
-) -> Optional[tuple[int, int]]:
+def remove_card_from_player(guild_id: int, user_id: int, card_id: str) -> Optional[tuple[int, int]]:
     guild_id = _scope_guild_id(guild_id)
     with get_db_connection() as conn:
         _begin_immediate(conn)
@@ -2503,9 +2324,7 @@ def remove_card_from_player(
         return instance_id, generation
 
 
-def burn_instance(
-    guild_id: int, user_id: int, instance_id: int
-) -> Optional[tuple[str, int, str]]:
+def burn_instance(guild_id: int, user_id: int, instance_id: int) -> Optional[tuple[str, int, str]]:
     guild_id = _scope_guild_id(guild_id)
     with get_db_connection() as conn:
         _begin_immediate(conn)
@@ -2529,9 +2348,7 @@ def burn_instance(
         return burned
 
 
-def burn_instances(
-    guild_id: int, user_id: int, instance_ids: list[int]
-) -> tuple[list[tuple[int, str, int, str]] | None, dict[int, list[str]]]:
+def burn_instances(guild_id: int, user_id: int, instance_ids: list[int]) -> tuple[list[tuple[int, str, int, str]] | None, dict[int, list[str]]]:
     guild_id = _scope_guild_id(guild_id)
     unique_instance_ids: list[int] = []
     seen: set[int] = set()
@@ -2554,16 +2371,12 @@ def burn_instances(
 
         locked_by_instance: dict[int, list[str]] = {}
         for instance_id in unique_instance_ids:
-            owned = instances.get_owned_instance_for_marry(
-                guild_id, user_id, instance_id
-            )
+            owned = instances.get_owned_instance_for_marry(guild_id, user_id, instance_id)
             if owned is None:
                 return None, {}
 
             locked_tags = tags.list_locked_for_instance(guild_id, user_id, instance_id)
-            locked_folder = folders.get_locked_for_instance(
-                guild_id, user_id, instance_id
-            )
+            locked_folder = folders.get_locked_for_instance(guild_id, user_id, instance_id)
             if locked_folder is not None:
                 locked_tags = [*locked_tags, f"folder:{locked_folder[0]}"]
             if locked_tags:
@@ -2581,9 +2394,7 @@ def burn_instances(
             burned_card_id, burned_generation, burned_dupe_code = burned
             players.clear_marriage_if_matches(guild_id, user_id, instance_id)
             players.clear_last_pulled_if_matches(guild_id, user_id, instance_id)
-            burned_rows.append(
-                (instance_id, burned_card_id, burned_generation, burned_dupe_code)
-            )
+            burned_rows.append((instance_id, burned_card_id, burned_generation, burned_dupe_code))
 
         return burned_rows, {}
 
@@ -2598,9 +2409,7 @@ def _select_instance_for_marry(
     return instances.select_instance_for_marry(guild_id, user_id, card_id)
 
 
-def marry_card(
-    guild_id: int, user_id: int, card_id: str
-) -> tuple[bool, str, Optional[int], Optional[int]]:
+def marry_card(guild_id: int, user_id: int, card_id: str) -> tuple[bool, str, Optional[int], Optional[int]]:
     guild_id = _scope_guild_id(guild_id)
     with get_db_connection() as conn:
         _begin_immediate(conn)
@@ -2615,10 +2424,7 @@ def marry_card(
 
         married_instance_id = players.get_married_instance_id(guild_id, user_id)
 
-        if (
-            married_instance_id is not None
-            and married_instance_id != selected_instance_id
-        ):
+        if married_instance_id is not None and married_instance_id != selected_instance_id:
             return False, "You are already married. Use `ns divorce` first.", None, None
 
         owner = players.find_other_owner_of_married_card(guild_id, card_id, user_id)
@@ -2641,9 +2447,7 @@ def marry_card_instance(
         instances = CardInstanceRepository(conn)
         players.ensure_player(guild_id, user_id)
 
-        selected = instances.get_owned_instance_for_marry(
-            guild_id, user_id, instance_id
-        )
+        selected = instances.get_owned_instance_for_marry(guild_id, user_id, instance_id)
         if selected is None:
             return False, "You can only marry a card you own.", None, None, None
 
@@ -2660,9 +2464,7 @@ def marry_card_instance(
                 None,
             )
 
-        owner = players.find_other_owner_of_married_card(
-            guild_id, selected_card_id, user_id
-        )
+        owner = players.find_other_owner_of_married_card(guild_id, selected_card_id, user_id)
         if owner is not None:
             return (
                 False,
@@ -2720,9 +2522,7 @@ def execute_trade(
         players.ensure_player(guild_id, seller_id)
         players.ensure_player(guild_id, buyer_id)
 
-        seller_trade_instance = instances.get_seller_trade_instance(
-            guild_id, seller_id, dupe_code
-        )
+        seller_trade_instance = instances.get_seller_trade_instance(guild_id, seller_id, dupe_code)
         if seller_trade_instance is None:
             return (
                 False,
@@ -2732,9 +2532,7 @@ def execute_trade(
                 None,
             )
 
-        instance_id, fetched_card_id, generation, traded_dupe_code = (
-            seller_trade_instance
-        )
+        instance_id, fetched_card_id, generation, traded_dupe_code = seller_trade_instance
         if fetched_card_id != card_id:
             return False, "Trade failed: card mismatch.", None, None, None
 
@@ -2804,9 +2602,7 @@ def execute_trade(
                     None,
                     None,
                 )
-            buyer_trade_instance = instances.get_seller_trade_instance(
-                guild_id, buyer_id, req_dupe_code
-            )
+            buyer_trade_instance = instances.get_seller_trade_instance(guild_id, buyer_id, req_dupe_code)
             if buyer_trade_instance is None:
                 return (
                     False,
@@ -2815,9 +2611,7 @@ def execute_trade(
                     None,
                     None,
                 )
-            req_instance_id, req_card_id, req_generation, req_traded_dupe = (
-                buyer_trade_instance
-            )
+            req_instance_id, req_card_id, req_generation, req_traded_dupe = buyer_trade_instance
             # Swap ownership
             instances.transfer_to_user(instance_id, buyer_id)
             instances.transfer_to_user(req_instance_id, seller_id)

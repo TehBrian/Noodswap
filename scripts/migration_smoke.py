@@ -40,9 +40,7 @@ def _run_fresh_init_validation() -> None:
                     _table_exists(conn, "schema_migrations"),
                     "schema_migrations table was not created",
                 )
-                version_row = conn.execute(
-                    "SELECT version FROM schema_migrations LIMIT 1"
-                ).fetchone()
+                version_row = conn.execute("SELECT version FROM schema_migrations LIMIT 1").fetchone()
                 _assert(version_row is not None, "schema_migrations has no version row")
                 _assert(
                     int(version_row[0]) == storage.TARGET_SCHEMA_VERSION,

@@ -25,11 +25,7 @@ def compute_normalized_rarity_weights(
     rarity_weights: Mapping[str, float | int],
     rarity_card_counts: Counter[str],
 ) -> dict[str, float]:
-    return {
-        rarity: weight / rarity_card_counts[rarity]
-        for rarity, weight in rarity_weights.items()
-        if rarity_card_counts.get(rarity, 0) > 0
-    }
+    return {rarity: weight / rarity_card_counts[rarity] for rarity, weight in rarity_weights.items() if rarity_card_counts.get(rarity, 0) > 0}
 
 
 def effective_rarity_odds(
@@ -37,10 +33,7 @@ def effective_rarity_odds(
     normalized_rarity_weights: Mapping[str, float],
     rarity_card_counts: Counter[str],
 ) -> dict[str, float]:
-    weighted_totals = {
-        rarity: normalized_rarity_weights[rarity] * rarity_card_counts[rarity]
-        for rarity in normalized_rarity_weights
-    }
+    weighted_totals = {rarity: normalized_rarity_weights[rarity] * rarity_card_counts[rarity] for rarity in normalized_rarity_weights}
     grand_total = sum(weighted_totals.values())
     if grand_total <= 0:
         return {rarity: 0.0 for rarity in weighted_totals}
@@ -52,26 +45,18 @@ def target_rarity_odds(
     rarity_weights: Mapping[str, float | int],
     rarity_card_counts: Counter[str],
 ) -> dict[str, float]:
-    active_weights = {
-        rarity: weight
-        for rarity, weight in rarity_weights.items()
-        if rarity_card_counts.get(rarity, 0) > 0
-    }
+    active_weights = {rarity: weight for rarity, weight in rarity_weights.items() if rarity_card_counts.get(rarity, 0) > 0}
     total_weight = sum(active_weights.values())
     if total_weight <= 0:
         return {rarity: 0.0 for rarity in active_weights}
     return {rarity: active_weights[rarity] / total_weight for rarity in active_weights}
 
 
-def card_base_value(
-    card_id: str, *, card_catalog: Mapping[str, CardEconomyRecord]
-) -> int:
+def card_base_value(card_id: str, *, card_catalog: Mapping[str, CardEconomyRecord]) -> int:
     return int(card_catalog[card_id]["base_value"])
 
 
-def generation_value_multiplier(
-    generation: int, *, generation_min: int, generation_max: int
-) -> float:
+def generation_value_multiplier(generation: int, *, generation_min: int, generation_max: int) -> float:
     clamped_generation = max(generation_min, min(generation_max, generation))
     progress = (generation_max - clamped_generation) / (generation_max - generation_min)
     return 1.0 + (2 * progress**2) + (9 * progress**9) + (49 * progress**49)
@@ -96,10 +81,7 @@ def random_card_id(
     normalized_rarity_weights: Mapping[str, float],
 ) -> str:
     card_ids = list(card_catalog.keys())
-    weights = [
-        normalized_rarity_weights.get(card_catalog[cid]["rarity"], 1.0)
-        for cid in card_ids
-    ]
+    weights = [normalized_rarity_weights.get(card_catalog[cid]["rarity"], 1.0) for cid in card_ids]
     return random.choices(card_ids, weights=weights, k=1)[0]
 
 
@@ -122,18 +104,13 @@ def random_generation(*, generation_min: int, generation_max: int) -> int:
 
 
 @lru_cache(maxsize=16)
-def _generation_sampler(
-    generation_min: int, generation_max: int, tau: float
-) -> tuple[tuple[int, ...], tuple[float, ...]]:
+def _generation_sampler(generation_min: int, generation_max: int, tau: float) -> tuple[tuple[int, ...], tuple[float, ...]]:
     if generation_min >= generation_max:
         return (int(generation_min),), (1.0,)
 
     generations = tuple(range(generation_min, generation_max + 1))
     multipliers = tuple(
-        generation_value_multiplier(
-            generation, generation_min=generation_min, generation_max=generation_max
-        )
-        for generation in generations
+        generation_value_multiplier(generation, generation_min=generation_min, generation_max=generation_max) for generation in generations
     )
     weights = tuple(1.0 / (multiplier**tau) for multiplier in multipliers)
     total = sum(weights)
@@ -187,9 +164,7 @@ def get_burn_payout(
     base_value = card_base_value_func(card_id)
     multiplier = generation_multiplier_func(generation) * max(1.0, trait_multiplier)
     value = max(1, int(round(base_value * multiplier)))
-    resolved_delta_range = (
-        burn_delta_range_func(value) if delta_range is None else max(1, delta_range)
-    )
+    resolved_delta_range = burn_delta_range_func(value) if delta_range is None else max(1, delta_range)
     delta = random.randint(-resolved_delta_range, resolved_delta_range)
     payout = max(1, value + delta)
     return payout, value, base_value, delta, multiplier, resolved_delta_range

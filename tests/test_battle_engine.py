@@ -44,9 +44,7 @@ class BattleEngineTests(unittest.TestCase):
         defender = build_battle_card(2, "PEN", 200, "1")
 
         rng = random.Random(123)
-        result = resolve_attack(
-            attacker, defender, defender_is_defending=False, rng=rng
-        )
+        result = resolve_attack(attacker, defender, defender_is_defending=False, rng=rng)
         if not result.missed:
             self.assertGreaterEqual(result.atk_roll, MIN_ROLL)
             self.assertLessEqual(result.atk_roll, MAX_ROLL)

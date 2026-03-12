@@ -44,10 +44,7 @@ def _format_skip_reasons(reasons: tuple[str, ...] | list[str]) -> str:
 
 
 def _burn_result_has_required_fields(result: object) -> bool:
-    return all(
-        getattr(result, field_name) is not None
-        for field_name in ("card_id", "generation", "dupe_code", "payout", "delta")
-    )
+    return all(getattr(result, field_name) is not None for field_name in ("card_id", "generation", "dupe_code", "payout", "delta"))
 
 
 def _format_trait_roll_details(rolled_rarity: str, rolled_multiplier: float) -> str:
@@ -88,9 +85,7 @@ class BurnConfirmView(InteractionView):
     ):
         if interaction.user.id != self.user_id:
             await interaction.response.send_message(
-                embed=italy_embed(
-                    "Burn", "Only the command user can confirm this burn."
-                ),
+                embed=italy_embed("Burn", "Only the command user can confirm this burn."),
                 ephemeral=True,
             )
             return
@@ -161,9 +156,7 @@ Payout: **{burn_result.payout} dough**
                 view=self,
             )
             if interaction.message is not None:
-                await interaction.message.reply(
-                    embed=burned_embed, mention_author=False
-                )
+                await interaction.message.reply(embed=burned_embed, mention_author=False)
             return
 
         burn_result = execute_burn_batch_confirmation(
@@ -179,10 +172,7 @@ Payout: **{burn_result.payout} dough**
             )
             if interaction.message is not None:
                 if burn_result.skipped_instances:
-                    skipped_lines = [
-                        f"`#{instance_id}`: {_format_skip_reasons(reasons)}"
-                        for instance_id, reasons in burn_result.skipped_instances
-                    ]
+                    skipped_lines = [f"`#{instance_id}`: {_format_skip_reasons(reasons)}" for instance_id, reasons in burn_result.skipped_instances]
                     await interaction.message.reply(
                         embed=italy_embed("Burn Failed", "\n".join(skipped_lines)),
                         mention_author=False,
@@ -209,18 +199,11 @@ Payout: **{burn_result.payout} dough**
             description_blocks.append(f"Total Payout: **{total_payout} dough**")
 
         if burn_result.skipped_instances:
-            skipped_lines = [
-                f"`#{instance_id}`: {_format_skip_reasons(reasons)}"
-                for instance_id, reasons in burn_result.skipped_instances
-            ]
+            skipped_lines = [f"`#{instance_id}`: {_format_skip_reasons(reasons)}" for instance_id, reasons in burn_result.skipped_instances]
             description_blocks.append("Skipped:\n" + "\n".join(skipped_lines))
 
         burned_embed = italy_embed(
-            (
-                "**Cards Burned**"
-                if not burn_result.skipped_instances
-                else "**Cards Burned (Partial)**"
-            ),
+            ("**Cards Burned**" if not burn_result.skipped_instances else "**Cards Burned (Partial)**"),
             "\n\n".join(description_blocks),
         )
 
@@ -240,9 +223,7 @@ Payout: **{burn_result.payout} dough**
     ):
         if interaction.user.id != self.user_id:
             await interaction.response.send_message(
-                embed=italy_embed(
-                    "Burn", "Only the command user can cancel this burn."
-                ),
+                embed=italy_embed("Burn", "Only the command user can cancel this burn."),
                 ephemeral=True,
             )
             return
@@ -324,9 +305,7 @@ class MorphConfirmView(InteractionView):
     ):
         if interaction.user.id != self.user_id:
             await interaction.response.send_message(
-                embed=italy_embed(
-                    "Morph", "Only the command user can confirm this morph."
-                ),
+                embed=italy_embed("Morph", "Only the command user can confirm this morph."),
                 ephemeral=True,
             )
             return
@@ -353,9 +332,7 @@ class MorphConfirmView(InteractionView):
             await interaction.response.edit_message(view=self)
             if interaction.message is not None:
                 await interaction.message.reply(
-                    embed=italy_embed(
-                        "Morph Failed", result.error_message or "Morph failed."
-                    ),
+                    embed=italy_embed("Morph Failed", result.error_message or "Morph failed."),
                     mention_author=False,
                 )
             return
@@ -423,9 +400,7 @@ class MorphConfirmView(InteractionView):
     ):
         if interaction.user.id != self.user_id:
             await interaction.response.send_message(
-                embed=italy_embed(
-                    "Morph", "Only the command user can cancel this morph."
-                ),
+                embed=italy_embed("Morph", "Only the command user can cancel this morph."),
                 ephemeral=True,
             )
             return
@@ -501,9 +476,7 @@ class FrameConfirmView(InteractionView):
     ):
         if interaction.user.id != self.user_id:
             await interaction.response.send_message(
-                embed=italy_embed(
-                    "Frame", "Only the command user can confirm this frame."
-                ),
+                embed=italy_embed("Frame", "Only the command user can confirm this frame."),
                 ephemeral=True,
             )
             return
@@ -530,9 +503,7 @@ class FrameConfirmView(InteractionView):
             await interaction.response.edit_message(view=self)
             if interaction.message is not None:
                 await interaction.message.reply(
-                    embed=italy_embed(
-                        "Frame Failed", result.error_message or "Frame failed."
-                    ),
+                    embed=italy_embed("Frame Failed", result.error_message or "Frame failed."),
                     mention_author=False,
                 )
             return
@@ -600,9 +571,7 @@ class FrameConfirmView(InteractionView):
     ):
         if interaction.user.id != self.user_id:
             await interaction.response.send_message(
-                embed=italy_embed(
-                    "Frame", "Only the command user can cancel this frame."
-                ),
+                embed=italy_embed("Frame", "Only the command user can cancel this frame."),
                 ephemeral=True,
             )
             return
@@ -678,9 +647,7 @@ class FontConfirmView(InteractionView):
     ):
         if interaction.user.id != self.user_id:
             await interaction.response.send_message(
-                embed=italy_embed(
-                    "Font", "Only the command user can confirm this font."
-                ),
+                embed=italy_embed("Font", "Only the command user can confirm this font."),
                 ephemeral=True,
             )
             return
@@ -707,9 +674,7 @@ class FontConfirmView(InteractionView):
             await interaction.response.edit_message(view=self)
             if interaction.message is not None:
                 await interaction.message.reply(
-                    embed=italy_embed(
-                        "Font Failed", result.error_message or "Font failed."
-                    ),
+                    embed=italy_embed("Font Failed", result.error_message or "Font failed."),
                     mention_author=False,
                 )
             return
@@ -777,9 +742,7 @@ class FontConfirmView(InteractionView):
     ):
         if interaction.user.id != self.user_id:
             await interaction.response.send_message(
-                embed=italy_embed(
-                    "Font", "Only the command user can cancel this font."
-                ),
+                embed=italy_embed("Font", "Only the command user can cancel this font."),
                 ephemeral=True,
             )
             return

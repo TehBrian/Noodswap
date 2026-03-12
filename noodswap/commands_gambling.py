@@ -1,4 +1,3 @@
-# pylint: disable=wildcard-import,unused-wildcard-import,undefined-variable
 from .command_utils import *  # noqa: F403
 
 
@@ -20,18 +19,13 @@ def register_gambling_commands(bot: commands.Bot) -> None:
                 ctx,
                 embed=italy_embed(
                     "Slots Cooldown",
-                    "You need to wait before spinning again "
-                    f"(**{format_cooldown(cooldown_remaining_seconds)}** remaining).",
+                    f"You need to wait before spinning again (**{format_cooldown(cooldown_remaining_seconds)}** remaining).",
                 ),
             )
             return
 
-        final_symbols = [
-            random.choice(SLOTS_REEL_EMOJIS) for _ in range(SLOTS_REEL_COUNT)
-        ]
-        initial_symbols = [
-            random.choice(SLOTS_REEL_EMOJIS) for _ in range(SLOTS_REEL_COUNT)
-        ]
+        final_symbols = [random.choice(SLOTS_REEL_EMOJIS) for _ in range(SLOTS_REEL_COUNT)]
+        initial_symbols = [random.choice(SLOTS_REEL_EMOJIS) for _ in range(SLOTS_REEL_COUNT)]
         message = await _reply(
             ctx,
             content=_slots_reel_content(initial_symbols),
@@ -55,9 +49,7 @@ def register_gambling_commands(bot: commands.Bot) -> None:
             ]
 
         await message.edit(
-            content=_slots_reel_content(
-                final_symbols, result_emoji="🎉" if is_win else "❌"
-            ),
+            content=_slots_reel_content(final_symbols, result_emoji="🎉" if is_win else "❌"),
             embed=_slots_embed(final_lines),
         )
 
@@ -69,15 +61,11 @@ def register_gambling_commands(bot: commands.Bot) -> None:
         try:
             stake = int(stake_str)
         except ValueError:
-            await _reply(
-                ctx, embed=italy_embed("Flip", "Stake must be a positive integer.")
-            )
+            await _reply(ctx, embed=italy_embed("Flip", "Stake must be a positive integer."))
             return
 
         if stake <= 0:
-            await _reply(
-                ctx, embed=italy_embed("Flip", "Stake must be a positive integer.")
-            )
+            await _reply(ctx, embed=italy_embed("Flip", "Stake must be a positive integer."))
             return
 
         selected_side = _normalize_flip_side(side_str)
@@ -102,8 +90,7 @@ def register_gambling_commands(bot: commands.Bot) -> None:
                 ctx,
                 embed=italy_embed(
                     "Flip Cooldown",
-                    "You need to wait before flipping again "
-                    f"(**{format_cooldown(cooldown_remaining_seconds)}** remaining).",
+                    f"You need to wait before flipping again (**{format_cooldown(cooldown_remaining_seconds)}** remaining).",
                 ),
             )
             return
@@ -130,9 +117,7 @@ def register_gambling_commands(bot: commands.Bot) -> None:
         if selected_side is not None:
             suspense_lines.append(f"Call: **{selected_side.capitalize()}**")
 
-        message = await _reply(
-            ctx, embed=italy_embed("Flip", multiline_text(suspense_lines))
-        )
+        message = await _reply(ctx, embed=italy_embed("Flip", multiline_text(suspense_lines)))
         await asyncio.sleep(FLIP_REVEAL_DELAY_SECONDS)
 
         if did_player_win:
@@ -191,12 +176,8 @@ def register_gambling_commands(bot: commands.Bot) -> None:
 
         embed = italy_embed("Monopoly Roll", multiline_text(list(result.lines)))
         image_file = None
-        thumbnail_card_id = (
-            getattr(result, "thumbnail_card_id", None) or result.mpreg_card_id
-        )
-        thumbnail_generation = (
-            getattr(result, "thumbnail_generation", None) or result.mpreg_generation
-        )
+        thumbnail_card_id = getattr(result, "thumbnail_card_id", None) or result.mpreg_card_id
+        thumbnail_generation = getattr(result, "thumbnail_generation", None) or result.mpreg_generation
         thumbnail_morph_key = getattr(result, "thumbnail_morph_key", None)
         thumbnail_frame_key = getattr(result, "thumbnail_frame_key", None)
         thumbnail_font_key = getattr(result, "thumbnail_font_key", None)
@@ -205,21 +186,9 @@ def register_gambling_commands(bot: commands.Bot) -> None:
             attachment_url, image_file = embed_image_payload(
                 thumbnail_card_id,
                 thumbnail_generation,
-                morph_key=(
-                    thumbnail_morph_key
-                    if thumbnail_morph_key is not None
-                    else result.mpreg_morph_key
-                ),
-                frame_key=(
-                    thumbnail_frame_key
-                    if thumbnail_frame_key is not None
-                    else result.mpreg_frame_key
-                ),
-                font_key=(
-                    thumbnail_font_key
-                    if thumbnail_font_key is not None
-                    else result.mpreg_font_key
-                ),
+                morph_key=(thumbnail_morph_key if thumbnail_morph_key is not None else result.mpreg_morph_key),
+                frame_key=(thumbnail_frame_key if thumbnail_frame_key is not None else result.mpreg_frame_key),
+                font_key=(thumbnail_font_key if thumbnail_font_key is not None else result.mpreg_font_key),
             )
             if attachment_url is not None:
                 embed.set_thumbnail(url=attachment_url)
@@ -232,18 +201,14 @@ def register_gambling_commands(bot: commands.Bot) -> None:
             return
 
         result = execute_monopoly_fine(_guild_id(ctx), ctx.author.id)
-        await _reply(
-            ctx, embed=italy_embed("Monopoly Fine", multiline_text(list(result.lines)))
-        )
+        await _reply(ctx, embed=italy_embed("Monopoly Fine", multiline_text(list(result.lines))))
 
     @monopoly.command(name="board", aliases=["b"])
     async def monopoly_board(ctx: commands.Context):
         if not await _require_guild(ctx, "Monopoly Board"):
             return
 
-        position, in_jail, jail_attempts, doubles_count, board_render = (
-            get_monopoly_board_state(_guild_id(ctx), ctx.author.id)
-        )
+        position, in_jail, jail_attempts, doubles_count, board_render = get_monopoly_board_state(_guild_id(ctx), ctx.author.id)
         await _reply(
             ctx,
             embed=italy_embed(

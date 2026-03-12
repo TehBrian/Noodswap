@@ -59,19 +59,13 @@ def parse_args() -> argparse.Namespace:
         "--linear-rate",
         type=float,
         default=None,
-        help=(
-            "Generate weights from curved-exponential formula using this linear rate "
-            f"(configured default: {RARITY_CURVE_LINEAR_RATE})."
-        ),
+        help=(f"Generate weights from curved-exponential formula using this linear rate (configured default: {RARITY_CURVE_LINEAR_RATE})."),
     )
     parser.add_argument(
         "--tail-curvature",
         type=float,
         default=RARITY_TAIL_CURVATURE,
-        help=(
-            "Tail steepness for curved-exponential formula "
-            f"(configured default: {RARITY_TAIL_CURVATURE})."
-        ),
+        help=(f"Tail steepness for curved-exponential formula (configured default: {RARITY_TAIL_CURVATURE})."),
     )
     parser.add_argument(
         "--shape",
@@ -83,10 +77,7 @@ def parse_args() -> argparse.Namespace:
         "--smoothing",
         type=float,
         default=RARITY_CURVE_SMOOTHING,
-        help=(
-            "Global curve smoothing; higher values flatten top-tier rarity "
-            f"(configured default: {RARITY_CURVE_SMOOTHING})."
-        ),
+        help=(f"Global curve smoothing; higher values flatten top-tier rarity (configured default: {RARITY_CURVE_SMOOTHING})."),
     )
     parser.add_argument(
         "--growth-ratio",
@@ -127,9 +118,7 @@ def print_configured_weights_report(*, drop_size: int, claims_per_player: int) -
     print(f"Cards per drop: {drop_size}")
     print(f"Approx claims per player per drop: {claims_per_player}")
     print()
-    print(
-        f"{'Rarity':<10} {'Cards':>5} {'Target':>8} {'Effective':>10} {'PerCard':>9} {'PerDrop':>9} {'PerPlayer':>10}"
-    )
+    print(f"{'Rarity':<10} {'Cards':>5} {'Target':>8} {'Effective':>10} {'PerCard':>9} {'PerDrop':>9} {'PerPlayer':>10}")
     print("-" * 80)
     for rarity in ordered:
         if rarity not in target and rarity not in effective:
@@ -180,17 +169,13 @@ def print_generated_weights_report(
     print()
     print(f"Generated weights: {weights}")
     print()
-    print(
-        f"{'Rarity':<10} {'Weight':>7} {'PerCard':>9} {'PerDrop':>9} {'PerPlayer':>10}"
-    )
+    print(f"{'Rarity':<10} {'Weight':>7} {'PerCard':>9} {'PerDrop':>9} {'PerPlayer':>10}")
     print("-" * 53)
     for rarity in RARITY_ORDER:
         per_card = odds.get(rarity, 0.0)
         per_drop = at_least_one(per_card, drop_size)
         per_player = at_least_one(per_card, claims_per_player)
-        print(
-            f"{rarity:<10} {weights[rarity]:>7} {inv(per_card):>9} {inv(per_drop):>9} {inv(per_player):>10}"
-        )
+        print(f"{rarity:<10} {weights[rarity]:>7} {inv(per_card):>9} {inv(per_drop):>9} {inv(per_player):>10}")
 
 
 def main() -> None:

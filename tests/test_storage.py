@@ -24,9 +24,7 @@ class StorageTests(unittest.TestCase):
         storage.init_db()
 
         with closing(sqlite3.connect(storage.DB_PATH)) as conn:
-            row = conn.execute(
-                "SELECT version FROM schema_migrations LIMIT 1"
-            ).fetchone()
+            row = conn.execute("SELECT version FROM schema_migrations LIMIT 1").fetchone()
             self.assertIsNotNone(row)
             self.assertEqual(int(row[0]), storage.TARGET_SCHEMA_VERSION)
 
@@ -45,56 +43,38 @@ class StorageTests(unittest.TestCase):
             self.assertIn("monopoly_jail_roll_attempts", column_names)
             self.assertIn("monopoly_consecutive_doubles", column_names)
 
-            pot_row = conn.execute(
-                "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'gambling_pot'"
-            ).fetchone()
+            pot_row = conn.execute("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'gambling_pot'").fetchone()
             self.assertIsNotNone(pot_row)
 
-            instance_columns = conn.execute(
-                "PRAGMA table_info(card_instances)"
-            ).fetchall()
+            instance_columns = conn.execute("PRAGMA table_info(card_instances)").fetchall()
             instance_column_names = {str(column[1]) for column in instance_columns}
             self.assertIn("morph_key", instance_column_names)
             self.assertIn("frame_key", instance_column_names)
             self.assertIn("font_key", instance_column_names)
 
-            wishlist_row = conn.execute(
-                "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'wishlist_cards'"
-            ).fetchone()
+            wishlist_row = conn.execute("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'wishlist_cards'").fetchone()
             self.assertIsNotNone(wishlist_row)
 
-            tags_row = conn.execute(
-                "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'player_tags'"
-            ).fetchone()
+            tags_row = conn.execute("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'player_tags'").fetchone()
             self.assertIsNotNone(tags_row)
 
-            instance_tags_row = conn.execute(
-                "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'card_instance_tags'"
-            ).fetchone()
+            instance_tags_row = conn.execute("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'card_instance_tags'").fetchone()
             self.assertIsNotNone(instance_tags_row)
 
-            teams_row = conn.execute(
-                "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'player_teams'"
-            ).fetchone()
+            teams_row = conn.execute("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'player_teams'").fetchone()
             self.assertIsNotNone(teams_row)
 
-            team_members_row = conn.execute(
-                "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'team_members'"
-            ).fetchone()
+            team_members_row = conn.execute("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'team_members'").fetchone()
             self.assertIsNotNone(team_members_row)
 
-            battles_row = conn.execute(
-                "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'battle_sessions'"
-            ).fetchone()
+            battles_row = conn.execute("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'battle_sessions'").fetchone()
             self.assertIsNotNone(battles_row)
 
     def test_init_db_does_not_create_player_cards_table(self) -> None:
         storage.init_db()
 
         with closing(sqlite3.connect(storage.DB_PATH)) as conn:
-            row = conn.execute(
-                "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'player_cards'"
-            ).fetchone()
+            row = conn.execute("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'player_cards'").fetchone()
             self.assertIsNone(row)
 
     def test_marry_selects_lowest_generation_copy(self) -> None:
@@ -107,9 +87,7 @@ class StorageTests(unittest.TestCase):
         instance_b = storage.add_card_to_player(guild_id, user_id, card_id, 50)
         storage.add_card_to_player(guild_id, user_id, card_id, 900)
 
-        success, message, married_instance_id, married_generation = storage.marry_card(
-            guild_id, user_id, card_id
-        )
+        success, message, married_instance_id, married_generation = storage.marry_card(guild_id, user_id, card_id)
         self.assertTrue(success)
         self.assertEqual(message, "")
         self.assertEqual(married_generation, 50)
@@ -167,18 +145,14 @@ class StorageTests(unittest.TestCase):
         user_id = 1244
 
         storage.init_db()
-        purchased, starter_balance, drop_tickets, spent = (
-            storage.buy_drop_tickets_with_starter(guild_id, user_id, 2)
-        )
+        purchased, starter_balance, drop_tickets, spent = storage.buy_drop_tickets_with_starter(guild_id, user_id, 2)
         self.assertFalse(purchased)
         self.assertEqual(starter_balance, 0)
         self.assertEqual(drop_tickets, 0)
         self.assertEqual(spent, 0)
 
         storage.add_starter(guild_id, user_id, 3)
-        purchased, starter_balance, drop_tickets, spent = (
-            storage.buy_drop_tickets_with_starter(guild_id, user_id, 2)
-        )
+        purchased, starter_balance, drop_tickets, spent = storage.buy_drop_tickets_with_starter(guild_id, user_id, 2)
         self.assertTrue(purchased)
         self.assertEqual(starter_balance, 1)
         self.assertEqual(drop_tickets, 2)
@@ -196,9 +170,7 @@ class StorageTests(unittest.TestCase):
 
         now = 4_000.0
         storage.set_last_drop_at(guild_id, user_id, now)
-        before_last_drop_at, _ = storage.get_player_cooldown_timestamps(
-            guild_id, user_id
-        )
+        before_last_drop_at, _ = storage.get_player_cooldown_timestamps(guild_id, user_id)
 
         used_ticket, remaining = storage.consume_drop_cooldown_or_ticket(
             guild_id,
@@ -206,9 +178,7 @@ class StorageTests(unittest.TestCase):
             now=now + 1.0,
             cooldown_seconds=360.0,
         )
-        after_last_drop_at, _ = storage.get_player_cooldown_timestamps(
-            guild_id, user_id
-        )
+        after_last_drop_at, _ = storage.get_player_cooldown_timestamps(guild_id, user_id)
 
         self.assertTrue(used_ticket)
         self.assertEqual(remaining, 0.0)
@@ -303,9 +273,7 @@ class StorageTests(unittest.TestCase):
 
         self.assertEqual(result.status, "ok")
         self.assertFalse(result.doubles)
-        _position, last_roll_at, in_jail, _jail_attempts, doubles_count = (
-            storage.get_monopoly_state(guild_id, user_id)
-        )
+        _position, last_roll_at, in_jail, _jail_attempts, doubles_count = storage.get_monopoly_state(guild_id, user_id)
         self.assertEqual(last_roll_at, 10_000.0)
         self.assertFalse(in_jail)
         self.assertEqual(doubles_count, 0)
@@ -325,9 +293,7 @@ class StorageTests(unittest.TestCase):
 
         self.assertEqual(result.status, "ok")
         self.assertTrue(result.doubles)
-        _position, last_roll_at, in_jail, _jail_attempts, doubles_count = (
-            storage.get_monopoly_state(guild_id, user_id)
-        )
+        _position, last_roll_at, in_jail, _jail_attempts, doubles_count = storage.get_monopoly_state(guild_id, user_id)
         self.assertEqual(last_roll_at, 0.0)
         self.assertFalse(in_jail)
         self.assertEqual(doubles_count, 1)
@@ -338,11 +304,7 @@ class StorageTests(unittest.TestCase):
         owner_id = 1251
         storage.init_db()
 
-        common_card_id = next(
-            card_id
-            for card_id, data in storage.CARD_CATALOG.items()
-            if str(data["rarity"]).lower() == "common"
-        )
+        common_card_id = next(card_id for card_id, data in storage.CARD_CATALOG.items() if str(data["rarity"]).lower() == "common")
         generation = 100
         storage.add_card_to_player(guild_id, owner_id, common_card_id, generation)
         storage.add_dough(guild_id, roller_id, 10_000)
@@ -379,11 +341,7 @@ class StorageTests(unittest.TestCase):
         owner_id = 2251
         storage.init_db()
 
-        common_card_id = next(
-            card_id
-            for card_id, data in storage.CARD_CATALOG.items()
-            if str(data["rarity"]).lower() == "common"
-        )
+        common_card_id = next(card_id for card_id, data in storage.CARD_CATALOG.items() if str(data["rarity"]).lower() == "common")
         generation = 123
         storage.add_card_to_player(guild_id, owner_id, common_card_id, generation)
         storage.add_dough(guild_id, roller_id, 10_000)
@@ -397,9 +355,7 @@ class StorageTests(unittest.TestCase):
             )
 
         card_name = str(storage.CARD_CATALOG[common_card_id]["name"])
-        self.assertTrue(
-            any(f"Landed on **{card_name}**" in line for line in result.lines)
-        )
+        self.assertTrue(any(f"Landed on **{card_name}**" in line for line in result.lines))
         self.assertEqual(result.thumbnail_card_id, common_card_id)
         self.assertEqual(result.thumbnail_generation, generation)
 
@@ -412,9 +368,7 @@ class StorageTests(unittest.TestCase):
             patch("noodswap.storage.roll_dice", return_value=(1, 2, False)),
             patch(
                 "noodswap.storage.board_space",
-                return_value=SimpleNamespace(
-                    kind="mpreg", name="Mpreg", emoji="🤰", rarity=None
-                ),
+                return_value=SimpleNamespace(kind="mpreg", name="Mpreg", emoji="🤰", rarity=None),
             ),
             patch("noodswap.storage.random_epic_or_better_card_id", return_value="SPG"),
             patch("noodswap.storage.random_generation", return_value=321),
@@ -499,9 +453,7 @@ class StorageTests(unittest.TestCase):
         self.assertIsNotNone(selected)
         if selected is None:
             return
-        _instance_id, selected_card_id, selected_generation, _selected_dupe_code = (
-            selected
-        )
+        _instance_id, selected_card_id, selected_generation, _selected_dupe_code = selected
         self.assertEqual(selected_card_id, card_id)
         self.assertEqual(selected_generation, 900)
 
@@ -521,15 +473,13 @@ class StorageTests(unittest.TestCase):
             return
         _, _, _, selected_dupe_code = selected
 
-        success, message, traded_generation, traded_dupe_code, _ = (
-            storage.execute_trade(
-                guild_id=guild_id,
-                seller_id=seller_id,
-                buyer_id=buyer_id,
-                card_id=card_id,
-                dupe_code=selected_dupe_code,
-                terms=TradeTerms(mode="dough", amount=30),
-            )
+        success, message, traded_generation, traded_dupe_code, _ = storage.execute_trade(
+            guild_id=guild_id,
+            seller_id=seller_id,
+            buyer_id=buyer_id,
+            card_id=card_id,
+            dupe_code=selected_dupe_code,
+            terms=TradeTerms(mode="dough", amount=30),
         )
 
         self.assertTrue(success)
@@ -558,15 +508,13 @@ class StorageTests(unittest.TestCase):
         storage.init_db()
         storage.add_dough(guild_id, buyer_id, 100)
 
-        success, message, traded_generation, traded_dupe_code, _ = (
-            storage.execute_trade(
-                guild_id=guild_id,
-                seller_id=seller_id,
-                buyer_id=buyer_id,
-                card_id="SPG",
-                dupe_code="0",
-                terms=TradeTerms(mode="dough", amount=10),
-            )
+        success, message, traded_generation, traded_dupe_code, _ = storage.execute_trade(
+            guild_id=guild_id,
+            seller_id=seller_id,
+            buyer_id=buyer_id,
+            card_id="SPG",
+            dupe_code="0",
+            terms=TradeTerms(mode="dough", amount=10),
         )
 
         self.assertFalse(success)
@@ -593,15 +541,13 @@ class StorageTests(unittest.TestCase):
             return
         _, _, _, selected_dupe_code = selected
 
-        success, message, traded_generation, traded_dupe_code, _ = (
-            storage.execute_trade(
-                guild_id=guild_id,
-                seller_id=seller_id,
-                buyer_id=buyer_id,
-                card_id="SPG",
-                dupe_code=selected_dupe_code,
-                terms=TradeTerms(mode="dough", amount=20),
-            )
+        success, message, traded_generation, traded_dupe_code, _ = storage.execute_trade(
+            guild_id=guild_id,
+            seller_id=seller_id,
+            buyer_id=buyer_id,
+            card_id="SPG",
+            dupe_code=selected_dupe_code,
+            terms=TradeTerms(mode="dough", amount=20),
         )
 
         self.assertFalse(success)
@@ -744,9 +690,7 @@ class StorageTests(unittest.TestCase):
         )
 
         self.assertFalse(success)
-        self.assertEqual(
-            message, "Trade failed: buyer does not have enough drop tickets."
-        )
+        self.assertEqual(message, "Trade failed: buyer does not have enough drop tickets.")
         self.assertIsNone(gen)
         self.assertIsNone(received)
         seller_instances = storage.get_player_card_instances(guild_id, seller_id)
@@ -811,9 +755,7 @@ class StorageTests(unittest.TestCase):
         )
 
         self.assertFalse(success)
-        self.assertEqual(
-            message, "Trade failed: buyer no longer has the requested card."
-        )
+        self.assertEqual(message, "Trade failed: buyer no longer has the requested card.")
         self.assertIsNone(gen)
         self.assertIsNone(received)
         # Seller still has their card
@@ -869,13 +811,11 @@ class StorageTests(unittest.TestCase):
             return
         _, _card_id, _generation, selected_dupe_code = selected
 
-        success, message, gifted_card_id, gifted_generation, gifted_dupe_code = (
-            storage.execute_gift_card(
-                guild_id=guild_id,
-                sender_id=sender_id,
-                recipient_id=recipient_id,
-                card_code=selected_dupe_code,
-            )
+        success, message, gifted_card_id, gifted_generation, gifted_dupe_code = storage.execute_gift_card(
+            guild_id=guild_id,
+            sender_id=sender_id,
+            recipient_id=recipient_id,
+            card_code=selected_dupe_code,
         )
 
         self.assertTrue(success)
@@ -909,13 +849,11 @@ class StorageTests(unittest.TestCase):
             return
         _instance_id, _card_id, _generation, dupe_code = selected
 
-        success, message, gifted_card_id, gifted_generation, gifted_dupe_code = (
-            storage.execute_gift_card(
-                guild_id=guild_id,
-                sender_id=sender_id,
-                recipient_id=recipient_id,
-                card_code=dupe_code,
-            )
+        success, message, gifted_card_id, gifted_generation, gifted_dupe_code = storage.execute_gift_card(
+            guild_id=guild_id,
+            sender_id=sender_id,
+            recipient_id=recipient_id,
+            card_code=dupe_code,
         )
         self.assertTrue(success)
         self.assertEqual(message, "")
@@ -932,13 +870,11 @@ class StorageTests(unittest.TestCase):
         storage.init_db()
         storage.add_starter(guild_id, sender_id, 5)
 
-        gifted, message, sender_balance, recipient_balance = (
-            storage.execute_gift_starter(
-                guild_id=guild_id,
-                sender_id=sender_id,
-                recipient_id=recipient_id,
-                amount=3,
-            )
+        gifted, message, sender_balance, recipient_balance = storage.execute_gift_starter(
+            guild_id=guild_id,
+            sender_id=sender_id,
+            recipient_id=recipient_id,
+            amount=3,
         )
 
         self.assertTrue(gifted)
@@ -956,13 +892,11 @@ class StorageTests(unittest.TestCase):
         storage.init_db()
         storage.add_starter(guild_id, sender_id, 1)
 
-        gifted, message, sender_balance, recipient_balance = (
-            storage.execute_gift_starter(
-                guild_id=guild_id,
-                sender_id=sender_id,
-                recipient_id=recipient_id,
-                amount=2,
-            )
+        gifted, message, sender_balance, recipient_balance = storage.execute_gift_starter(
+            guild_id=guild_id,
+            sender_id=sender_id,
+            recipient_id=recipient_id,
+            amount=2,
         )
 
         self.assertFalse(gifted)
@@ -979,18 +913,14 @@ class StorageTests(unittest.TestCase):
 
         storage.init_db()
         storage.add_starter(guild_id, sender_id, 4)
-        purchased, _starter, _tickets, _spent = storage.buy_drop_tickets_with_starter(
-            guild_id, sender_id, 4
-        )
+        purchased, _starter, _tickets, _spent = storage.buy_drop_tickets_with_starter(guild_id, sender_id, 4)
         self.assertTrue(purchased)
 
-        gifted, message, sender_balance, recipient_balance = (
-            storage.execute_gift_drop_tickets(
-                guild_id=guild_id,
-                sender_id=sender_id,
-                recipient_id=recipient_id,
-                amount=3,
-            )
+        gifted, message, sender_balance, recipient_balance = storage.execute_gift_drop_tickets(
+            guild_id=guild_id,
+            sender_id=sender_id,
+            recipient_id=recipient_id,
+            amount=3,
         )
 
         self.assertTrue(gifted)
@@ -1007,18 +937,14 @@ class StorageTests(unittest.TestCase):
 
         storage.init_db()
         storage.add_starter(guild_id, sender_id, 1)
-        purchased, _starter, _tickets, _spent = storage.buy_drop_tickets_with_starter(
-            guild_id, sender_id, 1
-        )
+        purchased, _starter, _tickets, _spent = storage.buy_drop_tickets_with_starter(guild_id, sender_id, 1)
         self.assertTrue(purchased)
 
-        gifted, message, sender_balance, recipient_balance = (
-            storage.execute_gift_drop_tickets(
-                guild_id=guild_id,
-                sender_id=sender_id,
-                recipient_id=recipient_id,
-                amount=2,
-            )
+        gifted, message, sender_balance, recipient_balance = storage.execute_gift_drop_tickets(
+            guild_id=guild_id,
+            sender_id=sender_id,
+            recipient_id=recipient_id,
+            amount=2,
         )
 
         self.assertFalse(gifted)
@@ -1076,23 +1002,17 @@ class StorageTests(unittest.TestCase):
         storage.add_card_to_player(guild_id, first_user, card_id, 120)
         storage.add_card_to_player(guild_id, second_user, card_id, 130)
 
-        first_success, first_message, _, _ = storage.marry_card(
-            guild_id, first_user, card_id
-        )
+        first_success, first_message, _, _ = storage.marry_card(guild_id, first_user, card_id)
         self.assertTrue(first_success)
         self.assertEqual(first_message, "")
 
-        second_success, second_message, second_instance_id, second_generation = (
-            storage.marry_card(
-                guild_id,
-                second_user,
-                card_id,
-            )
+        second_success, second_message, second_instance_id, second_generation = storage.marry_card(
+            guild_id,
+            second_user,
+            card_id,
         )
         self.assertFalse(second_success)
-        self.assertEqual(
-            second_message, "That card is already married by another player."
-        )
+        self.assertEqual(second_message, "That card is already married by another player.")
         self.assertIsNone(second_instance_id)
         self.assertIsNone(second_generation)
 
@@ -1107,9 +1027,7 @@ class StorageTests(unittest.TestCase):
         first_instance_id = storage.add_card_to_player(guild_id, user_id, card_id, 100)
         second_instance_id = storage.add_card_to_player(guild_id, user_id, card_id, 200)
 
-        success, message, _, _, _ = storage.marry_card_instance(
-            guild_id, user_id, first_instance_id
-        )
+        success, message, _, _, _ = storage.marry_card_instance(guild_id, user_id, first_instance_id)
         self.assertTrue(success)
         self.assertEqual(message, "")
 
@@ -1125,9 +1043,7 @@ class StorageTests(unittest.TestCase):
             second_instance_id,
         )
         self.assertFalse(second_success)
-        self.assertEqual(
-            second_message, "You are already married. Use `ns divorce` first."
-        )
+        self.assertEqual(second_message, "You are already married. Use `ns divorce` first.")
         self.assertIsNone(second_card_id)
         self.assertIsNone(second_generation)
         self.assertIsNone(second_dupe_code)
@@ -1192,15 +1108,13 @@ class StorageTests(unittest.TestCase):
         _instance_id, _card_id, _generation, dupe_code = selected
 
         storage.add_dough(guild_id, buyer_id, 100)
-        success, message, traded_generation, traded_dupe_code, _ = (
-            storage.execute_trade(
-                guild_id=guild_id,
-                seller_id=seller_id,
-                buyer_id=buyer_id,
-                card_id=card_id,
-                dupe_code=dupe_code,
-                terms=TradeTerms(mode="dough", amount=10),
-            )
+        success, message, traded_generation, traded_dupe_code, _ = storage.execute_trade(
+            guild_id=guild_id,
+            seller_id=seller_id,
+            buyer_id=buyer_id,
+            card_id=card_id,
+            dupe_code=dupe_code,
+            terms=TradeTerms(mode="dough", amount=10),
         )
         self.assertTrue(success)
         self.assertEqual(message, "")
@@ -1265,15 +1179,9 @@ class StorageTests(unittest.TestCase):
             return
         _found_instance_id, _card_id, _generation, dupe_code = instance
 
-        by_plain_code = storage.get_instance_by_code(
-            guild_id, user_id, dupe_code.upper()
-        )
-        by_hash_code = storage.get_instance_by_code(
-            guild_id, user_id, f"#{dupe_code.upper()}"
-        )
-        by_hash_global = storage.get_instance_by_dupe_code(
-            guild_id, f"#{dupe_code.upper()}"
-        )
+        by_plain_code = storage.get_instance_by_code(guild_id, user_id, dupe_code.upper())
+        by_hash_code = storage.get_instance_by_code(guild_id, user_id, f"#{dupe_code.upper()}")
+        by_hash_global = storage.get_instance_by_dupe_code(guild_id, f"#{dupe_code.upper()}")
 
         self.assertEqual(by_plain_code, by_hash_code)
         self.assertIsNotNone(by_hash_global)
@@ -1287,9 +1195,7 @@ class StorageTests(unittest.TestCase):
             global_generation,
             global_dupe_code,
         ) = by_hash_global
-        plain_instance_id, plain_card_id, plain_generation, plain_dupe_code = (
-            by_plain_code
-        )
+        plain_instance_id, plain_card_id, plain_generation, plain_dupe_code = by_plain_code
         self.assertEqual(global_user_id, user_id)
         self.assertEqual(
             (global_instance_id, global_card_id, global_generation, global_dupe_code),
@@ -1320,9 +1226,7 @@ class StorageTests(unittest.TestCase):
         storage.init_db()
 
         with closing(sqlite3.connect(storage.DB_PATH)) as conn:
-            version_row = conn.execute(
-                "SELECT version FROM schema_migrations LIMIT 1"
-            ).fetchone()
+            version_row = conn.execute("SELECT version FROM schema_migrations LIMIT 1").fetchone()
             self.assertIsNotNone(version_row)
             self.assertEqual(int(version_row[0]), storage.TARGET_SCHEMA_VERSION)
 
@@ -1330,9 +1234,7 @@ class StorageTests(unittest.TestCase):
             column_names = {str(column[1]) for column in columns}
             self.assertIn("dupe_code", column_names)
 
-            index_row = conn.execute(
-                "SELECT name FROM sqlite_master WHERE type = 'index' AND name = 'idx_card_instances_dupe_code'"
-            ).fetchone()
+            index_row = conn.execute("SELECT name FROM sqlite_master WHERE type = 'index' AND name = 'idx_card_instances_dupe_code'").fetchone()
             self.assertIsNotNone(index_row)
 
     def test_wishlist_add_remove_and_read(self) -> None:
@@ -1376,9 +1278,7 @@ class StorageTests(unittest.TestCase):
         )
         self.assertTrue(applied)
         self.assertEqual(message, "")
-        self.assertEqual(
-            storage.get_instance_morph(guild_id, instance_id), "black_and_white"
-        )
+        self.assertEqual(storage.get_instance_morph(guild_id, instance_id), "black_and_white")
 
         dough, _, _ = storage.get_player_info(guild_id, user_id)
         self.assertEqual(dough, 41)
@@ -1520,9 +1420,7 @@ class StorageTests(unittest.TestCase):
         listed = storage.list_player_tags(guild_id, user_id)
         self.assertEqual(listed, [("favorites", False, 0)])
 
-        self.assertTrue(
-            storage.set_player_tag_locked(guild_id, user_id, "Favorites", True)
-        )
+        self.assertTrue(storage.set_player_tag_locked(guild_id, user_id, "Favorites", True))
         listed_after_lock = storage.list_player_tags(guild_id, user_id)
         self.assertEqual(listed_after_lock, [("favorites", True, 0)])
 
@@ -1537,23 +1435,15 @@ class StorageTests(unittest.TestCase):
         instance_id = storage.add_card_to_player(guild_id, user_id, "SPG", 111)
         storage.create_player_tag(guild_id, user_id, "food")
 
-        self.assertTrue(
-            storage.assign_tag_to_instance(guild_id, user_id, instance_id, "food")
-        )
-        self.assertFalse(
-            storage.assign_tag_to_instance(guild_id, user_id, instance_id, "food")
-        )
+        self.assertTrue(storage.assign_tag_to_instance(guild_id, user_id, instance_id, "food"))
+        self.assertFalse(storage.assign_tag_to_instance(guild_id, user_id, instance_id, "food"))
 
         tagged = storage.get_instances_by_tag(guild_id, user_id, "food")
         self.assertEqual(len(tagged), 1)
         self.assertEqual(tagged[0][0], instance_id)
 
-        self.assertTrue(
-            storage.unassign_tag_from_instance(guild_id, user_id, instance_id, "food")
-        )
-        self.assertFalse(
-            storage.unassign_tag_from_instance(guild_id, user_id, instance_id, "food")
-        )
+        self.assertTrue(storage.unassign_tag_from_instance(guild_id, user_id, instance_id, "food"))
+        self.assertFalse(storage.unassign_tag_from_instance(guild_id, user_id, instance_id, "food"))
 
     def test_locked_tag_blocks_burn(self) -> None:
         guild_id = 1
@@ -1565,9 +1455,7 @@ class StorageTests(unittest.TestCase):
         storage.assign_tag_to_instance(guild_id, user_id, instance_id, "keep")
         storage.set_player_tag_locked(guild_id, user_id, "keep", True)
 
-        locked_tags = storage.get_locked_tags_for_instance(
-            guild_id, user_id, instance_id
-        )
+        locked_tags = storage.get_locked_tags_for_instance(guild_id, user_id, instance_id)
         self.assertEqual(locked_tags, ["keep"])
 
         burned = storage.burn_instance(guild_id, user_id, instance_id)
@@ -1587,9 +1475,7 @@ class StorageTests(unittest.TestCase):
         storage.assign_tag_to_instance(guild_id, user_id, locked_instance, "keep")
         storage.set_player_tag_locked(guild_id, user_id, "keep", True)
 
-        burned_rows, locked_by_instance = storage.burn_instances(
-            guild_id, user_id, [open_instance, locked_instance]
-        )
+        burned_rows, locked_by_instance = storage.burn_instances(guild_id, user_id, [open_instance, locked_instance])
 
         self.assertIsNone(burned_rows)
         self.assertIn(locked_instance, locked_by_instance)
@@ -1623,15 +1509,11 @@ class StorageTests(unittest.TestCase):
         ]
 
         for instance_id in instance_ids[:3]:
-            success, message = storage.assign_instance_to_team(
-                guild_id, user_id, instance_id, "alpha"
-            )
+            success, message = storage.assign_instance_to_team(guild_id, user_id, instance_id, "alpha")
             self.assertTrue(success)
             self.assertEqual(message, "")
 
-        success, message = storage.assign_instance_to_team(
-            guild_id, user_id, instance_ids[3], "alpha"
-        )
+        success, message = storage.assign_instance_to_team(guild_id, user_id, instance_ids[3], "alpha")
         self.assertFalse(success)
         self.assertEqual(message, "Team capacity reached (3 cards max).")
 
@@ -1663,26 +1545,16 @@ class StorageTests(unittest.TestCase):
         storage.set_active_team(guild_id, challenger_id, "a")
         storage.set_active_team(guild_id, challenged_id, "b")
 
-        challenger_instance = storage.add_card_to_player(
-            guild_id, challenger_id, "SPG", 120
-        )
-        challenged_instance = storage.add_card_to_player(
-            guild_id, challenged_id, "PEN", 340
-        )
-        storage.assign_instance_to_team(
-            guild_id, challenger_id, challenger_instance, "a"
-        )
-        storage.assign_instance_to_team(
-            guild_id, challenged_id, challenged_instance, "b"
-        )
+        challenger_instance = storage.add_card_to_player(guild_id, challenger_id, "SPG", 120)
+        challenged_instance = storage.add_card_to_player(guild_id, challenged_id, "PEN", 340)
+        storage.assign_instance_to_team(guild_id, challenger_id, challenger_instance, "a")
+        storage.assign_instance_to_team(guild_id, challenged_id, challenged_instance, "b")
 
-        created, message, battle_id, challenger_team, challenged_team = (
-            storage.create_battle_proposal(
-                guild_id,
-                challenger_id,
-                challenged_id,
-                25,
-            )
+        created, message, battle_id, challenger_team, challenged_team = storage.create_battle_proposal(
+            guild_id,
+            challenger_id,
+            challenged_id,
+            25,
         )
         self.assertTrue(created)
         self.assertEqual(message, "")
@@ -1701,9 +1573,7 @@ class StorageTests(unittest.TestCase):
                 accepted=True,
             )
         self.assertEqual(status, "accepted")
-        self.assertEqual(
-            resolve_message, "Battle accepted. The battle arena is now active."
-        )
+        self.assertEqual(resolve_message, "Battle accepted. The battle arena is now active.")
 
         battle = storage.get_battle_session(guild_id, battle_id)
         self.assertIsNotNone(battle)
@@ -1763,26 +1633,20 @@ class StorageTests(unittest.TestCase):
             "b",
         )
 
-        created, _msg, battle_id, _a, _b = storage.create_battle_proposal(
-            guild_id, challenger_id, challenged_id, 10
-        )
+        created, _msg, battle_id, _a, _b = storage.create_battle_proposal(guild_id, challenger_id, challenged_id, 10)
         self.assertTrue(created)
         self.assertIsNotNone(battle_id)
         if battle_id is None:
             return
         with patch("noodswap.storage.random.choice", return_value=challenger_id):
-            status, _accept_msg = storage.resolve_battle_proposal(
-                guild_id, battle_id, challenged_id, accepted=True
-            )
+            status, _accept_msg = storage.resolve_battle_proposal(guild_id, battle_id, challenged_id, accepted=True)
         self.assertEqual(status, "accepted")
 
-        action_status, _action_message, _winner_id, next_actor_id = (
-            storage.execute_battle_turn_action(
-                guild_id,
-                battle_id,
-                challenger_id,
-                "attack",
-            )
+        action_status, _action_message, _winner_id, next_actor_id = storage.execute_battle_turn_action(
+            guild_id,
+            battle_id,
+            challenger_id,
+            "attack",
         )
         self.assertIn(action_status, {"advanced", "finished"})
         if action_status == "advanced":
@@ -1819,26 +1683,20 @@ class StorageTests(unittest.TestCase):
             "b",
         )
 
-        created, _msg, battle_id, _a, _b = storage.create_battle_proposal(
-            guild_id, challenger_id, challenged_id, 25
-        )
+        created, _msg, battle_id, _a, _b = storage.create_battle_proposal(guild_id, challenger_id, challenged_id, 25)
         self.assertTrue(created)
         self.assertIsNotNone(battle_id)
         if battle_id is None:
             return
         with patch("noodswap.storage.random.choice", return_value=challenger_id):
-            status, _accept_msg = storage.resolve_battle_proposal(
-                guild_id, battle_id, challenged_id, accepted=True
-            )
+            status, _accept_msg = storage.resolve_battle_proposal(guild_id, battle_id, challenged_id, accepted=True)
         self.assertEqual(status, "accepted")
 
-        action_status, _action_message, winner_id, _next_actor = (
-            storage.execute_battle_turn_action(
-                guild_id,
-                battle_id,
-                challenger_id,
-                "surrender",
-            )
+        action_status, _action_message, winner_id, _next_actor = storage.execute_battle_turn_action(
+            guild_id,
+            battle_id,
+            challenger_id,
+            "surrender",
         )
         self.assertEqual(action_status, "finished")
         self.assertEqual(winner_id, challenged_id)
@@ -1865,44 +1723,30 @@ class StorageTests(unittest.TestCase):
         storage.set_active_team(guild_id, challenged_id, "b")
         storage.set_active_team(guild_id, third_user_id, "c")
 
-        challenger_instance = storage.add_card_to_player(
-            guild_id, challenger_id, "SPG", 100
-        )
-        challenged_instance = storage.add_card_to_player(
-            guild_id, challenged_id, "PEN", 101
-        )
+        challenger_instance = storage.add_card_to_player(guild_id, challenger_id, "SPG", 100)
+        challenged_instance = storage.add_card_to_player(guild_id, challenged_id, "PEN", 101)
         third_instance = storage.add_card_to_player(guild_id, third_user_id, "FUS", 102)
-        storage.assign_instance_to_team(
-            guild_id, challenger_id, challenger_instance, "a"
-        )
-        storage.assign_instance_to_team(
-            guild_id, challenged_id, challenged_instance, "b"
-        )
+        storage.assign_instance_to_team(guild_id, challenger_id, challenger_instance, "a")
+        storage.assign_instance_to_team(guild_id, challenged_id, challenged_instance, "b")
         storage.assign_instance_to_team(guild_id, third_user_id, third_instance, "c")
 
-        created, _message, battle_id, _challenger_team, _challenged_team = (
-            storage.create_battle_proposal(
-                guild_id,
-                challenger_id,
-                challenged_id,
-                10,
-            )
+        created, _message, battle_id, _challenger_team, _challenged_team = storage.create_battle_proposal(
+            guild_id,
+            challenger_id,
+            challenged_id,
+            10,
         )
         self.assertTrue(created)
         self.assertIsNotNone(battle_id)
 
-        created_second, message_second, _battle_id_second, _team_a, _team_c = (
-            storage.create_battle_proposal(
-                guild_id,
-                challenger_id,
-                third_user_id,
-                10,
-            )
+        created_second, message_second, _battle_id_second, _team_a, _team_c = storage.create_battle_proposal(
+            guild_id,
+            challenger_id,
+            third_user_id,
+            10,
         )
         self.assertFalse(created_second)
-        self.assertEqual(
-            message_second, "You already have an active or pending battle."
-        )
+        self.assertEqual(message_second, "You already have an active or pending battle.")
 
     def test_end_open_battles_for_shutdown_closes_pending_and_active(self) -> None:
         guild_id = 1
@@ -1927,39 +1771,21 @@ class StorageTests(unittest.TestCase):
         storage.set_active_team(guild_id, pending_challenger_id, "c")
         storage.set_active_team(guild_id, pending_challenged_id, "d")
 
-        challenger_instance = storage.add_card_to_player(
-            guild_id, challenger_id, "SPG", 120
-        )
-        challenged_instance = storage.add_card_to_player(
-            guild_id, challenged_id, "PEN", 340
-        )
-        storage.assign_instance_to_team(
-            guild_id, challenger_id, challenger_instance, "a"
-        )
-        storage.assign_instance_to_team(
-            guild_id, challenged_id, challenged_instance, "b"
-        )
+        challenger_instance = storage.add_card_to_player(guild_id, challenger_id, "SPG", 120)
+        challenged_instance = storage.add_card_to_player(guild_id, challenged_id, "PEN", 340)
+        storage.assign_instance_to_team(guild_id, challenger_id, challenger_instance, "a")
+        storage.assign_instance_to_team(guild_id, challenged_id, challenged_instance, "b")
 
-        pending_challenger_instance = storage.add_card_to_player(
-            guild_id, pending_challenger_id, "FUS", 123
-        )
-        pending_challenged_instance = storage.add_card_to_player(
-            guild_id, pending_challenged_id, "MAC", 456
-        )
-        storage.assign_instance_to_team(
-            guild_id, pending_challenger_id, pending_challenger_instance, "c"
-        )
-        storage.assign_instance_to_team(
-            guild_id, pending_challenged_id, pending_challenged_instance, "d"
-        )
+        pending_challenger_instance = storage.add_card_to_player(guild_id, pending_challenger_id, "FUS", 123)
+        pending_challenged_instance = storage.add_card_to_player(guild_id, pending_challenged_id, "MAC", 456)
+        storage.assign_instance_to_team(guild_id, pending_challenger_id, pending_challenger_instance, "c")
+        storage.assign_instance_to_team(guild_id, pending_challenged_id, pending_challenged_instance, "d")
 
-        created_pending, _msg, pending_battle_id, _a, _b = (
-            storage.create_battle_proposal(
-                guild_id,
-                challenger_id,
-                challenged_id,
-                10,
-            )
+        created_pending, _msg, pending_battle_id, _a, _b = storage.create_battle_proposal(
+            guild_id,
+            challenger_id,
+            challenged_id,
+            10,
         )
         self.assertTrue(created_pending)
         self.assertIsNotNone(pending_battle_id)
@@ -1974,13 +1800,11 @@ class StorageTests(unittest.TestCase):
         )
         self.assertEqual(status, "denied")
 
-        created_pending_open, _msg, pending_open_battle_id, _a, _b = (
-            storage.create_battle_proposal(
-                guild_id,
-                pending_challenger_id,
-                pending_challenged_id,
-                9,
-            )
+        created_pending_open, _msg, pending_open_battle_id, _a, _b = storage.create_battle_proposal(
+            guild_id,
+            pending_challenger_id,
+            pending_challenged_id,
+            9,
         )
         self.assertTrue(created_pending_open)
         self.assertIsNotNone(pending_open_battle_id)
@@ -2007,13 +1831,11 @@ class StorageTests(unittest.TestCase):
             )
         self.assertEqual(status, "accepted")
 
-        created_new_pending, _msg, new_pending_battle_id, _a, _b = (
-            storage.create_battle_proposal(
-                guild_id,
-                challenger_id,
-                challenged_id,
-                20,
-            )
+        created_new_pending, _msg, new_pending_battle_id, _a, _b = storage.create_battle_proposal(
+            guild_id,
+            challenger_id,
+            challenged_id,
+            20,
         )
         self.assertFalse(created_new_pending)
         self.assertIsNone(new_pending_battle_id)
@@ -2025,26 +1847,20 @@ class StorageTests(unittest.TestCase):
         self.assertIsNotNone(active_battle)
         if active_battle is not None:
             self.assertEqual(active_battle["status"], "finished")
-            self.assertEqual(
-                active_battle["last_action"], "Battle ended: bot shutdown."
-            )
+            self.assertEqual(active_battle["last_action"], "Battle ended: bot shutdown.")
             self.assertIsNone(active_battle["acting_user_id"])
 
         pending_battle = storage.get_battle_session(guild_id, pending_open_battle_id)
         self.assertIsNotNone(pending_battle)
         if pending_battle is not None:
             self.assertEqual(pending_battle["status"], "finished")
-            self.assertEqual(
-                pending_battle["last_action"], "Battle ended: bot shutdown."
-            )
+            self.assertEqual(pending_battle["last_action"], "Battle ended: bot shutdown.")
 
-        created_after_shutdown, message_after_shutdown, _battle_id, _a, _b = (
-            storage.create_battle_proposal(
-                guild_id,
-                challenger_id,
-                challenged_id,
-                20,
-            )
+        created_after_shutdown, message_after_shutdown, _battle_id, _a, _b = storage.create_battle_proposal(
+            guild_id,
+            challenger_id,
+            challenged_id,
+            20,
         )
         self.assertTrue(created_after_shutdown)
         self.assertEqual(message_after_shutdown, "")

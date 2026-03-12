@@ -120,13 +120,9 @@ def build_rarity_weights(
         resolved_shape = shape
         if resolved_shape is None:
             if growth_ratio is None:
-                raise ValueError(
-                    "linear_rate is required when shape/growth_ratio are not provided"
-                )
+                raise ValueError("linear_rate is required when shape/growth_ratio are not provided")
             resolved_shape = _shape_from_legacy_growth_ratio(growth_ratio, rarity_count)
-        resolved_linear_rate = _linear_rate_from_power_shape(
-            resolved_shape, rarity_count
-        )
+        resolved_linear_rate = _linear_rate_from_power_shape(resolved_shape, rarity_count)
 
     if resolved_linear_rate <= 0.0:
         raise ValueError("linear_rate must be > 0.0")
@@ -141,16 +137,11 @@ def build_rarity_weights(
 
     steepness_scale = 1.0 / (1.0 + smoothing)
     raw_rarest_to_common = [
-        exp(
-            (resolved_linear_rate * steepness_scale * (index + 1))
-            + (tail_curvature * steepness_scale * (index + 1) ** 2)
-        )
+        exp((resolved_linear_rate * steepness_scale * (index + 1)) + (tail_curvature * steepness_scale * (index + 1) ** 2))
         for index in range(rarity_count)
     ]
     raw_total = sum(raw_rarest_to_common)
-    scaled_rarest_to_common = [
-        value * total_weight / raw_total for value in raw_rarest_to_common
-    ]
+    scaled_rarest_to_common = [value * total_weight / raw_total for value in raw_rarest_to_common]
     floored_rarest_to_common = [int(floor(value)) for value in scaled_rarest_to_common]
     remainder = total_weight - sum(floored_rarest_to_common)
 

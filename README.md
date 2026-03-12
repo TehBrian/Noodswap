@@ -9,7 +9,7 @@ Discord trading-card style bot using `discord.py`.
    ```bash
    pip install -r requirements.txt
    ```
-   For development checks (including `pylint`), install dev dependencies:
+   For development checks (including `ruff`), install dev dependencies:
    ```bash
    pip install -r requirements-dev.txt
    ```
@@ -38,7 +38,7 @@ Discord trading-card style bot using `discord.py`.
 
 ### What is included
 
-- CI: `.github/workflows/ci.yml` runs `pylint`, compile, migration smoke, and unit tests on push/PR.
+- CI: `.github/workflows/ci.yml` runs `ruff`, compile, migration smoke, and unit tests on push/PR.
 - CD image publish: `.github/workflows/cd.yml` builds and pushes GHCR images after CI passes on `main`.
 - Host deploy: `.github/workflows/deploy.yml` runs on GitHub-hosted runners and deploys to Ubuntu over SSH, pinned to commit SHA image tags.
 

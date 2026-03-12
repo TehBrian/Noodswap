@@ -44,23 +44,15 @@ def normalize_trait_rarity(rarity: str | None) -> str:
 
 def trait_rarity_multiplier(rarity: str | None) -> float:
     normalized = normalize_trait_rarity(rarity)
-    return TRAIT_RARITY_MULTIPLIERS.get(
-        normalized, TRAIT_RARITY_MULTIPLIERS[_DEFAULT_TRAIT_RARITY]
-    )
+    return TRAIT_RARITY_MULTIPLIERS.get(normalized, TRAIT_RARITY_MULTIPLIERS[_DEFAULT_TRAIT_RARITY])
 
 
 def trait_rarity_weight(rarity: str | None) -> int:
     normalized = normalize_trait_rarity(rarity)
-    return int(
-        TRAIT_RARITY_WEIGHTS.get(
-            normalized, TRAIT_RARITY_WEIGHTS[_DEFAULT_TRAIT_RARITY]
-        )
-    )
+    return int(TRAIT_RARITY_WEIGHTS.get(normalized, TRAIT_RARITY_WEIGHTS[_DEFAULT_TRAIT_RARITY]))
 
 
-def weighted_trait_choice(
-    options: Sequence[T], rarity_for_option: Callable[[T], str]
-) -> T:
+def weighted_trait_choice(options: Sequence[T], rarity_for_option: Callable[[T], str]) -> T:
     if not options:
         raise ValueError("options must be non-empty")
     if len(options) == 1:

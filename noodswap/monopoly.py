@@ -42,7 +42,7 @@ RARITY_GROUP_ORDER = (
 
 
 BOARD_SPACES: tuple[MonopolySpace, ...] = (
-    MonopolySpace(0, "GO", "go", "➡️"),
+    MonopolySpace(0, "GO", "go", "⬅️"),
     MonopolySpace(1, "Common Property", "property", "⬜", "common"),
     MonopolySpace(2, "Community Charcuterie", "community", "🧺"),
     MonopolySpace(3, "Common Property", "property", "⬜", "common"),
@@ -86,175 +86,79 @@ BOARD_SPACES: tuple[MonopolySpace, ...] = (
 
 
 COMMUNITY_CHARCUTERIE_CARDS: tuple[MonopolyCard, ...] = (
-    MonopolyCard(
-        "Local nonna adopts you for Sunday dinner. Collect 700 dough.", dough_delta=700
-    ),
-    MonopolyCard(
-        "Your focaccia starter went viral. Collect 850 dough.", dough_delta=850
-    ),
-    MonopolyCard(
-        "You won best pesto swirl in town. Collect 600 dough.", dough_delta=600
-    ),
+    MonopolyCard("Local nonna adopts you for Sunday dinner. Collect 700 dough.", dough_delta=700),
+    MonopolyCard("Your focaccia starter went viral. Collect 850 dough.", dough_delta=850),
+    MonopolyCard("You won best pesto swirl in town. Collect 600 dough.", dough_delta=600),
     MonopolyCard("Cheese wheel raffle winner. Collect 900 dough.", dough_delta=900),
-    MonopolyCard(
-        "A kind barista comped your espresso cart. Collect 500 dough.", dough_delta=500
-    ),
-    MonopolyCard(
-        "You hosted a pasta masterclass. Collect 1000 dough.", dough_delta=1000
-    ),
-    MonopolyCard(
-        "Mamma mailed emergency biscotti funds. Collect 450 dough.", dough_delta=450
-    ),
-    MonopolyCard(
-        "You found a truffle under your scooter. Collect 1100 dough.", dough_delta=1100
-    ),
-    MonopolyCard(
-        "Your ravioli tutorial got sponsored. Collect 750 dough.", dough_delta=750
-    ),
-    MonopolyCard(
-        "Town festival gave you a sauce grant. Collect 800 dough.", dough_delta=800
-    ),
-    MonopolyCard(
-        "A parmesan wheel rolled to your doorstep. Collect 650 dough.", dough_delta=650
-    ),
-    MonopolyCard(
-        "You catered an opera intermission. Collect 950 dough.", dough_delta=950
-    ),
-    MonopolyCard(
-        "A chef borrowed your zester and paid rent. Collect 550 dough.", dough_delta=550
-    ),
-    MonopolyCard(
-        "You sold limoncello pops at sunrise. Collect 500 dough.", dough_delta=500
-    ),
+    MonopolyCard("A kind barista comped your espresso cart. Collect 500 dough.", dough_delta=500),
+    MonopolyCard("You hosted a pasta masterclass. Collect 1000 dough.", dough_delta=1000),
+    MonopolyCard("Mamma mailed emergency biscotti funds. Collect 450 dough.", dough_delta=450),
+    MonopolyCard("You found a truffle under your scooter. Collect 1100 dough.", dough_delta=1100),
+    MonopolyCard("Your ravioli tutorial got sponsored. Collect 750 dough.", dough_delta=750),
+    MonopolyCard("Town festival gave you a sauce grant. Collect 800 dough.", dough_delta=800),
+    MonopolyCard("A parmesan wheel rolled to your doorstep. Collect 650 dough.", dough_delta=650),
+    MonopolyCard("You catered an opera intermission. Collect 950 dough.", dough_delta=950),
+    MonopolyCard("A chef borrowed your zester and paid rent. Collect 550 dough.", dough_delta=550),
+    MonopolyCard("You sold limoncello pops at sunrise. Collect 500 dough.", dough_delta=500),
     MonopolyCard("Your gnocchi cloud art trended. Collect 700 dough.", dough_delta=700),
-    MonopolyCard(
-        "Grand opening ribbon-cutting bonus. Collect 900 dough.", dough_delta=900
-    ),
-    MonopolyCard(
-        "A mozzarella moon blessed your pantry. Collect 1200 dough.", dough_delta=1200
-    ),
-    MonopolyCard(
-        "You taught toddlers to roll cannoli. Collect 650 dough.", dough_delta=650
-    ),
-    MonopolyCard(
-        "Secret tiramisu investor appears. Collect 1300 dough.", dough_delta=1300
-    ),
-    MonopolyCard(
-        "A vineyard sent gratitude crates. Collect 1000 dough.", dough_delta=1000
-    ),
+    MonopolyCard("Grand opening ribbon-cutting bonus. Collect 900 dough.", dough_delta=900),
+    MonopolyCard("A mozzarella moon blessed your pantry. Collect 1200 dough.", dough_delta=1200),
+    MonopolyCard("You taught toddlers to roll cannoli. Collect 650 dough.", dough_delta=650),
+    MonopolyCard("Secret tiramisu investor appears. Collect 1300 dough.", dough_delta=1300),
+    MonopolyCard("A vineyard sent gratitude crates. Collect 1000 dough.", dough_delta=1000),
     MonopolyCard("Basil crop looked immaculate. Collect 550 dough.", dough_delta=550),
     MonopolyCard("Your apron got a museum grant. Collect 750 dough.", dough_delta=750),
-    MonopolyCard(
-        "You won the marinara marathon. Collect 1000 dough.", dough_delta=1000
-    ),
-    MonopolyCard(
-        "Neighborhood pasta swap success. Collect 600 dough.", dough_delta=600
-    ),
-    MonopolyCard(
-        "You received a lucky olive branch. Collect 700 dough.", dough_delta=700
-    ),
-    MonopolyCard(
-        "A food critic left a giant tip. Collect 1400 dough.", dough_delta=1400
-    ),
-    MonopolyCard(
-        "Street accordionist paid royalties. Collect 500 dough.", dough_delta=500
-    ),
-    MonopolyCard(
-        "You discovered premium semolina stock. Collect 800 dough.", dough_delta=800
-    ),
-    MonopolyCard(
-        "A tiny trattoria bought your recipe. Collect 900 dough.", dough_delta=900
-    ),
+    MonopolyCard("You won the marinara marathon. Collect 1000 dough.", dough_delta=1000),
+    MonopolyCard("Neighborhood pasta swap success. Collect 600 dough.", dough_delta=600),
+    MonopolyCard("You received a lucky olive branch. Collect 700 dough.", dough_delta=700),
+    MonopolyCard("A food critic left a giant tip. Collect 1400 dough.", dough_delta=1400),
+    MonopolyCard("Street accordionist paid royalties. Collect 500 dough.", dough_delta=500),
+    MonopolyCard("You discovered premium semolina stock. Collect 800 dough.", dough_delta=800),
+    MonopolyCard("A tiny trattoria bought your recipe. Collect 900 dough.", dough_delta=900),
     MonopolyCard("You won regional garlic games. Collect 950 dough.", dough_delta=950),
     MonopolyCard(
         "A Ferris wheel of provolone paid dividends. Collect 1100 dough.",
         dough_delta=1100,
     ),
-    MonopolyCard(
-        "You found your lucky wooden spoon. Collect 650 dough.", dough_delta=650
-    ),
-    MonopolyCard(
-        "Community bake sale overperformed. Collect 700 dough.", dough_delta=700
-    ),
-    MonopolyCard(
-        "Chef internship stipend arrived. Collect 500 dough.", dough_delta=500
-    ),
-    MonopolyCard(
-        "Late-night carbonara hotline bonus. Collect 850 dough.", dough_delta=850
-    ),
-    MonopolyCard(
-        "A sommelier funded your menu redesign. Collect 1200 dough.", dough_delta=1200
-    ),
-    MonopolyCard(
-        "Pantry insurance paid out generously. Collect 1000 dough.", dough_delta=1000
-    ),
-    MonopolyCard(
-        "A golden ladle ceremony honored you. Gain 1 drop ticket.", drop_tickets_delta=1
-    ),
+    MonopolyCard("You found your lucky wooden spoon. Collect 650 dough.", dough_delta=650),
+    MonopolyCard("Community bake sale overperformed. Collect 700 dough.", dough_delta=700),
+    MonopolyCard("Chef internship stipend arrived. Collect 500 dough.", dough_delta=500),
+    MonopolyCard("Late-night carbonara hotline bonus. Collect 850 dough.", dough_delta=850),
+    MonopolyCard("A sommelier funded your menu redesign. Collect 1200 dough.", dough_delta=1200),
+    MonopolyCard("Pantry insurance paid out generously. Collect 1000 dough.", dough_delta=1000),
+    MonopolyCard("A golden ladle ceremony honored you. Gain 1 drop ticket.", drop_tickets_delta=1),
     MonopolyCard("VIP pasta pass unlocked. Gain 1 drop ticket.", drop_tickets_delta=1),
-    MonopolyCard(
-        "You inherited a sacred sourdough starter. Gain 1 starter.", starter_delta=1
-    ),
+    MonopolyCard("You inherited a sacred sourdough starter. Gain 1 starter.", starter_delta=1),
 )
 
 
 CHEESE_CHANCE_CARDS: tuple[MonopolyCard, ...] = (
-    MonopolyCard(
-        "You spilled truffle oil on your taxes. Lose 800 dough.", dough_delta=-800
-    ),
-    MonopolyCard(
-        "A raccoon stole your ravioli tray. Lose 600 dough.", dough_delta=-600
-    ),
+    MonopolyCard("You spilled truffle oil on your taxes. Lose 800 dough.", dough_delta=-800),
+    MonopolyCard("A raccoon stole your ravioli tray. Lose 600 dough.", dough_delta=-600),
     MonopolyCard("Emergency cheese import tariff. Lose 900 dough.", dough_delta=-900),
-    MonopolyCard(
-        "You over-salted a wedding buffet. Lose 1000 dough.", dough_delta=-1000
-    ),
-    MonopolyCard(
-        "Pasta machine repair bill arrived. Lose 700 dough.", dough_delta=-700
-    ),
-    MonopolyCard(
-        "A parmesan avalanche wrecked your cart. Lose 1200 dough.", dough_delta=-1200
-    ),
+    MonopolyCard("You over-salted a wedding buffet. Lose 1000 dough.", dough_delta=-1000),
+    MonopolyCard("Pasta machine repair bill arrived. Lose 700 dough.", dough_delta=-700),
+    MonopolyCard("A parmesan avalanche wrecked your cart. Lose 1200 dough.", dough_delta=-1200),
     MonopolyCard("Your chef hat flew into traffic. Lose 500 dough.", dough_delta=-500),
     MonopolyCard("Kitchen inspection found chaos. Lose 850 dough.", dough_delta=-850),
-    MonopolyCard(
-        "You paid premium olive oil penalties. Lose 650 dough.", dough_delta=-650
-    ),
+    MonopolyCard("You paid premium olive oil penalties. Lose 650 dough.", dough_delta=-650),
     MonopolyCard("Cursed cannoli cream incident. Lose 750 dough.", dough_delta=-750),
-    MonopolyCard(
-        "You tipped every gondolier at once. Lose 1100 dough.", dough_delta=-1100
-    ),
+    MonopolyCard("You tipped every gondolier at once. Lose 1100 dough.", dough_delta=-1100),
     MonopolyCard("Burnt basil compensation payout. Lose 550 dough.", dough_delta=-550),
-    MonopolyCard(
-        "Your pasta press jammed at dinner rush. Lose 950 dough.", dough_delta=-950
-    ),
-    MonopolyCard(
-        "A mozzarella heist struck overnight. Lose 1300 dough.", dough_delta=-1300
-    ),
-    MonopolyCard(
-        "You paid hush money for bad tiramisu. Lose 700 dough.", dough_delta=-700
-    ),
+    MonopolyCard("Your pasta press jammed at dinner rush. Lose 950 dough.", dough_delta=-950),
+    MonopolyCard("A mozzarella heist struck overnight. Lose 1300 dough.", dough_delta=-1300),
+    MonopolyCard("You paid hush money for bad tiramisu. Lose 700 dough.", dough_delta=-700),
     MonopolyCard("Go directly to jail. Do not pass GO.", go_to_jail=True),
     MonopolyCard("Carb-speeding ticket: go to jail immediately.", go_to_jail=True),
-    MonopolyCard(
-        "Inspector reset one of your command cooldowns.", reset_random_cooldown=True
-    ),
-    MonopolyCard(
-        "You forgot to preheat. Random cooldown reset.", reset_random_cooldown=True
-    ),
-    MonopolyCard(
-        "Soggy pizza scandal. Random cooldown reset.", reset_random_cooldown=True
-    ),
+    MonopolyCard("Inspector reset one of your command cooldowns.", reset_random_cooldown=True),
+    MonopolyCard("You forgot to preheat. Random cooldown reset.", reset_random_cooldown=True),
+    MonopolyCard("Soggy pizza scandal. Random cooldown reset.", reset_random_cooldown=True),
     MonopolyCard(
         "Market stampede delayed your schedule. Random cooldown reset.",
         reset_random_cooldown=True,
     ),
-    MonopolyCard(
-        "A sourdough mishap consumed your starter. Lose 1 starter.", starter_delta=-1
-    ),
-    MonopolyCard(
-        "You misplaced your drop voucher. Lose 1 drop ticket.", drop_tickets_delta=-1
-    ),
+    MonopolyCard("A sourdough mishap consumed your starter. Lose 1 starter.", starter_delta=-1),
+    MonopolyCard("You misplaced your drop voucher. Lose 1 drop ticket.", drop_tickets_delta=-1),
     MonopolyCard("Truffle futures crashed. Lose 900 dough.", dough_delta=-900),
     MonopolyCard("Advance to GO and collect 4000 dough.", move_to=0, dough_delta=4000),
     MonopolyCard("Advance to Free Parking.", move_to=20),
@@ -263,24 +167,14 @@ CHEESE_CHANCE_CARDS: tuple[MonopolyCard, ...] = (
     MonopolyCard("Advance to the nearest Legendary Property.", move_to=21),
     MonopolyCard("Advance to the nearest Mythical Property.", move_to=25),
     MonopolyCard("Advance to the nearest Divine Property.", move_to=28),
-    MonopolyCard(
-        "Advance to a specific Epic Property on a particular number.", move_to=34
-    ),
+    MonopolyCard("Advance to a specific Epic Property on a particular number.", move_to=34),
     MonopolyCard("You won a midnight cookoff. Gain 900 dough.", dough_delta=900),
     MonopolyCard("A hidden cellar paid royalties. Gain 800 dough.", dough_delta=800),
     MonopolyCard("Neighborhood praised your lasagna. Gain 600 dough.", dough_delta=600),
-    MonopolyCard(
-        "Your espresso cart had a miracle shift. Gain 750 dough.", dough_delta=750
-    ),
-    MonopolyCard(
-        "Mysterious benefactor mailed flour futures. Gain 1200 dough.", dough_delta=1200
-    ),
-    MonopolyCard(
-        "A local angel investor funded you. Gain 1000 dough.", dough_delta=1000
-    ),
-    MonopolyCard(
-        "You found a bonus drop voucher. Gain 1 drop ticket.", drop_tickets_delta=1
-    ),
+    MonopolyCard("Your espresso cart had a miracle shift. Gain 750 dough.", dough_delta=750),
+    MonopolyCard("Mysterious benefactor mailed flour futures. Gain 1200 dough.", dough_delta=1200),
+    MonopolyCard("A local angel investor funded you. Gain 1000 dough.", dough_delta=1000),
+    MonopolyCard("You found a bonus drop voucher. Gain 1 drop ticket.", drop_tickets_delta=1),
     MonopolyCard("Legendary spoon blessing. Gain 1 starter.", starter_delta=1),
 )
 
@@ -310,11 +204,7 @@ def random_epic_or_better_card_id() -> str:
         if rarity in RARITY_EPIC_OR_HIGHER:
             return candidate
 
-    fallback = [
-        card_id
-        for card_id, data in CARD_CATALOG.items()
-        if str(data["rarity"]).lower() in RARITY_EPIC_OR_HIGHER
-    ]
+    fallback = [card_id for card_id, data in CARD_CATALOG.items() if str(data["rarity"]).lower() in RARITY_EPIC_OR_HIGHER]
     return random.choice(fallback)
 
 
@@ -345,12 +235,12 @@ def render_board(player_position: int) -> str:
         if row_col is None:
             continue
         row, col = row_col
-        grid[row][col] = f"{"👤" if space.position == player_position else space.emoji}"
+        grid[row][col] = f"{'👤' if space.position == player_position else space.emoji}"
 
     lines = ["".join(row) for row in grid]
     lines.append("")
     lines.append("""Legend:
-➡️ GO, 💸 Cheese Tax
+⬅️ GO, 💸 Cheese Tax
 🧺 Community Charcuterie, ❓ Cheese Chance
 🅿️ Free Parking, ❌ Go To Jail, 🤰 Mpreg Square
 """)

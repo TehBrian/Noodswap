@@ -1,4 +1,3 @@
-# pylint: disable=wildcard-import,unused-wildcard-import,undefined-variable
 from .command_utils import *  # noqa: F403
 
 
@@ -23,15 +22,11 @@ def register_social_commands(bot: commands.Bot) -> None:
 
     @wish.command(name="list", aliases=["l"])
     async def wish_list(ctx: commands.Context, *, player: str | None = None):
-        resolved_member, resolve_error = await resolve_optional_player_argument(
-            ctx, player
-        )
+        resolved_member, resolve_error = await resolve_optional_player_argument(ctx, player)
         if resolved_member is None:
             await _reply(
                 ctx,
-                embed=italy_embed(
-                    "Wishlist", resolve_error or "Could not resolve player."
-                ),
+                embed=italy_embed("Wishlist", resolve_error or "Could not resolve player."),
             )
             return
         await _wish_list(ctx, resolved_member)
@@ -46,15 +41,11 @@ def register_social_commands(bot: commands.Bot) -> None:
 
     @bot.command(name="wl")
     async def wish_list_short(ctx: commands.Context, *, player: str | None = None):
-        resolved_member, resolve_error = await resolve_optional_player_argument(
-            ctx, player
-        )
+        resolved_member, resolve_error = await resolve_optional_player_argument(ctx, player)
         if resolved_member is None:
             await _reply(
                 ctx,
-                embed=italy_embed(
-                    "Wishlist", resolve_error or "Could not resolve player."
-                ),
+                embed=italy_embed("Wishlist", resolve_error or "Could not resolve player."),
             )
             return
         await _wish_list(ctx, resolved_member)
@@ -122,9 +113,7 @@ def register_social_commands(bot: commands.Bot) -> None:
         )
 
     @folder.command(name="add", aliases=["a", "create"])
-    async def folder_add(
-        ctx: commands.Context, folder_name: str, emoji: str | None = None
-    ):
+    async def folder_add(ctx: commands.Context, folder_name: str, emoji: str | None = None):
         await _folder_add(ctx, folder_name, emoji)
 
     @folder.command(name="remove", aliases=["r", "delete"])
@@ -210,45 +199,29 @@ def register_social_commands(bot: commands.Bot) -> None:
         if not await _require_guild(ctx, "Cooldowns"):
             return
 
-        resolved_member, resolve_error = await resolve_optional_player_argument(
-            ctx, player
-        )
+        resolved_member, resolve_error = await resolve_optional_player_argument(ctx, player)
         if resolved_member is None:
             await _reply(
                 ctx,
-                embed=italy_embed(
-                    "Cooldowns", resolve_error or "Could not resolve player."
-                ),
+                embed=italy_embed("Cooldowns", resolve_error or "Could not resolve player."),
             )
             return
         target_member = resolved_member
 
-        last_drop_at, last_pull_at = get_player_cooldown_timestamps(
-            _guild_id(ctx), target_member.id
-        )
+        last_drop_at, last_pull_at = get_player_cooldown_timestamps(_guild_id(ctx), target_member.id)
         last_slots_at = get_player_slots_timestamp(_guild_id(ctx), target_member.id)
         last_flip_at = get_player_flip_timestamp(_guild_id(ctx), target_member.id)
-        _position, last_monopoly_roll_at, _in_jail, _jail_attempts, _doubles_count = (
-            get_monopoly_state(
-                _guild_id(ctx),
-                target_member.id,
-            )
+        _position, last_monopoly_roll_at, _in_jail, _jail_attempts, _doubles_count = get_monopoly_state(
+            _guild_id(ctx),
+            target_member.id,
         )
         now = time.time()
         description = multiline_text(
             [
-                _cooldown_status_line(
-                    "Drop", now - last_drop_at, DROP_COOLDOWN_SECONDS
-                ),
-                _cooldown_status_line(
-                    "Pull", now - last_pull_at, PULL_COOLDOWN_SECONDS
-                ),
-                _cooldown_status_line(
-                    "Slots", now - last_slots_at, SLOTS_COOLDOWN_SECONDS
-                ),
-                _cooldown_status_line(
-                    "Flip", now - last_flip_at, FLIP_COOLDOWN_SECONDS
-                ),
+                _cooldown_status_line("Drop", now - last_drop_at, DROP_COOLDOWN_SECONDS),
+                _cooldown_status_line("Pull", now - last_pull_at, PULL_COOLDOWN_SECONDS),
+                _cooldown_status_line("Slots", now - last_slots_at, SLOTS_COOLDOWN_SECONDS),
+                _cooldown_status_line("Flip", now - last_flip_at, FLIP_COOLDOWN_SECONDS),
                 _cooldown_status_line(
                     "Monopoly Roll",
                     now - last_monopoly_roll_at,
@@ -270,9 +243,7 @@ def register_social_commands(bot: commands.Bot) -> None:
         if not leaderboard_rows:
             await _reply(
                 ctx,
-                embed=italy_embed(
-                    "Leaderboard", "No players found yet. Try `ns drop` first."
-                ),
+                embed=italy_embed("Leaderboard", "No players found yet. Try `ns drop` first."),
             )
             return
 
@@ -290,9 +261,7 @@ def register_social_commands(bot: commands.Bot) -> None:
         if not await _require_guild(ctx, "Info"):
             return
 
-        resolved_member, resolve_error = await resolve_optional_player_argument(
-            ctx, player
-        )
+        resolved_member, resolve_error = await resolve_optional_player_argument(ctx, player)
         if resolved_member is None:
             await _reply(
                 ctx,
@@ -301,9 +270,7 @@ def register_social_commands(bot: commands.Bot) -> None:
             return
         target_member = resolved_member
 
-        dough, _, married_instance_id = get_player_info(
-            _guild_id(ctx), target_member.id
-        )
+        dough, _, married_instance_id = get_player_info(_guild_id(ctx), target_member.id)
         starter = get_player_starter(_guild_id(ctx), target_member.id)
         drop_tickets = get_player_drop_tickets(_guild_id(ctx), target_member.id)
         wishes_count = len(get_wishlist_cards(_guild_id(ctx), target_member.id))
@@ -314,12 +281,8 @@ def register_social_commands(bot: commands.Bot) -> None:
         if married_instance_id is not None:
             married_instance = get_instance_by_id(_guild_id(ctx), married_instance_id)
             if married_instance is not None:
-                _, married_card_id, married_generation, married_dupe_code = (
-                    married_instance
-                )
-                married = card_dupe_display(
-                    married_card_id, married_generation, dupe_code=married_dupe_code
-                )
+                _, married_card_id, married_generation, married_dupe_code = married_instance
+                married = card_dupe_display(married_card_id, married_generation, dupe_code=married_dupe_code)
                 married_image_url, married_image_file = embed_image_payload(
                     married_card_id,
                     generation=married_generation,

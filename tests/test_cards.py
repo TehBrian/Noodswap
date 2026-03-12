@@ -18,8 +18,7 @@ class CardsImageTests(unittest.TestCase):
         missing_local_path_ids = [
             card_id
             for card_id, card in CARD_CATALOG.items()
-            if not isinstance(card.get("image"), str)
-            or not card["image"].startswith("runtime/card_images/")
+            if not isinstance(card.get("image"), str) or not card["image"].startswith("runtime/card_images/")
         ]
         self.assertEqual(missing_local_path_ids, [])
 
@@ -27,8 +26,7 @@ class CardsImageTests(unittest.TestCase):
         remote_ids = [
             card_id
             for card_id, card in CARD_CATALOG.items()
-            if isinstance(card.get("image"), str)
-            and card["image"].startswith(("http://", "https://"))
+            if isinstance(card.get("image"), str) and card["image"].startswith(("http://", "https://"))
         ]
         self.assertEqual(remote_ids, [])
 
@@ -38,21 +36,14 @@ class CardsImageTests(unittest.TestCase):
 
 class CardsSeriesTests(unittest.TestCase):
     def test_every_card_series_is_declared(self) -> None:
-        undeclared_series = sorted(
-            {
-                card["series"]
-                for card in CARD_CATALOG.values()
-                if card["series"] not in SERIES_CATALOG
-            }
-        )
+        undeclared_series = sorted({card["series"] for card in CARD_CATALOG.values() if card["series"] not in SERIES_CATALOG})
         self.assertEqual(undeclared_series, [])
 
     def test_declared_series_have_non_empty_emoji(self) -> None:
         missing_emojis = sorted(
             series_id
             for series_id, series_meta in SERIES_CATALOG.items()
-            if not isinstance(series_meta.get("emoji"), str)
-            or not series_meta["emoji"].strip()
+            if not isinstance(series_meta.get("emoji"), str) or not series_meta["emoji"].strip()
         )
         self.assertEqual(missing_emojis, [])
 
@@ -78,12 +69,7 @@ class GenerationSamplerTests(unittest.TestCase):
 
     def test_random_generation_is_right_skewed_toward_high_generations(self) -> None:
         sample_size = 20000
-        rolls = [
-            random_generation(
-                generation_min=GENERATION_MIN, generation_max=GENERATION_MAX
-            )
-            for _ in range(sample_size)
-        ]
+        rolls = [random_generation(generation_min=GENERATION_MIN, generation_max=GENERATION_MAX) for _ in range(sample_size)]
         bucket_counts = Counter()
         for generation in rolls:
             if generation <= 100:

@@ -3,9 +3,7 @@ import unittest
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-RAW_SQLITE_WITH_PATTERN = re.compile(
-    r"with\s+sqlite3\.connect\([^\)]*\)\s+as\s+conn\s*:"
-)
+RAW_SQLITE_WITH_PATTERN = re.compile(r"with\s+sqlite3\.connect\([^\)]*\)\s+as\s+conn\s*:")
 
 
 class SqliteGuardrailTests(unittest.TestCase):

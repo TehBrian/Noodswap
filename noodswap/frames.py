@@ -62,9 +62,7 @@ def frame_path(frame_key: str) -> Path | None:
 
 
 def available_frame_keys() -> tuple[str, ...]:
-    return tuple(
-        frame_key for frame_key in AVAILABLE_FRAMES if frame_path(frame_key) is not None
-    )
+    return tuple(frame_key for frame_key in AVAILABLE_FRAMES if frame_path(frame_key) is not None)
 
 
 def frame_rarity(frame_key: str | None) -> str:

@@ -118,9 +118,7 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("Winner: 🏆 <@20> 🥇", description)
         self.assertIn("`HP  80/100`", description)
         self.assertIn("`SPG#0` (ACTIVE) • HP:80 ATK:18 DEF:12", description)
-        self.assertLess(
-            description.index("`HP  80/100`"), description.index("`SPG#0` (ACTIVE)")
-        )
+        self.assertLess(description.index("`HP  80/100`"), description.index("`SPG#0` (ACTIVE)"))
 
     async def test_battle_embed_title_celebrates_finished_winner(self) -> None:
         snapshot = BattleSnapshot(
@@ -317,9 +315,7 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("`team remove <team_name>`", battle_embed.description)
         self.assertIn("`team list`", battle_embed.description)
         self.assertIn("`team assign <team_name> <card_code>`", battle_embed.description)
-        self.assertIn(
-            "`team unassign <team_name> <card_code>`", battle_embed.description
-        )
+        self.assertIn("`team unassign <team_name> <card_code>`", battle_embed.description)
         self.assertIn("`team cards <team_name>`", battle_embed.description)
         self.assertIn("`team active [team_name]`", battle_embed.description)
         self.assertIn("`battle <player> <stake>`", battle_embed.description)
@@ -361,9 +357,7 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         execute_claim.assert_called_once()
         self.assertEqual(len(interaction.response.edited_messages), 1)
         self.assertEqual(len(interaction.message.replies), 1)
-        self.assertIn(
-            "<@200> pulled", interaction.message.replies[0]["embed"].description
-        )
+        self.assertIn("<@200> pulled", interaction.message.replies[0]["embed"].description)
 
     async def test_drop_rejects_when_already_resolved(self) -> None:
         view = DropView(guild_id=1, user_id=100, choices=[("SPG", 50)])
@@ -439,9 +433,7 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
 
         with patch(
             "noodswap.view_drop.execute_drop_claim",
-            return_value=type(
-                "Result", (), {"is_error": True, "cooldown_remaining_seconds": 30.0}
-            )(),
+            return_value=type("Result", (), {"is_error": True, "cooldown_remaining_seconds": 30.0})(),
         ) as execute_claim:
             await callback(interaction)
 
@@ -534,9 +526,7 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
             buyer_id=20,
             card_id="SPG",
             dupe_code="0",
-            terms=TradeTerms(
-                mode="card", req_card_id="PEN", req_generation=200, req_dupe_code="1"
-            ),
+            terms=TradeTerms(mode="card", req_card_id="PEN", req_generation=200, req_dupe_code="1"),
         )
         interaction = _FakeInteraction(user_id=20)
 
@@ -605,9 +595,7 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(interaction.response.edited_messages[0].get("view"), view)
         self.assertNotIn("embed", interaction.response.edited_messages[0])
         self.assertEqual(len(interaction.message.replies), 1)
-        self.assertEqual(
-            interaction.message.replies[0]["embed"].title, "**Card Burned**"
-        )
+        self.assertEqual(interaction.message.replies[0]["embed"].title, "**Card Burned**")
 
     async def test_burn_confirm_blocks_when_card_in_locked_tag(self) -> None:
         view = BurnConfirmView(
@@ -666,9 +654,7 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(interaction.response.edited_messages[0].get("view"), view)
         self.assertNotIn("embed", interaction.response.edited_messages[0])
         self.assertEqual(len(interaction.message.replies), 1)
-        self.assertEqual(
-            interaction.message.replies[0]["embed"].title, "Burn Cancelled"
-        )
+        self.assertEqual(interaction.message.replies[0]["embed"].title, "Burn Cancelled")
 
     async def test_morph_confirm_applies_and_replies_with_summary(self) -> None:
         view = MorphConfirmView(
@@ -1151,9 +1137,7 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(view.page_index, 0)
         self.assertEqual(len(interaction.response.sent_messages), 1)
         self.assertTrue(interaction.response.sent_messages[0].get("ephemeral"))
-        self.assertEqual(
-            interaction.response.sent_messages[0]["embed"].title, "Wishlist"
-        )
+        self.assertEqual(interaction.response.sent_messages[0]["embed"].title, "Wishlist")
 
     async def test_sortable_card_list_sort_select_changes_order_and_resets_page(
         self,
@@ -1196,9 +1180,7 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(view.sort_mode, "alphabetical")
         self.assertEqual(len(interaction.response.sent_messages), 1)
         self.assertTrue(interaction.response.sent_messages[0].get("ephemeral"))
-        self.assertEqual(
-            interaction.response.sent_messages[0]["embed"].title, "Wishlist"
-        )
+        self.assertEqual(interaction.response.sent_messages[0]["embed"].title, "Wishlist")
 
     async def test_sortable_card_list_wishes_sort_uses_wish_counts(self) -> None:
         card_ids = ["SPG", "BLA", "BAR"]
@@ -1656,9 +1638,7 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(view.page_index, 0)
         self.assertEqual(len(interaction.response.sent_messages), 1)
         self.assertTrue(interaction.response.sent_messages[0].get("ephemeral"))
-        self.assertEqual(
-            interaction.response.sent_messages[0]["embed"].title, "Collection"
-        )
+        self.assertEqual(interaction.response.sent_messages[0]["embed"].title, "Collection")
 
     async def test_sortable_card_list_gallery_mode_includes_attachment_when_image_available(
         self,

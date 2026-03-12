@@ -1,4 +1,3 @@
-# pylint: disable=wildcard-import,unused-wildcard-import,undefined-variable
 from .command_utils import *  # noqa: F403
 
 
@@ -7,9 +6,7 @@ def register_catalog_commands(bot: commands.Bot) -> None:
     async def buy(ctx: commands.Context):
         await _reply(
             ctx,
-            embed=italy_embed(
-                "Buy", "Usage: `ns buy drop [quantity]` (1 starter per drop ticket)."
-            ),
+            embed=italy_embed("Buy", "Usage: `ns buy drop [quantity]` (1 starter per drop ticket)."),
         )
 
     @buy.command(name="drop")
@@ -18,14 +15,10 @@ def register_catalog_commands(bot: commands.Bot) -> None:
             return
 
         if quantity <= 0:
-            await _reply(
-                ctx, embed=italy_embed("Buy", "Quantity must be a positive integer.")
-            )
+            await _reply(ctx, embed=italy_embed("Buy", "Quantity must be a positive integer."))
             return
 
-        purchased, starter_balance, drop_tickets, spent = buy_drop_tickets_with_starter(
-            _guild_id(ctx), ctx.author.id, quantity
-        )
+        purchased, starter_balance, drop_tickets, spent = buy_drop_tickets_with_starter(_guild_id(ctx), ctx.author.id, quantity)
         if not purchased:
             await _reply(
                 ctx,
@@ -80,9 +73,7 @@ def register_catalog_commands(bot: commands.Bot) -> None:
         if card_id is None:
             await _reply(
                 ctx,
-                embed=italy_embed(
-                    "Lookup", f"Usage: `ns {usage_name} <card_id|card_code|query>`."
-                ),
+                embed=italy_embed("Lookup", f"Usage: `ns {usage_name} <card_id|card_code|query>`."),
             )
             return
 
@@ -129,12 +120,8 @@ def register_catalog_commands(bot: commands.Bot) -> None:
 
         normalized_card_id = normalize_card_id(card_id)
         if normalized_card_id in CARD_CATALOG:
-            lookup_embed = italy_embed(
-                embed_title, card_base_display(normalized_card_id)
-            )
-            image_url, image_file = embed_image_payload(
-                normalized_card_id, size=image_size
-            )
+            lookup_embed = italy_embed(embed_title, card_base_display(normalized_card_id))
+            image_url, image_file = embed_image_payload(normalized_card_id, size=image_size)
             if image_url is not None:
                 lookup_embed.set_image(url=image_url)
             send_kwargs: dict[str, object] = {"embed": lookup_embed}
@@ -151,9 +138,7 @@ def register_catalog_commands(bot: commands.Bot) -> None:
         if len(name_matches) == 1:
             matched_card_id = name_matches[0]
             lookup_embed = italy_embed(embed_title, card_base_display(matched_card_id))
-            image_url, image_file = embed_image_payload(
-                matched_card_id, size=image_size
-            )
+            image_url, image_file = embed_image_payload(matched_card_id, size=image_size)
             if image_url is not None:
                 lookup_embed.set_image(url=image_url)
             send_kwargs: dict[str, object] = {"embed": lookup_embed}
@@ -162,9 +147,7 @@ def register_catalog_commands(bot: commands.Bot) -> None:
             await _reply(ctx, **send_kwargs)
             return
 
-        lookup_wish_counts = (
-            get_card_wish_counts(_guild_id(ctx)) if ctx.guild is not None else {}
-        )
+        lookup_wish_counts = get_card_wish_counts(_guild_id(ctx)) if ctx.guild is not None else {}
         view = SortableCardListView(
             user_id=ctx.author.id,
             title="Lookup Matches",

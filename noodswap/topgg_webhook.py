@@ -47,9 +47,7 @@ def _parse_networks(raw_networks: tuple[str, ...]) -> tuple[IpNetwork, ...]:
     return tuple(parsed)
 
 
-def _is_request_ip_allowed(
-    remote: str | None, allowed_networks: tuple[IpNetwork, ...]
-) -> bool:
+def _is_request_ip_allowed(remote: str | None, allowed_networks: tuple[IpNetwork, ...]) -> bool:
     if not allowed_networks:
         return True
     if not remote:
@@ -86,9 +84,7 @@ class TopggWebhookServer:
 
     async def start(self) -> None:
         if not self.enabled:
-            logger.warning(
-                "top.gg webhook is disabled because TOPGG_WEBHOOK_SECRET is not set."
-            )
+            logger.warning("top.gg webhook is disabled because TOPGG_WEBHOOK_SECRET is not set.")
             return
 
         if self._runner is not None:
@@ -99,9 +95,7 @@ class TopggWebhookServer:
 
         self._runner = web.AppRunner(app)
         await self._runner.setup()
-        self._site = web.TCPSite(
-            self._runner, host=self._config.host, port=self._config.port
-        )
+        self._site = web.TCPSite(self._runner, host=self._config.host, port=self._config.port)
         await self._site.start()
         logger.info(
             "top.gg webhook server listening on %s:%s%s",
@@ -125,43 +119,25 @@ class TopggWebhookServer:
             )
             return web.json_response({"ok": False, "error": "forbidden"}, status=403)
 
-        if not _is_authorized(
-            request.headers.get("Authorization"), self._config.secret
-        ):
-            logger.warning(
-                "Rejected top.gg webhook request due to invalid authorization header."
-            )
+        if not _is_authorized(request.headers.get("Authorization"), self._config.secret):
+            logger.warning("Rejected top.gg webhook request due to invalid authorization header.")
             return web.json_response({"ok": False, "error": "unauthorized"}, status=401)
 
-        if (
-            self._config.require_json_content_type
-            and request.content_type != "application/json"
-        ):
-            return web.json_response(
-                {"ok": False, "error": "unsupported_media_type"}, status=415
-            )
+        if self._config.require_json_content_type and request.content_type != "application/json":
+            return web.json_response({"ok": False, "error": "unsupported_media_type"}, status=415)
 
-        if (
-            request.content_length is not None
-            and request.content_length > self._config.max_body_bytes
-        ):
-            return web.json_response(
-                {"ok": False, "error": "payload_too_large"}, status=413
-            )
+        if request.content_length is not None and request.content_length > self._config.max_body_bytes:
+            return web.json_response({"ok": False, "error": "payload_too_large"}, status=413)
 
         try:
             payload = await request.json()
         except web.HTTPRequestEntityTooLarge:
-            return web.json_response(
-                {"ok": False, "error": "payload_too_large"}, status=413
-            )
+            return web.json_response({"ok": False, "error": "payload_too_large"}, status=413)
         except Exception:  # pragma: no cover - aiohttp raises different decode errors
             return web.json_response({"ok": False, "error": "invalid_json"}, status=400)
 
         if not isinstance(payload, dict):
-            return web.json_response(
-                {"ok": False, "error": "invalid_payload"}, status=400
-            )
+            return web.json_response({"ok": False, "error": "invalid_payload"}, status=400)
 
         if self._config.expected_bot_id:
             payload_bot_id = str(payload.get("bot", "")).strip()
@@ -170,9 +146,7 @@ class TopggWebhookServer:
                     "Rejected top.gg webhook vote for unexpected bot id %s.",
                     payload_bot_id,
                 )
-                return web.json_response(
-                    {"ok": False, "error": "unexpected_bot"}, status=400
-                )
+                return web.json_response({"ok": False, "error": "unexpected_bot"}, status=400)
 
         user_id = _extract_user_id(payload)
         if user_id is None:

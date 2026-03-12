@@ -259,13 +259,9 @@ def _apply_text_legibility_overlay(
     right_padding = max(10, int(width * 0.05))
     bottom_padding = max(10, int(height * 0.05))
     text_max_width = max(1, width - left_padding - right_padding)
-    title_wrapped = _wrap_text_to_width(
-        draw=draw, text=title, font=title_font, max_width=text_max_width
-    )
+    title_wrapped = _wrap_text_to_width(draw=draw, text=title, font=title_font, max_width=text_max_width)
 
-    title_bbox = draw.multiline_textbbox(
-        (0, 0), title_wrapped, font=title_font, spacing=3
-    )
+    title_bbox = draw.multiline_textbbox((0, 0), title_wrapped, font=title_font, spacing=3)
     subtitle_bbox = draw.textbbox((0, 0), subtitle, font=subtitle_font)
     title_height = max(1, title_bbox[3] - title_bbox[1])
     subtitle_height = max(1, subtitle_bbox[3] - subtitle_bbox[1])
@@ -302,9 +298,7 @@ def _placeholder_card_art(card_id: str, generation: int | None, size: tuple[int,
     draw = ImageDraw.Draw(image)
     code_line = normalize_card_id(card_id)
     generation_line = f"G-{generation}" if generation is not None else "G-????"
-    draw.multiline_text(
-        (14, 14), f"{code_line}\n{generation_line}", fill=(230, 230, 230), spacing=4
-    )
+    draw.multiline_text((14, 14), f"{code_line}\n{generation_line}", fill=(230, 230, 230), spacing=4)
     draw.text((14, height - 30), "Image unavailable", fill=(188, 188, 188))
     return image
 
@@ -555,15 +549,11 @@ def render_card_surface(
     normalized_frame_key = normalize_frame_key(frame_key)
 
     width, height = _normalized_card_size(size)
-    effective_body_scale = (
-        FRAMED_CARD_BODY_SCALE if normalized_frame_key is not None else body_scale
-    )
+    effective_body_scale = FRAMED_CARD_BODY_SCALE if normalized_frame_key is not None else body_scale
     clamped_body_scale = min(max(effective_body_scale, 0.0), 1.0)
     max_body_width = max(40, int(round(width * clamped_body_scale)))
     max_body_height = max(56, int(round(height * clamped_body_scale)))
-    body_target_ratio = (
-        1.0 / CARD_BODY_ASPECT_RATIO if CARD_BODY_ASPECT_RATIO > 0 else (1.0 / 1.6)
-    )
+    body_target_ratio = 1.0 / CARD_BODY_ASPECT_RATIO if CARD_BODY_ASPECT_RATIO > 0 else (1.0 / 1.6)
     if (max_body_width / max_body_height) > body_target_ratio:
         body_height = max_body_height
         body_width = max(1, int(round(body_height * body_target_ratio)))
@@ -590,16 +580,12 @@ def render_card_surface(
             source_image = None
 
     if source_image is None:
-        source_image = _placeholder_card_art(
-            normalized_card_id, generation, (inner_width, inner_height)
-        )
+        source_image = _placeholder_card_art(normalized_card_id, generation, (inner_width, inner_height))
 
     if source_image is None:
         return None
 
-    fitted = ImageOps.fit(
-        source_image, (inner_width, inner_height), method=Image.Resampling.LANCZOS
-    )
+    fitted = ImageOps.fit(source_image, (inner_width, inner_height), method=Image.Resampling.LANCZOS)
     normalized_morph_key = normalize_morph_key(morph_key)
     if normalized_morph_key == MORPH_BLACK_AND_WHITE:
         fitted = ImageOps.grayscale(fitted).convert("RGB")
@@ -718,13 +704,9 @@ def embed_image_payload(
         morph_suffix = normalized_morph_key or "base"
         frame_suffix = normalized_frame_key or "base"
         font_suffix = normalized_font_key or "base"
-        file_name = (
-            f"{normalized_card_id}_{morph_suffix}_{frame_suffix}_{font_suffix}_card.png"
-        )
+        file_name = f"{normalized_card_id}_{morph_suffix}_{frame_suffix}_{font_suffix}_card.png"
         attachment_url = f"attachment://{file_name}"
-        return attachment_url, discord.File(
-            io.BytesIO(rendered_image), filename=file_name
-        )
+        return attachment_url, discord.File(io.BytesIO(rendered_image), filename=file_name)
 
     image_path = local_card_image_path(normalized_card_id)
     if image_path is None:
@@ -791,9 +773,7 @@ def render_morph_transition_image_bytes(
     if hide_after:
         after_surface = Image.new("RGBA", before_surface.size, (0, 0, 0, 0))
         draw_after = ImageDraw.Draw(after_surface)
-        question_font = _load_overlay_font(
-            max(48, before_surface.size[1] // 4), bold=True
-        )
+        question_font = _load_overlay_font(max(48, before_surface.size[1] // 4), bold=True)
         question = "?"
         question_bbox = draw_after.textbbox((0, 0), question, font=question_font)
         question_w = max(1, question_bbox[2] - question_bbox[0])

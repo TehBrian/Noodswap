@@ -50,16 +50,10 @@ def _ensure_schema_migrations_table(conn: sqlite3.Connection) -> None:
     if count == 0:
         conn.execute("INSERT INTO schema_migrations(version) VALUES (0)")
     elif count > 1:
-        current = conn.execute(
-            "SELECT MAX(version) AS v FROM schema_migrations"
-        ).fetchone()
-        max_version = (
-            int(current["v"]) if current is not None and current["v"] is not None else 0
-        )
+        current = conn.execute("SELECT MAX(version) AS v FROM schema_migrations").fetchone()
+        max_version = int(current["v"]) if current is not None and current["v"] is not None else 0
         conn.execute("DELETE FROM schema_migrations")
-        conn.execute(
-            "INSERT INTO schema_migrations(version) VALUES (?)", (max_version,)
-        )
+        conn.execute("INSERT INTO schema_migrations(version) VALUES (?)", (max_version,))
 
 
 def _get_schema_version(conn: sqlite3.Connection) -> int:
@@ -74,9 +68,7 @@ def _set_schema_version(conn: sqlite3.Connection, version: int) -> None:
     conn.execute("UPDATE schema_migrations SET version = ?", (version,))
 
 
-def _apply_migration_v1(
-    conn: sqlite3.Connection, random_generation_func: Callable[[], int]
-) -> None:
+def _apply_migration_v1(conn: sqlite3.Connection, random_generation_func: Callable[[], int]) -> None:
     _ = random_generation_func
     conn.executescript("""
         CREATE TABLE IF NOT EXISTS players (
@@ -281,19 +273,20 @@ def _apply_migration_v5(conn: sqlite3.Connection) -> None:
 
 
 def _apply_migration_v6(conn: sqlite3.Connection) -> None:
-    players_table_exists = conn.execute("""
+    players_table_exists = (
+        conn.execute("""
         SELECT 1
         FROM sqlite_master
         WHERE type = 'table' AND name = 'players'
         LIMIT 1
-        """).fetchone() is not None
+        """).fetchone()
+        is not None
+    )
     if not players_table_exists:
         return
 
     if not _has_column(conn, "players", "last_drop_at"):
-        conn.execute(
-            "ALTER TABLE players ADD COLUMN last_drop_at REAL NOT NULL DEFAULT 0"
-        )
+        conn.execute("ALTER TABLE players ADD COLUMN last_drop_at REAL NOT NULL DEFAULT 0")
 
     # Before v6, last_pull_at tracked drop command usage. Preserve that history as
     # drop cooldown state and reset pull cooldown state for the new split model.
@@ -367,44 +360,49 @@ def _apply_migration_v11(conn: sqlite3.Connection) -> None:
 
 
 def _apply_migration_v12(conn: sqlite3.Connection) -> None:
-    players_table_exists = conn.execute("""
+    players_table_exists = (
+        conn.execute("""
         SELECT 1
         FROM sqlite_master
         WHERE type = 'table' AND name = 'players'
         LIMIT 1
-        """).fetchone() is not None
+        """).fetchone()
+        is not None
+    )
     if not players_table_exists:
         return
 
     if not _has_column(conn, "players", "starter"):
-        conn.execute(
-            "ALTER TABLE players ADD COLUMN starter INTEGER NOT NULL DEFAULT 0"
-        )
+        conn.execute("ALTER TABLE players ADD COLUMN starter INTEGER NOT NULL DEFAULT 0")
 
 
 def _apply_migration_v13(conn: sqlite3.Connection) -> None:
-    players_table_exists = conn.execute("""
+    players_table_exists = (
+        conn.execute("""
         SELECT 1
         FROM sqlite_master
         WHERE type = 'table' AND name = 'players'
         LIMIT 1
-        """).fetchone() is not None
+        """).fetchone()
+        is not None
+    )
     if not players_table_exists:
         return
 
     if not _has_column(conn, "players", "last_slots_at"):
-        conn.execute(
-            "ALTER TABLE players ADD COLUMN last_slots_at REAL NOT NULL DEFAULT 0"
-        )
+        conn.execute("ALTER TABLE players ADD COLUMN last_slots_at REAL NOT NULL DEFAULT 0")
 
 
 def _apply_migration_v14(conn: sqlite3.Connection) -> None:
-    players_table_exists = conn.execute("""
+    players_table_exists = (
+        conn.execute("""
         SELECT 1
         FROM sqlite_master
         WHERE type = 'table' AND name = 'players'
         LIMIT 1
-        """).fetchone() is not None
+        """).fetchone()
+        is not None
+    )
     if not players_table_exists:
         return
 
@@ -491,28 +489,32 @@ def _apply_migration_v14(conn: sqlite3.Connection) -> None:
 
 
 def _apply_migration_v15(conn: sqlite3.Connection) -> None:
-    players_table_exists = conn.execute("""
+    players_table_exists = (
+        conn.execute("""
         SELECT 1
         FROM sqlite_master
         WHERE type = 'table' AND name = 'players'
         LIMIT 1
-        """).fetchone() is not None
+        """).fetchone()
+        is not None
+    )
     if not players_table_exists:
         return
 
     if not _has_column(conn, "players", "last_flip_at"):
-        conn.execute(
-            "ALTER TABLE players ADD COLUMN last_flip_at REAL NOT NULL DEFAULT 0"
-        )
+        conn.execute("ALTER TABLE players ADD COLUMN last_flip_at REAL NOT NULL DEFAULT 0")
 
 
 def _apply_migration_v16(conn: sqlite3.Connection) -> None:
-    battle_sessions_table_exists = conn.execute("""
+    battle_sessions_table_exists = (
+        conn.execute("""
         SELECT 1
         FROM sqlite_master
         WHERE type = 'table' AND name = 'battle_sessions'
         LIMIT 1
-        """).fetchone() is not None
+        """).fetchone()
+        is not None
+    )
     if not battle_sessions_table_exists:
         return
 
@@ -550,19 +552,20 @@ def _apply_migration_v16(conn: sqlite3.Connection) -> None:
 
 
 def _apply_migration_v17(conn: sqlite3.Connection) -> None:
-    players_table_exists = conn.execute("""
+    players_table_exists = (
+        conn.execute("""
         SELECT 1
         FROM sqlite_master
         WHERE type = 'table' AND name = 'players'
         LIMIT 1
-        """).fetchone() is not None
+        """).fetchone()
+        is not None
+    )
     if not players_table_exists:
         return
 
     if not _has_column(conn, "players", "drop_tickets"):
-        conn.execute(
-            "ALTER TABLE players ADD COLUMN drop_tickets INTEGER NOT NULL DEFAULT 0"
-        )
+        conn.execute("ALTER TABLE players ADD COLUMN drop_tickets INTEGER NOT NULL DEFAULT 0")
 
 
 def _apply_migration_v18(conn: sqlite3.Connection) -> None:
@@ -605,12 +608,15 @@ def _apply_migration_v18(conn: sqlite3.Connection) -> None:
 
 
 def _apply_migration_v19(conn: sqlite3.Connection) -> None:
-    players_table_exists = conn.execute("""
+    players_table_exists = (
+        conn.execute("""
         SELECT 1
         FROM sqlite_master
         WHERE type = 'table' AND name = 'players'
         LIMIT 1
-        """).fetchone() is not None
+        """).fetchone()
+        is not None
+    )
     if not players_table_exists:
         return
 
@@ -619,39 +625,32 @@ def _apply_migration_v19(conn: sqlite3.Connection) -> None:
 
 
 def _apply_migration_v20(conn: sqlite3.Connection) -> None:
-    players_table_exists = conn.execute("""
+    players_table_exists = (
+        conn.execute("""
         SELECT 1
         FROM sqlite_master
         WHERE type = 'table' AND name = 'players'
         LIMIT 1
-        """).fetchone() is not None
+        """).fetchone()
+        is not None
+    )
     if not players_table_exists:
         return
 
     if not _has_column(conn, "players", "monopoly_position"):
-        conn.execute(
-            "ALTER TABLE players ADD COLUMN monopoly_position INTEGER NOT NULL DEFAULT 0"
-        )
+        conn.execute("ALTER TABLE players ADD COLUMN monopoly_position INTEGER NOT NULL DEFAULT 0")
 
     if not _has_column(conn, "players", "last_monopoly_roll_at"):
-        conn.execute(
-            "ALTER TABLE players ADD COLUMN last_monopoly_roll_at REAL NOT NULL DEFAULT 0"
-        )
+        conn.execute("ALTER TABLE players ADD COLUMN last_monopoly_roll_at REAL NOT NULL DEFAULT 0")
 
     if not _has_column(conn, "players", "monopoly_in_jail"):
-        conn.execute(
-            "ALTER TABLE players ADD COLUMN monopoly_in_jail INTEGER NOT NULL DEFAULT 0"
-        )
+        conn.execute("ALTER TABLE players ADD COLUMN monopoly_in_jail INTEGER NOT NULL DEFAULT 0")
 
     if not _has_column(conn, "players", "monopoly_jail_roll_attempts"):
-        conn.execute(
-            "ALTER TABLE players ADD COLUMN monopoly_jail_roll_attempts INTEGER NOT NULL DEFAULT 0"
-        )
+        conn.execute("ALTER TABLE players ADD COLUMN monopoly_jail_roll_attempts INTEGER NOT NULL DEFAULT 0")
 
     if not _has_column(conn, "players", "monopoly_consecutive_doubles"):
-        conn.execute(
-            "ALTER TABLE players ADD COLUMN monopoly_consecutive_doubles INTEGER NOT NULL DEFAULT 0"
-        )
+        conn.execute("ALTER TABLE players ADD COLUMN monopoly_consecutive_doubles INTEGER NOT NULL DEFAULT 0")
 
     conn.executescript("""
         CREATE TABLE IF NOT EXISTS gambling_pot (
@@ -675,12 +674,15 @@ def _apply_migration_v21(conn: sqlite3.Connection) -> None:
     that would result in dough < 0 will raise an ABORT error and roll back the
     enclosing transaction.
     """
-    players_table_exists = conn.execute("""
+    players_table_exists = (
+        conn.execute("""
         SELECT 1
         FROM sqlite_master
         WHERE type = 'table' AND name = 'players'
         LIMIT 1
-        """).fetchone() is not None
+        """).fetchone()
+        is not None
+    )
     if not players_table_exists:
         return
 
@@ -696,24 +698,23 @@ def _apply_migration_v21(conn: sqlite3.Connection) -> None:
 
 
 def _apply_migration_v22(conn: sqlite3.Connection) -> None:
-    battle_combatants_table_exists = conn.execute("""
+    battle_combatants_table_exists = (
+        conn.execute("""
         SELECT 1
         FROM sqlite_master
         WHERE type = 'table' AND name = 'battle_combatants'
         LIMIT 1
-        """).fetchone() is not None
+        """).fetchone()
+        is not None
+    )
     if not battle_combatants_table_exists:
         return
 
     if not _has_column(conn, "battle_combatants", "attack"):
-        conn.execute(
-            "ALTER TABLE battle_combatants ADD COLUMN attack INTEGER NOT NULL DEFAULT 1"
-        )
+        conn.execute("ALTER TABLE battle_combatants ADD COLUMN attack INTEGER NOT NULL DEFAULT 1")
 
     if not _has_column(conn, "battle_combatants", "defense"):
-        conn.execute(
-            "ALTER TABLE battle_combatants ADD COLUMN defense INTEGER NOT NULL DEFAULT 1"
-        )
+        conn.execute("ALTER TABLE battle_combatants ADD COLUMN defense INTEGER NOT NULL DEFAULT 1")
 
 
 def run_migrations(
@@ -836,8 +837,6 @@ def run_migrations(
         current_version = 22
 
     if current_version > target_schema_version:
-        raise RuntimeError(
-            f"Database schema version {current_version} is newer than supported {target_schema_version}."
-        )
+        raise RuntimeError(f"Database schema version {current_version} is newer than supported {target_schema_version}.")
 
     return current_version

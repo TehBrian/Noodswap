@@ -22,8 +22,7 @@ RARITY_VALUE_BANDS: dict[str, tuple[int, int]] = {
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
-            "Recompute card base values by rarity band and write them to a JSON map. "
-            "Use --mode missing to fill only IDs without base values."
+            "Recompute card base values by rarity band and write them to a JSON map. Use --mode missing to fill only IDs without base values."
         )
     )
     parser.add_argument(
@@ -89,9 +88,7 @@ def _compute_values(
     computed: dict[str, int] = {}
 
     for rarity, (low, high) in RARITY_VALUE_BANDS.items():
-        rarity_card_ids = [
-            card_id for card_id, card in cards.items() if card.get("rarity") == rarity
-        ]
+        rarity_card_ids = [card_id for card_id, card in cards.items() if card.get("rarity") == rarity]
         if not rarity_card_ids:
             continue
 
@@ -129,9 +126,7 @@ def main() -> None:
             if card_id not in merged_values:
                 merged_values[card_id] = computed_value
 
-    missing_after_merge = sorted(
-        card_id for card_id in cards if card_id not in merged_values
-    )
+    missing_after_merge = sorted(card_id for card_id in cards if card_id not in merged_values)
 
     print(f"Cards loaded: {len(cards)}")
     print(f"Existing base values: {len(existing_base_values)}")
@@ -145,9 +140,7 @@ def main() -> None:
         return
 
     base_values_file.parent.mkdir(parents=True, exist_ok=True)
-    base_values_file.write_text(
-        json.dumps(merged_values, indent=2, sort_keys=True) + "\n", encoding="utf-8"
-    )
+    base_values_file.write_text(json.dumps(merged_values, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     print(f"Wrote: {base_values_file}")
 
 

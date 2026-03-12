@@ -1,60 +1,81 @@
 {
-	"version": "2.0.0",
-	"tasks": [
-		{
-			"label": "check:migrations",
-			"type": "shell",
-			"command": "${workspaceFolder}/.venv/bin/python",
-			"args": [
-				"scripts/migration_smoke.py"
-			],
-			"group": "test"
-		},
-		{
-			"label": "check:quick",
-			"type": "shell",
-			"command": "${workspaceFolder}/.venv/bin/python -m py_compile bot.py noodswap/*.py scripts/*.py && ${workspaceFolder}/.venv/bin/python scripts/migration_smoke.py",
-			"group": "test"
-		},
-		{
-			"label": "check:tests",
-			"type": "shell",
-			"command": "${workspaceFolder}/.venv/bin/python -m unittest discover -s tests -p 'test_*.py' -b",
-			"group": "test"
-		},
-		{
-			"label": "check:pylint",
-			"type": "shell",
-			"command": "${workspaceFolder}/.venv/bin/python -m pylint noodswap scripts tests --score=n",
-			"group": "test"
-		},
-		{
-			"label": "check:all",
-			"type": "shell",
-			"command": "${workspaceFolder}/.venv/bin/python -m pylint noodswap scripts tests --score=n && ${workspaceFolder}/.venv/bin/python -m py_compile bot.py noodswap/*.py scripts/*.py tests/*.py && ${workspaceFolder}/.venv/bin/python scripts/migration_smoke.py && ${workspaceFolder}/.venv/bin/python -m unittest discover -s tests -p 'test_*.py' -b",
-			"group": "test"
-		},
-		{
-			"label": "check:economy",
-			"type": "shell",
-			"command": "${workspaceFolder}/.venv/bin/python",
-			"args": [
-				"scripts/generation_economy_report.py",
-				"--tau",
-				"0.95",
-				"--active-days",
-				"7"
-			],
-			"group": "test"
-		},
-		{
-			"label": "check:odds",
-			"type": "shell",
-			"command": "${workspaceFolder}/.venv/bin/python",
-			"args": [
-				"scripts/rarity_odds.py"
-			],
-			"group": "test"
-		}
-	]
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "check:ruff",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/bin/ruff",
+      "args": ["check", "noodswap", "scripts", "tests"],
+      "group": "test"
+    },
+    {
+      "label": "check:compile",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/bin/python",
+      "args": [
+        "-m",
+        "py_compile",
+        "bot.py",
+        "noodswap/*.py",
+        "scripts/*.py",
+        "tests/*.py"
+      ],
+      "group": "test"
+    },
+    {
+      "label": "check:migrations",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/bin/python",
+      "args": ["scripts/migration_smoke.py"],
+      "group": "test"
+    },
+    {
+      "label": "check:tests",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/bin/python",
+      "args": [
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "'test_*.py'",
+        "-b"
+      ],
+      "group": "test"
+    },
+    {
+      "label": "check:all",
+      "type": "shell",
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "check:ruff",
+        "check:compile",
+        "check:migrations",
+        "check:tests"
+      ],
+      "group": "test"
+    },
+    {
+      "label": "report:economy",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/bin/python",
+      "args": [
+        "scripts/generation_economy_report.py",
+        "--tau",
+        "0.95",
+        "--active-days",
+        "7"
+      ],
+      "group": "test"
+    },
+    {
+      "label": "report:rarity",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/bin/python",
+      "args": ["scripts/rarity_odds.py"],
+      "group": "test"
+    }
+  ]
 }

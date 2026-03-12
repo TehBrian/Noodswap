@@ -11,9 +11,7 @@ from noodswap.presentation import command_syntax_for_error
 
 class AppPrefixTests(unittest.TestCase):
     def setUp(self) -> None:
-        self.bot = commands.Bot(
-            command_prefix="ns ", intents=discord.Intents.none(), help_command=None
-        )
+        self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)
 
     def test_resolve_prefix_matches_uppercase_long_prefix(self) -> None:
         message = SimpleNamespace(content="Ns help")
@@ -40,9 +38,7 @@ class AppPrefixTests(unittest.TestCase):
 
 class AppShutdownTests(unittest.IsolatedAsyncioTestCase):
     async def test_close_ends_open_battles_before_shutdown(self) -> None:
-        with patch(
-            "noodswap.app.end_open_battles_for_shutdown", return_value=2
-        ) as mocked_cleanup:
+        with patch("noodswap.app.end_open_battles_for_shutdown", return_value=2) as mocked_cleanup:
             bot = create_bot()
             try:
                 await bot.close()
@@ -88,9 +84,7 @@ class AppCommandErrorTests(unittest.IsolatedAsyncioTestCase):
         ctx.command = buy_group.get_command("drop")
         ctx.reply = AsyncMock()
 
-        error = commands.BadArgument(
-            'Converting to "int" failed for parameter "quantity".'
-        )
+        error = commands.BadArgument('Converting to "int" failed for parameter "quantity".')
 
         await self.bot.on_command_error(ctx, error)
 

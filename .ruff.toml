@@ -1,0 +1,15 @@
+target-version = "py314"
+line-length = 150
+exclude = ["__pycache__"]
+
+[lint]
+select = ["E9", "F"]
+
+[lint.per-file-ignores]
+"noodswap/app.py" = ["F401"]
+"noodswap/command_utils.py" = ["F401"]
+"noodswap/commands_admin.py" = ["F405"]
+"noodswap/commands_catalog.py" = ["F405"]
+"noodswap/commands_economy.py" = ["F405"]
+"noodswap/commands_gambling.py" = ["F405"]
+"noodswap/commands_social.py" = ["F405"]

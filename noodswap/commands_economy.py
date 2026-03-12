@@ -1,4 +1,3 @@
-# pylint: disable=wildcard-import,unused-wildcard-import,undefined-variable
 from .command_utils import *  # noqa: F403
 
 
@@ -22,9 +21,7 @@ def register_economy_commands(bot: commands.Bot) -> None:
             return
 
         choices = prepared.choices
-        embed = italy_embed(
-            f"{ctx.author.display_name}'s Drop", drop_choices_description(choices)
-        )
+        embed = italy_embed(f"{ctx.author.display_name}'s Drop", drop_choices_description(choices))
         footer_text = f"Pull timeout: {DROP_TIMEOUT_SECONDS}s"
         if prepared.used_drop_ticket:
             footer_text = f"{footer_text} | 1 drop ticket used"
@@ -48,9 +45,7 @@ def register_economy_commands(bot: commands.Bot) -> None:
         if result.is_error:
             await _reply(
                 ctx,
-                embed=italy_marry_embed(
-                    "Marry", result.error_message or "Marry failed."
-                ),
+                embed=italy_marry_embed("Marry", result.error_message or "Marry failed."),
             )
             return
 
@@ -66,9 +61,7 @@ def register_economy_commands(bot: commands.Bot) -> None:
         frame_key = None
         font_key = None
         if result.dupe_code is not None:
-            married_instance = get_instance_by_code(
-                _guild_id(ctx), ctx.author.id, result.dupe_code
-            )
+            married_instance = get_instance_by_code(_guild_id(ctx), ctx.author.id, result.dupe_code)
             if married_instance is not None:
                 married_instance_id, _, _, _ = married_instance
                 morph_key = get_instance_morph(_guild_id(ctx), married_instance_id)
@@ -98,9 +91,7 @@ def register_economy_commands(bot: commands.Bot) -> None:
         if result.is_error:
             await _reply(
                 ctx,
-                embed=italy_marry_embed(
-                    "Divorce", result.error_message or "Divorce failed."
-                ),
+                embed=italy_marry_embed("Divorce", result.error_message or "Divorce failed."),
             )
             return
 
@@ -116,9 +107,7 @@ def register_economy_commands(bot: commands.Bot) -> None:
         frame_key = None
         font_key = None
         if result.dupe_code is not None:
-            divorced_instance = get_instance_by_code(
-                _guild_id(ctx), ctx.author.id, result.dupe_code
-            )
+            divorced_instance = get_instance_by_code(_guild_id(ctx), ctx.author.id, result.dupe_code)
             if divorced_instance is not None:
                 divorced_instance_id, _, _, _ = divorced_instance
                 morph_key = get_instance_morph(_guild_id(ctx), divorced_instance_id)
@@ -144,15 +133,11 @@ def register_economy_commands(bot: commands.Bot) -> None:
         if not await _require_guild(ctx, "Collection"):
             return
 
-        resolved_member, resolve_error = await resolve_optional_player_argument(
-            ctx, player
-        )
+        resolved_member, resolve_error = await resolve_optional_player_argument(ctx, player)
         if resolved_member is None:
             await _reply(
                 ctx,
-                embed=italy_embed(
-                    "Collection", resolve_error or "Could not resolve player."
-                ),
+                embed=italy_embed("Collection", resolve_error or "Could not resolve player."),
             )
             return
         target_member = resolved_member
@@ -174,15 +159,10 @@ def register_economy_commands(bot: commands.Bot) -> None:
             locked_instance_ids=get_locked_instance_ids(
                 _guild_id(ctx),
                 target_member.id,
-                [
-                    instance_id
-                    for instance_id, _card_id, _generation, _dupe_code in instances
-                ],
+                [instance_id for instance_id, _card_id, _generation, _dupe_code in instances],
             ),
             wish_counts=get_card_wish_counts(_guild_id(ctx)),
-            folder_emojis_by_instance=_folder_emoji_map_for_instances(
-                _guild_id(ctx), target_member.id, instances
-            ),
+            folder_emojis_by_instance=_folder_emoji_map_for_instances(_guild_id(ctx), target_member.id, instances),
             instance_styles={
                 instance_id: (
                     get_instance_morph(_guild_id(ctx), instance_id),
@@ -209,15 +189,11 @@ def register_economy_commands(bot: commands.Bot) -> None:
             return
 
         if not parsed_selectors:
-            prepared_single = prepare_burn(
-                _guild_id(ctx), ctx.author.id, card_code=None
-            )
+            prepared_single = prepare_burn(_guild_id(ctx), ctx.author.id, card_code=None)
             if prepared_single.is_error:
                 await _reply(
                     ctx,
-                    embed=italy_embed(
-                        "Burn", prepared_single.error_message or "Burn failed."
-                    ),
+                    embed=italy_embed("Burn", prepared_single.error_message or "Burn failed."),
                 )
                 return
             if (
@@ -259,16 +235,10 @@ def register_economy_commands(bot: commands.Bot) -> None:
 
         prepared = prepare_burn_batch(_guild_id(ctx), ctx.author.id, deduped_targets)
         if prepared.is_error:
-            await _reply(
-                ctx, embed=italy_embed("Burn", prepared.error_message or "Burn failed.")
-            )
+            await _reply(ctx, embed=italy_embed("Burn", prepared.error_message or "Burn failed."))
             return
 
-        if (
-            not prepared.items
-            or prepared.total_value is None
-            or prepared.total_delta_range is None
-        ):
+        if not prepared.items or prepared.total_value is None or prepared.total_delta_range is None:
             await _reply(ctx, embed=italy_embed("Burn", "Burn failed."))
             return
 
@@ -293,10 +263,7 @@ def register_economy_commands(bot: commands.Bot) -> None:
         )
         confirm_embed = italy_embed(
             "Burn Confirmation",
-            ("Burn this card?" if single else "Burn these cards?")
-            + "\n\n"
-            + "\n\n".join(item_lines)
-            + summary,
+            ("Burn this card?" if single else "Burn these cards?") + "\n\n" + "\n\n".join(item_lines) + summary,
         )
 
         primary_item = prepared.items[0]
@@ -307,9 +274,7 @@ def register_economy_commands(bot: commands.Bot) -> None:
             card_id=primary_item.card_id,
             generation=primary_item.generation,
             delta_range=primary_item.delta_range,
-            burn_items=[
-                (item.instance_id, item.delta_range) for item in prepared.items
-            ],
+            burn_items=[(item.instance_id, item.delta_range) for item in prepared.items],
         )
 
         send_kwargs: dict[str, object] = {"embed": confirm_embed, "view": view}
@@ -470,9 +435,7 @@ def register_economy_commands(bot: commands.Bot) -> None:
 
         prepared = prepare_font(_guild_id(ctx), ctx.author.id, card_code)
         if prepared.is_error:
-            await _reply(
-                ctx, embed=italy_embed("Font", prepared.error_message or "Font failed.")
-            )
+            await _reply(ctx, embed=italy_embed("Font", prepared.error_message or "Font failed."))
             return
 
         if (
@@ -530,9 +493,7 @@ def register_economy_commands(bot: commands.Bot) -> None:
         view.message = message
 
     @bot.command(name="trade", aliases=["t"])
-    async def trade(
-        ctx: commands.Context, player: str, card_code: str, mode: str, value: str
-    ):
+    async def trade(ctx: commands.Context, player: str, card_code: str, mode: str, value: str):
         if not await _require_guild(ctx, "Trade"):
             return
 
@@ -568,9 +529,7 @@ def register_economy_commands(bot: commands.Bot) -> None:
         if resolved_member is None:
             await _reply(
                 ctx,
-                embed=italy_embed(
-                    "Trade", resolve_error or "Could not resolve player."
-                ),
+                embed=italy_embed("Trade", resolve_error or "Could not resolve player."),
             )
             return
 
@@ -592,12 +551,7 @@ def register_economy_commands(bot: commands.Bot) -> None:
             )
             return
 
-        if (
-            prepared.card_id is None
-            or prepared.generation is None
-            or prepared.dupe_code is None
-            or prepared.terms is None
-        ):
+        if prepared.card_id is None or prepared.generation is None or prepared.dupe_code is None or prepared.terms is None:
             await _reply(ctx, embed=italy_embed("Trade", "Trade failed."))
             return
 
@@ -656,9 +610,7 @@ def register_economy_commands(bot: commands.Bot) -> None:
             return
 
         if resolved_member.bot:
-            await _reply(
-                ctx, embed=italy_embed("Gift", "You cannot gift dough to bots.")
-            )
+            await _reply(ctx, embed=italy_embed("Gift", "You cannot gift dough to bots."))
             return
 
         gifted, error_message, sender_balance, recipient_balance = execute_gift_dough(
@@ -668,9 +620,7 @@ def register_economy_commands(bot: commands.Bot) -> None:
             amount=amount,
         )
         if not gifted:
-            await _reply(
-                ctx, embed=italy_embed("Gift", error_message or "Gift failed.")
-            )
+            await _reply(ctx, embed=italy_embed("Gift", error_message or "Gift failed."))
             return
 
         await _reply(
@@ -701,9 +651,7 @@ def register_economy_commands(bot: commands.Bot) -> None:
             return
 
         if resolved_member.bot:
-            await _reply(
-                ctx, embed=italy_embed("Gift", "You cannot gift starter to bots.")
-            )
+            await _reply(ctx, embed=italy_embed("Gift", "You cannot gift starter to bots."))
             return
 
         gifted, error_message, sender_balance, recipient_balance = execute_gift_starter(
@@ -713,9 +661,7 @@ def register_economy_commands(bot: commands.Bot) -> None:
             amount=amount,
         )
         if not gifted:
-            await _reply(
-                ctx, embed=italy_embed("Gift", error_message or "Gift failed.")
-            )
+            await _reply(ctx, embed=italy_embed("Gift", error_message or "Gift failed."))
             return
 
         await _reply(
@@ -746,23 +692,17 @@ def register_economy_commands(bot: commands.Bot) -> None:
             return
 
         if resolved_member.bot:
-            await _reply(
-                ctx, embed=italy_embed("Gift", "You cannot gift drop tickets to bots.")
-            )
+            await _reply(ctx, embed=italy_embed("Gift", "You cannot gift drop tickets to bots."))
             return
 
-        gifted, error_message, sender_balance, recipient_balance = (
-            execute_gift_drop_tickets(
-                guild_id=_guild_id(ctx),
-                sender_id=ctx.author.id,
-                recipient_id=resolved_member.id,
-                amount=amount,
-            )
+        gifted, error_message, sender_balance, recipient_balance = execute_gift_drop_tickets(
+            guild_id=_guild_id(ctx),
+            sender_id=ctx.author.id,
+            recipient_id=resolved_member.id,
+            amount=amount,
         )
         if not gifted:
-            await _reply(
-                ctx, embed=italy_embed("Gift", error_message or "Gift failed.")
-            )
+            await _reply(ctx, embed=italy_embed("Gift", error_message or "Gift failed."))
             return
 
         await _reply(
@@ -793,9 +733,7 @@ def register_economy_commands(bot: commands.Bot) -> None:
             return
 
         if resolved_member.bot:
-            await _reply(
-                ctx, embed=italy_embed("Gift", "You cannot gift cards to bots.")
-            )
+            await _reply(ctx, embed=italy_embed("Gift", "You cannot gift cards to bots."))
             return
 
         gifted, error_message, card_id, generation, dupe_code = execute_gift_card(
@@ -805,9 +743,7 @@ def register_economy_commands(bot: commands.Bot) -> None:
             card_code=card_code,
         )
         if not gifted:
-            await _reply(
-                ctx, embed=italy_embed("Gift", error_message or "Gift failed.")
-            )
+            await _reply(ctx, embed=italy_embed("Gift", error_message or "Gift failed."))
             return
 
         if card_id is None or generation is None:
@@ -824,9 +760,7 @@ def register_economy_commands(bot: commands.Bot) -> None:
 
         gifted_instance = None
         if dupe_code is not None:
-            gifted_instance = get_instance_by_code(
-                _guild_id(ctx), resolved_member.id, dupe_code
-            )
+            gifted_instance = get_instance_by_code(_guild_id(ctx), resolved_member.id, dupe_code)
         morph_key = None
         frame_key = None
         font_key = None

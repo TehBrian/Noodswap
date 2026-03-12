@@ -1,4 +1,3 @@
-# pylint: disable=wildcard-import,unused-wildcard-import,undefined-variable
 from .command_utils import *  # noqa: F403
 
 
@@ -7,9 +6,7 @@ def register_admin_commands(bot: commands.Bot) -> None:
     @commands.is_owner()
     async def dbexport(ctx: commands.Context):
         if not DB_PATH.exists():
-            await _reply(
-                ctx, embed=italy_embed("DB Export", "No database file found yet.")
-            )
+            await _reply(ctx, embed=italy_embed("DB Export", "No database file found yet."))
             return
 
         await _reply(

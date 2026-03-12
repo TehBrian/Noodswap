@@ -119,9 +119,7 @@ _DEFAULT_ATTACK_VERBS = [
 ]
 
 
-def series_attack_message(
-    series: str, card_name: str, damage: int, rng: random.Random
-) -> str:
+def series_attack_message(series: str, card_name: str, damage: int, rng: random.Random) -> str:
     pool = SERIES_ATTACK_VERBS.get(series, _DEFAULT_ATTACK_VERBS)
     template = rng.choice(pool)
     return template.format(card=f"**{card_name}**", damage=f"**{damage}**")
@@ -210,10 +208,7 @@ def build_battle_card(
 def build_team_battle_cards(
     instances: list[tuple[int, str, int, str]],
 ) -> list[BattleCard]:
-    return [
-        build_battle_card(instance_id, card_id, generation, dupe_code)
-        for instance_id, card_id, generation, dupe_code in instances
-    ]
+    return [build_battle_card(instance_id, card_id, generation, dupe_code) for instance_id, card_id, generation, dupe_code in instances]
 
 
 def resolve_attack(

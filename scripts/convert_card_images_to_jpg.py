@@ -10,10 +10,7 @@ SUPPORTED_SUFFIXES = {".jpg", ".jpeg", ".png", ".webp", ".bmp", ".tif", ".tiff"}
 
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description=(
-            "Convert images to JPEG with very light compression and write them "
-            "to a destination card_images directory."
-        )
+        description=("Convert images to JPEG with very light compression and write them to a destination card_images directory.")
     )
     parser.add_argument(
         "--repo-root",
@@ -66,11 +63,7 @@ def _convert_to_rgb(image: Image.Image) -> Image.Image:
 
 
 def _iter_source_images(source_dir: Path) -> list[Path]:
-    return sorted(
-        path
-        for path in source_dir.rglob("*")
-        if path.is_file() and path.suffix.lower() in SUPPORTED_SUFFIXES
-    )
+    return sorted(path for path in source_dir.rglob("*") if path.is_file() and path.suffix.lower() in SUPPORTED_SUFFIXES)
 
 
 def main() -> None:
@@ -123,11 +116,7 @@ def main() -> None:
                 source_path.unlink(missing_ok=True)
                 deleted += 1
 
-    print(
-        "Done. "
-        f"Converted: {converted}, Skipped: {skipped}, "
-        f"Source files deleted: {deleted}"
-    )
+    print(f"Done. Converted: {converted}, Skipped: {skipped}, Source files deleted: {deleted}")
 
 
 if __name__ == "__main__":

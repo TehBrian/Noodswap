@@ -21,9 +21,7 @@ def proper_case(value: str) -> str:
     return " ".join(word.capitalize() for word in value.split())
 
 
-def series_display(
-    series: str, *, series_catalog: Mapping[str, Mapping[str, object]]
-) -> str:
+def series_display(series: str, *, series_catalog: Mapping[str, Mapping[str, object]]) -> str:
     series_meta = series_catalog.get(series)
     if series_meta is None:
         return proper_case(series)
@@ -32,9 +30,7 @@ def series_display(
     return f"{series_meta['emoji']} {label}"
 
 
-def series_emoji(
-    series: str, *, series_catalog: Mapping[str, Mapping[str, object]]
-) -> str:
+def series_emoji(series: str, *, series_catalog: Mapping[str, Mapping[str, object]]) -> str:
     series_meta = series_catalog.get(series)
     if series_meta is None:
         return proper_case(series)
@@ -70,11 +66,7 @@ def card_dupe_display(
     card_value: Callable[..., int],
 ) -> str:
     card = card_catalog[card_id]
-    dupe_code_text = (
-        display_dupe_code(dupe_code)
-        if pad_dupe_code
-        else display_dupe_code_raw(dupe_code)
-    )
+    dupe_code_text = display_dupe_code(dupe_code) if pad_dupe_code else display_dupe_code_raw(dupe_code)
     return (
         f"`#{dupe_code_text}` **{card['name']}** • (`{card_id}`) "
         f"[{series_display(str(card['series']), series_catalog=series_catalog)}] "
