@@ -351,9 +351,9 @@ def register_gambling_commands(bot: commands.Bot) -> None:
             return
 
         valid_guild_member_ids = None
-        if ctx.guild is not None and hasattr(ctx.guild, 'members'):
+        if ctx.guild is not None and hasattr(ctx.guild, "members"):
             valid_guild_member_ids = {member.id for member in ctx.guild.members}
-        
+
         result = execute_monopoly_roll(
             _guild_id(ctx),
             ctx.author.id,

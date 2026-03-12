@@ -1769,9 +1769,7 @@ def execute_monopoly_roll(
                     if pot_tickets > 0:
                         players.add_drop_tickets(guild_id, user_id, pot_tickets)
                     pot.clear(guild_id)
-                    lines.append(
-                        f"Free Parking jackpot: **+{pot_dough} dough, +{pot_starter} starter, +{pot_tickets} drop tickets**"
-                    )
+                    lines.append(f"Free Parking jackpot: **+{pot_dough} dough, +{pot_starter} starter, +{pot_tickets} drop tickets**")
             if card.dough_delta != 0:
                 if card.dough_delta > 0:
                     players.add_dough(guild_id, user_id, card.dough_delta)
@@ -1802,8 +1800,8 @@ def execute_monopoly_roll(
             candidates = [
                 (instance_id, owner_id, card_id, generation, dupe_code)
                 for instance_id, owner_id, card_id, generation, dupe_code in instances.list_owner_instances_for_guild(guild_id)
-                if owner_id != user_id 
-                and str(card_id) in CARD_CATALOG 
+                if owner_id != user_id
+                and str(card_id) in CARD_CATALOG
                 and str(CARD_CATALOG[str(card_id)]["rarity"]).lower() == space.rarity
                 and (valid_guild_member_ids is None or owner_id in valid_guild_member_ids)
             ]

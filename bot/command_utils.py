@@ -1250,7 +1250,10 @@ async def _folder_assign(ctx: commands.Context, folder_name: str, *card_codes: s
             return
         success, err = assign_instance_to_folder(_guild_id(ctx), ctx.author.id, instance_id, folder_name)
         if not success:
-            await _reply(ctx, embed=italy_embed("Folders", err or "Could not assign that card to this folder. Make sure the folder exists and the card is yours."))
+            await _reply(
+                ctx,
+                embed=italy_embed("Folders", err or "Could not assign that card to this folder. Make sure the folder exists and the card is yours."),
+            )
             return
         await _reply(ctx, embed=italy_embed("Folders", f"Assigned {card_dupe_display(card_id, generation, dupe_code=dupe_code)} to `{normalized}`."))
         return

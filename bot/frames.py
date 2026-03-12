@@ -21,9 +21,9 @@ FRAME_LABELS: Final[dict[str, str]] = {
 }
 
 FRAME_RARITIES: Final[dict[str, str]] = {
-    FRAME_BUTTERY: "common",
+    FRAME_BUTTERY: "mythical",
     FRAME_GILDED: "epic",
-    FRAME_DRIZZLED: "legendary",
+    FRAME_DRIZZLED: "rare",
 }
 
 FRAMES_DIR: Final[Path] = SETTINGS_FRAMES_DIR
