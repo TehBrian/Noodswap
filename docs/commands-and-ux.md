@@ -11,7 +11,7 @@ This document defines behavior and presentation for commands and interaction flo
 - `info [player]` / `i [player]`
 - `leaderboard` / `le`
 - `collection [player]` / `c [player]`
-- `cards [player]` / `ca [player]`
+- `cards` / `ca`
 - `types` / `ty`
 - `lookup <card_id|card_code|query>` / `l <card_id|card_code|query>`
 - `lookuphd <card_id|card_code|query>` / `lhd <card_id|card_code|query>`

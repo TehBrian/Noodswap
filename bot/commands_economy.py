@@ -82,6 +82,7 @@ from .command_utils import (
     frame_rarity as frame_rarity,
     generation_value_multiplier as generation_value_multiplier,
     get_active_team_name as get_active_team_name,
+    get_all_owned_card_instances as get_all_owned_card_instances,
     get_burn_candidate_by_card_id as get_burn_candidate_by_card_id,
     get_card_wish_counts as get_card_wish_counts,
     get_folder_emojis_for_instances as get_folder_emojis_for_instances,
@@ -340,50 +341,52 @@ def register_economy_commands(bot: commands.Bot) -> None:
         view.message = message
 
     @bot.command(name="cards", aliases=["ca"])
-    async def cards(ctx: commands.Context, *, player: str | None = None):
+    async def cards(ctx: commands.Context):
         if not await _require_guild(ctx, "Cards"):
             return
 
-        resolved_member, resolve_error = await resolve_optional_player_argument(ctx, player)
-        if resolved_member is None:
-            await _reply(
-                ctx,
-                embed=italy_embed("Cards", resolve_error or "Could not resolve player."),
+        instance_rows = get_all_owned_card_instances(_guild_id(ctx))
+        title = "All Cards"
+        if not instance_rows:
+            await _reply(ctx, embed=italy_embed(title, "No cards have been claimed yet. Try `ns drop`."))
+            return
+
+        instances = [
+            (instance_id, card_id, generation, card_code)
+            for instance_id, _owner_id, card_id, generation, card_code, _morph_key, _frame_key, _font_key in instance_rows
+        ]
+        instance_styles = {
+            instance_id: (morph_key, frame_key, font_key)
+            for instance_id, _owner_id, _card_id, _generation, _card_code, morph_key, frame_key, font_key in instance_rows
+        }
+        owner_labels_by_instance: dict[int, str] = {}
+        for instance_id, owner_id, _card_id, _generation, _card_code, _morph_key, _frame_key, _font_key in instance_rows:
+            member = ctx.guild.get_member(owner_id)
+            owner_labels_by_instance[instance_id] = member.display_name if member is not None else f"User {owner_id}"
+
+        def _format_global_card_line(
+            card_id: str,
+            generation: int,
+            card_code: str | None,
+            *,
+            instance_id: int | None = None,
+            morph_key: str | None = None,
+            frame_key: str | None = None,
+            font_key: str | None = None,
+        ) -> str:
+            owner_text = owner_labels_by_instance.get(instance_id or -1, "Unknown")
+            return (
+                f"{card_display_concise(card_id, generation, card_code, morph_key=morph_key, frame_key=frame_key, font_key=font_key)}"
+                f" • Owner: {owner_text}"
             )
-            return
-        target_member = resolved_member
-
-        instances = get_player_card_instances(_guild_id(ctx), target_member.id)
-
-        title = f"{target_member.display_name}'s Cards"
-        if not instances:
-            if target_member.id == ctx.author.id:
-                description = "You have no cards. Try `ns drop`."
-            else:
-                description = f"{target_member.display_name} has no cards."
-            await _reply(ctx, embed=italy_embed(title, description))
-            return
 
         view = SortableCollectionView(
             user_id=ctx.author.id,
             title=title,
             instances=instances,
-            locked_instance_ids=get_locked_instance_ids(
-                _guild_id(ctx),
-                target_member.id,
-                [instance_id for instance_id, _card_id, _generation, _card_code in instances],
-            ),
             wish_counts=get_card_wish_counts(_guild_id(ctx)),
-            folder_emojis_by_instance=_folder_emoji_map_for_instances(_guild_id(ctx), target_member.id, instances),
-            instance_styles={
-                instance_id: (
-                    get_instance_morph(_guild_id(ctx), instance_id),
-                    get_instance_frame(_guild_id(ctx), instance_id),
-                    get_instance_font(_guild_id(ctx), instance_id),
-                )
-                for instance_id, _card_id, _generation, _card_code in instances
-            },
-            card_line_formatter=card_display_concise,
+            instance_styles=instance_styles,
+            card_line_formatter=_format_global_card_line,
             guard_title="Cards",
         )
         message = await _reply(ctx, embed=view.build_embed(), view=view)

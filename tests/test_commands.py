@@ -1157,53 +1157,57 @@ class CommandsCollectionTests:
 
         empty_instances: list = []
         with patch(
-            "bot.commands_economy.get_player_card_instances",
+            "bot.commands_economy.get_all_owned_card_instances",
             return_value=empty_instances,
         ):
-            await cards_command.callback(ctx, player=None)
+            await cards_command.callback(ctx)
 
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
-        assert sent_embed.title == "Caller's Cards"
-        assert sent_embed.description == "You have no cards. Try `ns drop`."
+        assert sent_embed.title == "All Cards"
+        assert sent_embed.description == "No cards have been claimed yet. Try `ns drop`."
 
-    async def test_cards_lists_only_instances_for_duplicate_card_ids(self) -> None:
+    async def test_cards_lists_all_owned_instances_with_owner_names(self) -> None:
         cards_command = _get_command(self.bot, "cards")
 
         ctx = AsyncMock()
-        ctx.guild = _FakeGuild(1)
+        ctx.guild = _FakeGuild(
+            1,
+            members={
+                100: _FakeMember(100, "Caller"),
+                200: _FakeMember(200, "Friend"),
+            },
+        )
         ctx.author = _FakeMember(100, "Caller")
         ctx.send = AsyncMock(return_value=SimpleNamespace())
         ctx.reply = ctx.send
 
         instances = [
-            (1, "SPG", 100, "0"),
-            (2, "SPG", 101, "1"),
-            (3, "BAR", 200, "2"),
-            (4, "PEN", 300, "3"),
-            (5, "PEN", 302, "4"),
+            (1, 100, "SPG", 100, "0", None, None, None),
+            (2, 200, "SPG", 101, "1", None, None, None),
+            (3, 200, "BAR", 200, "2", None, None, None),
+            (4, 300, "PEN", 300, "3", None, None, None),
         ]
         with (
             patch(
-                "bot.commands_economy.get_player_card_instances",
+                "bot.commands_economy.get_all_owned_card_instances",
                 return_value=instances,
             ),
-            patch("bot.command_utils.get_locked_instance_ids", return_value=set()),
             patch("bot.commands_economy.get_card_wish_counts", return_value={"SPG": 3, "PEN": 1}),
-            patch("bot.commands_economy.get_instance_morph", return_value=None),
-            patch("bot.commands_economy.get_instance_frame", return_value=None),
-            patch("bot.commands_economy.get_instance_font", return_value=None),
         ):
-            await cards_command.callback(ctx, player=None)
+            await cards_command.callback(ctx)
 
         ctx.send.assert_awaited_once()
         send_kwargs = ctx.send.await_args.kwargs
         sent_embed = send_kwargs["embed"]
         sent_view = send_kwargs["view"]
-        assert sent_embed.title == "Caller's Cards"
+        assert sent_embed.title == "All Cards"
         assert sent_embed.description.count("Spaghetti") == 2
-        assert sent_embed.description.count("Penne") == 2
+        assert sent_embed.description.count("Penne") == 1
         assert sent_embed.description.count("Barolo") == 1
+        assert "Owner: Caller" in sent_embed.description
+        assert "Owner: Friend" in sent_embed.description
+        assert "Owner: User 300" in sent_embed.description
         assert isinstance(sent_view, SortableCollectionView)
         assert sent_embed.footer.text == "Page 1/1 • Sort: Alphabetical (Asc)"
 

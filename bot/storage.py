@@ -2238,6 +2238,15 @@ def get_player_card_instances(guild_id: int, user_id: int) -> list[tuple[int, st
         return instances.list_by_owner(guild_id, user_id)
 
 
+def get_all_owned_card_instances(
+    guild_id: int,
+) -> list[tuple[int, int, str, int, str, str | None, str | None, str | None]]:
+    guild_id = _scope_guild_id(guild_id)
+    with get_db_connection() as conn:
+        instances = CardInstanceRepository(conn)
+        return instances.list_owner_instances_with_styles_for_guild(guild_id)
+
+
 def get_total_cards(guild_id: int, user_id: int) -> int:
     guild_id = _scope_guild_id(guild_id)
     with get_db_connection() as conn:

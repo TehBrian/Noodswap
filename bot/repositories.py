@@ -1891,6 +1891,33 @@ class CardInstanceRepository:
             for row in rows
         ]
 
+    def list_owner_instances_with_styles_for_guild(
+        self,
+        guild_id: int,
+    ) -> list[tuple[int, int, str, int, str, Optional[str], Optional[str], Optional[str]]]:
+        rows = self.conn.execute(
+            """
+            SELECT instance_id, user_id, card_type_id, generation, card_code, morph_key, frame_key, font_key
+            FROM card_instances
+            WHERE guild_id = ?
+            ORDER BY user_id ASC, instance_id ASC
+            """,
+            (guild_id,),
+        ).fetchall()
+        return [
+            (
+                int(row["instance_id"]),
+                int(row["user_id"]),
+                str(row["card_type_id"]),
+                int(row["generation"]),
+                str(row["card_code"]),
+                str(row["morph_key"]) if row["morph_key"] is not None else None,
+                str(row["frame_key"]) if row["frame_key"] is not None else None,
+                str(row["font_key"]) if row["font_key"] is not None else None,
+            )
+            for row in rows
+        ]
+
     def pop_highest_generation_by_card(self, guild_id: int, user_id: int, card_type_id: str) -> Optional[tuple[int, int]]:
         row = self.conn.execute(
             """

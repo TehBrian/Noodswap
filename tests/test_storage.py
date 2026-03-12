@@ -94,6 +94,28 @@ class StorageTests:
         assert married_instance_id == instance_b
         assert married_instance_id != instance_a
 
+    def test_get_all_owned_card_instances_returns_all_owners_and_styles(self) -> None:
+        guild_id = 1
+        owner_a = 100
+        owner_b = 200
+
+        storage.init_db()
+        instance_a = storage.add_card_to_player(guild_id, owner_a, "SPG", 120)
+        instance_b = storage.add_card_to_player(guild_id, owner_b, "PEN", 80)
+        with storage.get_db_connection() as conn:
+            scoped_guild_id = storage._scope_guild_id(guild_id)
+            instances = storage.CardInstanceRepository(conn)
+            assert instances.set_morph_key(scoped_guild_id, owner_a, instance_a, "inverse")
+            assert instances.set_frame_key(scoped_guild_id, owner_b, instance_b, "buttery")
+            assert instances.set_font_key(scoped_guild_id, owner_b, instance_b, "mono")
+
+        rows = storage.get_all_owned_card_instances(guild_id)
+
+        assert rows == [
+            (instance_a, owner_a, "SPG", 120, "0", "inverse", None, None),
+            (instance_b, owner_b, "PEN", 80, "1", None, "buttery", "mono"),
+        ]
+
     def test_claim_vote_reward_always_adds_starter(self) -> None:
         guild_id = 1
         user_id = 1234

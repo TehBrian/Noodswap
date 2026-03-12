@@ -563,12 +563,23 @@ class SortableCollectionView(discord.ui.View):
                 card_id,
                 generation,
                 card_code,
+                instance_id=instance_id,
                 morph_key=morph_key,
                 frame_key=frame_key,
                 font_key=font_key,
             )
         except TypeError:
-            return self.card_line_formatter(card_id, generation, card_code)
+            try:
+                return self.card_line_formatter(
+                    card_id,
+                    generation,
+                    card_code,
+                    morph_key=morph_key,
+                    frame_key=frame_key,
+                    font_key=font_key,
+                )
+            except TypeError:
+                return self.card_line_formatter(card_id, generation, card_code)
 
     def build_embed(self) -> discord.Embed:
         embed, _file = self._build_embed_and_file()
