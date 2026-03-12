@@ -397,6 +397,62 @@ class StorageTests(unittest.TestCase):
         )
         self.assertIn(expected_line, result.lines)
 
+    def test_monopoly_card_move_to_free_parking_awards_pot(self) -> None:
+        guild_id = 1
+        user_id = 1253
+        storage.init_db()
+        storage.add_dough(guild_id, user_id, 500)
+
+        with storage.get_db_connection() as conn:
+            from bot.repositories import GamblingPotRepository
+
+            pot = GamblingPotRepository(conn)
+            scoped_guild_id = storage._scope_guild_id(guild_id)
+            pot.ensure_row(scoped_guild_id)
+            pot.add(scoped_guild_id, dough=1234)
+
+        chance_space = SimpleNamespace(kind="chance", name="Cheese Chance", emoji="❓", rarity=None)
+        free_parking_space = SimpleNamespace(
+            kind="free_parking",
+            name="Free Parking",
+            emoji="🅿️",
+            rarity=None,
+        )
+
+        with (
+            patch("bot.storage.roll_dice", return_value=(1, 2, False)),
+            patch("bot.storage.board_space", side_effect=[chance_space, free_parking_space]),
+            patch(
+                "bot.storage.draw_cheese_chance",
+                return_value=SimpleNamespace(
+                    text="Advance to Free Parking.",
+                    dough_delta=0,
+                    starter_delta=0,
+                    drop_tickets_delta=0,
+                    move_to=20,
+                    go_to_jail=False,
+                    reset_random_cooldown=False,
+                ),
+            ),
+        ):
+            result = storage.execute_monopoly_roll(
+                guild_id,
+                user_id,
+                now=50_000.0,
+                cooldown_seconds=660.0,
+            )
+
+        self.assertEqual(result.status, "ok")
+        self.assertTrue(any("Free Parking jackpot" in line for line in result.lines))
+
+        pot_dough, pot_starter, pot_tickets = storage.get_gambling_pot(guild_id)
+        self.assertEqual(pot_dough, 0)
+        self.assertEqual(pot_starter, 0)
+        self.assertEqual(pot_tickets, 0)
+
+        player_dough, _, _ = storage.get_player_info(guild_id, user_id)
+        self.assertEqual(player_dough, 1734)
+
     def test_execute_flip_wager_win_loss_and_cooldown(self) -> None:
         guild_id = 1
         user_id = 1243

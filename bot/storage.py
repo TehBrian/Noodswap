@@ -1759,6 +1759,18 @@ def execute_monopoly_roll(
                     lines.append(f"Moved to a **{target_space.rarity}** property.")
                 else:
                     lines.append(f"Moved to **{target_space.name}**")
+                if target_space.kind == "free_parking":
+                    pot_dough, pot_starter, pot_tickets = pot.get_balances(guild_id)
+                    if pot_dough > 0:
+                        players.add_dough(guild_id, user_id, pot_dough)
+                    if pot_starter > 0:
+                        players.add_starter(guild_id, user_id, pot_starter)
+                    if pot_tickets > 0:
+                        players.add_drop_tickets(guild_id, user_id, pot_tickets)
+                    pot.clear(guild_id)
+                    lines.append(
+                        f"Free Parking jackpot: **+{pot_dough} dough, +{pot_starter} starter, +{pot_tickets} drop tickets**"
+                    )
             if card.dough_delta != 0:
                 if card.dough_delta > 0:
                     players.add_dough(guild_id, user_id, card.dough_delta)

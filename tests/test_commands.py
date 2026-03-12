@@ -315,8 +315,8 @@ class CommandsTagTests(unittest.IsolatedAsyncioTestCase):
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
         self.assertEqual(sent_embed.title, "Your Tags")
-        self.assertIn("🔒 `safe` - Locked - 2 card(s)", sent_embed.description)
-        self.assertIn("`  ` `trash` - Unlocked - 1 card(s)", sent_embed.description)
+        self.assertIn("🔒 `safe` • 2 cards", sent_embed.description)
+        self.assertIn("`  ` `trash` • 1 card", sent_embed.description)
 
     async def test_tag_assign_rejects_unowned_card_code(self) -> None:
         tag_assign_command = _get_group_command(self.bot, "tag", "assign")
@@ -437,8 +437,8 @@ class CommandsFolderTests(unittest.IsolatedAsyncioTestCase):
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
         self.assertEqual(sent_embed.title, "Your Folders")
-        self.assertIn("🔒 📦 `vault` - Locked - 2 card(s)", sent_embed.description)
-        self.assertIn("`  ` 🗑️ `dump` - Unlocked - 1 card(s)", sent_embed.description)
+        self.assertIn("🔒 📦 `vault` • 2 cards", sent_embed.description)
+        self.assertIn("`  ` 🗑️ `dump` • 1 card", sent_embed.description)
 
     async def test_folder_assign_rejects_duplicate_assignment(self) -> None:
         folder_assign_command = _get_group_command(self.bot, "folder", "assign")

@@ -926,7 +926,7 @@ async def _tag_list(ctx: commands.Context) -> None:
         return
 
     lines = [
-        f"{'🔒 ' if is_locked else '`  ` '}`{tag_name}` - {'Locked' if is_locked else 'Unlocked'} - {card_count} card(s)"
+        f"{'🔒 ' if is_locked else '`  ` '}`{tag_name}` • {card_count} {'card' if card_count == 1 else 'cards'}"
         for tag_name, is_locked, card_count in tags
     ]
     await _reply(ctx, embed=italy_embed("Your Tags", multiline_text(lines)))
@@ -1136,7 +1136,7 @@ async def _folder_list(ctx: commands.Context) -> None:
         return
 
     lines = [
-        (f"{'🔒 ' if is_locked else '`  ` '}{emoji} `{folder_name}` - {'Locked' if is_locked else 'Unlocked'} - {card_count} card(s)")
+        (f"{'🔒 ' if is_locked else '`  ` '}{emoji} `{folder_name}` • {card_count} {'card' if card_count == 1 else 'cards'}")
         for folder_name, emoji, is_locked, card_count in folders
     ]
     await _reply(ctx, embed=italy_embed("Your Folders", multiline_text(lines)))
