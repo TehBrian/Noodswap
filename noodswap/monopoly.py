@@ -232,7 +232,7 @@ def render_board(player_position: int) -> str:
         row, col = row_col
         grid[row][col] = f"{"👤" if space.position == player_position else space.emoji}"
 
-    lines = ["\n".join(row) for row in grid]
+    lines = [" ".join(row) for row in grid]
     lines.append("")
     lines.append("""Legend:
 ➡️ GO, 💸 Cheese Tax
