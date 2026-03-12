@@ -339,6 +339,61 @@ def register_economy_commands(bot: commands.Bot) -> None:
         message = await _reply(ctx, embed=view.build_embed(), view=view)
         view.message = message
 
+    @bot.command(name="dupes", aliases=["ds"])
+    async def dupes(ctx: commands.Context, *, player: str | None = None):
+        if not await _require_guild(ctx, "Dupes"):
+            return
+
+        resolved_member, resolve_error = await resolve_optional_player_argument(ctx, player)
+        if resolved_member is None:
+            await _reply(
+                ctx,
+                embed=italy_embed("Dupes", resolve_error or "Could not resolve player."),
+            )
+            return
+        target_member = resolved_member
+
+        instances = get_player_card_instances(_guild_id(ctx), target_member.id)
+        card_counts: dict[str, int] = {}
+        for _instance_id, card_id, _generation, _dupe_code in instances:
+            card_counts[card_id] = card_counts.get(card_id, 0) + 1
+        dupe_card_ids = {card_id for card_id, count in card_counts.items() if count > 1}
+        dupe_instances = [item for item in instances if item[1] in dupe_card_ids]
+
+        title = f"{target_member.display_name}'s Dupes"
+        if not dupe_instances:
+            if target_member.id == ctx.author.id:
+                description = "You have no dupes."
+            else:
+                description = f"{target_member.display_name} has no dupes."
+            await _reply(ctx, embed=italy_embed(title, description))
+            return
+
+        view = SortableCollectionView(
+            user_id=ctx.author.id,
+            title=title,
+            instances=dupe_instances,
+            locked_instance_ids=get_locked_instance_ids(
+                _guild_id(ctx),
+                target_member.id,
+                [instance_id for instance_id, _card_id, _generation, _dupe_code in dupe_instances],
+            ),
+            wish_counts=get_card_wish_counts(_guild_id(ctx)),
+            folder_emojis_by_instance=_folder_emoji_map_for_instances(_guild_id(ctx), target_member.id, dupe_instances),
+            instance_styles={
+                instance_id: (
+                    get_instance_morph(_guild_id(ctx), instance_id),
+                    get_instance_frame(_guild_id(ctx), instance_id),
+                    get_instance_font(_guild_id(ctx), instance_id),
+                )
+                for instance_id, _card_id, _generation, _dupe_code in dupe_instances
+            },
+            card_line_formatter=card_dupe_display_concise,
+            guard_title="Dupes",
+        )
+        message = await _reply(ctx, embed=view.build_embed(), view=view)
+        view.message = message
+
     @bot.command(name="burn", aliases=["b"])
     async def burn(ctx: commands.Context, *targets: str):
         if not await _require_guild(ctx, "Burn"):

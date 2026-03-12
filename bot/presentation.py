@@ -179,6 +179,7 @@ COMMAND_SYNTAX_BY_KEY: dict[str, str] = {
     "buy pull": "ns buy pull [quantity]",
     "cards": "ns cards",
     "collection": "ns collection [player]",
+    "dupes": "ns dupes [player]",
     "cooldown": "ns cooldown [player]",
     "dbexport": "ns dbexport",
     "dbreset": "ns dbreset",
@@ -270,6 +271,7 @@ HELP_CATEGORY_PAGES: tuple[tuple[str, str, str], ...] = (
         """- `info [player]` (`i`) — View a player's info. Defaults to yourself or the replied user.
 - `leaderboard` (`le`) — View players ranked on various criteria.
 - `collection [player]` (`c`) — View a player's cards. Defaults to yourself or the replied user.
+    - `dupes [player]` (`ds`) — View duplicate card instances only. Defaults to yourself or the replied user.
 - `cards` (`ca`) — View all cards.
 - `lookup <card_id|card_code|query>` (`l`) — Look up a base card by ID or query or a dupe card by code.
 - `lookuphd <card_id|card_code|query>` (`lhd`) — View a card in high resolution.
@@ -285,6 +287,7 @@ HELP_CATEGORY_PAGES: tuple[tuple[str, str, str], ...] = (
 - `vote` (`v`) — Vote for the bot to claim rewards.
 - `burn [target...]` (`b`) — Burn targets for dough. Supports card codes plus
     `t:<tag>` and `f:<folder>` selectors. Defaults to last pulled card.
+- `dupes [player]` (`ds`) — View duplicate card instances only, with sortable ranking.
 - `gift dough <player> <dough>` (`gift d`) — Send dough to a player.
 - `gift starter <player> <starter>` (`gift s`) — Send starter to a player.
 - `gift drop <player> <tickets>` — Send drop tickets to a player.

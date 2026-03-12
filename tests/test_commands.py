@@ -664,6 +664,7 @@ class CommandsAliasRegistrationTests:
         assert "d" in _get_command(self.bot, "drop").aliases
         assert "h" in _get_command(self.bot, "help").aliases
         assert "ca" in _get_command(self.bot, "cards").aliases
+        assert "ds" in _get_command(self.bot, "dupes").aliases
         assert "l" in _get_command(self.bot, "lookup").aliases
         assert "lhd" in _get_command(self.bot, "lookuphd").aliases
         assert "c" in _get_command(self.bot, "collection").aliases
@@ -1144,6 +1145,71 @@ class CommandsCollectionTests:
         assert "view" in send_kwargs
         assert isinstance(send_kwargs["view"], SortableCollectionView)
         assert send_kwargs["embed"].footer.text == "Page 1/2 • Sort: Alphabetical (Asc)"
+
+    async def test_dupes_shows_empty_state_when_no_duplicate_cards(self) -> None:
+        dupes_command = _get_command(self.bot, "dupes")
+
+        ctx = AsyncMock()
+        ctx.guild = _FakeGuild(1)
+        ctx.author = _FakeMember(100, "Caller")
+        ctx.send = AsyncMock()
+        ctx.reply = ctx.send
+
+        unique_instances = [
+            (1, "SPG", 100, "0"),
+            (2, "BAR", 200, "1"),
+            (3, "PEN", 300, "2"),
+        ]
+        with patch(
+            "bot.commands_economy.get_player_card_instances",
+            return_value=unique_instances,
+        ):
+            await dupes_command.callback(ctx, player=None)
+
+        ctx.send.assert_awaited_once()
+        sent_embed = ctx.send.await_args.kwargs["embed"]
+        assert sent_embed.title == "Caller's Dupes"
+        assert sent_embed.description == "You have no dupes."
+
+    async def test_dupes_lists_only_instances_for_duplicate_card_ids(self) -> None:
+        dupes_command = _get_command(self.bot, "dupes")
+
+        ctx = AsyncMock()
+        ctx.guild = _FakeGuild(1)
+        ctx.author = _FakeMember(100, "Caller")
+        ctx.send = AsyncMock(return_value=SimpleNamespace())
+        ctx.reply = ctx.send
+
+        instances = [
+            (1, "SPG", 100, "0"),
+            (2, "SPG", 101, "1"),
+            (3, "BAR", 200, "2"),
+            (4, "PEN", 300, "3"),
+            (5, "PEN", 302, "4"),
+        ]
+        with (
+            patch(
+                "bot.commands_economy.get_player_card_instances",
+                return_value=instances,
+            ),
+            patch("bot.command_utils.get_locked_instance_ids", return_value=set()),
+            patch("bot.commands_economy.get_card_wish_counts", return_value={"SPG": 3, "PEN": 1}),
+            patch("bot.commands_economy.get_instance_morph", return_value=None),
+            patch("bot.commands_economy.get_instance_frame", return_value=None),
+            patch("bot.commands_economy.get_instance_font", return_value=None),
+        ):
+            await dupes_command.callback(ctx, player=None)
+
+        ctx.send.assert_awaited_once()
+        send_kwargs = ctx.send.await_args.kwargs
+        sent_embed = send_kwargs["embed"]
+        sent_view = send_kwargs["view"]
+        assert sent_embed.title == "Caller's Dupes"
+        assert sent_embed.description.count("Spaghetti") == 2
+        assert sent_embed.description.count("Penne") == 2
+        assert "(`BAR`)" not in sent_embed.description
+        assert isinstance(sent_view, SortableCollectionView)
+        assert sent_embed.footer.text == "Page 1/1 • Sort: Alphabetical (Asc)"
 
     async def test_wish_list_uses_pagination_view_for_multi_page_results(self) -> None:
         wish_list_command = _get_group_command(self.bot, "wish", "list")
