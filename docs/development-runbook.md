@@ -6,9 +6,9 @@ This runbook is for contributors and coding agents.
 
 - Python: 3.14+
 - Install dependencies:
-  - `pip install -r requirements.txt`
+  - `uv sync`
 - Install dev dependencies (includes `ruff`):
-  - `pip install -r requirements-dev.txt`
+  - `uv sync --group dev`
 - Set token (never commit secrets):
   - `export DISCORD_TOKEN=...`
   - or set `DISCORD_TOKEN_FILE=/path/to/secret-file` (for mounted secret files)
@@ -16,9 +16,9 @@ This runbook is for contributors and coding agents.
 ## Run
 
 - Initialize runtime state from seed data:
-  - `.venv/bin/python scripts/init_runtime.py`
+  - `uv run python scripts/init_runtime.py`
 - Start bot:
-  - `python bot.py`
+  - `uv run python bot.py`
 
 ## Docker runtime
 
@@ -57,14 +57,14 @@ Recommended local sequence (fastest useful signal first):
 
 1. Run lint:
   - VS Code task: `check:ruff`
-  - direct: `.venv/bin/ruff check noodswap scripts tests`
+  - direct: `uv run ruff check noodswap scripts tests`
 2. Run quick validation:
   - VS Code task: `check:quick`
 3. Run full validation:
   - VS Code task: `check:all`
 
 - Compile check:
-  - `.venv/bin/python -m py_compile bot.py noodswap/*.py`
+  - `uv run python -m py_compile bot.py noodswap/*.py`
 - Check diagnostics in editor Problems view.
 - VS Code task shortcut (compile + migration smoke):
   - `check:quick`
@@ -74,7 +74,7 @@ Recommended local sequence (fastest useful signal first):
 ## Rarity balancing helper
 
 - Print current target vs effective rarity odds from live catalog data:
-  - `.venv/bin/python scripts/rarity_odds.py`
+  - `uv run python scripts/rarity_odds.py`
 
 ## Adding cards
 
@@ -85,7 +85,7 @@ When adding a new card to the live catalog, use this workflow to keep metadata a
 Use this default process unless there is a specific reason to do otherwise:
 
 1. Add the card metadata entry in `noodswap/data/cards.json`.
-2. Run `.venv/bin/python scripts/rebalance_base_values.py --mode missing` to fill only absent base values.
+2. Run `uv run python scripts/rebalance_base_values.py --mode missing` to fill only absent base values.
 3. Keep card image paths under `runtime/card_images`; image files can be populated later as needed.
 
 1. Add the new card entry to `noodswap/data/cards.json` with:
@@ -94,11 +94,11 @@ Use this default process unless there is a specific reason to do otherwise:
   - optional `image` path (no need to add a default/local image file up front)
 2. Do not manually write a base value in `noodswap/data/base_values.json` for new card IDs.
 3. Generate missing base values only:
-  - preview: `.venv/bin/python scripts/rebalance_base_values.py --mode missing --dry-run`
-  - write: `.venv/bin/python scripts/rebalance_base_values.py --mode missing`
+  - preview: `uv run python scripts/rebalance_base_values.py --mode missing --dry-run`
+  - write: `uv run python scripts/rebalance_base_values.py --mode missing`
 4. Validate quickly:
-  - `.venv/bin/python -m py_compile bot.py noodswap/*.py scripts/*.py`
-  - `.venv/bin/python scripts/migration_smoke.py`
+  - `uv run python -m py_compile bot.py noodswap/*.py scripts/*.py`
+  - `uv run python scripts/migration_smoke.py`
 
 Notes:
 - `--mode missing` preserves existing values and only fills absent IDs.
@@ -109,21 +109,21 @@ Notes:
 
 - Card rendering is local-only and expects runtime assets under `runtime/`.
 - Initialize runtime seeds locally (replaces runtime copies from `assets/`):
-  - `.venv/bin/python scripts/init_runtime.py`
+  - `uv run python scripts/init_runtime.py`
   - Replaces `runtime/card_images/`, `runtime/fonts/`, and `runtime/frames/`
 - Production deploys use `deploy/update.sh`, which runs `scripts/init_runtime.py` on-host before container restart.
 
 ## Migration validation helper
 
 - Run migration smoke checks (fresh init path):
-  - `.venv/bin/python scripts/migration_smoke.py`
+  - `uv run python scripts/migration_smoke.py`
 - VS Code task shortcut:
   - `check:migrations`
 
 ## Unit tests
 
 - Run tests:
-  - `.venv/bin/python -m unittest discover -s tests -p 'test_*.py' -b`
+  - `uv run python -m unittest discover -s tests -p 'test_*.py' -b`
 - VS Code task shortcut:
   - `check:tests`
 - SQLite guardrail:

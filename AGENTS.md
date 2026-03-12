@@ -17,8 +17,8 @@ This file is the primary handoff guide for AI coding agents working on Noodswap.
 2. Read `docs/README.md` for architecture and subsystem links.
 3. Read `docs/data-model.md` before changing inventory/marry/trade/burn logic.
 4. Run syntax validation:
-   - `.venv/bin/python -m py_compile bot.py noodswap/*.py scripts/*.py tests/*.py`
-   - `.venv/bin/python -m unittest discover -s tests -p 'test_*.py'`
+   - `uv run python -m py_compile bot.py noodswap/*.py scripts/*.py tests/*.py`
+   - `uv run python -m unittest discover -s tests -p 'test_*.py'`
    - SQLite guardrail is enforced by `tests/test_sqlite_guardrails.py` (no raw `with sqlite3.connect(...) as conn:`).
 5. If changing command output, read `docs/commands-and-ux.md` (embed style contract).
 
@@ -91,7 +91,7 @@ When making non-trivial changes:
 
 ## 8) Common Tasks
 
-- **Add card:** add metadata in `noodswap/data/cards.json`, then run `.venv/bin/python scripts/rebalance_base_values.py --mode missing` to fill only absent base values.
+- **Add card:** add metadata in `noodswap/data/cards.json`, then run `uv run python scripts/rebalance_base_values.py --mode missing` to fill only absent base values.
    - Keep image paths under `runtime/card_images`; image files can be populated later.
    - General flow: add card metadata -> run missing-only rebalance -> skip image creation for now.
 - **Tune pull odds:** edit `RARITY_WEIGHTS` in `noodswap/rarities.py`.

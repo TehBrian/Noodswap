@@ -8,8 +8,9 @@ WORKDIR /app
 RUN addgroup --system noodswap
 RUN adduser --system --ingroup noodswap --home /app noodswap
 
-COPY requirements.txt /app/requirements.txt
-RUN pip install --no-cache-dir -r /app/requirements.txt
+COPY pyproject.toml /app/pyproject.toml
+RUN pip install --no-cache-dir uv
+RUN uv sync --no-dev
 
 COPY bot.py /app/bot.py
 COPY noodswap /app/noodswap
@@ -19,4 +20,4 @@ RUN chown -R noodswap:noodswap /app
 
 USER noodswap
 
-CMD ["python", "bot.py"]
+CMD ["/app/.venv/bin/python", "bot.py"]

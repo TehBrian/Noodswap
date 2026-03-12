@@ -7,11 +7,11 @@ Discord trading-card style bot using `discord.py`.
 1. Create and activate a Python environment.
 2. Install dependencies:
    ```bash
-   pip install -r requirements.txt
+   uv sync
    ```
    For development checks (including `ruff`), install dev dependencies:
    ```bash
-   pip install -r requirements-dev.txt
+   uv sync --group dev
    ```
 3. Set your token (never commit secrets):
    - Local dev:
@@ -27,11 +27,11 @@ Discord trading-card style bot using `discord.py`.
    - Production (recommended): inject secret from your platform secret manager as either `DISCORD_TOKEN` or a mounted file path in `DISCORD_TOKEN_FILE`.
 4. Initialize local runtime state:
    ```bash
-   .venv/bin/python scripts/init_runtime.py
+   uv run python scripts/init_runtime.py
    ```
 5. Run:
    ```bash
-   python bot.py
+   uv run python bot.py
    ```
 
 ## Deployment (Docker + GitHub Actions)
@@ -185,7 +185,7 @@ This bot uses privileged intents. Enable these for your application in Discord D
 
 Card rendering is local-only and expects runtime assets under `runtime/`.
 
-- Local development: run `.venv/bin/python scripts/init_runtime.py` to replace `runtime/card_images/`, `runtime/fonts/`, and `runtime/frames/` from `assets/` seeds.
+- Local development: run `uv run python scripts/init_runtime.py` to replace `runtime/card_images/`, `runtime/fonts/`, and `runtime/frames/` from `assets/` seeds.
 - Production deploy: `deploy/update.sh` seeds `runtime/card_images/` from `assets/card_images/` when the runtime image directory is empty.
 
 The local image manifest lives at `runtime/card_images/manifest.json`.
@@ -195,7 +195,7 @@ The local image manifest lives at `runtime/card_images/manifest.json`.
 To compare your target inverse-value generation odds (`tau`) against the live inventory snapshot:
 
 ```bash
-.venv/bin/python scripts/generation_economy_report.py --tau 1.0 --active-days 7
+uv run python scripts/generation_economy_report.py --tau 1.0 --active-days 7
 ```
 
 Machine-readable output is available with `--json`.

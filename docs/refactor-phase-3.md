@@ -120,9 +120,9 @@ Acceptance checks:
 ## Validation commands
 
 ```bash
-.venv/bin/python -m py_compile bot.py noodswap/*.py scripts/*.py tests/*.py
-.venv/bin/python scripts/migration_smoke.py
-.venv/bin/python -m unittest discover -s tests -p 'test_*.py' -b
+uv run python -m py_compile bot.py noodswap/*.py scripts/*.py tests/*.py
+uv run python scripts/migration_smoke.py
+uv run python -m unittest discover -s tests -p 'test_*.py' -b
 ```
 
 ## Definition of done
