@@ -2355,7 +2355,6 @@ class CommandsMorphTests:
         sent_embed = ctx.send.await_args.kwargs["embed"]
         assert sent_embed.title == "Morph Confirmation"
         assert "Current Morph" in sent_embed.description
-        assert "Roll Result: **?**" in sent_embed.description
         assert "Roll Cost: **9** dough" in sent_embed.description
         assert "view" in ctx.send.await_args.kwargs
 
@@ -2414,7 +2413,6 @@ class CommandsFrameTests:
         sent_embed = ctx.send.await_args.kwargs["embed"]
         assert sent_embed.title == "Frame Confirmation"
         assert "Current Frame" in sent_embed.description
-        assert "Roll Result: **?**" in sent_embed.description
         assert "Roll Cost: **9** dough" in sent_embed.description
         assert "view" in ctx.send.await_args.kwargs
 
@@ -2473,7 +2471,6 @@ class CommandsFontTests:
         sent_embed = ctx.send.await_args.kwargs["embed"]
         assert sent_embed.title == "Font Confirmation"
         assert "Current Font" in sent_embed.description
-        assert "Roll Result: **?**" in sent_embed.description
         assert "Roll Cost: **9** dough" in sent_embed.description
         assert "view" in ctx.send.await_args.kwargs
 

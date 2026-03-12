@@ -490,7 +490,6 @@ def register_economy_commands(bot: commands.Bot) -> None:
             (
                 f"{card_dupe_display(prepared.card_id, prepared.generation, dupe_code=prepared.dupe_code, morph_key=prepared.current_morph_key, frame_key=before_frame_key, font_key=before_font_key)}\n\n"
                 f"Current Morph: **{morph_label(prepared.current_morph_key)}**\n"
-                "Roll Result: **?**\n\n"
                 f"Roll Cost: **{prepared.cost}** dough"
             ),
         )
@@ -542,7 +541,6 @@ def register_economy_commands(bot: commands.Bot) -> None:
             (
                 f"{card_dupe_display(prepared.card_id, prepared.generation, dupe_code=prepared.dupe_code, morph_key=current_morph_key, frame_key=prepared.current_frame_key, font_key=current_font_key)}\n\n"
                 f"Current Frame: **{frame_label(prepared.current_frame_key)}**\n"
-                "Roll Result: **?**\n\n"
                 f"Roll Cost: **{prepared.cost}** dough"
             ),
         )
@@ -591,7 +589,6 @@ def register_economy_commands(bot: commands.Bot) -> None:
             (
                 f"{card_dupe_display(prepared.card_id, prepared.generation, dupe_code=prepared.dupe_code, morph_key=current_morph_key, frame_key=current_frame_key, font_key=prepared.current_font_key)}\n\n"
                 f"Current Font: **{font_label(prepared.current_font_key)}**\n"
-                "Roll Result: **?**\n\n"
                 f"Roll Cost: **{prepared.cost}** dough"
             ),
         )
