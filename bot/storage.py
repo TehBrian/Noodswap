@@ -1510,7 +1510,7 @@ def execute_monopoly_fine(
                 paid=0,
                 remaining_dough=players.get_dough(guild_id, user_id),
                 in_jail=False,
-                lines=("You are not in jail.",),
+                lines=("You are not in jail. You're a free bird! 🦅",),
             )
 
         paid = _deduct_up_to(players, guild_id, user_id, MONOPOLY_JAIL_FINE_DOUGH)
@@ -1524,7 +1524,7 @@ def execute_monopoly_fine(
 
         lines = [
             f"Fine paid: **{paid}** dough.",
-            "You are out of jail.",
+            "You are now out of jail.",
             f"Balance: **{remaining}** dough",
         ]
         return MonopolyFineResult(
@@ -1586,7 +1586,8 @@ def execute_monopoly_roll(
             if is_doubles:
                 players.set_monopoly_in_jail(guild_id, user_id, False)
                 players.set_monopoly_jail_roll_attempts(guild_id, user_id, 0)
-                lines.append("Doubles rolled in jail! You are now free and move by the roll.")
+                lines.append("")
+                lines.append("Doubles rolled in jail! 🔥 You are now free and move by the roll.")
             else:
                 jail_attempts += 1
                 players.set_monopoly_jail_roll_attempts(guild_id, user_id, jail_attempts)
@@ -1598,7 +1599,8 @@ def execute_monopoly_roll(
                         pot.add(guild_id, dough=paid)
                     players.set_monopoly_in_jail(guild_id, user_id, False)
                     players.set_monopoly_jail_roll_attempts(guild_id, user_id, 0)
-                    lines.append(f"Third failed jail roll. Auto-paid **{paid}** dough fine and released.")
+                    lines.append("")
+                    lines.append(f"Third jail roll failed. ❌ Auto-paid **{paid}** dough fine to be released.")
                 else:
                     return MonopolyRollResult(
                         status="jail_stay",
@@ -1608,7 +1610,7 @@ def execute_monopoly_roll(
                         position=position,
                         in_jail=True,
                         doubles=False,
-                        lines=tuple(lines + [f"Still in jail ({jail_attempts}/3 failed rolls)."]),
+                        lines=tuple(lines + ["", f"Still in jail ({jail_attempts}/3 failed rolls). Try again! 🤞"]),
                     )
 
         if is_doubles:
@@ -1622,6 +1624,7 @@ def execute_monopoly_roll(
             players.set_monopoly_jail_roll_attempts(guild_id, user_id, 0)
             players.set_monopoly_consecutive_doubles(guild_id, user_id, 0)
             players.set_last_monopoly_roll_at(guild_id, user_id, now)
+            lines.append("")
             lines.append("Three doubles in a row! ⚠️ You were jailed for speeding.")
             return MonopolyRollResult(
                 status="speeding_jail",
@@ -1641,18 +1644,20 @@ def execute_monopoly_roll(
 
         if passed_go:
             players.add_dough(guild_id, user_id, MONOPOLY_GO_REWARD_DOUGH)
+            lines.append("")
             lines.append(f"Passed GO: **+{MONOPOLY_GO_REWARD_DOUGH} dough**")
 
         space = board_space(new_position)
 
         if space.kind != "property":
-            lines.append(f"Landed on **{space.name}** {space.emoji}")
+            lines.append("")
+            lines.append(f"Landed on **{space.name}** {space.emoji}.")
 
         if space.kind == "tax":
             paid = _deduct_up_to(players, guild_id, user_id, MONOPOLY_CHEESE_TAX_DOUGH)
             if paid > 0:
                 pot.add(guild_id, dough=paid)
-            lines.append(f"Cheese tax paid: **{paid} dough**")
+            lines.append(f"You had to pay **{paid} dough**. Ouch! 🧀")
 
         elif space.kind == "free_parking":
             pot_dough, pot_starter, pot_drop_tickets, pot_pull_tickets = pot.get_balances(guild_id)
@@ -1665,7 +1670,7 @@ def execute_monopoly_roll(
             if pot_pull_tickets > 0:
                 players.add_pull_tickets(guild_id, user_id, pot_pull_tickets)
             pot.clear(guild_id)
-            lines.append("You landed on Free Parking and won the jackpot!")
+            lines.append("You won the jackpot! 🎉")
             if pot_dough:
                 lines.append(f"**+{pot_dough} dough**")
             if pot_starter:
@@ -1706,7 +1711,7 @@ def execute_monopoly_roll(
             thumbnail_frame_key = frame_key
             thumbnail_font_key = font_key
 
-            lines.append("Mpreg square effect: you gave birth to a dupe.")
+            lines.append("You got mpregnated and gave birth to a card! 🫃")
             lines.append(
                 card_display(
                     card_id,
@@ -1720,7 +1725,7 @@ def execute_monopoly_roll(
 
         elif space.kind == "community":
             card = draw_community_charcuterie()
-            lines.append(f"Community Charcuterie: {card.text}")
+            lines.append(f"\"{card.text}\"")
             if card.dough_delta != 0:
                 if card.dough_delta > 0:
                     players.add_dough(guild_id, user_id, card.dough_delta)
@@ -1758,7 +1763,7 @@ def execute_monopoly_roll(
 
         elif space.kind == "chance":
             card = draw_cheese_chance()
-            lines.append(f"Cheese Chance: {card.text}")
+            lines.append(f"\"{card.text}\"")
             if card.reset_random_cooldown:
                 key = _apply_random_cooldown_reset(players, guild_id, user_id, now)
                 lines.append(f"{key.capitalize()} cooldown was reset.")
@@ -1787,9 +1792,9 @@ def execute_monopoly_roll(
                 players.set_monopoly_position(guild_id, user_id, target)
                 target_space = board_space(target)
                 if target_space.kind == "property":
-                    lines.append(f"Moved to a **{target_space.rarity}** property.")
+                    lines.append(f"Moved to a **{target_space.rarity}** property, rent free! 💵")
                 else:
-                    lines.append(f"Moved to **{target_space.name}**")
+                    lines.append(f"Moved to **{target_space.name}** {target_space.emoji}.")
                 if target_space.kind == "free_parking":
                     pot_dough, pot_starter, pot_drop_tickets, pot_pull_tickets = pot.get_balances(guild_id)
                     if pot_dough > 0:
@@ -1801,10 +1806,15 @@ def execute_monopoly_roll(
                     if pot_pull_tickets > 0:
                         players.add_pull_tickets(guild_id, user_id, pot_pull_tickets)
                     pot.clear(guild_id)
-                    lines.append(
-                        "Free Parking jackpot: "
-                        f"**+{pot_dough} dough, +{pot_starter} starter, +{pot_drop_tickets} drop tickets, +{pot_pull_tickets} pull tickets**"
-                    )
+                    lines.append("You won the jackpot! 🎉")
+                    if pot_dough:
+                        lines.append(f"**+{pot_dough} dough**")
+                    if pot_starter:
+                        lines.append(f"**+{pot_starter} starter**")
+                    if pot_drop_tickets:
+                        lines.append(f"**+{pot_drop_tickets} drop tickets**")
+                    if pot_pull_tickets:
+                        lines.append(f"**+{pot_pull_tickets} pull tickets**")
             if card.dough_delta != 0:
                 if card.dough_delta > 0:
                     players.add_dough(guild_id, user_id, card.dough_delta)
