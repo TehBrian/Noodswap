@@ -121,12 +121,43 @@ def execute_drop_claim(
     )
 
 
+_TRADE_MODE_ALIASES: dict[str, str] = {
+    "dough": "dough",
+    "starter": "starter",
+    "tickets": "tickets",
+    "ticket": "tickets",
+    "drop": "tickets",
+    "drop_tickets": "tickets",
+    "card": "card",
+}
+VALID_TRADE_MODES = frozenset(_TRADE_MODE_ALIASES.values())
+
+
+def normalize_trade_mode(raw: str) -> Optional[str]:
+    """Return canonical mode string or None if unrecognised."""
+    return _TRADE_MODE_ALIASES.get(raw.lower())
+
+
+@dataclass(frozen=True)
+class TradeTerms:
+    """Typed description of what the seller is asking for."""
+    mode: str  # "dough" | "starter" | "tickets" | "card"
+    amount: Optional[int] = None          # numeric modes
+    req_card_id: Optional[str] = None     # card mode: buyer's offered card_id
+    req_generation: Optional[int] = None  # card mode: buyer's offered generation
+    req_dupe_code: Optional[str] = None   # card mode: buyer's offered dupe_code
+
+
 @dataclass(frozen=True)
 class TradeResolution:
     status: str
     message: str
     generation: Optional[int]
     dupe_code: Optional[str]
+    # Populated for card-for-card mode when accepted
+    received_card_id: Optional[str] = None
+    received_generation: Optional[int] = None
+    received_dupe_code: Optional[str] = None
 
     @property
     def is_accepted(self) -> bool:
@@ -147,7 +178,7 @@ def resolve_trade_offer(
     buyer_id: int,
     card_id: str,
     dupe_code: str,
-    amount: int,
+    terms: TradeTerms,
     *,
     accepted: bool,
 ) -> TradeResolution:
@@ -159,13 +190,13 @@ def resolve_trade_offer(
             dupe_code=None,
         )
 
-    success, message, generation, received_dupe_code = execute_trade(
+    success, message, generation, sold_dupe_code, received_info = execute_trade(
         guild_id=guild_id,
         seller_id=seller_id,
         buyer_id=buyer_id,
         card_id=card_id,
         dupe_code=dupe_code,
-        amount=amount,
+        terms=terms,
     )
     if not success:
         return TradeResolution(
@@ -175,11 +206,19 @@ def resolve_trade_offer(
             dupe_code=None,
         )
 
+    if received_info is not None:
+        r_card_id, r_gen, r_dupe = received_info
+    else:
+        r_card_id, r_gen, r_dupe = None, None, None
+
     return TradeResolution(
         status="accepted",
         message="",
         generation=generation,
-        dupe_code=received_dupe_code,
+        dupe_code=sold_dupe_code,
+        received_card_id=r_card_id,
+        received_generation=r_gen,
+        received_dupe_code=r_dupe,
     )
 
 
@@ -1655,6 +1694,7 @@ class TradeOfferPreparation:
     card_id: Optional[str]
     generation: Optional[int]
     dupe_code: Optional[str]
+    terms: Optional[TradeTerms] = None
 
     @property
     def is_error(self) -> bool:
@@ -1667,33 +1707,65 @@ def prepare_trade_offer(
     buyer_id: int,
     buyer_is_bot: bool,
     card_code: str,
-    amount: int,
+    mode: str,
+    amount: Optional[int] = None,
+    req_card_code: Optional[str] = None,
 ) -> TradeOfferPreparation:
+    def _err(msg: str) -> TradeOfferPreparation:
+        return TradeOfferPreparation(error_message=msg, card_id=None, generation=None, dupe_code=None)
+
     if buyer_id == seller_id:
-        return TradeOfferPreparation(error_message="You cannot trade with yourself.", card_id=None, generation=None, dupe_code=None)
+        return _err("You cannot trade with yourself.")
 
     if buyer_is_bot:
-        return TradeOfferPreparation(error_message="You cannot trade with bots.", card_id=None, generation=None, dupe_code=None)
+        return _err("You cannot trade with bots.")
 
-    if amount <= 0:
-        return TradeOfferPreparation(error_message="Amount must be greater than 0.", card_id=None, generation=None, dupe_code=None)
+    if mode not in VALID_TRADE_MODES:
+        return _err(f"Invalid trade mode `{mode}`. Use `dough`, `starter`, `tickets`, or `card`.")
+
+    if mode != "card":
+        if amount is None or amount <= 0:
+            return _err("Amount must be greater than 0.")
+    else:
+        if req_card_code is None:
+            return _err("Card mode requires a card code for the requested card.")
 
     parsed = split_card_code(card_code)
     if parsed is None:
-        return TradeOfferPreparation(
-            error_message="Invalid card code. Use format like `0`, `a`, `10`, or `#10`.",
-            card_id=None,
-            generation=None,
-            dupe_code=None,
-        )
+        return _err("Invalid card code. Use format like `0`, `a`, `10`, or `#10`.")
 
     candidate = get_instance_by_code(guild_id, seller_id, card_code)
     if candidate is None:
-        return TradeOfferPreparation(error_message="You do not own that card code.", card_id=None, generation=None, dupe_code=None)
+        return _err("You do not own that card code.")
 
     _, candidate_card_id, generation, dupe_code = candidate
 
-    return TradeOfferPreparation(error_message=None, card_id=candidate_card_id, generation=generation, dupe_code=dupe_code)
+    if mode == "card":
+        req_parsed = split_card_code(req_card_code)  # type: ignore[arg-type]
+        if req_parsed is None:
+            return _err("Invalid requested card code. Use format like `0`, `a`, `10`, or `#10`.")
+        if req_card_code == card_code or req_parsed == parsed:
+            return _err("Cannot request the same card you are offering.")
+        req_candidate = get_instance_by_code(guild_id, buyer_id, req_card_code)  # type: ignore[arg-type]
+        if req_candidate is None:
+            return _err("The other player does not own that card code.")
+        _, req_card_id, req_generation, req_dupe_code = req_candidate
+        terms: TradeTerms = TradeTerms(
+            mode="card",
+            req_card_id=req_card_id,
+            req_generation=req_generation,
+            req_dupe_code=req_dupe_code,
+        )
+    else:
+        terms = TradeTerms(mode=mode, amount=amount)
+
+    return TradeOfferPreparation(
+        error_message=None,
+        card_id=candidate_card_id,
+        generation=generation,
+        dupe_code=dupe_code,
+        terms=terms,
+    )
 
 
 @dataclass(frozen=True)

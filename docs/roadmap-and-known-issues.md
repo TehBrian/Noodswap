@@ -78,6 +78,7 @@ Stage 3 implementation guide: `docs/refactor-phase-3.md`.
 
 ## Decision log (recent)
 
+- Expanded `trade` mode beyond dough-only: `trade <player> <card_code> <mode> <amount|req_card_code>` now supports `dough`, `starter`, `tickets` (aliases: `ticket`/`drop`/`drop_tickets`), and `card` (card-for-card swap where both sides exchange a specific owned dupe). Card mode clears marriage and last-pulled pointers for both transferred instances. Either side losing their card between offer and accept causes a deterministic failure (no partial-fill).
 - Reworked `gift` into explicit immediate-transfer subcommands (`ns gift dough <player> <dough>`, `ns gift starter <player> <starter>`, `ns gift drop <player> <tickets>`, and `ns gift card <player> <card_code>`) so runtime behavior and docs align around one-step transfers.
 - Finalized command-module split: `noodswap/commands.py` is now a thin registrar entrypoint delegating to domain modules (`commands_social`, `commands_catalog`, `commands_economy`, `commands_gambling`, `commands_admin`) with shared helpers in `command_utils.py`.
 - Updated `wish add`, `tag/folder/team assign`, and `tag/folder/team unassign` to accept multiple space-separated targets with dedupe + mixed-result feedback (including team remaining-slot `before -> after` reporting), and changed batch burn semantics to partial execution (burn eligible targets, report skipped locked/unavailable targets) instead of all-or-nothing lock blocking.

@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import patch
 
 from noodswap.presentation import battle_arena_description
-from noodswap.services import BattleSnapshot
+from noodswap.services import BattleSnapshot, TradeTerms
 from noodswap.view_battle import _battle_embed
 from noodswap.views import (
     BurnConfirmView,
@@ -437,7 +437,7 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(sent.get("ephemeral"))
 
     async def test_trade_rejects_non_buyer(self) -> None:
-        view = TradeView(guild_id=1, seller_id=10, buyer_id=20, card_id="SPG", dupe_code="0", amount=25)
+        view = TradeView(guild_id=1, seller_id=10, buyer_id=20, card_id="SPG", dupe_code="0", terms=TradeTerms(mode="dough", amount=25))
         interaction = _FakeInteraction(user_id=30)
 
         with patch("noodswap.view_trade.resolve_trade_offer") as resolve_trade:
@@ -450,12 +450,12 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(sent["embed"].title, "Trade")
 
     async def test_trade_accept_success_sends_followup_and_keeps_offer(self) -> None:
-        view = TradeView(guild_id=1, seller_id=10, buyer_id=20, card_id="SPG", dupe_code="0", amount=25)
+        view = TradeView(guild_id=1, seller_id=10, buyer_id=20, card_id="SPG", dupe_code="0", terms=TradeTerms(mode="dough", amount=25))
         interaction = _FakeInteraction(user_id=20)
 
         with patch(
             "noodswap.view_trade.resolve_trade_offer",
-            return_value=type("TradeResult", (), {"is_failed": False, "generation": 123, "dupe_code": "a"})(),
+            return_value=type("TradeResult", (), {"is_failed": False, "generation": 123, "dupe_code": "a", "received_card_id": None})(),
         ) as resolve_trade:
             await view._resolve(interaction, accepted=True)
             resolve_trade.assert_called_once()
@@ -472,7 +472,7 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("G-123", accepted["embed"].description)
 
     async def test_trade_timeout_disables_buttons_and_edits_message(self) -> None:
-        view = TradeView(guild_id=1, seller_id=10, buyer_id=20, card_id="SPG", dupe_code="0", amount=25)
+        view = TradeView(guild_id=1, seller_id=10, buyer_id=20, card_id="SPG", dupe_code="0", terms=TradeTerms(mode="dough", amount=25))
         fake_message = _FakeMessage()
         view.message = fake_message
 
@@ -481,6 +481,43 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(all(getattr(item, "disabled", False) for item in view.children))
         self.assertEqual(len(fake_message.edits), 1)
         self.assertEqual(fake_message.edits[0]["embed"].title, "Trade Expired")
+
+    async def test_trade_accept_card_mode_shows_both_cards(self) -> None:
+        view = TradeView(
+            guild_id=1,
+            seller_id=10,
+            buyer_id=20,
+            card_id="SPG",
+            dupe_code="0",
+            terms=TradeTerms(mode="card", req_card_id="PEN", req_generation=200, req_dupe_code="1"),
+        )
+        interaction = _FakeInteraction(user_id=20)
+
+        with patch(
+            "noodswap.view_trade.resolve_trade_offer",
+            return_value=type(
+                "TradeResult",
+                (),
+                {
+                    "is_failed": False,
+                    "generation": 100,
+                    "dupe_code": "0",
+                    "received_card_id": "PEN",
+                    "received_generation": 200,
+                    "received_dupe_code": "1",
+                },
+            )(),
+        ):
+            await view._resolve(interaction, accepted=True)
+
+        self.assertEqual(len(interaction.message.replies), 1)
+        accepted = interaction.message.replies[0]
+        self.assertEqual(accepted["embed"].title, "Trade Accepted")
+        desc = accepted["embed"].description
+        self.assertIn("Seller gave", desc)
+        self.assertIn("Buyer gave", desc)
+        self.assertIn("SPG", desc)
+        self.assertIn("PEN", desc)
 
     async def test_burn_confirm_sends_followup_embed_and_keeps_prompt(self) -> None:
         view = BurnConfirmView(guild_id=1, user_id=10, instance_id=77, card_id="SPG", generation=321, delta_range=8)

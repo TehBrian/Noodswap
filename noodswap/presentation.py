@@ -50,13 +50,30 @@ def trade_offer_description(
     card_id: str,
     generation: int,
     dupe_code: str | None,
-    amount: int,
+    terms: object,  # TradeTerms; typed as object to avoid circular import
 ) -> str:
+    mode: str = getattr(terms, "mode")
+    if mode == "dough":
+        price_line = f"Price: **{getattr(terms, 'amount')}** dough"
+    elif mode == "starter":
+        price_line = f"Price: **{getattr(terms, 'amount')}** starter"
+    elif mode == "tickets":
+        price_line = f"Price: **{getattr(terms, 'amount')}** drop ticket(s)"
+    else:
+        # card mode
+        req_card_id = getattr(terms, "req_card_id", None)
+        req_gen = getattr(terms, "req_generation", None)
+        req_dupe = getattr(terms, "req_dupe_code", None)
+        if req_card_id is not None and req_gen is not None:
+            req_text = card_dupe_display(req_card_id, req_gen, dupe_code=req_dupe)
+        else:
+            req_text = "unknown card"
+        price_line = f"Requesting: {req_text}"
     return f"""Offered to: {offered_to_mention}
 Seller: {seller_mention}
 
 Card: {card_dupe_display(card_id, generation, dupe_code=dupe_code)}
-Price: **{amount}** dough"""
+{price_line}"""
 
 
 def gift_offer_description(
@@ -227,7 +244,7 @@ COMMAND_SYNTAX_BY_KEY: dict[str, str] = {
     "team list": "ns team list",
     "team remove": "ns team remove <team_name>",
     "team unassign": "ns team unassign <team_name> <card_code>",
-    "trade": "ns trade <player> <card_code> <amount>",
+    "trade": "ns trade <player> <card_code> <mode> <amount|card_code>",
     "vote": "ns vote",
     "wa": "ns wish add <card_id>",
     "wish": "ns wish add <card_id>, ns wish remove <card_id>, ns wish list [player]",
@@ -267,7 +284,7 @@ HELP_CATEGORY_PAGES: tuple[tuple[str, str, str], ...] = (
 - `gift starter <player> <starter>` (`gift s`) — Send starter to a player.
 - `gift drop <player> <tickets>` — Send drop tickets to a player.
 - `gift card <player> <card_code>` (`gift c`) — Send a card to a player.
-- `trade <player> <card_code> <amount>` (`t`) — Offer a card-for-dough trade.""",
+- `trade <player> <card_code> <mode> <amount|req_code>` (`t`) — Offer a trade. Mode: `dough`, `starter`, `tickets`, or `card`.""",
     ),
     (
         "gambling",

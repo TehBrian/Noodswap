@@ -528,6 +528,7 @@ class ServicesTests(unittest.TestCase):
             buyer_id=50,
             buyer_is_bot=False,
             card_code="0",
+            mode="dough",
             amount=10,
         )
 
@@ -541,6 +542,7 @@ class ServicesTests(unittest.TestCase):
             buyer_id=52,
             buyer_is_bot=True,
             card_code="0",
+            mode="dough",
             amount=10,
         )
 
@@ -554,6 +556,7 @@ class ServicesTests(unittest.TestCase):
             buyer_id=54,
             buyer_is_bot=False,
             card_code="0",
+            mode="dough",
             amount=-1,
         )
 
@@ -567,11 +570,26 @@ class ServicesTests(unittest.TestCase):
             buyer_id=54,
             buyer_is_bot=False,
             card_code="0",
+            mode="dough",
             amount=0,
         )
 
         self.assertTrue(prepared.is_error)
         self.assertEqual(prepared.error_message, "Amount must be greater than 0.")
+
+    def test_prepare_trade_offer_rejects_invalid_mode(self) -> None:
+        prepared = services.prepare_trade_offer(
+            guild_id=1,
+            seller_id=53,
+            buyer_id=54,
+            buyer_is_bot=False,
+            card_code="0",
+            mode="gems",
+            amount=10,
+        )
+
+        self.assertTrue(prepared.is_error)
+        self.assertIn("Invalid trade mode", prepared.error_message or "")
 
     def test_prepare_trade_offer_rejects_invalid_card_code(self) -> None:
         prepared = services.prepare_trade_offer(
@@ -580,6 +598,7 @@ class ServicesTests(unittest.TestCase):
             buyer_id=56,
             buyer_is_bot=False,
             card_code="?",
+            mode="dough",
             amount=10,
         )
 
@@ -593,6 +612,7 @@ class ServicesTests(unittest.TestCase):
             buyer_id=58,
             buyer_is_bot=False,
             card_code="0",
+            mode="dough",
             amount=10,
         )
 
@@ -612,12 +632,16 @@ class ServicesTests(unittest.TestCase):
             buyer_id=60,
             buyer_is_bot=False,
             card_code=dupe_code.upper(),
+            mode="dough",
             amount=10,
         )
 
         self.assertFalse(prepared.is_error)
         self.assertEqual(prepared.card_id, "SPG")
         self.assertEqual(prepared.generation, 444)
+        self.assertIsNotNone(prepared.terms)
+        self.assertEqual(prepared.terms.mode, "dough")
+        self.assertEqual(prepared.terms.amount, 10)
 
     def test_prepare_trade_offer_accepts_hash_prefixed_card_code(self) -> None:
         guild_id = 1
@@ -632,12 +656,108 @@ class ServicesTests(unittest.TestCase):
             buyer_id=60,
             buyer_is_bot=False,
             card_code=f"#{dupe_code.upper()}",
+            mode="dough",
             amount=10,
         )
 
         self.assertFalse(prepared.is_error)
         self.assertEqual(prepared.card_id, "SPG")
         self.assertEqual(prepared.generation, 444)
+
+    def test_prepare_trade_offer_starter_mode_stores_terms(self) -> None:
+        guild_id = 1
+        seller_id = 592
+        storage.add_card_to_player(guild_id, seller_id, "SPG", 200)
+        instances = storage.get_player_card_instances(guild_id, seller_id)
+        dupe_code = instances[0][3]
+
+        prepared = services.prepare_trade_offer(
+            guild_id=guild_id,
+            seller_id=seller_id,
+            buyer_id=593,
+            buyer_is_bot=False,
+            card_code=dupe_code,
+            mode="starter",
+            amount=5,
+        )
+
+        self.assertFalse(prepared.is_error)
+        self.assertIsNotNone(prepared.terms)
+        self.assertEqual(prepared.terms.mode, "starter")  # type: ignore[union-attr]
+        self.assertEqual(prepared.terms.amount, 5)  # type: ignore[union-attr]
+
+    def test_prepare_trade_offer_tickets_mode_aliases_normalised(self) -> None:
+        guild_id = 1
+        seller_id = 594
+        storage.add_card_to_player(guild_id, seller_id, "SPG", 300)
+        instances = storage.get_player_card_instances(guild_id, seller_id)
+        dupe_code = instances[0][3]
+
+        prepared = services.prepare_trade_offer(
+            guild_id=guild_id,
+            seller_id=seller_id,
+            buyer_id=595,
+            buyer_is_bot=False,
+            card_code=dupe_code,
+            mode="tickets",
+            amount=2,
+        )
+
+        self.assertFalse(prepared.is_error)
+        self.assertIsNotNone(prepared.terms)
+        self.assertEqual(prepared.terms.mode, "tickets")  # type: ignore[union-attr]
+        self.assertEqual(prepared.terms.amount, 2)  # type: ignore[union-attr]
+
+    def test_prepare_trade_offer_card_mode_requires_buyer_to_own_req_card(self) -> None:
+        guild_id = 1
+        seller_id = 596
+        buyer_id = 597
+        storage.add_card_to_player(guild_id, seller_id, "SPG", 100)
+        seller_instances = storage.get_player_card_instances(guild_id, seller_id)
+        seller_dupe = seller_instances[0][3]
+
+        # buyer has no card — use a req code different from the seller's dupe to avoid the
+        # "cannot request the same card" guard and reach the ownership check.
+        prepared = services.prepare_trade_offer(
+            guild_id=guild_id,
+            seller_id=seller_id,
+            buyer_id=buyer_id,
+            buyer_is_bot=False,
+            card_code=seller_dupe,
+            mode="card",
+            req_card_code="zz",
+        )
+
+        self.assertTrue(prepared.is_error)
+        self.assertEqual(prepared.error_message, "The other player does not own that card code.")
+
+    def test_prepare_trade_offer_card_mode_succeeds_when_both_own_cards(self) -> None:
+        guild_id = 1
+        seller_id = 598
+        buyer_id = 599
+        storage.add_card_to_player(guild_id, seller_id, "SPG", 100)
+        storage.add_card_to_player(guild_id, buyer_id, "PEN", 200)
+        seller_instances = storage.get_player_card_instances(guild_id, seller_id)
+        buyer_instances = storage.get_player_card_instances(guild_id, buyer_id)
+        seller_dupe = seller_instances[0][3]
+        buyer_dupe = buyer_instances[0][3]
+
+        prepared = services.prepare_trade_offer(
+            guild_id=guild_id,
+            seller_id=seller_id,
+            buyer_id=buyer_id,
+            buyer_is_bot=False,
+            card_code=seller_dupe,
+            mode="card",
+            req_card_code=buyer_dupe,
+        )
+
+        self.assertFalse(prepared.is_error)
+        self.assertEqual(prepared.card_id, "SPG")
+        self.assertIsNotNone(prepared.terms)
+        self.assertEqual(prepared.terms.mode, "card")  # type: ignore[union-attr]
+        self.assertEqual(prepared.terms.req_card_id, "PEN")  # type: ignore[union-attr]
+        self.assertEqual(prepared.terms.req_dupe_code, buyer_dupe)  # type: ignore[union-attr]
 
     def test_execute_drop_claim_returns_cooldown_error_when_pull_not_ready(self) -> None:
         guild_id = 1
@@ -691,7 +811,7 @@ class ServicesTests(unittest.TestCase):
             buyer_id=701,
             card_id="SPG",
             dupe_code="0",
-            amount=25,
+            terms=services.TradeTerms(mode="dough", amount=25),
             accepted=False,
         )
 
@@ -713,7 +833,7 @@ class ServicesTests(unittest.TestCase):
             buyer_id=buyer_id,
             card_id="SPG",
             dupe_code=dupe_code,
-            amount=25,
+            terms=services.TradeTerms(mode="dough", amount=25),
             accepted=True,
         )
 
@@ -722,6 +842,87 @@ class ServicesTests(unittest.TestCase):
         buyer_instances = storage.get_player_card_instances(guild_id, buyer_id)
         self.assertEqual(len(buyer_instances), 1)
         self.assertEqual(buyer_instances[0][1], "SPG")
+
+    def test_resolve_trade_offer_starter_mode_accepted(self) -> None:
+        guild_id = 1
+        seller_id = 712
+        buyer_id = 713
+        storage.add_card_to_player(guild_id, seller_id, "SPG", 100)
+        seller_instances = storage.get_player_card_instances(guild_id, seller_id)
+        dupe_code = seller_instances[0][3]
+        storage.add_starter(guild_id, buyer_id, 10)
+
+        result = services.resolve_trade_offer(
+            guild_id=guild_id,
+            seller_id=seller_id,
+            buyer_id=buyer_id,
+            card_id="SPG",
+            dupe_code=dupe_code,
+            terms=services.TradeTerms(mode="starter", amount=5),
+            accepted=True,
+        )
+
+        self.assertTrue(result.is_accepted)
+        self.assertEqual(storage.get_player_starter(guild_id, seller_id), 5)
+        self.assertEqual(storage.get_player_starter(guild_id, buyer_id), 5)
+
+    def test_resolve_trade_offer_tickets_mode_accepted(self) -> None:
+        guild_id = 1
+        seller_id = 714
+        buyer_id = 715
+        storage.add_card_to_player(guild_id, seller_id, "SPG", 100)
+        seller_instances = storage.get_player_card_instances(guild_id, seller_id)
+        dupe_code = seller_instances[0][3]
+        storage.add_starter(guild_id, buyer_id, 3)
+        storage.buy_drop_tickets_with_starter(guild_id, buyer_id, 3)
+
+        result = services.resolve_trade_offer(
+            guild_id=guild_id,
+            seller_id=seller_id,
+            buyer_id=buyer_id,
+            card_id="SPG",
+            dupe_code=dupe_code,
+            terms=services.TradeTerms(mode="tickets", amount=2),
+            accepted=True,
+        )
+
+        self.assertTrue(result.is_accepted)
+        self.assertEqual(storage.get_player_drop_tickets(guild_id, seller_id), 2)
+        self.assertEqual(storage.get_player_drop_tickets(guild_id, buyer_id), 1)
+
+    def test_resolve_trade_offer_card_mode_accepted_swaps_both_cards(self) -> None:
+        guild_id = 1
+        seller_id = 716
+        buyer_id = 717
+        storage.add_card_to_player(guild_id, seller_id, "SPG", 100)
+        storage.add_card_to_player(guild_id, buyer_id, "PEN", 200)
+        seller_instances = storage.get_player_card_instances(guild_id, seller_id)
+        buyer_instances = storage.get_player_card_instances(guild_id, buyer_id)
+        seller_dupe = seller_instances[0][3]
+        buyer_dupe = buyer_instances[0][3]
+
+        result = services.resolve_trade_offer(
+            guild_id=guild_id,
+            seller_id=seller_id,
+            buyer_id=buyer_id,
+            card_id="SPG",
+            dupe_code=seller_dupe,
+            terms=services.TradeTerms(mode="card", req_card_id="PEN", req_generation=200, req_dupe_code=buyer_dupe),
+            accepted=True,
+        )
+
+        self.assertTrue(result.is_accepted)
+        self.assertEqual(result.received_card_id, "PEN")
+        self.assertEqual(result.received_generation, 200)
+
+        seller_after = storage.get_player_card_instances(guild_id, seller_id)
+        buyer_after = storage.get_player_card_instances(guild_id, buyer_id)
+        self.assertEqual(len(seller_after), 1)
+        self.assertEqual(seller_after[0][1], "PEN")
+        self.assertEqual(len(buyer_after), 1)
+        self.assertEqual(buyer_after[0][1], "SPG")
+
+
 
     def test_resolve_morph_roll_applies_selected_morph(self) -> None:
         guild_id = 1

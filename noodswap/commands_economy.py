@@ -462,9 +462,34 @@ def register_economy_commands(bot: commands.Bot) -> None:
         view.message = message
 
     @bot.command(name="trade", aliases=["t"])
-    async def trade(ctx: commands.Context, player: str, card_code: str, amount: int):
+    async def trade(ctx: commands.Context, player: str, card_code: str, mode: str, value: str):
         if not await _require_guild(ctx, "Trade"):
             return
+
+        canonical_mode = normalize_trade_mode(mode)
+        if canonical_mode is None:
+            await _reply(
+                ctx,
+                embed=italy_embed(
+                    "Trade",
+                    f"Unknown trade mode `{mode}`. Use `dough`, `starter`, `tickets`, or `card`.",
+                ),
+            )
+            return
+
+        amount: int | None = None
+        req_card_code: str | None = None
+        if canonical_mode == "card":
+            req_card_code = value
+        else:
+            try:
+                amount = int(value)
+            except ValueError:
+                await _reply(
+                    ctx,
+                    embed=italy_embed("Trade", f"Expected a whole number for `{canonical_mode}` amount, got `{value}`."),
+                )
+                return
 
         resolved_member, resolve_error = await resolve_member_argument(ctx, player)
         if resolved_member is None:
@@ -477,14 +502,16 @@ def register_economy_commands(bot: commands.Bot) -> None:
             buyer_id=resolved_member.id,
             buyer_is_bot=resolved_member.bot,
             card_code=card_code,
+            mode=canonical_mode,
             amount=amount,
+            req_card_code=req_card_code,
         )
 
         if prepared.is_error:
             await _reply(ctx, embed=italy_embed("Trade", prepared.error_message or "Trade failed."))
             return
 
-        if prepared.card_id is None or prepared.generation is None or prepared.dupe_code is None:
+        if prepared.card_id is None or prepared.generation is None or prepared.dupe_code is None or prepared.terms is None:
             await _reply(ctx, embed=italy_embed("Trade", "Trade failed."))
             return
 
@@ -494,7 +521,7 @@ def register_economy_commands(bot: commands.Bot) -> None:
             buyer_id=resolved_member.id,
             card_id=prepared.card_id,
             dupe_code=prepared.dupe_code,
-            amount=amount,
+            terms=prepared.terms,
         )
 
         message = await _reply(
@@ -507,7 +534,7 @@ def register_economy_commands(bot: commands.Bot) -> None:
                     prepared.card_id,
                     prepared.generation,
                     prepared.dupe_code,
-                    amount,
+                    prepared.terms,
                 ),
             ),
             view=view,

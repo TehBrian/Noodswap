@@ -142,7 +142,7 @@ This bot uses privileged intents. Enable these for your application in Discord D
 - `ns morph [card_code]` / `ns mo [card_code]` — pay 20% of card value (rounded up) to apply a random morph; currently supports `black_and_white`.
 - `ns frame [card_code]` / `ns fr [card_code]` — pay 20% of card value (rounded up) to apply a random frame from available frames (`buttery`, `gilded`, `drizzled`) in `assets/frames/`.
 - `ns font [card_code]` / `ns fo [card_code]` — pay 20% of card value (rounded up) to apply a random font (`serif`, `mono`, `storybook`, `spooky`, `pixel`, `playful`). `Classic` is now the default baseline style (not a trait modifier).
-- `ns trade <player> <card_code> <amount>` / `ns t ...` — offer a specific dupe-for-dough trade.
+- `ns trade <player> <card_code> <mode> <amount|req_card_code>` / `ns t ...` — offer a dupe trade; mode selects payment type (`dough`, `starter`, `tickets`/`ticket`/`drop`, or `card` for card-swap).
 - `ns team` / `ns tm` — team command group.
 - `ns team add <team_name>` / `ns team a <team_name>` — create a team (max 32 chars, normalized lowercase).
 - `ns team remove <team_name>` / `ns team r <team_name>` — delete one of your teams.

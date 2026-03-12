@@ -50,6 +50,7 @@ from .presentation import (
 from .services import (
     execute_divorce,
     execute_marry,
+    normalize_trade_mode,
     prepare_burn,
     prepare_burn_batch,
     prepare_drop,

@@ -29,7 +29,7 @@ This document defines behavior and presentation for commands and interaction flo
 - `morph [card_code]` / `mo [card_code]`
 - `frame [card_code]` / `fr [card_code]`
 - `font [card_code]` / `fo [card_code]`
-- `trade <player> <card_code> <amount>` / `t ...`
+- `trade <player> <card_code> <mode> <amount|req_card_code>` / `t ...`
 - `team` / `tm`
 - `team add <team_name>` / `team a <team_name>`
 - `team remove <team_name>` / `team r <team_name>`
@@ -234,6 +234,15 @@ Card identity terms:
 - Accept/deny edits same message into final state embed
 - Trade result should include card instance/generation when available
 - Trade player argument supports direct mention (e.g. `@Friend`) or exact username
+- Trade mode is the third argument and selects what the buyer pays:
+  - `dough` — buyer pays dough (`ns trade @Player 0 dough 500`)
+  - `starter` — buyer pays starter currency (`ns trade @Player 0 starter 10`)
+  - `tickets` — buyer pays drop tickets (`ns trade @Player 0 tickets 2`)
+    - Aliases: `ticket`, `drop`, `drop_tickets`
+  - `card` — card-for-card swap; buyer pays a specific dupe they own (`ns trade @Player 0 card #5`)
+- For `card` mode, both users must own their respective card at accept time; either side losing ownership between offer and accept causes the trade to fail
+- Card mode clears marriage and last-pulled state for swapped instances on both sides
+- Invalid/unknown mode shows a validation error listing all valid modes
 
 ## Team UX
 

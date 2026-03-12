@@ -63,7 +63,7 @@ class AppCommandErrorTests(unittest.IsolatedAsyncioTestCase):
         ctx.command = self.bot.get_command("trade")
         ctx.reply = AsyncMock()
 
-        param = ctx.command.clean_params["amount"]
+        param = ctx.command.clean_params["mode"]
         error = commands.MissingRequiredArgument(param)
 
         await self.bot.on_command_error(ctx, error)
@@ -71,8 +71,8 @@ class AppCommandErrorTests(unittest.IsolatedAsyncioTestCase):
         ctx.reply.assert_awaited_once()
         sent_embed = ctx.reply.await_args.kwargs["embed"]
         self.assertEqual(sent_embed.title, "Command Error")
-        self.assertIn("Missing required argument: **amount**.", sent_embed.description)
-        self.assertIn("Usage: `ns trade <player> <card_code> <amount>`.", sent_embed.description)
+        self.assertIn("Missing required argument: **mode**.", sent_embed.description)
+        self.assertIn("Usage: `ns trade <player> <card_code> <mode> <amount|card_code>`.", sent_embed.description)
 
     async def test_bad_argument_includes_reason_and_subcommand_usage(self) -> None:
         ctx = AsyncMock()

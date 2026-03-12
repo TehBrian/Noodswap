@@ -2389,11 +2389,19 @@ def execute_trade(
     buyer_id: int,
     card_id: str,
     dupe_code: str,
-    amount: int,
-) -> tuple[bool, str, Optional[int], Optional[str]]:
+    terms: object,  # TradeTerms; typed as object to avoid circular import
+) -> tuple[bool, str, Optional[int], Optional[str], Optional[tuple[str, int, str]]]:
+    """Execute a trade atomically.
+
+    Returns (success, message, sold_generation, sold_dupe_code, received_info).
+    received_info is (card_id, generation, dupe_code) for card-for-card mode, else None.
+    """
+    # Access TradeTerms fields via attribute access to avoid importing services here.
+    mode: str = getattr(terms, "mode")
+    amount: Optional[int] = getattr(terms, "amount", None)
+    req_dupe_code: Optional[str] = getattr(terms, "req_dupe_code", None)
+
     guild_id = _scope_guild_id(guild_id)
-    if amount <= 0:
-        return False, "Invalid trade amount.", None, None
     with get_db_connection() as conn:
         _begin_immediate(conn)
         players = PlayerRepository(conn, STARTING_DOUGH)
@@ -2403,20 +2411,66 @@ def execute_trade(
 
         seller_trade_instance = instances.get_seller_trade_instance(guild_id, seller_id, dupe_code)
         if seller_trade_instance is None:
-            return False, "Trade failed: seller no longer has that card code.", None, None
-
-        buyer_dough = players.get_dough(guild_id, buyer_id)
-        if buyer_dough < amount:
-            return False, "Trade failed: buyer does not have enough dough.", None, None
+            return False, "Trade failed: seller no longer has that card code.", None, None, None
 
         instance_id, fetched_card_id, generation, traded_dupe_code = seller_trade_instance
         if fetched_card_id != card_id:
-            return False, "Trade failed: card mismatch.", None, None
+            return False, "Trade failed: card mismatch.", None, None, None
 
-        instances.transfer_to_user(instance_id, buyer_id)
-        players.clear_marriage_if_matches(guild_id, seller_id, instance_id)
-        players.clear_last_pulled_if_matches(guild_id, seller_id, instance_id)
-        players.add_dough(guild_id, seller_id, amount)
-        players.add_dough(guild_id, buyer_id, -amount)
+        if mode == "dough":
+            if amount is None or amount <= 0:
+                return False, "Invalid trade amount.", None, None, None
+            buyer_dough = players.get_dough(guild_id, buyer_id)
+            if buyer_dough < amount:
+                return False, "Trade failed: buyer does not have enough dough.", None, None, None
+            instances.transfer_to_user(instance_id, buyer_id)
+            players.clear_marriage_if_matches(guild_id, seller_id, instance_id)
+            players.clear_last_pulled_if_matches(guild_id, seller_id, instance_id)
+            players.add_dough(guild_id, seller_id, amount)
+            players.add_dough(guild_id, buyer_id, -amount)
+            return True, "", generation, traded_dupe_code, None
 
-        return True, "", generation, traded_dupe_code
+        if mode == "starter":
+            if amount is None or amount <= 0:
+                return False, "Invalid trade amount.", None, None, None
+            buyer_starter = players.get_starter(guild_id, buyer_id)
+            if buyer_starter < amount:
+                return False, "Trade failed: buyer does not have enough starter.", None, None, None
+            instances.transfer_to_user(instance_id, buyer_id)
+            players.clear_marriage_if_matches(guild_id, seller_id, instance_id)
+            players.clear_last_pulled_if_matches(guild_id, seller_id, instance_id)
+            players.add_starter(guild_id, seller_id, amount)
+            players.add_starter(guild_id, buyer_id, -amount)
+            return True, "", generation, traded_dupe_code, None
+
+        if mode == "tickets":
+            if amount is None or amount <= 0:
+                return False, "Invalid trade amount.", None, None, None
+            buyer_tickets = players.get_drop_tickets(guild_id, buyer_id)
+            if buyer_tickets < amount:
+                return False, "Trade failed: buyer does not have enough drop tickets.", None, None, None
+            instances.transfer_to_user(instance_id, buyer_id)
+            players.clear_marriage_if_matches(guild_id, seller_id, instance_id)
+            players.clear_last_pulled_if_matches(guild_id, seller_id, instance_id)
+            players.add_drop_tickets(guild_id, seller_id, amount)
+            players.add_drop_tickets(guild_id, buyer_id, -amount)
+            return True, "", generation, traded_dupe_code, None
+
+        if mode == "card":
+            if req_dupe_code is None:
+                return False, "Trade failed: missing requested card code.", None, None, None
+            buyer_trade_instance = instances.get_seller_trade_instance(guild_id, buyer_id, req_dupe_code)
+            if buyer_trade_instance is None:
+                return False, "Trade failed: buyer no longer has the requested card.", None, None, None
+            req_instance_id, req_card_id, req_generation, req_traded_dupe = buyer_trade_instance
+            # Swap ownership
+            instances.transfer_to_user(instance_id, buyer_id)
+            instances.transfer_to_user(req_instance_id, seller_id)
+            # Clear marriage/last-pulled pointers for both transferred instances on both users
+            players.clear_marriage_if_matches(guild_id, seller_id, instance_id)
+            players.clear_last_pulled_if_matches(guild_id, seller_id, instance_id)
+            players.clear_marriage_if_matches(guild_id, buyer_id, req_instance_id)
+            players.clear_last_pulled_if_matches(guild_id, buyer_id, req_instance_id)
+            return True, "", generation, traded_dupe_code, (req_card_id, req_generation, req_traded_dupe)
+
+        return False, f"Unknown trade mode: {mode}.", None, None, None

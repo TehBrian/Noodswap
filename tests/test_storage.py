@@ -7,6 +7,7 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 from noodswap import storage
+from noodswap.services import TradeTerms
 
 
 class StorageTests(unittest.TestCase):
@@ -492,13 +493,13 @@ class StorageTests(unittest.TestCase):
             return
         _, _, _, selected_dupe_code = selected
 
-        success, message, traded_generation, traded_dupe_code = storage.execute_trade(
+        success, message, traded_generation, traded_dupe_code, _ = storage.execute_trade(
             guild_id=guild_id,
             seller_id=seller_id,
             buyer_id=buyer_id,
             card_id=card_id,
             dupe_code=selected_dupe_code,
-            amount=30,
+            terms=TradeTerms(mode="dough", amount=30),
         )
 
         self.assertTrue(success)
@@ -527,13 +528,13 @@ class StorageTests(unittest.TestCase):
         storage.init_db()
         storage.add_dough(guild_id, buyer_id, 100)
 
-        success, message, traded_generation, traded_dupe_code = storage.execute_trade(
+        success, message, traded_generation, traded_dupe_code, _ = storage.execute_trade(
             guild_id=guild_id,
             seller_id=seller_id,
             buyer_id=buyer_id,
             card_id="SPG",
             dupe_code="0",
-            amount=10,
+            terms=TradeTerms(mode="dough", amount=10),
         )
 
         self.assertFalse(success)
@@ -560,13 +561,13 @@ class StorageTests(unittest.TestCase):
             return
         _, _, _, selected_dupe_code = selected
 
-        success, message, traded_generation, traded_dupe_code = storage.execute_trade(
+        success, message, traded_generation, traded_dupe_code, _ = storage.execute_trade(
             guild_id=guild_id,
             seller_id=seller_id,
             buyer_id=buyer_id,
             card_id="SPG",
             dupe_code=selected_dupe_code,
-            amount=20,
+            terms=TradeTerms(mode="dough", amount=20),
         )
 
         self.assertFalse(success)
@@ -583,6 +584,238 @@ class StorageTests(unittest.TestCase):
         buyer_dough, _, _ = storage.get_player_info(guild_id, buyer_id)
         self.assertEqual(seller_dough, 0)
         self.assertEqual(buyer_dough, 5)
+
+    def test_trade_starter_mode_transfers_card_and_starter(self) -> None:
+        guild_id = 1
+        seller_id = 740
+        buyer_id = 741
+
+        storage.init_db()
+        storage.add_card_to_player(guild_id, seller_id, "SPG", 100)
+        storage.add_starter(guild_id, buyer_id, 10)
+        selected = storage.get_burn_candidate_by_card_id(guild_id, seller_id, "SPG")
+        self.assertIsNotNone(selected)
+        if selected is None:
+            return
+        _, _, _, dupe_code = selected
+
+        success, message, gen, _dupe, received = storage.execute_trade(
+            guild_id=guild_id,
+            seller_id=seller_id,
+            buyer_id=buyer_id,
+            card_id="SPG",
+            dupe_code=dupe_code,
+            terms=TradeTerms(mode="starter", amount=4),
+        )
+
+        self.assertTrue(success)
+        self.assertEqual(message, "")
+        self.assertEqual(gen, 100)
+        self.assertIsNone(received)
+
+        buyer_instances = storage.get_player_card_instances(guild_id, buyer_id)
+        self.assertEqual(len(buyer_instances), 1)
+        self.assertEqual(buyer_instances[0][1], "SPG")
+        self.assertEqual(storage.get_player_starter(guild_id, seller_id), 4)
+        self.assertEqual(storage.get_player_starter(guild_id, buyer_id), 6)
+
+    def test_trade_starter_mode_fails_when_buyer_has_insufficient_starter(self) -> None:
+        guild_id = 1
+        seller_id = 742
+        buyer_id = 743
+
+        storage.init_db()
+        storage.add_card_to_player(guild_id, seller_id, "SPG", 100)
+        storage.add_starter(guild_id, buyer_id, 2)
+        selected = storage.get_burn_candidate_by_card_id(guild_id, seller_id, "SPG")
+        self.assertIsNotNone(selected)
+        if selected is None:
+            return
+        _, _, _, dupe_code = selected
+
+        success, message, gen, _dupe, received = storage.execute_trade(
+            guild_id=guild_id,
+            seller_id=seller_id,
+            buyer_id=buyer_id,
+            card_id="SPG",
+            dupe_code=dupe_code,
+            terms=TradeTerms(mode="starter", amount=5),
+        )
+
+        self.assertFalse(success)
+        self.assertEqual(message, "Trade failed: buyer does not have enough starter.")
+        self.assertIsNone(gen)
+        self.assertIsNone(received)
+        # Nothing transferred
+        seller_instances = storage.get_player_card_instances(guild_id, seller_id)
+        self.assertEqual(len(seller_instances), 1)
+        self.assertEqual(storage.get_player_starter(guild_id, buyer_id), 2)
+
+    def test_trade_tickets_mode_transfers_card_and_tickets(self) -> None:
+        guild_id = 1
+        seller_id = 744
+        buyer_id = 745
+
+        storage.init_db()
+        storage.add_card_to_player(guild_id, seller_id, "SPG", 100)
+        storage.add_starter(guild_id, buyer_id, 5)
+        storage.buy_drop_tickets_with_starter(guild_id, buyer_id, 5)
+        selected = storage.get_burn_candidate_by_card_id(guild_id, seller_id, "SPG")
+        self.assertIsNotNone(selected)
+        if selected is None:
+            return
+        _, _, _, dupe_code = selected
+
+        success, message, gen, _dupe, received = storage.execute_trade(
+            guild_id=guild_id,
+            seller_id=seller_id,
+            buyer_id=buyer_id,
+            card_id="SPG",
+            dupe_code=dupe_code,
+            terms=TradeTerms(mode="tickets", amount=3),
+        )
+
+        self.assertTrue(success)
+        self.assertEqual(message, "")
+        self.assertEqual(gen, 100)
+        self.assertIsNone(received)
+
+        buyer_instances = storage.get_player_card_instances(guild_id, buyer_id)
+        self.assertEqual(len(buyer_instances), 1)
+        self.assertEqual(storage.get_player_drop_tickets(guild_id, seller_id), 3)
+        self.assertEqual(storage.get_player_drop_tickets(guild_id, buyer_id), 2)
+
+    def test_trade_tickets_mode_fails_when_buyer_has_insufficient_tickets(self) -> None:
+        guild_id = 1
+        seller_id = 746
+        buyer_id = 747
+
+        storage.init_db()
+        storage.add_card_to_player(guild_id, seller_id, "SPG", 100)
+        storage.add_starter(guild_id, buyer_id, 1)
+        storage.buy_drop_tickets_with_starter(guild_id, buyer_id, 1)
+        selected = storage.get_burn_candidate_by_card_id(guild_id, seller_id, "SPG")
+        self.assertIsNotNone(selected)
+        if selected is None:
+            return
+        _, _, _, dupe_code = selected
+
+        success, message, gen, _dupe, received = storage.execute_trade(
+            guild_id=guild_id,
+            seller_id=seller_id,
+            buyer_id=buyer_id,
+            card_id="SPG",
+            dupe_code=dupe_code,
+            terms=TradeTerms(mode="tickets", amount=5),
+        )
+
+        self.assertFalse(success)
+        self.assertEqual(message, "Trade failed: buyer does not have enough drop tickets.")
+        self.assertIsNone(gen)
+        self.assertIsNone(received)
+        seller_instances = storage.get_player_card_instances(guild_id, seller_id)
+        self.assertEqual(len(seller_instances), 1)
+
+    def test_trade_card_mode_swaps_both_instances(self) -> None:
+        guild_id = 1
+        seller_id = 748
+        buyer_id = 749
+
+        storage.init_db()
+        storage.add_card_to_player(guild_id, seller_id, "SPG", 100)
+        storage.add_card_to_player(guild_id, buyer_id, "PEN", 200)
+        seller_instances = storage.get_player_card_instances(guild_id, seller_id)
+        buyer_instances = storage.get_player_card_instances(guild_id, buyer_id)
+        seller_dupe = seller_instances[0][3]
+        buyer_dupe = buyer_instances[0][3]
+
+        success, message, gen, sold_dupe, received = storage.execute_trade(
+            guild_id=guild_id,
+            seller_id=seller_id,
+            buyer_id=buyer_id,
+            card_id="SPG",
+            dupe_code=seller_dupe,
+            terms=TradeTerms(mode="card", req_dupe_code=buyer_dupe),
+        )
+
+        self.assertTrue(success)
+        self.assertEqual(message, "")
+        self.assertEqual(gen, 100)
+        self.assertIsNotNone(received)
+        if received is None:
+            return
+        r_card_id, r_gen, _r_dupe = received
+        self.assertEqual(r_card_id, "PEN")
+        self.assertEqual(r_gen, 200)
+
+        seller_after = storage.get_player_card_instances(guild_id, seller_id)
+        buyer_after = storage.get_player_card_instances(guild_id, buyer_id)
+        self.assertEqual(len(seller_after), 1)
+        self.assertEqual(seller_after[0][1], "PEN")
+        self.assertEqual(len(buyer_after), 1)
+        self.assertEqual(buyer_after[0][1], "SPG")
+
+    def test_trade_card_mode_fails_when_buyer_no_longer_has_req_card(self) -> None:
+        guild_id = 1
+        seller_id = 750
+        buyer_id = 751
+
+        storage.init_db()
+        storage.add_card_to_player(guild_id, seller_id, "SPG", 100)
+        seller_instances = storage.get_player_card_instances(guild_id, seller_id)
+        seller_dupe = seller_instances[0][3]
+
+        success, message, gen, _dupe, received = storage.execute_trade(
+            guild_id=guild_id,
+            seller_id=seller_id,
+            buyer_id=buyer_id,
+            card_id="SPG",
+            dupe_code=seller_dupe,
+            terms=TradeTerms(mode="card", req_dupe_code="zzz"),
+        )
+
+        self.assertFalse(success)
+        self.assertEqual(message, "Trade failed: buyer no longer has the requested card.")
+        self.assertIsNone(gen)
+        self.assertIsNone(received)
+        # Seller still has their card
+        seller_instances_after = storage.get_player_card_instances(guild_id, seller_id)
+        self.assertEqual(len(seller_instances_after), 1)
+
+    def test_trade_card_mode_clears_marriage_for_both_users(self) -> None:
+        guild_id = 1
+        seller_id = 752
+        buyer_id = 753
+
+        storage.init_db()
+        storage.add_card_to_player(guild_id, seller_id, "SPG", 100)
+        storage.add_card_to_player(guild_id, buyer_id, "PEN", 200)
+        seller_instances = storage.get_player_card_instances(guild_id, seller_id)
+        buyer_instances = storage.get_player_card_instances(guild_id, buyer_id)
+        seller_dupe = seller_instances[0][3]
+        buyer_dupe = buyer_instances[0][3]
+
+        # Marry both cards
+        storage.marry_card(guild_id, seller_id, "SPG")
+        storage.marry_card(guild_id, buyer_id, "PEN")
+        self.assertIsNotNone(storage.get_last_pulled_instance(guild_id, seller_id))
+        self.assertIsNotNone(storage.get_last_pulled_instance(guild_id, buyer_id))
+
+        success, _, _, _, _ = storage.execute_trade(
+            guild_id=guild_id,
+            seller_id=seller_id,
+            buyer_id=buyer_id,
+            card_id="SPG",
+            dupe_code=seller_dupe,
+            terms=TradeTerms(mode="card", req_dupe_code=buyer_dupe),
+        )
+        self.assertTrue(success)
+
+        # Both marriages cleared (index 2 = married_instance_id)
+        seller_info = storage.get_player_info(guild_id, seller_id)
+        buyer_info = storage.get_player_info(guild_id, buyer_id)
+        self.assertIsNone(seller_info[2])
+        self.assertIsNone(buyer_info[2])
 
     def test_gift_card_transfers_selected_instance_without_dough_change(self) -> None:
         guild_id = 1
@@ -887,13 +1120,13 @@ class StorageTests(unittest.TestCase):
         _instance_id, _card_id, _generation, dupe_code = selected
 
         storage.add_dough(guild_id, buyer_id, 100)
-        success, message, traded_generation, traded_dupe_code = storage.execute_trade(
+        success, message, traded_generation, traded_dupe_code, _ = storage.execute_trade(
             guild_id=guild_id,
             seller_id=seller_id,
             buyer_id=buyer_id,
             card_id=card_id,
             dupe_code=dupe_code,
-            amount=10,
+            terms=TradeTerms(mode="dough", amount=10),
         )
         self.assertTrue(success)
         self.assertEqual(message, "")
