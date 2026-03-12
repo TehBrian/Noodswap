@@ -231,14 +231,23 @@ def register_economy_commands(bot: commands.Bot) -> None:
                 f"Value: **{item.value}** | Payout: **{item.value}** +- **{item.delta_range}**"
             )
 
+        single = len(prepared.items) == 1
+        summary = (
+            ""
+            if single
+            else (
+                "\n\n"
+                + f"Cards: **{len(prepared.items)}**\n"
+                + f"Total Value: **{prepared.total_value}**\n"
+                + f"Total Payout Range: **{prepared.total_value}** +- **{prepared.total_delta_range}**"
+            )
+        )
         confirm_embed = italy_embed(
             "Burn Confirmation",
-            "Burn these cards?\n\n"
-            + "\n\n".join(item_lines)
+            ("Burn this card?" if single else "Burn these cards?")
             + "\n\n"
-            + f"Cards: **{len(prepared.items)}**\n"
-            + f"Total Value: **{prepared.total_value}**\n"
-            + f"Total Payout Range: **{prepared.total_value}** +- **{prepared.total_delta_range}**",
+            + "\n\n".join(item_lines)
+            + summary,
         )
 
         primary_item = prepared.items[0]
