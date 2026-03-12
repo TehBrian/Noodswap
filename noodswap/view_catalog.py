@@ -7,12 +7,19 @@ from .images import embed_image_payload
 from .presentation import italy_embed
 from .settings import TRADE_TIMEOUT_SECONDS
 from .utils import multiline_text
-from .view_pagination import FIRST_PAGE_EMOJI, LAST_PAGE_EMOJI, NEXT_PAGE_EMOJI, PREVIOUS_PAGE_EMOJI
+from .view_pagination import (
+    FIRST_PAGE_EMOJI,
+    LAST_PAGE_EMOJI,
+    NEXT_PAGE_EMOJI,
+    PREVIOUS_PAGE_EMOJI,
+)
 from .view_utils import InteractionView, logger
 
 
 class CardCatalogView(InteractionView):
-    def __init__(self, user_id: int, entries: list[tuple[str, int]], page_size: int = 10):
+    def __init__(
+        self, user_id: int, entries: list[tuple[str, int]], page_size: int = 10
+    ):
         super().__init__(timeout=TRADE_TIMEOUT_SECONDS)
         self.user_id = user_id
         self.entries = entries
@@ -22,7 +29,9 @@ class CardCatalogView(InteractionView):
         self.sort_descending = self._default_sort_descending(self.sort_mode)
         self.gallery_mode = False
         self.message: Optional[discord.Message] = None
-        self._sorted_entries = self._sorted_entries_for_mode(self.sort_mode, descending=self.sort_descending)
+        self._sorted_entries = self._sorted_entries_for_mode(
+            self.sort_mode, descending=self.sort_descending
+        )
         self._set_gallery_button_label()
         self._set_sort_direction_button_label()
         self._set_sort_select_defaults()
@@ -39,7 +48,9 @@ class CardCatalogView(InteractionView):
         return int(gallery_index // page_size)
 
     def _set_gallery_button_label(self) -> None:
-        self.gallery_toggle_button.label = "Gallery: On" if self.gallery_mode else "Gallery: Off"
+        self.gallery_toggle_button.label = (
+            "Gallery: On" if self.gallery_mode else "Gallery: Off"
+        )
 
     def _set_sort_direction_button_label(self) -> None:
         self.sort_direction_button.label = "▼" if self.sort_descending else "▲"
@@ -60,7 +71,9 @@ class CardCatalogView(InteractionView):
         }
         return order.get(rarity, len(order))
 
-    def _sorted_entries_for_mode(self, mode: str, *, descending: bool) -> list[tuple[str, int]]:
+    def _sorted_entries_for_mode(
+        self, mode: str, *, descending: bool
+    ) -> list[tuple[str, int]]:
         if mode == "wishes":
             return sorted(
                 self.entries,
@@ -86,7 +99,11 @@ class CardCatalogView(InteractionView):
             return sorted(
                 self.entries,
                 key=lambda entry: (
-                    -int(CARD_CATALOG[entry[0]]["base_value"]) if descending else int(CARD_CATALOG[entry[0]]["base_value"]),
+                    (
+                        -int(CARD_CATALOG[entry[0]]["base_value"])
+                        if descending
+                        else int(CARD_CATALOG[entry[0]]["base_value"])
+                    ),
                     str(CARD_CATALOG[entry[0]]["name"]),
                     entry[0],
                 ),
@@ -144,11 +161,15 @@ class CardCatalogView(InteractionView):
             description = "No cards available."
         elif self.gallery_mode:
             card_id, wish_count = page_entries[0]
-            description = f"{start + 1}. {card_base_display(card_id)} • Wishes: **{wish_count}**"
+            description = (
+                f"{start + 1}. {card_base_display(card_id)} • Wishes: **{wish_count}**"
+            )
         else:
             lines = [
                 f"{idx}. {card_base_display(card_id)} • Wishes: **{wish_count}**"
-                for idx, (card_id, wish_count) in enumerate(page_entries, start=start + 1)
+                for idx, (card_id, wish_count) in enumerate(
+                    page_entries, start=start + 1
+                )
             ]
             description = multiline_text(lines)
 
@@ -193,7 +214,9 @@ class CardCatalogView(InteractionView):
     async def _guard_user(self, interaction: discord.Interaction) -> bool:
         if interaction.user.id != self.user_id:
             await interaction.response.send_message(
-                embed=italy_embed("All Cards", "Only the command user can control this catalog."),
+                embed=italy_embed(
+                    "All Cards", "Only the command user can control this catalog."
+                ),
                 ephemeral=True,
             )
             return False
@@ -204,14 +227,30 @@ class CardCatalogView(InteractionView):
         min_values=1,
         max_values=1,
         options=[
-            discord.SelectOption(label="Wishes", value="wishes", description="Highest wish count first"),
-            discord.SelectOption(label="Rarity", value="rarity", description="Rarest cards first"),
-            discord.SelectOption(label="Series", value="series", description="Group by series"),
-            discord.SelectOption(label="Base Value", value="base_value", description="Highest base value first"),
-            discord.SelectOption(label="Alphabetical", value="alphabetical", description="Sort by card name"),
+            discord.SelectOption(
+                label="Wishes", value="wishes", description="Highest wish count first"
+            ),
+            discord.SelectOption(
+                label="Rarity", value="rarity", description="Rarest cards first"
+            ),
+            discord.SelectOption(
+                label="Series", value="series", description="Group by series"
+            ),
+            discord.SelectOption(
+                label="Base Value",
+                value="base_value",
+                description="Highest base value first",
+            ),
+            discord.SelectOption(
+                label="Alphabetical",
+                value="alphabetical",
+                description="Sort by card name",
+            ),
         ],
     )
-    async def sort_select(self, interaction: discord.Interaction, select: discord.ui.Select):
+    async def sort_select(
+        self, interaction: discord.Interaction, select: discord.ui.Select
+    ):
         if not await self._guard_user(interaction):
             return
 
@@ -219,49 +258,65 @@ class CardCatalogView(InteractionView):
         self.sort_mode = selected_mode
         self.sort_descending = self._default_sort_descending(selected_mode)
         self.page_index = 0
-        self._sorted_entries = self._sorted_entries_for_mode(selected_mode, descending=self.sort_descending)
+        self._sorted_entries = self._sorted_entries_for_mode(
+            selected_mode, descending=self.sort_descending
+        )
         self._set_sort_select_defaults()
         await self._update_message(interaction)
 
     @discord.ui.button(emoji=FIRST_PAGE_EMOJI, style=discord.ButtonStyle.secondary)
-    async def first_page_button(self, interaction: discord.Interaction, _button: discord.ui.Button):
+    async def first_page_button(
+        self, interaction: discord.Interaction, _button: discord.ui.Button
+    ):
         if not await self._guard_user(interaction):
             return
         self.page_index = 0
         await self._update_message(interaction)
 
     @discord.ui.button(emoji=PREVIOUS_PAGE_EMOJI, style=discord.ButtonStyle.secondary)
-    async def previous_page_button(self, interaction: discord.Interaction, _button: discord.ui.Button):
+    async def previous_page_button(
+        self, interaction: discord.Interaction, _button: discord.ui.Button
+    ):
         if not await self._guard_user(interaction):
             return
         self.page_index = max(0, self.page_index - 1)
         await self._update_message(interaction)
 
     @discord.ui.button(emoji=NEXT_PAGE_EMOJI, style=discord.ButtonStyle.secondary)
-    async def next_page_button(self, interaction: discord.Interaction, _button: discord.ui.Button):
+    async def next_page_button(
+        self, interaction: discord.Interaction, _button: discord.ui.Button
+    ):
         if not await self._guard_user(interaction):
             return
         self.page_index = min(self.total_pages - 1, self.page_index + 1)
         await self._update_message(interaction)
 
     @discord.ui.button(emoji=LAST_PAGE_EMOJI, style=discord.ButtonStyle.secondary)
-    async def last_page_button(self, interaction: discord.Interaction, _button: discord.ui.Button):
+    async def last_page_button(
+        self, interaction: discord.Interaction, _button: discord.ui.Button
+    ):
         if not await self._guard_user(interaction):
             return
         self.page_index = self.total_pages - 1
         await self._update_message(interaction)
 
     @discord.ui.button(label="▲", style=discord.ButtonStyle.primary)
-    async def sort_direction_button(self, interaction: discord.Interaction, _button: discord.ui.Button):
+    async def sort_direction_button(
+        self, interaction: discord.Interaction, _button: discord.ui.Button
+    ):
         if not await self._guard_user(interaction):
             return
         self.sort_descending = not self.sort_descending
         self.page_index = 0
-        self._sorted_entries = self._sorted_entries_for_mode(self.sort_mode, descending=self.sort_descending)
+        self._sorted_entries = self._sorted_entries_for_mode(
+            self.sort_mode, descending=self.sort_descending
+        )
         await self._update_message(interaction)
 
     @discord.ui.button(label="Gallery: Off", style=discord.ButtonStyle.primary)
-    async def gallery_toggle_button(self, interaction: discord.Interaction, _button: discord.ui.Button):
+    async def gallery_toggle_button(
+        self, interaction: discord.Interaction, _button: discord.ui.Button
+    ):
         if not await self._guard_user(interaction):
             return
         if self.gallery_mode:
@@ -290,4 +345,7 @@ class CardCatalogView(InteractionView):
                 edit_kwargs["attachments"] = []
             await self.message.edit(**edit_kwargs)
         except discord.HTTPException:
-            logger.warning("Failed to edit card catalog message on timeout (message_id=%s)", self.message.id)
+            logger.warning(
+                "Failed to edit card catalog message on timeout (message_id=%s)",
+                self.message.id,
+            )

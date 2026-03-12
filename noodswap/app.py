@@ -4,7 +4,9 @@ import logging
 # compat must be imported before discord to apply runtime patches.
 # pylint: disable=wrong-import-order
 
-from . import compat as _compat  # noqa: F401 - applies asyncio patch before discord import
+from . import (
+    compat as _compat,
+)  # noqa: F401 - applies asyncio patch before discord import
 
 import discord
 from discord.ext import commands
@@ -35,7 +37,11 @@ logger = logging.getLogger(__name__)
 def _normalize_secret(value: str) -> str:
     """Trim whitespace and one surrounding quote pair from env/file secrets."""
     normalized = value.strip()
-    if len(normalized) >= 2 and normalized[0] == normalized[-1] and normalized[0] in {'"', "'"}:
+    if (
+        len(normalized) >= 2
+        and normalized[0] == normalized[-1]
+        and normalized[0] in {'"', "'"}
+    ):
         normalized = normalized[1:-1].strip()
     return normalized
 
@@ -146,7 +152,9 @@ def create_bot() -> commands.Bot:
             try:
                 ended_battles = end_open_battles_for_shutdown()
                 if ended_battles > 0:
-                    logger.info("Ended %s open battle(s) during shutdown.", ended_battles)
+                    logger.info(
+                        "Ended %s open battle(s) during shutdown.", ended_battles
+                    )
             except Exception:  # pragma: no cover - defensive shutdown path
                 logger.exception("Failed to end open battles during shutdown.")
             await super().close()
@@ -174,7 +182,10 @@ def create_bot() -> commands.Bot:
 
         if isinstance(error, commands.CommandNotFound):
             message = ctx.message.content.strip().lower()
-            if message in {COMMAND_PREFIX.strip().lower(), SHORT_COMMAND_PREFIX.strip().lower()}:
+            if message in {
+                COMMAND_PREFIX.strip().lower(),
+                SHORT_COMMAND_PREFIX.strip().lower(),
+            }:
                 help_cmd = bot.get_command("help")
                 if help_cmd is not None:
                     await help_cmd(ctx)
@@ -190,7 +201,7 @@ def create_bot() -> commands.Bot:
                 embed=italy_embed(
                     "Command Error",
                     description,
-                )
+                ),
             )
             return
 
@@ -209,7 +220,12 @@ def create_bot() -> commands.Bot:
             return
 
         if isinstance(error, commands.CheckFailure):
-            await _reply(ctx, embed=italy_embed("Permission", "You are not allowed to run this command."))
+            await _reply(
+                ctx,
+                embed=italy_embed(
+                    "Permission", "You are not allowed to run this command."
+                ),
+            )
             return
 
         logger.exception("Unhandled command error", exc_info=error)
@@ -218,7 +234,7 @@ def create_bot() -> commands.Bot:
             embed=italy_embed(
                 "Unexpected Error",
                 "Something went wrong while processing that command.",
-            )
+            ),
         )
 
     register_commands(bot)

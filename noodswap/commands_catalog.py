@@ -1,10 +1,16 @@
 # pylint: disable=wildcard-import,unused-wildcard-import,undefined-variable
 from .command_utils import *  # noqa: F403
 
+
 def register_catalog_commands(bot: commands.Bot) -> None:
     @bot.group(name="buy", invoke_without_command=True)
     async def buy(ctx: commands.Context):
-        await _reply(ctx, embed=italy_embed("Buy", "Usage: `ns buy drop [quantity]` (1 starter per drop ticket)."))
+        await _reply(
+            ctx,
+            embed=italy_embed(
+                "Buy", "Usage: `ns buy drop [quantity]` (1 starter per drop ticket)."
+            ),
+        )
 
     @buy.command(name="drop")
     async def buy_drop(ctx: commands.Context, quantity: int = 1):
@@ -12,10 +18,14 @@ def register_catalog_commands(bot: commands.Bot) -> None:
             return
 
         if quantity <= 0:
-            await _reply(ctx, embed=italy_embed("Buy", "Quantity must be a positive integer."))
+            await _reply(
+                ctx, embed=italy_embed("Buy", "Quantity must be a positive integer.")
+            )
             return
 
-        purchased, starter_balance, drop_tickets, spent = buy_drop_tickets_with_starter(_guild_id(ctx), ctx.author.id, quantity)
+        purchased, starter_balance, drop_tickets, spent = buy_drop_tickets_with_starter(
+            _guild_id(ctx), ctx.author.id, quantity
+        )
         if not purchased:
             await _reply(
                 ctx,
@@ -68,13 +78,24 @@ def register_catalog_commands(bot: commands.Bot) -> None:
         usage_name: str,
     ) -> None:
         if card_id is None:
-            await _reply(ctx, embed=italy_embed("Lookup", f"Usage: `ns {usage_name} <card_id|card_code|query>`."))
+            await _reply(
+                ctx,
+                embed=italy_embed(
+                    "Lookup", f"Usage: `ns {usage_name} <card_id|card_code|query>`."
+                ),
+            )
             return
 
         if ctx.guild is not None:
             matched_instance = get_instance_by_dupe_code(_guild_id(ctx), card_id)
             if matched_instance is not None:
-                matched_instance_id, matched_owner_id, matched_card_id, matched_generation, matched_dupe_code = matched_instance
+                (
+                    matched_instance_id,
+                    matched_owner_id,
+                    matched_card_id,
+                    matched_generation,
+                    matched_dupe_code,
+                ) = matched_instance
                 morph_key = get_instance_morph(_guild_id(ctx), matched_instance_id)
                 frame_key = get_instance_frame(_guild_id(ctx), matched_instance_id)
                 font_key = get_instance_font(_guild_id(ctx), matched_instance_id)
@@ -108,8 +129,12 @@ def register_catalog_commands(bot: commands.Bot) -> None:
 
         normalized_card_id = normalize_card_id(card_id)
         if normalized_card_id in CARD_CATALOG:
-            lookup_embed = italy_embed(embed_title, card_base_display(normalized_card_id))
-            image_url, image_file = embed_image_payload(normalized_card_id, size=image_size)
+            lookup_embed = italy_embed(
+                embed_title, card_base_display(normalized_card_id)
+            )
+            image_url, image_file = embed_image_payload(
+                normalized_card_id, size=image_size
+            )
             if image_url is not None:
                 lookup_embed.set_image(url=image_url)
             send_kwargs: dict[str, object] = {"embed": lookup_embed}
@@ -126,7 +151,9 @@ def register_catalog_commands(bot: commands.Bot) -> None:
         if len(name_matches) == 1:
             matched_card_id = name_matches[0]
             lookup_embed = italy_embed(embed_title, card_base_display(matched_card_id))
-            image_url, image_file = embed_image_payload(matched_card_id, size=image_size)
+            image_url, image_file = embed_image_payload(
+                matched_card_id, size=image_size
+            )
             if image_url is not None:
                 lookup_embed.set_image(url=image_url)
             send_kwargs: dict[str, object] = {"embed": lookup_embed}
@@ -135,7 +162,9 @@ def register_catalog_commands(bot: commands.Bot) -> None:
             await _reply(ctx, **send_kwargs)
             return
 
-        lookup_wish_counts = get_card_wish_counts(_guild_id(ctx)) if ctx.guild is not None else {}
+        lookup_wish_counts = (
+            get_card_wish_counts(_guild_id(ctx)) if ctx.guild is not None else {}
+        )
         view = SortableCardListView(
             user_id=ctx.author.id,
             title="Lookup Matches",
@@ -196,7 +225,11 @@ def register_catalog_commands(bot: commands.Bot) -> None:
                     "You can still vote, but you won't earn starter for now.",
                 ]
             )
-            await _reply(ctx, embed=italy_embed("Vote", multiline_text(lines)), view=_vote_link_view(vote_url))
+            await _reply(
+                ctx,
+                embed=italy_embed("Vote", multiline_text(lines)),
+                view=_vote_link_view(vote_url),
+            )
             return
 
         voted, vote_error = await _topgg_recent_vote_status(ctx.author.id, api_token)
@@ -206,21 +239,34 @@ def register_catalog_commands(bot: commands.Bot) -> None:
                 user_id=ctx.author.id,
                 reward_amount=VOTE_STARTER_REWARD,
             )
-            lines.extend([
-                "",
-                f"Claimed: **+{VOTE_STARTER_REWARD} starter**",
-                f"Starter Balance: **{starter_total}**",
-            ])
+            lines.extend(
+                [
+                    "",
+                    f"Claimed: **+{VOTE_STARTER_REWARD} starter**",
+                    f"Starter Balance: **{starter_total}**",
+                ]
+            )
         elif voted is False:
-            lines.extend([
-                "",
-                "No recent Top.gg vote detected for your account yet.",
-                "Cast your vote using the button, then try `ns vote` again.",
-            ])
+            lines.extend(
+                [
+                    "",
+                    "No recent Top.gg vote detected for your account yet.",
+                    "Cast your vote using the button, then try `ns vote` again.",
+                ]
+            )
         else:
-            lines.extend(["", f"Could not verify your Top.gg vote right now: {vote_error or 'unknown error'}"])
+            lines.extend(
+                [
+                    "",
+                    f"Could not verify your Top.gg vote right now: {vote_error or 'unknown error'}",
+                ]
+            )
 
-        await _reply(ctx, embed=italy_embed("Vote", multiline_text(lines)), view=_vote_link_view(vote_url))
+        await _reply(
+            ctx,
+            embed=italy_embed("Vote", multiline_text(lines)),
+            view=_vote_link_view(vote_url),
+        )
 
     @bot.command(name="help", aliases=["h"])
     async def help_command(ctx: commands.Context):

@@ -2,7 +2,12 @@ from typing import Optional
 
 import discord
 
-from .presentation import help_category_content, help_category_pages, help_overview_description, italy_embed
+from .presentation import (
+    help_category_content,
+    help_category_pages,
+    help_overview_description,
+    italy_embed,
+)
 
 
 class HelpCategorySelect(discord.ui.Select):
@@ -16,19 +21,29 @@ class HelpCategorySelect(discord.ui.Select):
             )
             for key, label, _description in help_category_pages()
         ]
-        super().__init__(placeholder="Select a command category...", min_values=1, max_values=1, options=options)
+        super().__init__(
+            placeholder="Select a command category...",
+            min_values=1,
+            max_values=1,
+            options=options,
+        )
 
     async def callback(self, interaction: discord.Interaction) -> None:
         if interaction.user.id != self.parent_view.user_id:
             await interaction.response.send_message(
-                embed=italy_embed("Help", "Only the command user can switch help categories."),
+                embed=italy_embed(
+                    "Help", "Only the command user can switch help categories."
+                ),
                 ephemeral=True,
             )
             return
 
         selected_key = self.values[0]
         self.parent_view.selected_category = selected_key
-        await interaction.response.edit_message(embed=self.parent_view.build_category_embed(selected_key), view=self.parent_view)
+        await interaction.response.edit_message(
+            embed=self.parent_view.build_category_embed(selected_key),
+            view=self.parent_view,
+        )
 
 
 class HelpView(discord.ui.View):

@@ -3,7 +3,6 @@ from typing import Final
 
 from .settings import CARD_FONTS_DIR as SETTINGS_CARD_FONTS_DIR
 
-
 FONT_CLASSIC: Final[str] = "classic"
 FONT_SERIF: Final[str] = "serif"
 FONT_MONO: Final[str] = "mono"

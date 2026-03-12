@@ -1,7 +1,6 @@
 from collections.abc import Callable
 import sqlite3
 
-
 TARGET_SCHEMA_VERSION = 22
 _BASE36_ALPHABET = "0123456789abcdefghijklmnopqrstuvwxyz"
 
@@ -40,23 +39,27 @@ def _from_base36(value: str) -> int:
 
 
 def _ensure_schema_migrations_table(conn: sqlite3.Connection) -> None:
-    conn.execute(
-        """
+    conn.execute("""
         CREATE TABLE IF NOT EXISTS schema_migrations (
             version INTEGER NOT NULL
         )
-        """
-    )
+        """)
 
     row = conn.execute("SELECT COUNT(*) AS c FROM schema_migrations").fetchone()
     count = int(row["c"]) if row is not None else 0
     if count == 0:
         conn.execute("INSERT INTO schema_migrations(version) VALUES (0)")
     elif count > 1:
-        current = conn.execute("SELECT MAX(version) AS v FROM schema_migrations").fetchone()
-        max_version = int(current["v"]) if current is not None and current["v"] is not None else 0
+        current = conn.execute(
+            "SELECT MAX(version) AS v FROM schema_migrations"
+        ).fetchone()
+        max_version = (
+            int(current["v"]) if current is not None and current["v"] is not None else 0
+        )
         conn.execute("DELETE FROM schema_migrations")
-        conn.execute("INSERT INTO schema_migrations(version) VALUES (?)", (max_version,))
+        conn.execute(
+            "INSERT INTO schema_migrations(version) VALUES (?)", (max_version,)
+        )
 
 
 def _get_schema_version(conn: sqlite3.Connection) -> int:
@@ -71,10 +74,11 @@ def _set_schema_version(conn: sqlite3.Connection, version: int) -> None:
     conn.execute("UPDATE schema_migrations SET version = ?", (version,))
 
 
-def _apply_migration_v1(conn: sqlite3.Connection, random_generation_func: Callable[[], int]) -> None:
+def _apply_migration_v1(
+    conn: sqlite3.Connection, random_generation_func: Callable[[], int]
+) -> None:
     _ = random_generation_func
-    conn.executescript(
-        """
+    conn.executescript("""
         CREATE TABLE IF NOT EXISTS players (
             guild_id INTEGER NOT NULL,
             user_id INTEGER NOT NULL,
@@ -100,8 +104,7 @@ def _apply_migration_v1(conn: sqlite3.Connection, random_generation_func: Callab
 
         CREATE INDEX IF NOT EXISTS idx_card_instances_owner
             ON card_instances(guild_id, user_id, card_id, generation);
-        """
-    )
+        """)
 
     if not _has_column(conn, "players", "married_instance_id"):
         conn.execute("ALTER TABLE players ADD COLUMN married_instance_id INTEGER")
@@ -110,8 +113,7 @@ def _apply_migration_v1(conn: sqlite3.Connection, random_generation_func: Callab
 
 
 def _apply_migration_v2(conn: sqlite3.Connection) -> None:
-    conn.executescript(
-        """
+    conn.executescript("""
         CREATE TABLE IF NOT EXISTS wishlist_cards (
             guild_id INTEGER NOT NULL,
             user_id INTEGER NOT NULL,
@@ -124,21 +126,18 @@ def _apply_migration_v2(conn: sqlite3.Connection) -> None:
 
         CREATE INDEX IF NOT EXISTS idx_wishlist_owner
             ON wishlist_cards(guild_id, user_id, card_id);
-        """
-    )
+        """)
 
 
 def _apply_migration_v3(conn: sqlite3.Connection) -> None:
     if not _has_column(conn, "card_instances", "dupe_code"):
         conn.execute("ALTER TABLE card_instances ADD COLUMN dupe_code TEXT")
 
-    guild_rows = conn.execute(
-        """
+    guild_rows = conn.execute("""
         SELECT DISTINCT guild_id
         FROM card_instances
         ORDER BY guild_id ASC
-        """
-    ).fetchall()
+        """).fetchall()
 
     for guild_row in guild_rows:
         guild_id = int(guild_row["guild_id"])
@@ -180,23 +179,19 @@ def _apply_migration_v3(conn: sqlite3.Connection) -> None:
                 (_to_base36(candidate), instance_id),
             )
 
-    conn.execute(
-        """
+    conn.execute("""
         CREATE UNIQUE INDEX IF NOT EXISTS idx_card_instances_dupe_code
             ON card_instances(guild_id, dupe_code)
             WHERE dupe_code IS NOT NULL
-        """
-    )
+        """)
 
 
 def _apply_migration_v4(conn: sqlite3.Connection, global_guild_id: int) -> None:
-    player_rows = conn.execute(
-        """
+    player_rows = conn.execute("""
         SELECT user_id, COALESCE(SUM(dough), 0) AS total_dough, COALESCE(MAX(last_pull_at), 0) AS max_last_pull
         FROM players
         GROUP BY user_id
-        """
-    ).fetchall()
+        """).fetchall()
 
     for row in player_rows:
         user_id = int(row["user_id"])
@@ -231,16 +226,14 @@ def _apply_migration_v4(conn: sqlite3.Connection, global_guild_id: int) -> None:
         (global_guild_id,),
     )
 
-    conn.execute(
-        """
+    conn.execute("""
         DELETE FROM wishlist_cards
         WHERE rowid NOT IN (
             SELECT MIN(rowid)
             FROM wishlist_cards
             GROUP BY guild_id, user_id, card_id
         )
-        """
-    )
+        """)
 
     conn.execute(
         """
@@ -250,13 +243,11 @@ def _apply_migration_v4(conn: sqlite3.Connection, global_guild_id: int) -> None:
         (global_guild_id,),
     )
 
-    rows = conn.execute(
-        """
+    rows = conn.execute("""
         SELECT instance_id
         FROM card_instances
         ORDER BY instance_id ASC
-        """
-    ).fetchall()
+        """).fetchall()
     for idx, row in enumerate(rows):
         instance_id = int(row["instance_id"])
         conn.execute(
@@ -269,13 +260,11 @@ def _apply_migration_v4(conn: sqlite3.Connection, global_guild_id: int) -> None:
         )
 
     conn.execute("DROP INDEX IF EXISTS idx_card_instances_dupe_code")
-    conn.execute(
-        """
+    conn.execute("""
         CREATE UNIQUE INDEX IF NOT EXISTS idx_card_instances_dupe_code
             ON card_instances(dupe_code)
             WHERE dupe_code IS NOT NULL
-        """
-    )
+        """)
 
 
 def _apply_migration_v5(conn: sqlite3.Connection) -> None:
@@ -284,45 +273,39 @@ def _apply_migration_v5(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE card_instances ADD COLUMN dupe_code TEXT")
 
     conn.execute("DROP INDEX IF EXISTS idx_card_instances_dupe_code")
-    conn.execute(
-        """
+    conn.execute("""
         CREATE UNIQUE INDEX IF NOT EXISTS idx_card_instances_dupe_code
             ON card_instances(dupe_code)
             WHERE dupe_code IS NOT NULL
-        """
-    )
+        """)
 
 
 def _apply_migration_v6(conn: sqlite3.Connection) -> None:
-    players_table_exists = conn.execute(
-        """
+    players_table_exists = conn.execute("""
         SELECT 1
         FROM sqlite_master
         WHERE type = 'table' AND name = 'players'
         LIMIT 1
-        """
-    ).fetchone() is not None
+        """).fetchone() is not None
     if not players_table_exists:
         return
 
     if not _has_column(conn, "players", "last_drop_at"):
-        conn.execute("ALTER TABLE players ADD COLUMN last_drop_at REAL NOT NULL DEFAULT 0")
+        conn.execute(
+            "ALTER TABLE players ADD COLUMN last_drop_at REAL NOT NULL DEFAULT 0"
+        )
 
     # Before v6, last_pull_at tracked drop command usage. Preserve that history as
     # drop cooldown state and reset pull cooldown state for the new split model.
-    conn.execute(
-        """
+    conn.execute("""
         UPDATE players
         SET last_drop_at = last_pull_at
         WHERE last_drop_at = 0
-        """
-    )
-    conn.execute(
-        """
+        """)
+    conn.execute("""
         UPDATE players
         SET last_pull_at = 0
-        """
-    )
+        """)
 
 
 def _apply_migration_v7(conn: sqlite3.Connection) -> None:
@@ -331,8 +314,7 @@ def _apply_migration_v7(conn: sqlite3.Connection) -> None:
 
 
 def _apply_migration_v8(conn: sqlite3.Connection) -> None:
-    conn.executescript(
-        """
+    conn.executescript("""
         CREATE TABLE IF NOT EXISTS player_tags (
             guild_id INTEGER NOT NULL,
             user_id INTEGER NOT NULL,
@@ -366,8 +348,7 @@ def _apply_migration_v8(conn: sqlite3.Connection) -> None:
 
         CREATE INDEX IF NOT EXISTS idx_card_instance_tags_instance
             ON card_instance_tags(instance_id);
-        """
-    )
+        """)
 
 
 def _apply_migration_v9(conn: sqlite3.Connection) -> None:
@@ -386,54 +367,51 @@ def _apply_migration_v11(conn: sqlite3.Connection) -> None:
 
 
 def _apply_migration_v12(conn: sqlite3.Connection) -> None:
-    players_table_exists = conn.execute(
-        """
+    players_table_exists = conn.execute("""
         SELECT 1
         FROM sqlite_master
         WHERE type = 'table' AND name = 'players'
         LIMIT 1
-        """
-    ).fetchone() is not None
+        """).fetchone() is not None
     if not players_table_exists:
         return
 
     if not _has_column(conn, "players", "starter"):
-        conn.execute("ALTER TABLE players ADD COLUMN starter INTEGER NOT NULL DEFAULT 0")
+        conn.execute(
+            "ALTER TABLE players ADD COLUMN starter INTEGER NOT NULL DEFAULT 0"
+        )
 
 
 def _apply_migration_v13(conn: sqlite3.Connection) -> None:
-    players_table_exists = conn.execute(
-        """
+    players_table_exists = conn.execute("""
         SELECT 1
         FROM sqlite_master
         WHERE type = 'table' AND name = 'players'
         LIMIT 1
-        """
-    ).fetchone() is not None
+        """).fetchone() is not None
     if not players_table_exists:
         return
 
     if not _has_column(conn, "players", "last_slots_at"):
-        conn.execute("ALTER TABLE players ADD COLUMN last_slots_at REAL NOT NULL DEFAULT 0")
+        conn.execute(
+            "ALTER TABLE players ADD COLUMN last_slots_at REAL NOT NULL DEFAULT 0"
+        )
 
 
 def _apply_migration_v14(conn: sqlite3.Connection) -> None:
-    players_table_exists = conn.execute(
-        """
+    players_table_exists = conn.execute("""
         SELECT 1
         FROM sqlite_master
         WHERE type = 'table' AND name = 'players'
         LIMIT 1
-        """
-    ).fetchone() is not None
+        """).fetchone() is not None
     if not players_table_exists:
         return
 
     if not _has_column(conn, "players", "active_team_name"):
         conn.execute("ALTER TABLE players ADD COLUMN active_team_name TEXT")
 
-    conn.executescript(
-        """
+    conn.executescript("""
         CREATE TABLE IF NOT EXISTS player_teams (
             guild_id INTEGER NOT NULL,
             user_id INTEGER NOT NULL,
@@ -509,40 +487,36 @@ def _apply_migration_v14(conn: sqlite3.Connection) -> None:
         CREATE INDEX IF NOT EXISTS idx_battle_sessions_open_challenged
             ON battle_sessions(guild_id, challenged_id)
             WHERE status IN ('pending', 'active');
-        """
-    )
+        """)
 
 
 def _apply_migration_v15(conn: sqlite3.Connection) -> None:
-    players_table_exists = conn.execute(
-        """
+    players_table_exists = conn.execute("""
         SELECT 1
         FROM sqlite_master
         WHERE type = 'table' AND name = 'players'
         LIMIT 1
-        """
-    ).fetchone() is not None
+        """).fetchone() is not None
     if not players_table_exists:
         return
 
     if not _has_column(conn, "players", "last_flip_at"):
-        conn.execute("ALTER TABLE players ADD COLUMN last_flip_at REAL NOT NULL DEFAULT 0")
+        conn.execute(
+            "ALTER TABLE players ADD COLUMN last_flip_at REAL NOT NULL DEFAULT 0"
+        )
 
 
 def _apply_migration_v16(conn: sqlite3.Connection) -> None:
-    battle_sessions_table_exists = conn.execute(
-        """
+    battle_sessions_table_exists = conn.execute("""
         SELECT 1
         FROM sqlite_master
         WHERE type = 'table' AND name = 'battle_sessions'
         LIMIT 1
-        """
-    ).fetchone() is not None
+        """).fetchone() is not None
     if not battle_sessions_table_exists:
         return
 
-    conn.executescript(
-        """
+    conn.executescript("""
         CREATE TABLE IF NOT EXISTS battle_combatants (
             battle_id INTEGER NOT NULL,
             guild_id INTEGER NOT NULL,
@@ -572,29 +546,27 @@ def _apply_migration_v16(conn: sqlite3.Connection) -> None:
 
         CREATE INDEX IF NOT EXISTS idx_battle_combatants_user
             ON battle_combatants(guild_id, user_id, battle_id);
-        """
-    )
+        """)
 
 
 def _apply_migration_v17(conn: sqlite3.Connection) -> None:
-    players_table_exists = conn.execute(
-        """
+    players_table_exists = conn.execute("""
         SELECT 1
         FROM sqlite_master
         WHERE type = 'table' AND name = 'players'
         LIMIT 1
-        """
-    ).fetchone() is not None
+        """).fetchone() is not None
     if not players_table_exists:
         return
 
     if not _has_column(conn, "players", "drop_tickets"):
-        conn.execute("ALTER TABLE players ADD COLUMN drop_tickets INTEGER NOT NULL DEFAULT 0")
+        conn.execute(
+            "ALTER TABLE players ADD COLUMN drop_tickets INTEGER NOT NULL DEFAULT 0"
+        )
 
 
 def _apply_migration_v18(conn: sqlite3.Connection) -> None:
-    conn.executescript(
-        """
+    conn.executescript("""
         CREATE TABLE IF NOT EXISTS player_folders (
             guild_id INTEGER NOT NULL,
             user_id INTEGER NOT NULL,
@@ -629,19 +601,16 @@ def _apply_migration_v18(conn: sqlite3.Connection) -> None:
 
         CREATE INDEX IF NOT EXISTS idx_card_instance_folders_instance
             ON card_instance_folders(instance_id);
-        """
-    )
+        """)
 
 
 def _apply_migration_v19(conn: sqlite3.Connection) -> None:
-    players_table_exists = conn.execute(
-        """
+    players_table_exists = conn.execute("""
         SELECT 1
         FROM sqlite_master
         WHERE type = 'table' AND name = 'players'
         LIMIT 1
-        """
-    ).fetchone() is not None
+        """).fetchone() is not None
     if not players_table_exists:
         return
 
@@ -650,34 +619,41 @@ def _apply_migration_v19(conn: sqlite3.Connection) -> None:
 
 
 def _apply_migration_v20(conn: sqlite3.Connection) -> None:
-    players_table_exists = conn.execute(
-        """
+    players_table_exists = conn.execute("""
         SELECT 1
         FROM sqlite_master
         WHERE type = 'table' AND name = 'players'
         LIMIT 1
-        """
-    ).fetchone() is not None
+        """).fetchone() is not None
     if not players_table_exists:
         return
 
     if not _has_column(conn, "players", "monopoly_position"):
-        conn.execute("ALTER TABLE players ADD COLUMN monopoly_position INTEGER NOT NULL DEFAULT 0")
+        conn.execute(
+            "ALTER TABLE players ADD COLUMN monopoly_position INTEGER NOT NULL DEFAULT 0"
+        )
 
     if not _has_column(conn, "players", "last_monopoly_roll_at"):
-        conn.execute("ALTER TABLE players ADD COLUMN last_monopoly_roll_at REAL NOT NULL DEFAULT 0")
+        conn.execute(
+            "ALTER TABLE players ADD COLUMN last_monopoly_roll_at REAL NOT NULL DEFAULT 0"
+        )
 
     if not _has_column(conn, "players", "monopoly_in_jail"):
-        conn.execute("ALTER TABLE players ADD COLUMN monopoly_in_jail INTEGER NOT NULL DEFAULT 0")
+        conn.execute(
+            "ALTER TABLE players ADD COLUMN monopoly_in_jail INTEGER NOT NULL DEFAULT 0"
+        )
 
     if not _has_column(conn, "players", "monopoly_jail_roll_attempts"):
-        conn.execute("ALTER TABLE players ADD COLUMN monopoly_jail_roll_attempts INTEGER NOT NULL DEFAULT 0")
+        conn.execute(
+            "ALTER TABLE players ADD COLUMN monopoly_jail_roll_attempts INTEGER NOT NULL DEFAULT 0"
+        )
 
     if not _has_column(conn, "players", "monopoly_consecutive_doubles"):
-        conn.execute("ALTER TABLE players ADD COLUMN monopoly_consecutive_doubles INTEGER NOT NULL DEFAULT 0")
+        conn.execute(
+            "ALTER TABLE players ADD COLUMN monopoly_consecutive_doubles INTEGER NOT NULL DEFAULT 0"
+        )
 
-    conn.executescript(
-        """
+    conn.executescript("""
         CREATE TABLE IF NOT EXISTS gambling_pot (
             guild_id INTEGER NOT NULL PRIMARY KEY,
             dough INTEGER NOT NULL DEFAULT 0,
@@ -688,8 +664,7 @@ def _apply_migration_v20(conn: sqlite3.Connection) -> None:
         INSERT INTO gambling_pot (guild_id, dough, starter, drop_tickets)
         VALUES (0, 0, 0, 0)
         ON CONFLICT(guild_id) DO NOTHING;
-        """
-    )
+        """)
 
 
 def _apply_migration_v21(conn: sqlite3.Connection) -> None:
@@ -700,19 +675,16 @@ def _apply_migration_v21(conn: sqlite3.Connection) -> None:
     that would result in dough < 0 will raise an ABORT error and roll back the
     enclosing transaction.
     """
-    players_table_exists = conn.execute(
-        """
+    players_table_exists = conn.execute("""
         SELECT 1
         FROM sqlite_master
         WHERE type = 'table' AND name = 'players'
         LIMIT 1
-        """
-    ).fetchone() is not None
+        """).fetchone() is not None
     if not players_table_exists:
         return
 
-    conn.executescript(
-        """
+    conn.executescript("""
         DROP TRIGGER IF EXISTS prevent_negative_dough;
         CREATE TRIGGER prevent_negative_dough
         BEFORE UPDATE OF dough ON players
@@ -720,27 +692,28 @@ def _apply_migration_v21(conn: sqlite3.Connection) -> None:
         BEGIN
             SELECT RAISE(ABORT, 'dough cannot go negative');
         END;
-        """
-    )
+        """)
 
 
 def _apply_migration_v22(conn: sqlite3.Connection) -> None:
-    battle_combatants_table_exists = conn.execute(
-        """
+    battle_combatants_table_exists = conn.execute("""
         SELECT 1
         FROM sqlite_master
         WHERE type = 'table' AND name = 'battle_combatants'
         LIMIT 1
-        """
-    ).fetchone() is not None
+        """).fetchone() is not None
     if not battle_combatants_table_exists:
         return
 
     if not _has_column(conn, "battle_combatants", "attack"):
-        conn.execute("ALTER TABLE battle_combatants ADD COLUMN attack INTEGER NOT NULL DEFAULT 1")
+        conn.execute(
+            "ALTER TABLE battle_combatants ADD COLUMN attack INTEGER NOT NULL DEFAULT 1"
+        )
 
     if not _has_column(conn, "battle_combatants", "defense"):
-        conn.execute("ALTER TABLE battle_combatants ADD COLUMN defense INTEGER NOT NULL DEFAULT 1")
+        conn.execute(
+            "ALTER TABLE battle_combatants ADD COLUMN defense INTEGER NOT NULL DEFAULT 1"
+        )
 
 
 def run_migrations(

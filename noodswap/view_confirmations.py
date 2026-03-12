@@ -8,7 +8,13 @@ from .frames import frame_label
 from .images import morph_transition_image_payload
 from .morphs import morph_label
 from .presentation import italy_embed
-from .services import execute_burn_batch_confirmation, execute_burn_confirmation, resolve_font_roll, resolve_frame_roll, resolve_morph_roll
+from .services import (
+    execute_burn_batch_confirmation,
+    execute_burn_confirmation,
+    resolve_font_roll,
+    resolve_frame_roll,
+    resolve_morph_roll,
+)
 from .settings import BURN_CONFIRM_TIMEOUT_SECONDS
 from .view_utils import InteractionView, logger
 
@@ -82,7 +88,9 @@ class BurnConfirmView(InteractionView):
     ):
         if interaction.user.id != self.user_id:
             await interaction.response.send_message(
-                embed=italy_embed("Burn", "Only the command user can confirm this burn."),
+                embed=italy_embed(
+                    "Burn", "Only the command user can confirm this burn."
+                ),
                 ephemeral=True,
             )
             return
@@ -153,7 +161,9 @@ Payout: **{burn_result.payout} dough**
                 view=self,
             )
             if interaction.message is not None:
-                await interaction.message.reply(embed=burned_embed, mention_author=False)
+                await interaction.message.reply(
+                    embed=burned_embed, mention_author=False
+                )
             return
 
         burn_result = execute_burn_batch_confirmation(
@@ -206,7 +216,11 @@ Payout: **{burn_result.payout} dough**
             description_blocks.append("Skipped:\n" + "\n".join(skipped_lines))
 
         burned_embed = italy_embed(
-            "**Cards Burned**" if not burn_result.skipped_instances else "**Cards Burned (Partial)**",
+            (
+                "**Cards Burned**"
+                if not burn_result.skipped_instances
+                else "**Cards Burned (Partial)**"
+            ),
             "\n\n".join(description_blocks),
         )
 
@@ -226,7 +240,9 @@ Payout: **{burn_result.payout} dough**
     ):
         if interaction.user.id != self.user_id:
             await interaction.response.send_message(
-                embed=italy_embed("Burn", "Only the command user can cancel this burn."),
+                embed=italy_embed(
+                    "Burn", "Only the command user can cancel this burn."
+                ),
                 ephemeral=True,
             )
             return
@@ -260,7 +276,10 @@ Payout: **{burn_result.payout} dough**
                 view=self,
             )
         except discord.HTTPException:
-            logger.warning("Failed to edit burn confirmation message on timeout (message_id=%s)", self.message.id)
+            logger.warning(
+                "Failed to edit burn confirmation message on timeout (message_id=%s)",
+                self.message.id,
+            )
 
     def _disable_buttons(self) -> None:
         for item in self.children:
@@ -305,7 +324,9 @@ class MorphConfirmView(InteractionView):
     ):
         if interaction.user.id != self.user_id:
             await interaction.response.send_message(
-                embed=italy_embed("Morph", "Only the command user can confirm this morph."),
+                embed=italy_embed(
+                    "Morph", "Only the command user can confirm this morph."
+                ),
                 ephemeral=True,
             )
             return
@@ -332,7 +353,9 @@ class MorphConfirmView(InteractionView):
             await interaction.response.edit_message(view=self)
             if interaction.message is not None:
                 await interaction.message.reply(
-                    embed=italy_embed("Morph Failed", result.error_message or "Morph failed."),
+                    embed=italy_embed(
+                        "Morph Failed", result.error_message or "Morph failed."
+                    ),
                     mention_author=False,
                 )
             return
@@ -384,7 +407,10 @@ class MorphConfirmView(InteractionView):
             morph_embed.set_image(url=image_url)
 
         if interaction.message is not None:
-            send_kwargs: dict[str, object] = {"embed": morph_embed, "mention_author": False}
+            send_kwargs: dict[str, object] = {
+                "embed": morph_embed,
+                "mention_author": False,
+            }
             if image_file is not None:
                 send_kwargs["file"] = image_file
             await interaction.message.reply(**send_kwargs)
@@ -397,7 +423,9 @@ class MorphConfirmView(InteractionView):
     ):
         if interaction.user.id != self.user_id:
             await interaction.response.send_message(
-                embed=italy_embed("Morph", "Only the command user can cancel this morph."),
+                embed=italy_embed(
+                    "Morph", "Only the command user can cancel this morph."
+                ),
                 ephemeral=True,
             )
             return
@@ -425,7 +453,10 @@ class MorphConfirmView(InteractionView):
         try:
             await self.message.edit(view=self)
         except discord.HTTPException:
-            logger.warning("Failed to edit morph confirmation message on timeout (message_id=%s)", self.message.id)
+            logger.warning(
+                "Failed to edit morph confirmation message on timeout (message_id=%s)",
+                self.message.id,
+            )
 
     def _disable_buttons(self) -> None:
         for item in self.children:
@@ -470,7 +501,9 @@ class FrameConfirmView(InteractionView):
     ):
         if interaction.user.id != self.user_id:
             await interaction.response.send_message(
-                embed=italy_embed("Frame", "Only the command user can confirm this frame."),
+                embed=italy_embed(
+                    "Frame", "Only the command user can confirm this frame."
+                ),
                 ephemeral=True,
             )
             return
@@ -497,7 +530,9 @@ class FrameConfirmView(InteractionView):
             await interaction.response.edit_message(view=self)
             if interaction.message is not None:
                 await interaction.message.reply(
-                    embed=italy_embed("Frame Failed", result.error_message or "Frame failed."),
+                    embed=italy_embed(
+                        "Frame Failed", result.error_message or "Frame failed."
+                    ),
                     mention_author=False,
                 )
             return
@@ -549,7 +584,10 @@ class FrameConfirmView(InteractionView):
             frame_embed.set_image(url=image_url)
 
         if interaction.message is not None:
-            send_kwargs: dict[str, object] = {"embed": frame_embed, "mention_author": False}
+            send_kwargs: dict[str, object] = {
+                "embed": frame_embed,
+                "mention_author": False,
+            }
             if image_file is not None:
                 send_kwargs["file"] = image_file
             await interaction.message.reply(**send_kwargs)
@@ -562,7 +600,9 @@ class FrameConfirmView(InteractionView):
     ):
         if interaction.user.id != self.user_id:
             await interaction.response.send_message(
-                embed=italy_embed("Frame", "Only the command user can cancel this frame."),
+                embed=italy_embed(
+                    "Frame", "Only the command user can cancel this frame."
+                ),
                 ephemeral=True,
             )
             return
@@ -590,7 +630,10 @@ class FrameConfirmView(InteractionView):
         try:
             await self.message.edit(view=self)
         except discord.HTTPException:
-            logger.warning("Failed to edit frame confirmation message on timeout (message_id=%s)", self.message.id)
+            logger.warning(
+                "Failed to edit frame confirmation message on timeout (message_id=%s)",
+                self.message.id,
+            )
 
     def _disable_buttons(self) -> None:
         for item in self.children:
@@ -635,7 +678,9 @@ class FontConfirmView(InteractionView):
     ):
         if interaction.user.id != self.user_id:
             await interaction.response.send_message(
-                embed=italy_embed("Font", "Only the command user can confirm this font."),
+                embed=italy_embed(
+                    "Font", "Only the command user can confirm this font."
+                ),
                 ephemeral=True,
             )
             return
@@ -662,7 +707,9 @@ class FontConfirmView(InteractionView):
             await interaction.response.edit_message(view=self)
             if interaction.message is not None:
                 await interaction.message.reply(
-                    embed=italy_embed("Font Failed", result.error_message or "Font failed."),
+                    embed=italy_embed(
+                        "Font Failed", result.error_message or "Font failed."
+                    ),
                     mention_author=False,
                 )
             return
@@ -714,7 +761,10 @@ class FontConfirmView(InteractionView):
             font_embed.set_image(url=image_url)
 
         if interaction.message is not None:
-            send_kwargs: dict[str, object] = {"embed": font_embed, "mention_author": False}
+            send_kwargs: dict[str, object] = {
+                "embed": font_embed,
+                "mention_author": False,
+            }
             if image_file is not None:
                 send_kwargs["file"] = image_file
             await interaction.message.reply(**send_kwargs)
@@ -727,7 +777,9 @@ class FontConfirmView(InteractionView):
     ):
         if interaction.user.id != self.user_id:
             await interaction.response.send_message(
-                embed=italy_embed("Font", "Only the command user can cancel this font."),
+                embed=italy_embed(
+                    "Font", "Only the command user can cancel this font."
+                ),
                 ephemeral=True,
             )
             return
@@ -755,7 +807,10 @@ class FontConfirmView(InteractionView):
         try:
             await self.message.edit(view=self)
         except discord.HTTPException:
-            logger.warning("Failed to edit font confirmation message on timeout (message_id=%s)", self.message.id)
+            logger.warning(
+                "Failed to edit font confirmation message on timeout (message_id=%s)",
+                self.message.id,
+            )
 
     def _disable_buttons(self) -> None:
         for item in self.children:

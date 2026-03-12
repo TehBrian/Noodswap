@@ -54,7 +54,9 @@ def _inv(value: float) -> str:
     return f"1 in {round(1.0 / value):,}"
 
 
-def _query_scalar(conn: sqlite3.Connection, sql: str, params: tuple[object, ...] = ()) -> float:
+def _query_scalar(
+    conn: sqlite3.Connection, sql: str, params: tuple[object, ...] = ()
+) -> float:
     row = conn.execute(sql, params).fetchone()
     if row is None:
         return 0.0
@@ -65,7 +67,7 @@ def _query_scalar(conn: sqlite3.Connection, sql: str, params: tuple[object, ...]
 def _theoretical_distribution(tau: float) -> dict[str, float]:
     generations = list(range(GENERATION_MIN, GENERATION_MAX + 1))
     multipliers = [generation_value_multiplier(g) for g in generations]
-    weights = [1.0 / (m ** tau) for m in multipliers]
+    weights = [1.0 / (m**tau) for m in multipliers]
     total_weight = sum(weights)
     probs = [w / total_weight for w in weights]
 
@@ -88,10 +90,18 @@ def _theoretical_distribution(tau: float) -> dict[str, float]:
 
 def _snapshot_metrics(conn: sqlite3.Connection, active_days: int) -> dict[str, float]:
     total_instances = _query_scalar(conn, "SELECT COUNT(*) FROM card_instances")
-    count_gen_1 = _query_scalar(conn, "SELECT COUNT(*) FROM card_instances WHERE generation = 1")
-    count_gen_le_10 = _query_scalar(conn, "SELECT COUNT(*) FROM card_instances WHERE generation <= 10")
-    count_gen_le_100 = _query_scalar(conn, "SELECT COUNT(*) FROM card_instances WHERE generation <= 100")
-    count_gen_le_500 = _query_scalar(conn, "SELECT COUNT(*) FROM card_instances WHERE generation <= 500")
+    count_gen_1 = _query_scalar(
+        conn, "SELECT COUNT(*) FROM card_instances WHERE generation = 1"
+    )
+    count_gen_le_10 = _query_scalar(
+        conn, "SELECT COUNT(*) FROM card_instances WHERE generation <= 10"
+    )
+    count_gen_le_100 = _query_scalar(
+        conn, "SELECT COUNT(*) FROM card_instances WHERE generation <= 100"
+    )
+    count_gen_le_500 = _query_scalar(
+        conn, "SELECT COUNT(*) FROM card_instances WHERE generation <= 500"
+    )
 
     avg_generation = _query_scalar(conn, "SELECT AVG(generation) FROM card_instances")
     avg_multiplier = _query_scalar(
@@ -116,7 +126,9 @@ def _snapshot_metrics(conn: sqlite3.Connection, active_days: int) -> dict[str, f
     )
 
     cutoff = time.time() - (max(1, active_days) * 24 * 60 * 60)
-    active_pullers = _query_scalar(conn, "SELECT COUNT(*) FROM players WHERE last_pull_at >= ?", (cutoff,))
+    active_pullers = _query_scalar(
+        conn, "SELECT COUNT(*) FROM players WHERE last_pull_at >= ?", (cutoff,)
+    )
 
     if total_instances <= 0:
         p1 = p10 = p100 = p500 = 0.0
@@ -126,12 +138,18 @@ def _snapshot_metrics(conn: sqlite3.Connection, active_days: int) -> dict[str, f
         p100 = count_gen_le_100 / total_instances
         p500 = count_gen_le_500 / total_instances
 
-    per_1k_active_gen_1 = (count_gen_1 * 1000.0 / active_pullers) if active_pullers > 0 else 0.0
+    per_1k_active_gen_1 = (
+        (count_gen_1 * 1000.0 / active_pullers) if active_pullers > 0 else 0.0
+    )
     per_1k_active_gen_2_10 = (
-        ((count_gen_le_10 - count_gen_1) * 1000.0 / active_pullers) if active_pullers > 0 else 0.0
+        ((count_gen_le_10 - count_gen_1) * 1000.0 / active_pullers)
+        if active_pullers > 0
+        else 0.0
     )
     per_1k_active_gen_11_100 = (
-        ((count_gen_le_100 - count_gen_le_10) * 1000.0 / active_pullers) if active_pullers > 0 else 0.0
+        ((count_gen_le_100 - count_gen_le_10) * 1000.0 / active_pullers)
+        if active_pullers > 0
+        else 0.0
     )
 
     return {
@@ -149,7 +167,13 @@ def _snapshot_metrics(conn: sqlite3.Connection, active_days: int) -> dict[str, f
     }
 
 
-def _text_report(db_path: Path, tau: float, active_days: int, theo: dict[str, float], snap: dict[str, float]) -> str:
+def _text_report(
+    db_path: Path,
+    tau: float,
+    active_days: int,
+    theo: dict[str, float],
+    snap: dict[str, float],
+) -> str:
     lines: list[str] = []
     lines.append("Noodswap generation economy report")
     lines.append(f"DB: {db_path}")
@@ -175,7 +199,9 @@ def _text_report(db_path: Path, tau: float, active_days: int, theo: dict[str, fl
     lines.append(f"- AVG(multiplier): {snap['avg_multiplier']:.4f}x")
     lines.append("")
 
-    lines.append(f"Top-end supply normalization (per 1k active pullers over last {active_days}d)")
+    lines.append(
+        f"Top-end supply normalization (per 1k active pullers over last {active_days}d)"
+    )
     lines.append(f"- Active pullers: {int(snap['active_pullers']):,}")
     lines.append(f"- Gen 1 per 1k active: {snap['gen_1_per_1k_active']:.4f}")
     lines.append(f"- Gen 2-10 per 1k active: {snap['gen_2_10_per_1k_active']:.4f}")
@@ -189,9 +215,15 @@ def _text_report(db_path: Path, tau: float, active_days: int, theo: dict[str, fl
     lines.append("")
 
     lines.append("Notes")
-    lines.append("- Snapshot metrics are based on current ownership, not historical pulls.")
-    lines.append("- Burns, trades, and churn bias snapshot rarity; use as directional signals.")
-    lines.append("- Add a pull/burn/trade ledger table for true day-by-day economy telemetry.")
+    lines.append(
+        "- Snapshot metrics are based on current ownership, not historical pulls."
+    )
+    lines.append(
+        "- Burns, trades, and churn bias snapshot rarity; use as directional signals."
+    )
+    lines.append(
+        "- Add a pull/burn/trade ledger table for true day-by-day economy telemetry."
+    )
 
     return "\n".join(lines)
 

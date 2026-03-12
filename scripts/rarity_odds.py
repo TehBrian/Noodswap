@@ -4,7 +4,12 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from noodswap.cards import CARD_CATALOG, RARITY_CARD_COUNTS, effective_rarity_odds, target_rarity_odds
+from noodswap.cards import (
+    CARD_CATALOG,
+    RARITY_CARD_COUNTS,
+    effective_rarity_odds,
+    target_rarity_odds,
+)
 from noodswap.rarities import (
     RARITY_CURVE_LINEAR_RATE,
     RARITY_CURVE_SMOOTHING,
@@ -175,7 +180,9 @@ def print_generated_weights_report(
     print()
     print(f"Generated weights: {weights}")
     print()
-    print(f"{'Rarity':<10} {'Weight':>7} {'PerCard':>9} {'PerDrop':>9} {'PerPlayer':>10}")
+    print(
+        f"{'Rarity':<10} {'Weight':>7} {'PerCard':>9} {'PerDrop':>9} {'PerPlayer':>10}"
+    )
     print("-" * 53)
     for rarity in RARITY_ORDER:
         per_card = odds.get(rarity, 0.0)
@@ -213,5 +220,5 @@ def main() -> None:
     )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

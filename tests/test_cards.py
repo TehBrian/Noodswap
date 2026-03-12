@@ -18,7 +18,8 @@ class CardsImageTests(unittest.TestCase):
         missing_local_path_ids = [
             card_id
             for card_id, card in CARD_CATALOG.items()
-            if not isinstance(card.get("image"), str) or not card["image"].startswith("runtime/card_images/")
+            if not isinstance(card.get("image"), str)
+            or not card["image"].startswith("runtime/card_images/")
         ]
         self.assertEqual(missing_local_path_ids, [])
 
@@ -26,7 +27,8 @@ class CardsImageTests(unittest.TestCase):
         remote_ids = [
             card_id
             for card_id, card in CARD_CATALOG.items()
-            if isinstance(card.get("image"), str) and card["image"].startswith(("http://", "https://"))
+            if isinstance(card.get("image"), str)
+            and card["image"].startswith(("http://", "https://"))
         ]
         self.assertEqual(remote_ids, [])
 
@@ -37,7 +39,11 @@ class CardsImageTests(unittest.TestCase):
 class CardsSeriesTests(unittest.TestCase):
     def test_every_card_series_is_declared(self) -> None:
         undeclared_series = sorted(
-            {card["series"] for card in CARD_CATALOG.values() if card["series"] not in SERIES_CATALOG}
+            {
+                card["series"]
+                for card in CARD_CATALOG.values()
+                if card["series"] not in SERIES_CATALOG
+            }
         )
         self.assertEqual(undeclared_series, [])
 
@@ -45,7 +51,8 @@ class CardsSeriesTests(unittest.TestCase):
         missing_emojis = sorted(
             series_id
             for series_id, series_meta in SERIES_CATALOG.items()
-            if not isinstance(series_meta.get("emoji"), str) or not series_meta["emoji"].strip()
+            if not isinstance(series_meta.get("emoji"), str)
+            or not series_meta["emoji"].strip()
         )
         self.assertEqual(missing_emojis, [])
 
@@ -72,7 +79,9 @@ class GenerationSamplerTests(unittest.TestCase):
     def test_random_generation_is_right_skewed_toward_high_generations(self) -> None:
         sample_size = 20000
         rolls = [
-            random_generation(generation_min=GENERATION_MIN, generation_max=GENERATION_MAX)
+            random_generation(
+                generation_min=GENERATION_MIN, generation_max=GENERATION_MAX
+            )
             for _ in range(sample_size)
         ]
         bucket_counts = Counter()
@@ -107,23 +116,53 @@ class RarityWeightCurveTests(unittest.TestCase):
             self.assertGreater(weights[left], weights[right])
 
     def test_lower_linear_rate_makes_top_tiers_more_common(self) -> None:
-        flatter = build_rarity_weights(linear_rate=0.45, tail_curvature=0.0, total_weight=RARITY_TOTAL_WEIGHT, smoothing=0.0)
-        steeper = build_rarity_weights(linear_rate=0.70, tail_curvature=0.0, total_weight=RARITY_TOTAL_WEIGHT, smoothing=0.0)
+        flatter = build_rarity_weights(
+            linear_rate=0.45,
+            tail_curvature=0.0,
+            total_weight=RARITY_TOTAL_WEIGHT,
+            smoothing=0.0,
+        )
+        steeper = build_rarity_weights(
+            linear_rate=0.70,
+            tail_curvature=0.0,
+            total_weight=RARITY_TOTAL_WEIGHT,
+            smoothing=0.0,
+        )
 
         self.assertGreater(flatter["celestial"], steeper["celestial"])
         self.assertGreater(steeper["common"], flatter["common"])
 
     def test_higher_tail_curvature_steepens_top_end(self) -> None:
-        low_curve = build_rarity_weights(linear_rate=0.541, tail_curvature=0.0, total_weight=RARITY_TOTAL_WEIGHT, smoothing=0.0)
-        high_curve = build_rarity_weights(linear_rate=0.541, tail_curvature=0.03, total_weight=RARITY_TOTAL_WEIGHT, smoothing=0.0)
+        low_curve = build_rarity_weights(
+            linear_rate=0.541,
+            tail_curvature=0.0,
+            total_weight=RARITY_TOTAL_WEIGHT,
+            smoothing=0.0,
+        )
+        high_curve = build_rarity_weights(
+            linear_rate=0.541,
+            tail_curvature=0.03,
+            total_weight=RARITY_TOTAL_WEIGHT,
+            smoothing=0.0,
+        )
 
         self.assertLess(high_curve["celestial"], low_curve["celestial"])
         self.assertLess(high_curve["divine"], low_curve["divine"])
         self.assertGreater(high_curve["common"], low_curve["common"])
 
     def test_smoothing_flattens_curve(self) -> None:
-        baseline = build_rarity_weights(linear_rate=0.541, tail_curvature=0.02, total_weight=RARITY_TOTAL_WEIGHT, smoothing=0.0)
-        smoothed = build_rarity_weights(linear_rate=0.541, tail_curvature=0.02, total_weight=RARITY_TOTAL_WEIGHT, smoothing=1.0)
+        baseline = build_rarity_weights(
+            linear_rate=0.541,
+            tail_curvature=0.02,
+            total_weight=RARITY_TOTAL_WEIGHT,
+            smoothing=0.0,
+        )
+        smoothed = build_rarity_weights(
+            linear_rate=0.541,
+            tail_curvature=0.02,
+            total_weight=RARITY_TOTAL_WEIGHT,
+            smoothing=1.0,
+        )
 
         self.assertGreater(smoothed["celestial"], baseline["celestial"])
         self.assertLess(smoothed["common"], baseline["common"])

@@ -7,7 +7,9 @@ ITALY_RED = 0xCE2B37
 ITALY_PINK = 0xF4B6C2
 
 
-def italy_embed(title: str, description: str = "", color: int = ITALY_RED) -> discord.Embed:
+def italy_embed(
+    title: str, description: str = "", color: int = ITALY_RED
+) -> discord.Embed:
     return discord.Embed(title=title, description=description, color=color)
 
 
@@ -20,7 +22,9 @@ def format_drop_choice_line(card_id: str, generation: int) -> str:
 
 
 def drop_choices_description(choices: list[tuple[str, int]]) -> str:
-    lines = [format_drop_choice_line(card_id, generation) for card_id, generation in choices]
+    lines = [
+        format_drop_choice_line(card_id, generation) for card_id, generation in choices
+    ]
     return f"""{multiline_text(lines)}"""
 
 
@@ -41,7 +45,6 @@ Base Value: **{base_value}**
 Total Multiplier: **x{multiplier:.2f}**
 Value: **{value}**
 Payout: **{value}** ± **{delta_range}**"""
-
 
 
 def trade_offer_description(
@@ -154,8 +157,12 @@ def battle_arena_description(
 ) -> str:
     actor_text = f"<@{acting_user_id}>" if acting_user_id is not None else "None"
     winner_text = f"🏆 <@{winner_user_id}> 🥇" if winner_user_id is not None else "-"
-    challenger_lines = [_combatant_line(row) for row in challenger_rows] or ["(no cards)"]
-    challenged_lines = [_combatant_line(row) for row in challenged_rows] or ["(no cards)"]
+    challenger_lines = [_combatant_line(row) for row in challenger_rows] or [
+        "(no cards)"
+    ]
+    challenged_lines = [_combatant_line(row) for row in challenged_rows] or [
+        "(no cards)"
+    ]
     return (
         f"Turn: **{turn_number}**\n"
         f"Acting: {actor_text}\n"
@@ -259,6 +266,7 @@ COMMAND_SYNTAX_BY_KEY: dict[str, str] = {
 def command_syntax_for_error(command_key: str) -> str | None:
     return COMMAND_SYNTAX_BY_KEY.get(command_key)
 
+
 HELP_CATEGORY_PAGES: tuple[tuple[str, str, str], ...] = (
     (
         "overview",
@@ -299,7 +307,7 @@ HELP_CATEGORY_PAGES: tuple[tuple[str, str, str], ...] = (
 - `monopoly roll` (`... r`) — Roll two dice to move on the board.
 - `monopoly fine` (`... fine`) — Pay the jail fine to get out.
 - `monopoly board` (`... b`) — View the board and your position on it.
-- `monopoly pot` (`... p`) — View the Free Parking pot."""
+- `monopoly pot` (`... p`) — View the Free Parking pot.""",
     ),
     (
         "battle",

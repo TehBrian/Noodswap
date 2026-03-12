@@ -76,7 +76,9 @@ def search_card_ids(
         )
 
     if not exact_name_matches and not exact_series_matches:
-        fuzzy_match_keys = get_close_matches(cleaned_query, list(search_names), n=10, cutoff=0.75)
+        fuzzy_match_keys = get_close_matches(
+            cleaned_query, list(search_names), n=10, cutoff=0.75
+        )
         fuzzy_name_matches = sorted(
             {
                 card_id
@@ -89,7 +91,9 @@ def search_card_ids(
             ordered_groups.append(fuzzy_name_matches)
 
         if include_series:
-            fuzzy_series_keys = get_close_matches(cleaned_query, list(search_series), n=10, cutoff=0.75)
+            fuzzy_series_keys = get_close_matches(
+                cleaned_query, list(search_series), n=10, cutoff=0.75
+            )
             fuzzy_series_matches = sorted(
                 {
                     card_id
@@ -112,7 +116,9 @@ def search_card_ids(
     return results
 
 
-def search_card_ids_by_name(query: str, *, card_catalog: Mapping[str, CardSearchRecord]) -> list[str]:
+def search_card_ids_by_name(
+    query: str, *, card_catalog: Mapping[str, CardSearchRecord]
+) -> list[str]:
     return search_card_ids(query, card_catalog=card_catalog)
 
 

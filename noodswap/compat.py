@@ -7,6 +7,7 @@ callbacks.  Without this patch, View button callbacks fail to register.
 
 This module must be imported before any discord import.
 """
+
 import asyncio
 import inspect
 

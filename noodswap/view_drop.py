@@ -45,7 +45,9 @@ class DropView(InteractionView):
             async with self._claim_lock:
                 if button_id in self._claimed_button_ids:
                     await interaction.response.send_message(
-                        embed=italy_embed("Drop", "That card has already been claimed."),
+                        embed=italy_embed(
+                            "Drop", "That card has already been claimed."
+                        ),
                         ephemeral=True,
                     )
                     return
@@ -75,14 +77,18 @@ class DropView(InteractionView):
                     (
                         item
                         for item in self.children
-                        if isinstance(item, discord.ui.Button) and item.custom_id == button_id
+                        if isinstance(item, discord.ui.Button)
+                        and item.custom_id == button_id
                     ),
                     None,
                 )
                 if claimed_button is not None:
                     claimed_button.disabled = True
 
-                if all(isinstance(item, discord.ui.Button) and item.disabled for item in self.children):
+                if all(
+                    isinstance(item, discord.ui.Button) and item.disabled
+                    for item in self.children
+                ):
                     self.finished = True
 
             pulled_dupe_code = claim_result.dupe_code
@@ -103,7 +109,10 @@ class DropView(InteractionView):
                 view=self,
             )
             if interaction.message is not None:
-                send_kwargs: dict[str, object] = {"embed": pulled_embed, "mention_author": False}
+                send_kwargs: dict[str, object] = {
+                    "embed": pulled_embed,
+                    "mention_author": False,
+                }
                 if image_file is not None:
                     send_kwargs["file"] = image_file
                 await interaction.message.reply(**send_kwargs)
@@ -119,7 +128,10 @@ class DropView(InteractionView):
         try:
             await self.message.edit(view=self)
         except discord.HTTPException:
-            logger.warning("Failed to edit drop message on timeout (message_id=%s)", self.message.id)
+            logger.warning(
+                "Failed to edit drop message on timeout (message_id=%s)",
+                self.message.id,
+            )
 
     def _disable_buttons(self) -> None:
         for item in self.children:

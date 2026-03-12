@@ -1,7 +1,6 @@
 import sqlite3
 from typing import Optional
 
-
 _BASE36_ALPHABET = "0123456789abcdefghijklmnopqrstuvwxyz"
 
 
@@ -73,7 +72,11 @@ class PlayerRepository:
         if row is None:
             return self.starting_dough, 0.0, None
         married_instance_id = row["married_instance_id"]
-        return int(row["dough"]), float(row["last_pull_at"]), int(married_instance_id) if married_instance_id is not None else None
+        return (
+            int(row["dough"]),
+            float(row["last_pull_at"]),
+            int(married_instance_id) if married_instance_id is not None else None,
+        )
 
     def get_active_team_name(self, guild_id: int, user_id: int) -> Optional[str]:
         row = self.conn.execute(
@@ -88,7 +91,9 @@ class PlayerRepository:
             return None
         return str(row["active_team_name"])
 
-    def set_active_team_name(self, guild_id: int, user_id: int, team_name: Optional[str]) -> None:
+    def set_active_team_name(
+        self, guild_id: int, user_id: int, team_name: Optional[str]
+    ) -> None:
         self.conn.execute(
             """
             UPDATE players
@@ -140,7 +145,9 @@ class PlayerRepository:
             (timestamp, guild_id, user_id),
         )
 
-    def set_last_pulled_instance(self, guild_id: int, user_id: int, instance_id: int) -> None:
+    def set_last_pulled_instance(
+        self, guild_id: int, user_id: int, instance_id: int
+    ) -> None:
         self.conn.execute(
             """
             UPDATE players
@@ -150,7 +157,9 @@ class PlayerRepository:
             (instance_id, guild_id, user_id),
         )
 
-    def clear_last_pulled_if_matches(self, guild_id: int, user_id: int, instance_id: int) -> None:
+    def clear_last_pulled_if_matches(
+        self, guild_id: int, user_id: int, instance_id: int
+    ) -> None:
         self.conn.execute(
             """
             UPDATE players
@@ -160,7 +169,9 @@ class PlayerRepository:
             (guild_id, user_id, instance_id),
         )
 
-    def clear_marriage_if_matches(self, guild_id: int, user_id: int, instance_id: int) -> None:
+    def clear_marriage_if_matches(
+        self, guild_id: int, user_id: int, instance_id: int
+    ) -> None:
         self.conn.execute(
             """
             UPDATE players
@@ -171,7 +182,9 @@ class PlayerRepository:
             (guild_id, user_id, instance_id),
         )
 
-    def get_last_pulled_instance(self, guild_id: int, user_id: int) -> Optional[tuple[int, str, int, str]]:
+    def get_last_pulled_instance(
+        self, guild_id: int, user_id: int
+    ) -> Optional[tuple[int, str, int, str]]:
         row = self.conn.execute(
             """
             SELECT p.last_dropped_instance_id, ci.card_id, ci.generation, ci.dupe_code
@@ -206,7 +219,12 @@ class PlayerRepository:
             )
             return None
 
-        return int(last_dropped_instance_id), str(card_id), int(generation), str(dupe_code)
+        return (
+            int(last_dropped_instance_id),
+            str(card_id),
+            int(generation),
+            str(dupe_code),
+        )
 
     def add_dough(self, guild_id: int, user_id: int, amount: int) -> None:
         self.conn.execute(
@@ -231,7 +249,9 @@ class PlayerRepository:
             return None
         return int(row["married_instance_id"])
 
-    def find_other_owner_of_married_card(self, guild_id: int, card_id: str, excluding_user_id: int) -> Optional[int]:
+    def find_other_owner_of_married_card(
+        self, guild_id: int, card_id: str, excluding_user_id: int
+    ) -> Optional[int]:
         row = self.conn.execute(
             """
             SELECT p.user_id
@@ -246,7 +266,9 @@ class PlayerRepository:
             return None
         return int(row["user_id"])
 
-    def set_marriage(self, guild_id: int, user_id: int, instance_id: int, card_id: str) -> None:
+    def set_marriage(
+        self, guild_id: int, user_id: int, instance_id: int, card_id: str
+    ) -> None:
         self.conn.execute(
             """
             UPDATE players
@@ -266,7 +288,9 @@ class PlayerRepository:
             (guild_id, user_id),
         )
 
-    def get_divorce_instance(self, guild_id: int, user_id: int) -> Optional[tuple[int, str, int, str]]:
+    def get_divorce_instance(
+        self, guild_id: int, user_id: int
+    ) -> Optional[tuple[int, str, int, str]]:
         row = self.conn.execute(
             """
             SELECT p.married_instance_id, ci.card_id, ci.generation, ci.dupe_code
@@ -276,9 +300,19 @@ class PlayerRepository:
             """,
             (guild_id, user_id),
         ).fetchone()
-        if row is None or row["married_instance_id"] is None or row["card_id"] is None or row["dupe_code"] is None:
+        if (
+            row is None
+            or row["married_instance_id"] is None
+            or row["card_id"] is None
+            or row["dupe_code"] is None
+        ):
             return None
-        return int(row["married_instance_id"]), str(row["card_id"]), int(row["generation"]), str(row["dupe_code"])
+        return (
+            int(row["married_instance_id"]),
+            str(row["card_id"]),
+            int(row["generation"]),
+            str(row["dupe_code"]),
+        )
 
     def get_dough(self, guild_id: int, user_id: int) -> int:
         row = self.conn.execute(
@@ -448,7 +482,9 @@ class PlayerRepository:
         ).fetchone()
         return float(row["last_monopoly_roll_at"]) if row is not None else 0.0
 
-    def set_last_monopoly_roll_at(self, guild_id: int, user_id: int, timestamp: float) -> None:
+    def set_last_monopoly_roll_at(
+        self, guild_id: int, user_id: int, timestamp: float
+    ) -> None:
         self.conn.execute(
             """
             UPDATE players
@@ -490,7 +526,9 @@ class PlayerRepository:
         ).fetchone()
         return int(row["monopoly_jail_roll_attempts"]) if row is not None else 0
 
-    def set_monopoly_jail_roll_attempts(self, guild_id: int, user_id: int, attempts: int) -> None:
+    def set_monopoly_jail_roll_attempts(
+        self, guild_id: int, user_id: int, attempts: int
+    ) -> None:
         self.conn.execute(
             """
             UPDATE players
@@ -511,7 +549,9 @@ class PlayerRepository:
         ).fetchone()
         return int(row["monopoly_consecutive_doubles"]) if row is not None else 0
 
-    def set_monopoly_consecutive_doubles(self, guild_id: int, user_id: int, count: int) -> None:
+    def set_monopoly_consecutive_doubles(
+        self, guild_id: int, user_id: int, count: int
+    ) -> None:
         self.conn.execute(
             """
             UPDATE players
@@ -521,7 +561,9 @@ class PlayerRepository:
             (count, guild_id, user_id),
         )
 
-    def get_monopoly_state(self, guild_id: int, user_id: int) -> tuple[int, float, bool, int, int]:
+    def get_monopoly_state(
+        self, guild_id: int, user_id: int
+    ) -> tuple[int, float, bool, int, int]:
         row = self.conn.execute(
             """
             SELECT monopoly_position, last_monopoly_roll_at, monopoly_in_jail,
@@ -569,7 +611,9 @@ class GamblingPotRepository:
             return 0, 0, 0
         return int(row["dough"]), int(row["starter"]), int(row["drop_tickets"])
 
-    def add(self, guild_id: int, *, dough: int = 0, starter: int = 0, drop_tickets: int = 0) -> None:
+    def add(
+        self, guild_id: int, *, dough: int = 0, starter: int = 0, drop_tickets: int = 0
+    ) -> None:
         self.ensure_row(guild_id)
         self.conn.execute(
             """
@@ -693,7 +737,9 @@ class PlayerTagRepository:
         ).fetchone()
         return row is not None
 
-    def set_locked(self, guild_id: int, user_id: int, tag_name: str, locked: bool) -> bool:
+    def set_locked(
+        self, guild_id: int, user_id: int, tag_name: str, locked: bool
+    ) -> bool:
         cursor = self.conn.execute(
             """
             UPDATE player_tags
@@ -704,7 +750,9 @@ class PlayerTagRepository:
         )
         return int(cursor.rowcount) > 0
 
-    def list_with_counts(self, guild_id: int, user_id: int) -> list[tuple[str, bool, int]]:
+    def list_with_counts(
+        self, guild_id: int, user_id: int
+    ) -> list[tuple[str, bool, int]]:
         rows = self.conn.execute(
             """
             SELECT pt.tag_name, pt.is_locked, COUNT(cit.instance_id) AS card_count
@@ -728,7 +776,9 @@ class PlayerTagRepository:
             for row in rows
         ]
 
-    def list_locked_for_instance(self, guild_id: int, user_id: int, instance_id: int) -> list[str]:
+    def list_locked_for_instance(
+        self, guild_id: int, user_id: int, instance_id: int
+    ) -> list[str]:
         rows = self.conn.execute(
             """
             SELECT pt.tag_name
@@ -753,8 +803,7 @@ class PlayerTagRepository:
         user_id: int,
         instance_ids: list[int] | None = None,
     ) -> set[int]:
-        base_query = (
-            """
+        base_query = """
             SELECT DISTINCT cit.instance_id
             FROM card_instance_tags cit
             JOIN player_tags pt
@@ -765,7 +814,6 @@ class PlayerTagRepository:
                 AND cit.user_id = ?
                 AND pt.is_locked = 1
             """
-        )
         params: list[int] = [guild_id, user_id]
 
         if instance_ids is not None:
@@ -783,7 +831,9 @@ class CardInstanceTagRepository:
     def __init__(self, conn: sqlite3.Connection):
         self.conn = conn
 
-    def exists(self, guild_id: int, user_id: int, instance_id: int, tag_name: str) -> bool:
+    def exists(
+        self, guild_id: int, user_id: int, instance_id: int, tag_name: str
+    ) -> bool:
         row = self.conn.execute(
             """
             SELECT 1
@@ -805,7 +855,9 @@ class CardInstanceTagRepository:
         )
         return int(cursor.rowcount) > 0
 
-    def remove(self, guild_id: int, user_id: int, instance_id: int, tag_name: str) -> bool:
+    def remove(
+        self, guild_id: int, user_id: int, instance_id: int, tag_name: str
+    ) -> bool:
         cursor = self.conn.execute(
             """
             DELETE FROM card_instance_tags
@@ -815,7 +867,9 @@ class CardInstanceTagRepository:
         )
         return int(cursor.rowcount) > 0
 
-    def list_tagged_instances(self, guild_id: int, user_id: int, tag_name: str) -> list[tuple[int, str, int, str]]:
+    def list_tagged_instances(
+        self, guild_id: int, user_id: int, tag_name: str
+    ) -> list[tuple[int, str, int, str]]:
         rows = self.conn.execute(
             """
             SELECT ci.instance_id, ci.card_id, ci.generation, ci.dupe_code
@@ -830,7 +884,12 @@ class CardInstanceTagRepository:
             (guild_id, user_id, tag_name),
         ).fetchall()
         return [
-            (int(row["instance_id"]), str(row["card_id"]), int(row["generation"]), str(row["dupe_code"]))
+            (
+                int(row["instance_id"]),
+                str(row["card_id"]),
+                int(row["generation"]),
+                str(row["dupe_code"]),
+            )
             for row in rows
         ]
 
@@ -871,7 +930,9 @@ class PlayerFolderRepository:
         ).fetchone()
         return row is not None
 
-    def set_locked(self, guild_id: int, user_id: int, folder_name: str, locked: bool) -> bool:
+    def set_locked(
+        self, guild_id: int, user_id: int, folder_name: str, locked: bool
+    ) -> bool:
         cursor = self.conn.execute(
             """
             UPDATE player_folders
@@ -882,7 +943,9 @@ class PlayerFolderRepository:
         )
         return int(cursor.rowcount) > 0
 
-    def set_emoji(self, guild_id: int, user_id: int, folder_name: str, emoji: str) -> bool:
+    def set_emoji(
+        self, guild_id: int, user_id: int, folder_name: str, emoji: str
+    ) -> bool:
         cursor = self.conn.execute(
             """
             UPDATE player_folders
@@ -893,7 +956,9 @@ class PlayerFolderRepository:
         )
         return int(cursor.rowcount) > 0
 
-    def list_with_counts(self, guild_id: int, user_id: int) -> list[tuple[str, str, bool, int]]:
+    def list_with_counts(
+        self, guild_id: int, user_id: int
+    ) -> list[tuple[str, str, bool, int]]:
         rows = self.conn.execute(
             """
             SELECT pf.folder_name, pf.emoji, pf.is_locked, COUNT(cif.instance_id) AS card_count
@@ -918,7 +983,9 @@ class PlayerFolderRepository:
             for row in rows
         ]
 
-    def get_locked_for_instance(self, guild_id: int, user_id: int, instance_id: int) -> Optional[tuple[str, str]]:
+    def get_locked_for_instance(
+        self, guild_id: int, user_id: int, instance_id: int
+    ) -> Optional[tuple[str, str]]:
         row = self.conn.execute(
             """
             SELECT pf.folder_name, pf.emoji
@@ -945,8 +1012,7 @@ class PlayerFolderRepository:
         user_id: int,
         instance_ids: list[int] | None = None,
     ) -> set[int]:
-        base_query = (
-            """
+        base_query = """
             SELECT DISTINCT cif.instance_id
             FROM card_instance_folders cif
             JOIN player_folders pf
@@ -957,7 +1023,6 @@ class PlayerFolderRepository:
                 AND cif.user_id = ?
                 AND pf.is_locked = 1
             """
-        )
         params: list[int] = [guild_id, user_id]
 
         if instance_ids is not None:
@@ -975,7 +1040,9 @@ class CardInstanceFolderRepository:
     def __init__(self, conn: sqlite3.Connection):
         self.conn = conn
 
-    def set_folder(self, guild_id: int, user_id: int, instance_id: int, folder_name: str) -> bool:
+    def set_folder(
+        self, guild_id: int, user_id: int, instance_id: int, folder_name: str
+    ) -> bool:
         cursor = self.conn.execute(
             """
             INSERT INTO card_instance_folders (guild_id, user_id, instance_id, folder_name)
@@ -987,7 +1054,13 @@ class CardInstanceFolderRepository:
         )
         return int(cursor.rowcount) > 0
 
-    def clear_folder(self, guild_id: int, user_id: int, instance_id: int, folder_name: str | None = None) -> bool:
+    def clear_folder(
+        self,
+        guild_id: int,
+        user_id: int,
+        instance_id: int,
+        folder_name: str | None = None,
+    ) -> bool:
         if folder_name is None:
             cursor = self.conn.execute(
                 """
@@ -1007,7 +1080,9 @@ class CardInstanceFolderRepository:
         )
         return int(cursor.rowcount) > 0
 
-    def get_for_instance(self, guild_id: int, user_id: int, instance_id: int) -> Optional[tuple[str, str]]:
+    def get_for_instance(
+        self, guild_id: int, user_id: int, instance_id: int
+    ) -> Optional[tuple[str, str]]:
         row = self.conn.execute(
             """
             SELECT cif.folder_name, pf.emoji
@@ -1025,7 +1100,9 @@ class CardInstanceFolderRepository:
             return None
         return str(row["folder_name"]), str(row["emoji"])
 
-    def is_assigned(self, guild_id: int, user_id: int, instance_id: int, folder_name: str) -> bool:
+    def is_assigned(
+        self, guild_id: int, user_id: int, instance_id: int, folder_name: str
+    ) -> bool:
         row = self.conn.execute(
             """
             SELECT 1
@@ -1037,7 +1114,9 @@ class CardInstanceFolderRepository:
         ).fetchone()
         return row is not None
 
-    def list_foldered_instances(self, guild_id: int, user_id: int, folder_name: str) -> list[tuple[int, str, int, str]]:
+    def list_foldered_instances(
+        self, guild_id: int, user_id: int, folder_name: str
+    ) -> list[tuple[int, str, int, str]]:
         rows = self.conn.execute(
             """
             SELECT ci.instance_id, ci.card_id, ci.generation, ci.dupe_code
@@ -1052,17 +1131,23 @@ class CardInstanceFolderRepository:
             (guild_id, user_id, folder_name),
         ).fetchall()
         return [
-            (int(row["instance_id"]), str(row["card_id"]), int(row["generation"]), str(row["dupe_code"]))
+            (
+                int(row["instance_id"]),
+                str(row["card_id"]),
+                int(row["generation"]),
+                str(row["dupe_code"]),
+            )
             for row in rows
         ]
 
-    def list_for_instances(self, guild_id: int, user_id: int, instance_ids: list[int]) -> dict[int, str]:
+    def list_for_instances(
+        self, guild_id: int, user_id: int, instance_ids: list[int]
+    ) -> dict[int, str]:
         if not instance_ids:
             return {}
 
         placeholders = ", ".join("?" for _ in instance_ids)
-        query = (
-            """
+        query = """
             SELECT cif.instance_id, pf.emoji
             FROM card_instance_folders cif
             JOIN player_folders pf
@@ -1072,10 +1157,7 @@ class CardInstanceFolderRepository:
             WHERE cif.guild_id = ?
                 AND cif.user_id = ?
                 AND cif.instance_id IN (
-            """
-            + placeholders
-            + ")"
-        )
+            """ + placeholders + ")"
         rows = self.conn.execute(query, [guild_id, user_id, *instance_ids]).fetchall()
         return {int(row["instance_id"]): str(row["emoji"]) for row in rows}
 
@@ -1084,7 +1166,9 @@ class PlayerTeamRepository:
     def __init__(self, conn: sqlite3.Connection):
         self.conn = conn
 
-    def create(self, guild_id: int, user_id: int, team_name: str, created_at: float) -> bool:
+    def create(
+        self, guild_id: int, user_id: int, team_name: str, created_at: float
+    ) -> bool:
         cursor = self.conn.execute(
             """
             INSERT OR IGNORE INTO player_teams (guild_id, user_id, team_name, created_at)
@@ -1149,7 +1233,9 @@ class TeamMemberRepository:
         ).fetchone()
         return int(row["c"]) if row is not None else 0
 
-    def is_assigned(self, guild_id: int, user_id: int, team_name: str, instance_id: int) -> bool:
+    def is_assigned(
+        self, guild_id: int, user_id: int, team_name: str, instance_id: int
+    ) -> bool:
         row = self.conn.execute(
             """
             SELECT 1
@@ -1161,7 +1247,14 @@ class TeamMemberRepository:
         ).fetchone()
         return row is not None
 
-    def add(self, guild_id: int, user_id: int, team_name: str, instance_id: int, created_at: float) -> bool:
+    def add(
+        self,
+        guild_id: int,
+        user_id: int,
+        team_name: str,
+        instance_id: int,
+        created_at: float,
+    ) -> bool:
         cursor = self.conn.execute(
             """
             INSERT OR IGNORE INTO team_members (guild_id, user_id, team_name, instance_id, created_at)
@@ -1171,7 +1264,9 @@ class TeamMemberRepository:
         )
         return int(cursor.rowcount) > 0
 
-    def remove(self, guild_id: int, user_id: int, team_name: str, instance_id: int) -> bool:
+    def remove(
+        self, guild_id: int, user_id: int, team_name: str, instance_id: int
+    ) -> bool:
         cursor = self.conn.execute(
             """
             DELETE FROM team_members
@@ -1181,7 +1276,9 @@ class TeamMemberRepository:
         )
         return int(cursor.rowcount) > 0
 
-    def list_team_instances(self, guild_id: int, user_id: int, team_name: str) -> list[tuple[int, str, int, str]]:
+    def list_team_instances(
+        self, guild_id: int, user_id: int, team_name: str
+    ) -> list[tuple[int, str, int, str]]:
         rows = self.conn.execute(
             """
             SELECT ci.instance_id, ci.card_id, ci.generation, ci.dupe_code
@@ -1196,7 +1293,12 @@ class TeamMemberRepository:
             (guild_id, user_id, team_name),
         ).fetchall()
         return [
-            (int(row["instance_id"]), str(row["card_id"]), int(row["generation"]), str(row["dupe_code"]))
+            (
+                int(row["instance_id"]),
+                str(row["card_id"]),
+                int(row["generation"]),
+                str(row["dupe_code"]),
+            )
             for row in rows
         ]
 
@@ -1231,13 +1333,23 @@ class BattleSessionRepository:
             )
             VALUES (?, ?, ?, ?, 'pending', ?, ?, ?, NULL, 1)
             """,
-            (guild_id, challenger_id, challenged_id, stake, challenger_team_name, challenged_team_name, created_at),
+            (
+                guild_id,
+                challenger_id,
+                challenged_id,
+                stake,
+                challenger_team_name,
+                challenged_team_name,
+                created_at,
+            ),
         )
         if cursor.lastrowid is None:
             return None
         return int(cursor.lastrowid)
 
-    def get_by_id(self, guild_id: int, battle_id: int) -> Optional[dict[str, int | float | str | None]]:
+    def get_by_id(
+        self, guild_id: int, battle_id: int
+    ) -> Optional[dict[str, int | float | str | None]]:
         row = self.conn.execute(
             """
             SELECT battle_id, guild_id, challenger_id, challenged_id, stake, status,
@@ -1261,12 +1373,26 @@ class BattleSessionRepository:
             "challenger_team_name": str(row["challenger_team_name"]),
             "challenged_team_name": str(row["challenged_team_name"]),
             "created_at": float(row["created_at"]),
-            "accepted_at": float(row["accepted_at"]) if row["accepted_at"] is not None else None,
-            "finished_at": float(row["finished_at"]) if row["finished_at"] is not None else None,
-            "acting_user_id": int(row["acting_user_id"]) if row["acting_user_id"] is not None else None,
+            "accepted_at": (
+                float(row["accepted_at"]) if row["accepted_at"] is not None else None
+            ),
+            "finished_at": (
+                float(row["finished_at"]) if row["finished_at"] is not None else None
+            ),
+            "acting_user_id": (
+                int(row["acting_user_id"])
+                if row["acting_user_id"] is not None
+                else None
+            ),
             "turn_number": int(row["turn_number"]),
-            "winner_user_id": int(row["winner_user_id"]) if row["winner_user_id"] is not None else None,
-            "last_action": str(row["last_action"]) if row["last_action"] is not None else None,
+            "winner_user_id": (
+                int(row["winner_user_id"])
+                if row["winner_user_id"] is not None
+                else None
+            ),
+            "last_action": (
+                str(row["last_action"]) if row["last_action"] is not None else None
+            ),
         }
 
     def has_open_battle_for_user(self, guild_id: int, user_id: int) -> bool:
@@ -1283,7 +1409,9 @@ class BattleSessionRepository:
         ).fetchone()
         return row is not None
 
-    def mark_denied(self, guild_id: int, battle_id: int, finished_at: float, last_action: str) -> bool:
+    def mark_denied(
+        self, guild_id: int, battle_id: int, finished_at: float, last_action: str
+    ) -> bool:
         cursor = self.conn.execute(
             """
             UPDATE battle_sessions
@@ -1296,7 +1424,9 @@ class BattleSessionRepository:
         )
         return int(cursor.rowcount) > 0
 
-    def mark_active(self, guild_id: int, battle_id: int, acting_user_id: int, accepted_at: float) -> bool:
+    def mark_active(
+        self, guild_id: int, battle_id: int, acting_user_id: int, accepted_at: float
+    ) -> bool:
         cursor = self.conn.execute(
             """
             UPDATE battle_sessions
@@ -1355,7 +1485,9 @@ class BattleSessionRepository:
         )
         return int(cursor.rowcount) > 0
 
-    def mark_all_open_finished(self, guild_id: int, finished_at: float, last_action: str) -> int:
+    def mark_all_open_finished(
+        self, guild_id: int, finished_at: float, last_action: str
+    ) -> int:
         cursor = self.conn.execute(
             """
             UPDATE battle_sessions
@@ -1378,7 +1510,25 @@ class BattleCombatantRepository:
     def replace_for_battle(
         self,
         battle_id: int,
-        rows: list[tuple[int, int, str, int, int, str, int, str, int, int, int, int, bool, bool, bool]],
+        rows: list[
+            tuple[
+                int,
+                int,
+                str,
+                int,
+                int,
+                str,
+                int,
+                str,
+                int,
+                int,
+                int,
+                int,
+                bool,
+                bool,
+                bool,
+            ]
+        ],
     ) -> None:
         self.conn.execute(
             """
@@ -1492,7 +1642,9 @@ class BattleCombatantRepository:
             (battle_id, side),
         )
 
-    def set_defending_for_active(self, battle_id: int, side: str, defending: bool) -> bool:
+    def set_defending_for_active(
+        self, battle_id: int, side: str, defending: bool
+    ) -> bool:
         cursor = self.conn.execute(
             """
             UPDATE battle_combatants
@@ -1527,7 +1679,9 @@ class BattleCombatantRepository:
         )
         return int(cursor.rowcount) > 0
 
-    def apply_damage_to_active(self, battle_id: int, side: str, damage: int) -> Optional[dict[str, int | str | bool]]:
+    def apply_damage_to_active(
+        self, battle_id: int, side: str, damage: int
+    ) -> Optional[dict[str, int | str | bool]]:
         row = self.conn.execute(
             """
             SELECT side, slot_index, current_hp
@@ -1554,7 +1708,14 @@ class BattleCombatantRepository:
                 is_defending = 0
             WHERE battle_id = ? AND side = ? AND slot_index = ?
             """,
-            (next_hp, 1 if is_knocked_out else 0, 1 if is_knocked_out else 0, battle_id, side, slot_index),
+            (
+                next_hp,
+                1 if is_knocked_out else 0,
+                1 if is_knocked_out else 0,
+                battle_id,
+                side,
+                slot_index,
+            ),
         )
 
         return {
@@ -1594,7 +1755,9 @@ class CardInstanceRepository:
             candidate += 1
         return _to_base36(candidate)
 
-    def get_by_id(self, guild_id: int, instance_id: int) -> Optional[tuple[int, str, int, str]]:
+    def get_by_id(
+        self, guild_id: int, instance_id: int
+    ) -> Optional[tuple[int, str, int, str]]:
         row = self.conn.execute(
             """
             SELECT instance_id, card_id, generation, dupe_code
@@ -1605,9 +1768,16 @@ class CardInstanceRepository:
         ).fetchone()
         if row is None:
             return None
-        return int(row["instance_id"]), str(row["card_id"]), int(row["generation"]), str(row["dupe_code"])
+        return (
+            int(row["instance_id"]),
+            str(row["card_id"]),
+            int(row["generation"]),
+            str(row["dupe_code"]),
+        )
 
-    def get_by_code(self, guild_id: int, user_id: int, dupe_code: str) -> Optional[tuple[int, str, int, str]]:
+    def get_by_code(
+        self, guild_id: int, user_id: int, dupe_code: str
+    ) -> Optional[tuple[int, str, int, str]]:
         row = self.conn.execute(
             """
             SELECT instance_id, card_id, generation, dupe_code
@@ -1619,9 +1789,16 @@ class CardInstanceRepository:
         ).fetchone()
         if row is None:
             return None
-        return int(row["instance_id"]), str(row["card_id"]), int(row["generation"]), str(row["dupe_code"])
+        return (
+            int(row["instance_id"]),
+            str(row["card_id"]),
+            int(row["generation"]),
+            str(row["dupe_code"]),
+        )
 
-    def get_by_dupe_code(self, guild_id: int, dupe_code: str) -> Optional[tuple[int, int, str, int, str]]:
+    def get_by_dupe_code(
+        self, guild_id: int, dupe_code: str
+    ) -> Optional[tuple[int, int, str, int, str]]:
         row = self.conn.execute(
             """
             SELECT instance_id, user_id, card_id, generation, dupe_code
@@ -1633,7 +1810,13 @@ class CardInstanceRepository:
         ).fetchone()
         if row is None:
             return None
-        return int(row["instance_id"]), int(row["user_id"]), str(row["card_id"]), int(row["generation"]), str(row["dupe_code"])
+        return (
+            int(row["instance_id"]),
+            int(row["user_id"]),
+            str(row["card_id"]),
+            int(row["generation"]),
+            str(row["dupe_code"]),
+        )
 
     def count_by_card(self, guild_id: int, user_id: int, card_id: str) -> int:
         row = self.conn.execute(
@@ -1646,7 +1829,9 @@ class CardInstanceRepository:
         ).fetchone()
         return int(row["c"]) if row else 0
 
-    def create_owned_instance(self, guild_id: int, user_id: int, card_id: str, generation: int) -> int:
+    def create_owned_instance(
+        self, guild_id: int, user_id: int, card_id: str, generation: int
+    ) -> int:
         dupe_code = self._next_available_dupe_code()
         cursor = self.conn.execute(
             """
@@ -1659,7 +1844,9 @@ class CardInstanceRepository:
             raise RuntimeError("Failed to persist card instance")
         return int(cursor.lastrowid)
 
-    def get_burn_candidate_by_card_id(self, guild_id: int, user_id: int, card_id: str) -> Optional[tuple[int, str, int, str]]:
+    def get_burn_candidate_by_card_id(
+        self, guild_id: int, user_id: int, card_id: str
+    ) -> Optional[tuple[int, str, int, str]]:
         row = self.conn.execute(
             """
             SELECT instance_id, card_id, generation, dupe_code
@@ -1672,9 +1859,16 @@ class CardInstanceRepository:
         ).fetchone()
         if row is None:
             return None
-        return int(row["instance_id"]), str(row["card_id"]), int(row["generation"]), str(row["dupe_code"])
+        return (
+            int(row["instance_id"]),
+            str(row["card_id"]),
+            int(row["generation"]),
+            str(row["dupe_code"]),
+        )
 
-    def list_by_owner(self, guild_id: int, user_id: int) -> list[tuple[int, str, int, str]]:
+    def list_by_owner(
+        self, guild_id: int, user_id: int
+    ) -> list[tuple[int, str, int, str]]:
         rows = self.conn.execute(
             """
             SELECT instance_id, card_id, generation, dupe_code
@@ -1685,7 +1879,12 @@ class CardInstanceRepository:
             (guild_id, user_id),
         ).fetchall()
         return [
-            (int(row["instance_id"]), str(row["card_id"]), int(row["generation"]), str(row["dupe_code"]))
+            (
+                int(row["instance_id"]),
+                str(row["card_id"]),
+                int(row["generation"]),
+                str(row["dupe_code"]),
+            )
             for row in rows
         ]
 
@@ -1719,7 +1918,9 @@ class CardInstanceRepository:
             for row in rows
         ]
 
-    def list_owner_instances_for_guild(self, guild_id: int) -> list[tuple[int, int, str, int, str]]:
+    def list_owner_instances_for_guild(
+        self, guild_id: int
+    ) -> list[tuple[int, int, str, int, str]]:
         rows = self.conn.execute(
             """
             SELECT instance_id, user_id, card_id, generation, dupe_code
@@ -1740,7 +1941,9 @@ class CardInstanceRepository:
             for row in rows
         ]
 
-    def pop_highest_generation_by_card(self, guild_id: int, user_id: int, card_id: str) -> Optional[tuple[int, int]]:
+    def pop_highest_generation_by_card(
+        self, guild_id: int, user_id: int, card_id: str
+    ) -> Optional[tuple[int, int]]:
         row = self.conn.execute(
             """
             SELECT instance_id, generation
@@ -1765,7 +1968,9 @@ class CardInstanceRepository:
         )
         return instance_id, generation
 
-    def burn_owned_instance(self, guild_id: int, user_id: int, instance_id: int) -> Optional[tuple[str, int, str]]:
+    def burn_owned_instance(
+        self, guild_id: int, user_id: int, instance_id: int
+    ) -> Optional[tuple[str, int, str]]:
         row = self.conn.execute(
             """
             SELECT card_id, generation, dupe_code
@@ -1791,7 +1996,9 @@ class CardInstanceRepository:
 
         return card_id, generation, dupe_code
 
-    def select_instance_for_marry(self, guild_id: int, user_id: int, card_id: str) -> Optional[tuple[int, int]]:
+    def select_instance_for_marry(
+        self, guild_id: int, user_id: int, card_id: str
+    ) -> Optional[tuple[int, int]]:
         row = self.conn.execute(
             """
             SELECT instance_id, generation
@@ -1806,7 +2013,9 @@ class CardInstanceRepository:
             return None
         return int(row["instance_id"]), int(row["generation"])
 
-    def get_owned_instance_for_marry(self, guild_id: int, user_id: int, instance_id: int) -> Optional[tuple[str, int, str]]:
+    def get_owned_instance_for_marry(
+        self, guild_id: int, user_id: int, instance_id: int
+    ) -> Optional[tuple[str, int, str]]:
         selected_row = self.conn.execute(
             """
             SELECT card_id, generation, dupe_code
@@ -1817,9 +2026,15 @@ class CardInstanceRepository:
         ).fetchone()
         if selected_row is None:
             return None
-        return str(selected_row["card_id"]), int(selected_row["generation"]), str(selected_row["dupe_code"])
+        return (
+            str(selected_row["card_id"]),
+            int(selected_row["generation"]),
+            str(selected_row["dupe_code"]),
+        )
 
-    def get_seller_trade_instance(self, guild_id: int, seller_id: int, dupe_code: str) -> Optional[tuple[int, str, int, str]]:
+    def get_seller_trade_instance(
+        self, guild_id: int, seller_id: int, dupe_code: str
+    ) -> Optional[tuple[int, str, int, str]]:
         row = self.conn.execute(
             """
             SELECT instance_id, card_id, generation, dupe_code
@@ -1831,7 +2046,12 @@ class CardInstanceRepository:
         ).fetchone()
         if row is None:
             return None
-        return int(row["instance_id"]), str(row["card_id"]), int(row["generation"]), str(row["dupe_code"])
+        return (
+            int(row["instance_id"]),
+            str(row["card_id"]),
+            int(row["generation"]),
+            str(row["dupe_code"]),
+        )
 
     def transfer_to_user(self, instance_id: int, buyer_id: int) -> None:
         self.conn.execute(
@@ -1860,7 +2080,9 @@ class CardInstanceRepository:
         morph_key = row["morph_key"]
         return str(morph_key) if morph_key is not None else None
 
-    def set_morph_key(self, guild_id: int, user_id: int, instance_id: int, morph_key: Optional[str]) -> bool:
+    def set_morph_key(
+        self, guild_id: int, user_id: int, instance_id: int, morph_key: Optional[str]
+    ) -> bool:
         try:
             cursor = self.conn.execute(
                 """
@@ -1891,7 +2113,9 @@ class CardInstanceRepository:
         frame_key = row["frame_key"]
         return str(frame_key) if frame_key is not None else None
 
-    def set_frame_key(self, guild_id: int, user_id: int, instance_id: int, frame_key: Optional[str]) -> bool:
+    def set_frame_key(
+        self, guild_id: int, user_id: int, instance_id: int, frame_key: Optional[str]
+    ) -> bool:
         try:
             cursor = self.conn.execute(
                 """
@@ -1922,7 +2146,9 @@ class CardInstanceRepository:
         font_key = row["font_key"]
         return str(font_key) if font_key is not None else None
 
-    def set_font_key(self, guild_id: int, user_id: int, instance_id: int, font_key: Optional[str]) -> bool:
+    def set_font_key(
+        self, guild_id: int, user_id: int, instance_id: int, font_key: Optional[str]
+    ) -> bool:
         try:
             cursor = self.conn.execute(
                 """

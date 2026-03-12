@@ -25,7 +25,9 @@ class TraitRaritiesTests(unittest.TestCase):
         self.assertEqual(normalize_trait_rarity(" EPIC "), "epic")
 
     def test_multiplier_and_weight_fallback(self) -> None:
-        self.assertEqual(trait_rarity_multiplier("unknown"), TRAIT_RARITY_MULTIPLIERS["common"])
+        self.assertEqual(
+            trait_rarity_multiplier("unknown"), TRAIT_RARITY_MULTIPLIERS["common"]
+        )
         self.assertEqual(trait_rarity_weight("unknown"), TRAIT_RARITY_WEIGHTS["common"])
 
 

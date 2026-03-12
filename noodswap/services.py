@@ -63,7 +63,11 @@ def prepare_drop(guild_id: int, user_id: int, now: float) -> DropPreparation:
         )
 
     choices = make_drop_choices(DROP_CHOICES_COUNT)
-    return DropPreparation(choices=choices, cooldown_remaining_seconds=0.0, used_drop_ticket=used_drop_ticket)
+    return DropPreparation(
+        choices=choices,
+        cooldown_remaining_seconds=0.0,
+        used_drop_ticket=used_drop_ticket,
+    )
 
 
 @dataclass(frozen=True)
@@ -141,11 +145,12 @@ def normalize_trade_mode(raw: str) -> Optional[str]:
 @dataclass(frozen=True)
 class TradeTerms:
     """Typed description of what the seller is asking for."""
+
     mode: str  # "dough" | "starter" | "tickets" | "card"
-    amount: Optional[int] = None          # numeric modes
-    req_card_id: Optional[str] = None     # card mode: buyer's offered card_id
+    amount: Optional[int] = None  # numeric modes
+    req_card_id: Optional[str] = None  # card mode: buyer's offered card_id
     req_generation: Optional[int] = None  # card mode: buyer's offered generation
-    req_dupe_code: Optional[str] = None   # card mode: buyer's offered dupe_code
+    req_dupe_code: Optional[str] = None  # card mode: buyer's offered dupe_code
 
 
 @dataclass(frozen=True)
@@ -241,7 +246,9 @@ class BurnPreparation:
         return self.error_message is not None
 
 
-def prepare_burn(guild_id: int, user_id: int, card_code: Optional[str]) -> BurnPreparation:
+def prepare_burn(
+    guild_id: int, user_id: int, card_code: Optional[str]
+) -> BurnPreparation:
     target_instance: Optional[tuple[int, str, int, str]] = None
 
     if card_code is None:
@@ -296,13 +303,23 @@ def prepare_burn(guild_id: int, user_id: int, card_code: Optional[str]) -> BurnP
     instance_id, burn_card_id, burn_generation, burn_dupe_code = target_instance
     locked_tags = get_locked_tags_for_instance(guild_id, user_id, instance_id)
     if locked_tags:
-        locked_folder_names = [tag.removeprefix("folder:") for tag in locked_tags if tag.startswith("folder:")]
+        locked_folder_names = [
+            tag.removeprefix("folder:")
+            for tag in locked_tags
+            if tag.startswith("folder:")
+        ]
         if locked_folder_names:
-            locked_tags_text = ", ".join(f"`{folder}`" for folder in locked_folder_names)
-            error_message = f"That card is protected by locked folder(s): {locked_tags_text}."
+            locked_tags_text = ", ".join(
+                f"`{folder}`" for folder in locked_folder_names
+            )
+            error_message = (
+                f"That card is protected by locked folder(s): {locked_tags_text}."
+            )
         else:
             locked_tags_text = ", ".join(f"`{tag}`" for tag in locked_tags)
-            error_message = f"That card is protected by locked tag(s): {locked_tags_text}."
+            error_message = (
+                f"That card is protected by locked tag(s): {locked_tags_text}."
+            )
         return BurnPreparation(
             error_message=error_message,
             instance_id=None,
@@ -454,13 +471,19 @@ def prepare_burn_batch(
     for instance_id, card_id, generation, dupe_code in unique_targets:
         locked_tags = get_locked_tags_for_instance(guild_id, user_id, instance_id)
         if locked_tags:
-            locked_names = [tag.removeprefix("folder:") for tag in locked_tags if tag.startswith("folder:")]
+            locked_names = [
+                tag.removeprefix("folder:")
+                for tag in locked_tags
+                if tag.startswith("folder:")
+            ]
             if locked_names:
                 folder_text = ", ".join(f"`{name}`" for name in locked_names)
                 skipped_items.append(f"`{dupe_code}` (locked folder(s): {folder_text})")
             else:
                 locked_tags_text = ", ".join(f"`{tag}`" for tag in locked_tags)
-                skipped_items.append(f"`{dupe_code}` (locked tag(s): {locked_tags_text})")
+                skipped_items.append(
+                    f"`{dupe_code}` (locked tag(s): {locked_tags_text})"
+                )
             continue
 
         morph_key = get_instance_morph(guild_id, instance_id)
@@ -532,7 +555,9 @@ def execute_burn_batch_confirmation(
     if not burnable_instance_ids:
         skipped_instances = tuple(
             (instance_id, tuple(tags))
-            for instance_id, tags in sorted(locked_by_instance.items(), key=lambda entry: entry[0])
+            for instance_id, tags in sorted(
+                locked_by_instance.items(), key=lambda entry: entry[0]
+            )
         )
         return BurnBatchConfirmationExecution(
             status="blocked",
@@ -550,7 +575,9 @@ def execute_burn_batch_confirmation(
         for instance_id in burnable_instance_ids
     }
 
-    burned_rows, locked_from_burn = burn_instances(guild_id, user_id, burnable_instance_ids)
+    burned_rows, locked_from_burn = burn_instances(
+        guild_id, user_id, burnable_instance_ids
+    )
     for instance_id, tags in locked_from_burn.items():
         locked_by_instance[instance_id] = tags
 
@@ -569,13 +596,19 @@ def execute_burn_batch_confirmation(
     total_payout = 0
     for instance_id, card_id, generation, dupe_code in burned_rows:
         resolved_delta_range = delta_by_instance.get(instance_id)
-        payout, _value, _base_value, delta, _multiplier, _resolved_delta_range = get_burn_payout(
-            card_id,
-            generation,
-            resolved_delta_range,
-            morph_key=trait_keys_by_instance.get(instance_id, (None, None, None))[0],
-            frame_key=trait_keys_by_instance.get(instance_id, (None, None, None))[1],
-            font_key=trait_keys_by_instance.get(instance_id, (None, None, None))[2],
+        payout, _value, _base_value, delta, _multiplier, _resolved_delta_range = (
+            get_burn_payout(
+                card_id,
+                generation,
+                resolved_delta_range,
+                morph_key=trait_keys_by_instance.get(instance_id, (None, None, None))[
+                    0
+                ],
+                frame_key=trait_keys_by_instance.get(instance_id, (None, None, None))[
+                    1
+                ],
+                font_key=trait_keys_by_instance.get(instance_id, (None, None, None))[2],
+            )
         )
         total_payout += payout
         burned_entries.append(
@@ -590,7 +623,9 @@ def execute_burn_batch_confirmation(
 
     skipped_instances = tuple(
         (instance_id, tuple(tags))
-        for instance_id, tags in sorted(locked_by_instance.items(), key=lambda entry: entry[0])
+        for instance_id, tags in sorted(
+            locked_by_instance.items(), key=lambda entry: entry[0]
+        )
     )
 
     if total_payout > 0:
@@ -634,7 +669,11 @@ def execute_burn_confirmation(
     )
 
     if batch_result.is_blocked:
-        locked_tags = tuple(batch_result.skipped_instances[0][1]) if batch_result.skipped_instances else tuple()
+        locked_tags = (
+            tuple(batch_result.skipped_instances[0][1])
+            if batch_result.skipped_instances
+            else tuple()
+        )
         return BurnConfirmationExecution(
             status="blocked",
             message="Card is protected by locked tags.",
@@ -684,7 +723,9 @@ class MarryExecution:
         return self.error_message is not None
 
 
-def execute_marry(guild_id: int, user_id: int, card_code: Optional[str]) -> MarryExecution:
+def execute_marry(
+    guild_id: int, user_id: int, card_code: Optional[str]
+) -> MarryExecution:
     if card_code is None:
         last_pulled = get_last_pulled_instance(guild_id, user_id)
         if last_pulled is None:
@@ -696,15 +737,32 @@ def execute_marry(guild_id: int, user_id: int, card_code: Optional[str]) -> Marr
             )
 
         instance_id, _, _, _ = last_pulled
-        success, message, married_card_id, married_generation, married_dupe_code = marry_card_instance(
-            guild_id,
-            user_id,
-            instance_id,
+        success, message, married_card_id, married_generation, married_dupe_code = (
+            marry_card_instance(
+                guild_id,
+                user_id,
+                instance_id,
+            )
         )
-        if not success or married_card_id is None or married_generation is None or married_dupe_code is None:
-            return MarryExecution(error_message=message or "Marry failed.", card_id=None, generation=None, dupe_code=None)
+        if (
+            not success
+            or married_card_id is None
+            or married_generation is None
+            or married_dupe_code is None
+        ):
+            return MarryExecution(
+                error_message=message or "Marry failed.",
+                card_id=None,
+                generation=None,
+                dupe_code=None,
+            )
 
-        return MarryExecution(error_message=None, card_id=married_card_id, generation=married_generation, dupe_code=married_dupe_code)
+        return MarryExecution(
+            error_message=None,
+            card_id=married_card_id,
+            generation=married_generation,
+            dupe_code=married_dupe_code,
+        )
 
     selected = get_instance_by_code(guild_id, user_id, card_code)
     if selected is None:
@@ -716,11 +774,28 @@ def execute_marry(guild_id: int, user_id: int, card_code: Optional[str]) -> Marr
         )
 
     instance_id, _, _, _ = selected
-    success, message, married_card_id, married_generation, married_dupe_code = marry_card_instance(guild_id, user_id, instance_id)
-    if not success or married_card_id is None or married_generation is None or married_dupe_code is None:
-        return MarryExecution(error_message=message or "Marry failed.", card_id=None, generation=None, dupe_code=None)
+    success, message, married_card_id, married_generation, married_dupe_code = (
+        marry_card_instance(guild_id, user_id, instance_id)
+    )
+    if (
+        not success
+        or married_card_id is None
+        or married_generation is None
+        or married_dupe_code is None
+    ):
+        return MarryExecution(
+            error_message=message or "Marry failed.",
+            card_id=None,
+            generation=None,
+            dupe_code=None,
+        )
 
-    return MarryExecution(error_message=None, card_id=married_card_id, generation=married_generation, dupe_code=married_dupe_code)
+    return MarryExecution(
+        error_message=None,
+        card_id=married_card_id,
+        generation=married_generation,
+        dupe_code=married_dupe_code,
+    )
 
 
 @dataclass(frozen=True)
@@ -746,7 +821,12 @@ def execute_divorce(guild_id: int, user_id: int) -> DivorceExecution:
         )
 
     old_card_id, old_generation, old_dupe_code = divorced
-    return DivorceExecution(error_message=None, card_id=old_card_id, generation=old_generation, dupe_code=old_dupe_code)
+    return DivorceExecution(
+        error_message=None,
+        card_id=old_card_id,
+        generation=old_generation,
+        dupe_code=old_dupe_code,
+    )
 
 
 @dataclass(frozen=True)
@@ -785,7 +865,9 @@ class MorphPreparation:
         return self.error_message is not None
 
 
-def prepare_morph(guild_id: int, user_id: int, card_code: Optional[str]) -> MorphPreparation:
+def prepare_morph(
+    guild_id: int, user_id: int, card_code: Optional[str]
+) -> MorphPreparation:
     target_instance: Optional[tuple[int, str, int, str]] = None
 
     if card_code is None:
@@ -846,7 +928,9 @@ def prepare_morph(guild_id: int, user_id: int, card_code: Optional[str]) -> Morp
 
     instance_id, morph_card_id, morph_generation, morph_dupe_code = target_instance
     current_morph_key = get_instance_morph(guild_id, instance_id)
-    available_rolls = [morph_key for morph_key in AVAILABLE_MORPHS if morph_key != current_morph_key]
+    available_rolls = [
+        morph_key for morph_key in AVAILABLE_MORPHS if morph_key != current_morph_key
+    ]
     if not available_rolls:
         return MorphPreparation(
             error_message="No new morphs are currently available for this card.",
@@ -911,7 +995,9 @@ def confirm_morph(
     rolled_multiplier: float,
     cost: int,
 ) -> MorphExecution:
-    applied, message = apply_morph_to_instance(guild_id, user_id, instance_id, morph_key, cost)
+    applied, message = apply_morph_to_instance(
+        guild_id, user_id, instance_id, morph_key, cost
+    )
     if not applied:
         return MorphExecution(
             error_message=message or "Morph failed.",
@@ -943,7 +1029,9 @@ def confirm_morph(
     )
 
 
-def execute_morph(guild_id: int, user_id: int, card_code: Optional[str]) -> MorphExecution:
+def execute_morph(
+    guild_id: int, user_id: int, card_code: Optional[str]
+) -> MorphExecution:
     prepared = prepare_morph(guild_id, user_id, card_code)
     if prepared.is_error:
         return MorphExecution(
@@ -981,7 +1069,11 @@ def execute_morph(guild_id: int, user_id: int, card_code: Optional[str]) -> Morp
             remaining_dough=None,
         )
 
-    available_rolls = [morph_key for morph_key in AVAILABLE_MORPHS if morph_key != prepared.current_morph_key]
+    available_rolls = [
+        morph_key
+        for morph_key in AVAILABLE_MORPHS
+        if morph_key != prepared.current_morph_key
+    ]
     if not available_rolls:
         return MorphExecution(
             error_message="No new morphs are currently available for this card.",
@@ -1027,7 +1119,9 @@ def resolve_morph_roll(
     current_morph_key: str | None,
     cost: int,
 ) -> MorphExecution:
-    available_rolls = [morph_key for morph_key in AVAILABLE_MORPHS if morph_key != current_morph_key]
+    available_rolls = [
+        morph_key for morph_key in AVAILABLE_MORPHS if morph_key != current_morph_key
+    ]
     if not available_rolls:
         return MorphExecution(
             error_message="No new morphs are currently available for this card.",
@@ -1097,7 +1191,9 @@ class FramePreparation:
         return self.error_message is not None
 
 
-def prepare_frame(guild_id: int, user_id: int, card_code: Optional[str]) -> FramePreparation:
+def prepare_frame(
+    guild_id: int, user_id: int, card_code: Optional[str]
+) -> FramePreparation:
     target_instance: Optional[tuple[int, str, int, str]] = None
 
     if card_code is None:
@@ -1159,7 +1255,9 @@ def prepare_frame(guild_id: int, user_id: int, card_code: Optional[str]) -> Fram
 
     instance_id, frame_card_id, frame_generation, frame_dupe_code = target_instance
     current_frame_key = get_instance_frame(guild_id, instance_id)
-    available_rolls = [frame_key for frame_key in frame_choices if frame_key != current_frame_key]
+    available_rolls = [
+        frame_key for frame_key in frame_choices if frame_key != current_frame_key
+    ]
     if not available_rolls:
         return FramePreparation(
             error_message="No new frames are currently available for this card.",
@@ -1224,7 +1322,9 @@ def confirm_frame(
     rolled_multiplier: float,
     cost: int,
 ) -> FrameExecution:
-    applied, message = apply_frame_to_instance(guild_id, user_id, instance_id, frame_key, cost)
+    applied, message = apply_frame_to_instance(
+        guild_id, user_id, instance_id, frame_key, cost
+    )
     if not applied:
         return FrameExecution(
             error_message=message or "Frame failed.",
@@ -1256,7 +1356,9 @@ def confirm_frame(
     )
 
 
-def execute_frame(guild_id: int, user_id: int, card_code: Optional[str]) -> FrameExecution:
+def execute_frame(
+    guild_id: int, user_id: int, card_code: Optional[str]
+) -> FrameExecution:
     prepared = prepare_frame(guild_id, user_id, card_code)
     if prepared.is_error:
         return FrameExecution(
@@ -1295,7 +1397,11 @@ def execute_frame(guild_id: int, user_id: int, card_code: Optional[str]) -> Fram
         )
 
     frame_choices = available_frame_keys()
-    available_rolls = [frame_key for frame_key in frame_choices if frame_key != prepared.current_frame_key]
+    available_rolls = [
+        frame_key
+        for frame_key in frame_choices
+        if frame_key != prepared.current_frame_key
+    ]
     if not available_rolls:
         return FrameExecution(
             error_message="No new frames are currently available for this card.",
@@ -1342,7 +1448,9 @@ def resolve_frame_roll(
     cost: int,
 ) -> FrameExecution:
     frame_choices = available_frame_keys()
-    available_rolls = [frame_key for frame_key in frame_choices if frame_key != current_frame_key]
+    available_rolls = [
+        frame_key for frame_key in frame_choices if frame_key != current_frame_key
+    ]
     if not available_rolls:
         return FrameExecution(
             error_message="No new frames are currently available for this card.",
@@ -1412,7 +1520,9 @@ class FontPreparation:
         return self.error_message is not None
 
 
-def prepare_font(guild_id: int, user_id: int, card_code: Optional[str]) -> FontPreparation:
+def prepare_font(
+    guild_id: int, user_id: int, card_code: Optional[str]
+) -> FontPreparation:
     target_instance: Optional[tuple[int, str, int, str]] = None
 
     if card_code is None:
@@ -1473,7 +1583,9 @@ def prepare_font(guild_id: int, user_id: int, card_code: Optional[str]) -> FontP
 
     instance_id, font_card_id, font_generation, font_dupe_code = target_instance
     current_font_key = get_instance_font(guild_id, instance_id)
-    available_rolls = [font_key for font_key in AVAILABLE_FONTS if font_key != current_font_key]
+    available_rolls = [
+        font_key for font_key in AVAILABLE_FONTS if font_key != current_font_key
+    ]
     if not available_rolls:
         return FontPreparation(
             error_message="No new fonts are currently available for this card.",
@@ -1538,7 +1650,9 @@ def confirm_font(
     rolled_multiplier: float,
     cost: int,
 ) -> FontExecution:
-    applied, message = apply_font_to_instance(guild_id, user_id, instance_id, font_key, cost)
+    applied, message = apply_font_to_instance(
+        guild_id, user_id, instance_id, font_key, cost
+    )
     if not applied:
         return FontExecution(
             error_message=message or "Font failed.",
@@ -1570,7 +1684,9 @@ def confirm_font(
     )
 
 
-def execute_font(guild_id: int, user_id: int, card_code: Optional[str]) -> FontExecution:
+def execute_font(
+    guild_id: int, user_id: int, card_code: Optional[str]
+) -> FontExecution:
     prepared = prepare_font(guild_id, user_id, card_code)
     if prepared.is_error:
         return FontExecution(
@@ -1608,7 +1724,11 @@ def execute_font(guild_id: int, user_id: int, card_code: Optional[str]) -> FontE
             remaining_dough=None,
         )
 
-    available_rolls = [font_key for font_key in AVAILABLE_FONTS if font_key != prepared.current_font_key]
+    available_rolls = [
+        font_key
+        for font_key in AVAILABLE_FONTS
+        if font_key != prepared.current_font_key
+    ]
     if not available_rolls:
         return FontExecution(
             error_message="No new fonts are currently available for this card.",
@@ -1654,7 +1774,9 @@ def resolve_font_roll(
     current_font_key: str | None,
     cost: int,
 ) -> FontExecution:
-    available_rolls = [font_key for font_key in AVAILABLE_FONTS if font_key != current_font_key]
+    available_rolls = [
+        font_key for font_key in AVAILABLE_FONTS if font_key != current_font_key
+    ]
     if not available_rolls:
         return FontExecution(
             error_message="No new fonts are currently available for this card.",
@@ -1712,7 +1834,9 @@ def prepare_trade_offer(
     req_card_code: Optional[str] = None,
 ) -> TradeOfferPreparation:
     def _err(msg: str) -> TradeOfferPreparation:
-        return TradeOfferPreparation(error_message=msg, card_id=None, generation=None, dupe_code=None)
+        return TradeOfferPreparation(
+            error_message=msg, card_id=None, generation=None, dupe_code=None
+        )
 
     if buyer_id == seller_id:
         return _err("You cannot trade with yourself.")
@@ -1721,7 +1845,9 @@ def prepare_trade_offer(
         return _err("You cannot trade with bots.")
 
     if mode not in VALID_TRADE_MODES:
-        return _err(f"Invalid trade mode `{mode}`. Use `dough`, `starter`, `tickets`, or `card`.")
+        return _err(
+            f"Invalid trade mode `{mode}`. Use `dough`, `starter`, `tickets`, or `card`."
+        )
 
     if mode != "card":
         if amount is None or amount <= 0:
@@ -1743,7 +1869,9 @@ def prepare_trade_offer(
     if mode == "card":
         req_parsed = split_card_code(req_card_code)  # type: ignore[arg-type]
         if req_parsed is None:
-            return _err("Invalid requested card code. Use format like `0`, `a`, `10`, or `#10`.")
+            return _err(
+                "Invalid requested card code. Use format like `0`, `a`, `10`, or `#10`."
+            )
         if req_card_code == card_code or req_parsed == parsed:
             return _err("Cannot request the same card you are offering.")
         req_candidate = get_instance_by_code(guild_id, buyer_id, req_card_code)  # type: ignore[arg-type]
@@ -1795,11 +1923,13 @@ def prepare_battle_offer(
             challenged_team_name=None,
         )
 
-    success, message, battle_id, challenger_team_name, challenged_team_name = create_battle_proposal(
-        guild_id,
-        challenger_id,
-        challenged_id,
-        stake,
+    success, message, battle_id, challenger_team_name, challenged_team_name = (
+        create_battle_proposal(
+            guild_id,
+            challenger_id,
+            challenged_id,
+            stake,
+        )
     )
     if not success:
         return BattleOfferPreparation(
@@ -1853,9 +1983,21 @@ def resolve_battle_offer(
         accepted=accepted,
     )
     battle = get_battle_session(guild_id, battle_id)
-    stake = int(battle["stake"]) if battle is not None and battle["stake"] is not None else None
-    challenger_id = int(battle["challenger_id"]) if battle is not None and battle["challenger_id"] is not None else None
-    challenged_id = int(battle["challenged_id"]) if battle is not None and battle["challenged_id"] is not None else None
+    stake = (
+        int(battle["stake"])
+        if battle is not None and battle["stake"] is not None
+        else None
+    )
+    challenger_id = (
+        int(battle["challenger_id"])
+        if battle is not None and battle["challenger_id"] is not None
+        else None
+    )
+    challenged_id = (
+        int(battle["challenged_id"])
+        if battle is not None and battle["challenged_id"] is not None
+        else None
+    )
     return BattleOfferResolution(
         status=status,
         message=message,
@@ -1899,8 +2041,16 @@ def get_battle_snapshot(guild_id: int, battle_id: int) -> Optional[BattleSnapsho
         status=str(battle["status"]),
         challenger_id=int(battle["challenger_id"]),
         challenged_id=int(battle["challenged_id"]),
-        acting_user_id=int(battle["acting_user_id"]) if battle["acting_user_id"] is not None else None,
-        winner_user_id=int(battle["winner_user_id"]) if battle["winner_user_id"] is not None else None,
+        acting_user_id=(
+            int(battle["acting_user_id"])
+            if battle["acting_user_id"] is not None
+            else None
+        ),
+        winner_user_id=(
+            int(battle["winner_user_id"])
+            if battle["winner_user_id"] is not None
+            else None
+        ),
         turn_number=int(battle["turn_number"]),
         stake=int(battle["stake"]),
         last_action=str(battle["last_action"] or "Battle started."),

@@ -58,8 +58,12 @@ class TopggWebhookHelpersTests(unittest.TestCase):
                 allowed_ip_networks=allowlist,
             )
         )
-        self.assertTrue(_is_request_ip_allowed("203.0.113.25", server._allowed_networks))
-        self.assertFalse(_is_request_ip_allowed("198.51.100.25", server._allowed_networks))
+        self.assertTrue(
+            _is_request_ip_allowed("203.0.113.25", server._allowed_networks)
+        )
+        self.assertFalse(
+            _is_request_ip_allowed("198.51.100.25", server._allowed_networks)
+        )
 
 
 class TopggWebhookHandlerTests(unittest.IsolatedAsyncioTestCase):

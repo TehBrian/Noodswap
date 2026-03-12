@@ -11,7 +11,9 @@ from noodswap.presentation import command_syntax_for_error
 
 class AppPrefixTests(unittest.TestCase):
     def setUp(self) -> None:
-        self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)
+        self.bot = commands.Bot(
+            command_prefix="ns ", intents=discord.Intents.none(), help_command=None
+        )
 
     def test_resolve_prefix_matches_uppercase_long_prefix(self) -> None:
         message = SimpleNamespace(content="Ns help")
@@ -38,7 +40,9 @@ class AppPrefixTests(unittest.TestCase):
 
 class AppShutdownTests(unittest.IsolatedAsyncioTestCase):
     async def test_close_ends_open_battles_before_shutdown(self) -> None:
-        with patch("noodswap.app.end_open_battles_for_shutdown", return_value=2) as mocked_cleanup:
+        with patch(
+            "noodswap.app.end_open_battles_for_shutdown", return_value=2
+        ) as mocked_cleanup:
             bot = create_bot()
             try:
                 await bot.close()
@@ -72,7 +76,10 @@ class AppCommandErrorTests(unittest.IsolatedAsyncioTestCase):
         sent_embed = ctx.reply.await_args.kwargs["embed"]
         self.assertEqual(sent_embed.title, "Command Error")
         self.assertIn("Missing required argument: **mode**.", sent_embed.description)
-        self.assertIn("Usage: `ns trade <player> <card_code> <mode> <amount|card_code>`.", sent_embed.description)
+        self.assertIn(
+            "Usage: `ns trade <player> <card_code> <mode> <amount|card_code>`.",
+            sent_embed.description,
+        )
 
     async def test_bad_argument_includes_reason_and_subcommand_usage(self) -> None:
         ctx = AsyncMock()
@@ -81,14 +88,19 @@ class AppCommandErrorTests(unittest.IsolatedAsyncioTestCase):
         ctx.command = buy_group.get_command("drop")
         ctx.reply = AsyncMock()
 
-        error = commands.BadArgument('Converting to "int" failed for parameter "quantity".')
+        error = commands.BadArgument(
+            'Converting to "int" failed for parameter "quantity".'
+        )
 
         await self.bot.on_command_error(ctx, error)
 
         ctx.reply.assert_awaited_once()
         sent_embed = ctx.reply.await_args.kwargs["embed"]
         self.assertEqual(sent_embed.title, "Command Error")
-        self.assertIn('Converting to "int" failed for parameter "quantity".', sent_embed.description)
+        self.assertIn(
+            'Converting to "int" failed for parameter "quantity".',
+            sent_embed.description,
+        )
         self.assertIn("Usage: `ns buy drop [quantity]`.", sent_embed.description)
 
     async def test_too_many_arguments_includes_reason_and_usage(self) -> None:

@@ -23,10 +23,20 @@ from ..settings import (
 )
 from ..utils import multiline_text
 from ..view_catalog import CardCatalogView
-from ..view_confirmations import BurnConfirmView, FrameConfirmView, FontConfirmView, MorphConfirmView
+from ..view_confirmations import (
+    BurnConfirmView,
+    FrameConfirmView,
+    FontConfirmView,
+    MorphConfirmView,
+)
 from ..view_drop import DropView
 from ..view_help import HelpCategorySelect, HelpView
-from ..view_pagination import FIRST_PAGE_EMOJI, LAST_PAGE_EMOJI, NEXT_PAGE_EMOJI, PREVIOUS_PAGE_EMOJI
+from ..view_pagination import (
+    FIRST_PAGE_EMOJI,
+    LAST_PAGE_EMOJI,
+    NEXT_PAGE_EMOJI,
+    PREVIOUS_PAGE_EMOJI,
+)
 from ..view_sortable_lists import SortableCardListView, SortableCollectionView
 from ..view_text import PaginatedLinesView, PlayerLeaderboardView
 from ..view_trade import TradeView

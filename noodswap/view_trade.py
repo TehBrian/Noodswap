@@ -45,7 +45,9 @@ class TradeView(InteractionView):
     async def _resolve(self, interaction: discord.Interaction, accepted: bool):
         if interaction.user.id != self.buyer_id:
             await interaction.response.send_message(
-                embed=italy_embed("Trade", "Only the offered member can respond to this trade."),
+                embed=italy_embed(
+                    "Trade", "Only the offered member can respond to this trade."
+                ),
                 ephemeral=True,
             )
             return
@@ -169,7 +171,10 @@ class TradeView(InteractionView):
                 view=self,
             )
         except discord.HTTPException:
-            logger.warning("Failed to edit trade message on timeout (message_id=%s)", self.message.id)
+            logger.warning(
+                "Failed to edit trade message on timeout (message_id=%s)",
+                self.message.id,
+            )
 
     def _disable_buttons(self) -> None:
         for item in self.children:

@@ -63,14 +63,18 @@ class ServicesTests(unittest.TestCase):
         now = time.time()
 
         storage.set_last_drop_at(guild_id, user_id, now)
-        purchased, starter_balance, tickets, spent = storage.buy_drop_tickets_with_starter(guild_id, user_id, 1)
+        purchased, starter_balance, tickets, spent = (
+            storage.buy_drop_tickets_with_starter(guild_id, user_id, 1)
+        )
         self.assertFalse(purchased)
         self.assertEqual(starter_balance, 0)
         self.assertEqual(tickets, 0)
         self.assertEqual(spent, 0)
 
         storage.add_starter(guild_id, user_id, 1)
-        purchased, _, tickets, spent = storage.buy_drop_tickets_with_starter(guild_id, user_id, 1)
+        purchased, _, tickets, spent = storage.buy_drop_tickets_with_starter(
+            guild_id, user_id, 1
+        )
         self.assertTrue(purchased)
         self.assertEqual(tickets, 1)
         self.assertEqual(spent, 1)
@@ -93,7 +97,10 @@ class ServicesTests(unittest.TestCase):
         prepared = services.prepare_burn(guild_id=1, user_id=21, card_code="?")
 
         self.assertTrue(prepared.is_error)
-        self.assertEqual(prepared.error_message, "Invalid card code. Use format like `0`, `a`, `10`, or `#10`.")
+        self.assertEqual(
+            prepared.error_message,
+            "Invalid card code. Use format like `0`, `a`, `10`, or `#10`.",
+        )
 
     def test_prepare_burn_accepts_hash_prefixed_card_code(self) -> None:
         guild_id = 1
@@ -102,7 +109,9 @@ class ServicesTests(unittest.TestCase):
         instances = storage.get_player_card_instances(guild_id, user_id)
         dupe_code = instances[0][3]
 
-        prepared = services.prepare_burn(guild_id=guild_id, user_id=user_id, card_code=f"#{dupe_code.upper()}")
+        prepared = services.prepare_burn(
+            guild_id=guild_id, user_id=user_id, card_code=f"#{dupe_code.upper()}"
+        )
 
         self.assertFalse(prepared.is_error)
         self.assertEqual(prepared.card_id, "SPG")
@@ -119,7 +128,9 @@ class ServicesTests(unittest.TestCase):
         user_id = 23
         instance_id = storage.add_card_to_player(guild_id, user_id, "SPG", 333)
 
-        prepared = services.prepare_burn(guild_id=guild_id, user_id=user_id, card_code=None)
+        prepared = services.prepare_burn(
+            guild_id=guild_id, user_id=user_id, card_code=None
+        )
 
         self.assertFalse(prepared.is_error)
         self.assertEqual(prepared.instance_id, instance_id)
@@ -140,7 +151,9 @@ class ServicesTests(unittest.TestCase):
         storage.assign_tag_to_instance(guild_id, user_id, instance_id, "safe")
         storage.set_player_tag_locked(guild_id, user_id, "safe", True)
 
-        prepared = services.prepare_burn(guild_id=guild_id, user_id=user_id, card_code=None)
+        prepared = services.prepare_burn(
+            guild_id=guild_id, user_id=user_id, card_code=None
+        )
 
         self.assertTrue(prepared.is_error)
         self.assertEqual(
@@ -156,7 +169,9 @@ class ServicesTests(unittest.TestCase):
         storage.assign_instance_to_folder(guild_id, user_id, instance_id, "vault")
         storage.set_player_folder_locked(guild_id, user_id, "vault", True)
 
-        prepared = services.prepare_burn(guild_id=guild_id, user_id=user_id, card_code=None)
+        prepared = services.prepare_burn(
+            guild_id=guild_id, user_id=user_id, card_code=None
+        )
 
         self.assertTrue(prepared.is_error)
         if prepared.error_message is None:
@@ -200,8 +215,12 @@ class ServicesTests(unittest.TestCase):
         self.assertTrue(result.is_blocked)
         self.assertEqual(result.locked_tags, ("folder:vault",))
 
-    def test_execute_burn_confirmation_returns_failed_when_instance_missing(self) -> None:
-        result = services.execute_burn_confirmation(1, 233, instance_id=999_999, delta_range=8)
+    def test_execute_burn_confirmation_returns_failed_when_instance_missing(
+        self,
+    ) -> None:
+        result = services.execute_burn_confirmation(
+            1, 233, instance_id=999_999, delta_range=8
+        )
 
         self.assertTrue(result.is_failed)
         self.assertEqual(result.message, "That card instance is no longer available.")
@@ -250,7 +269,9 @@ class ServicesTests(unittest.TestCase):
         self.assertEqual(len(prepared.skipped_items), 1)
         self.assertIn("locked tag(s)", prepared.skipped_items[0])
 
-    def test_execute_burn_batch_confirmation_burns_available_and_skips_locked(self) -> None:
+    def test_execute_burn_batch_confirmation_burns_available_and_skips_locked(
+        self,
+    ) -> None:
         guild_id = 1
         user_id = 236
         open_instance = storage.add_card_to_player(guild_id, user_id, "SPG", 333)
@@ -299,7 +320,9 @@ class ServicesTests(unittest.TestCase):
         storage.add_dough(guild_id, user_id, 200)
         instance_id = storage.add_card_to_player(guild_id, user_id, "SPG", 333)
 
-        result = services.prepare_morph(guild_id=guild_id, user_id=user_id, card_code=None)
+        result = services.prepare_morph(
+            guild_id=guild_id, user_id=user_id, card_code=None
+        )
 
         self.assertFalse(result.is_error)
         self.assertEqual(result.instance_id, instance_id)
@@ -333,20 +356,28 @@ class ServicesTests(unittest.TestCase):
         self.assertEqual(result.instance_id, instance_id)
         self.assertEqual(result.morph_key, "black_and_white")
         self.assertIsNotNone(result.remaining_dough)
-        self.assertEqual(storage.get_instance_morph(guild_id, instance_id), "black_and_white")
+        self.assertEqual(
+            storage.get_instance_morph(guild_id, instance_id), "black_and_white"
+        )
 
     def test_prepare_morph_rejects_when_no_new_morphs_available(self) -> None:
         guild_id = 1
         user_id = 25
         storage.add_dough(guild_id, user_id, 200)
         instance_id = storage.add_card_to_player(guild_id, user_id, "SPG", 333)
-        storage.apply_morph_to_instance(guild_id, user_id, instance_id, "black_and_white", 1)
+        storage.apply_morph_to_instance(
+            guild_id, user_id, instance_id, "black_and_white", 1
+        )
 
         with patch("noodswap.services.AVAILABLE_MORPHS", ["black_and_white"]):
-            result = services.prepare_morph(guild_id=guild_id, user_id=user_id, card_code=None)
+            result = services.prepare_morph(
+                guild_id=guild_id, user_id=user_id, card_code=None
+            )
 
         self.assertTrue(result.is_error)
-        self.assertEqual(result.error_message, "No new morphs are currently available for this card.")
+        self.assertEqual(
+            result.error_message, "No new morphs are currently available for this card."
+        )
 
     def test_prepare_frame_returns_preview_without_applying(self) -> None:
         guild_id = 1
@@ -354,8 +385,13 @@ class ServicesTests(unittest.TestCase):
         storage.add_dough(guild_id, user_id, 200)
         instance_id = storage.add_card_to_player(guild_id, user_id, "SPG", 333)
 
-        with patch("noodswap.services.available_frame_keys", return_value=["buttery", "gilded", "drizzled"]):
-            result = services.prepare_frame(guild_id=guild_id, user_id=user_id, card_code=None)
+        with patch(
+            "noodswap.services.available_frame_keys",
+            return_value=["buttery", "gilded", "drizzled"],
+        ):
+            result = services.prepare_frame(
+                guild_id=guild_id, user_id=user_id, card_code=None
+            )
 
         self.assertFalse(result.is_error)
         self.assertEqual(result.instance_id, instance_id)
@@ -399,10 +435,14 @@ class ServicesTests(unittest.TestCase):
         storage.apply_frame_to_instance(guild_id, user_id, instance_id, "buttery", 1)
 
         with patch("noodswap.services.available_frame_keys", return_value=["buttery"]):
-            result = services.prepare_frame(guild_id=guild_id, user_id=user_id, card_code=None)
+            result = services.prepare_frame(
+                guild_id=guild_id, user_id=user_id, card_code=None
+            )
 
         self.assertTrue(result.is_error)
-        self.assertEqual(result.error_message, "No new frames are currently available for this card.")
+        self.assertEqual(
+            result.error_message, "No new frames are currently available for this card."
+        )
 
     def test_prepare_font_returns_preview_without_applying(self) -> None:
         guild_id = 1
@@ -410,7 +450,9 @@ class ServicesTests(unittest.TestCase):
         storage.add_dough(guild_id, user_id, 200)
         instance_id = storage.add_card_to_player(guild_id, user_id, "SPG", 333)
 
-        result = services.prepare_font(guild_id=guild_id, user_id=user_id, card_code=None)
+        result = services.prepare_font(
+            guild_id=guild_id, user_id=user_id, card_code=None
+        )
 
         self.assertFalse(result.is_error)
         self.assertEqual(result.instance_id, instance_id)
@@ -454,10 +496,14 @@ class ServicesTests(unittest.TestCase):
         storage.apply_font_to_instance(guild_id, user_id, instance_id, "serif", 1)
 
         with patch("noodswap.services.AVAILABLE_FONTS", ["serif"]):
-            result = services.prepare_font(guild_id=guild_id, user_id=user_id, card_code=None)
+            result = services.prepare_font(
+                guild_id=guild_id, user_id=user_id, card_code=None
+            )
 
         self.assertTrue(result.is_error)
-        self.assertEqual(result.error_message, "No new fonts are currently available for this card.")
+        self.assertEqual(
+            result.error_message, "No new fonts are currently available for this card."
+        )
 
     def test_execute_marry_errors_without_last_pulled(self) -> None:
         result = services.execute_marry(guild_id=1, user_id=30, card_code=None)
@@ -472,7 +518,9 @@ class ServicesTests(unittest.TestCase):
         result = services.execute_marry(guild_id=1, user_id=31, card_code="?")
 
         self.assertTrue(result.is_error)
-        self.assertEqual(result.error_message, "You can only marry a card code you own.")
+        self.assertEqual(
+            result.error_message, "You can only marry a card code you own."
+        )
 
     def test_execute_marry_with_card_code_succeeds(self) -> None:
         guild_id = 1
@@ -482,7 +530,9 @@ class ServicesTests(unittest.TestCase):
         instances = storage.get_player_card_instances(guild_id, user_id)
         first_code = instances[0][3]
 
-        result = services.execute_marry(guild_id=guild_id, user_id=user_id, card_code=first_code)
+        result = services.execute_marry(
+            guild_id=guild_id, user_id=user_id, card_code=first_code
+        )
 
         self.assertFalse(result.is_error)
         self.assertEqual(result.card_id, instances[0][1])
@@ -494,7 +544,9 @@ class ServicesTests(unittest.TestCase):
         user_id = 33
         storage.add_card_to_player(guild_id, user_id, "PEN", 222)
 
-        result = services.execute_marry(guild_id=guild_id, user_id=user_id, card_code=None)
+        result = services.execute_marry(
+            guild_id=guild_id, user_id=user_id, card_code=None
+        )
 
         self.assertFalse(result.is_error)
         self.assertEqual(result.card_id, "PEN")
@@ -512,7 +564,9 @@ class ServicesTests(unittest.TestCase):
         storage.add_card_to_player(guild_id, user_id, "SPG", 111)
         instances = storage.get_player_card_instances(guild_id, user_id)
         only_code = instances[0][3]
-        marry_result = services.execute_marry(guild_id=guild_id, user_id=user_id, card_code=only_code)
+        marry_result = services.execute_marry(
+            guild_id=guild_id, user_id=user_id, card_code=only_code
+        )
         self.assertFalse(marry_result.is_error)
 
         divorce_result = services.execute_divorce(guild_id=guild_id, user_id=user_id)
@@ -603,7 +657,10 @@ class ServicesTests(unittest.TestCase):
         )
 
         self.assertTrue(prepared.is_error)
-        self.assertEqual(prepared.error_message, "Invalid card code. Use format like `0`, `a`, `10`, or `#10`.")
+        self.assertEqual(
+            prepared.error_message,
+            "Invalid card code. Use format like `0`, `a`, `10`, or `#10`.",
+        )
 
     def test_prepare_trade_offer_rejects_unowned_card(self) -> None:
         prepared = services.prepare_trade_offer(
@@ -729,7 +786,9 @@ class ServicesTests(unittest.TestCase):
         )
 
         self.assertTrue(prepared.is_error)
-        self.assertEqual(prepared.error_message, "The other player does not own that card code.")
+        self.assertEqual(
+            prepared.error_message, "The other player does not own that card code."
+        )
 
     def test_prepare_trade_offer_card_mode_succeeds_when_both_own_cards(self) -> None:
         guild_id = 1
@@ -759,7 +818,9 @@ class ServicesTests(unittest.TestCase):
         self.assertEqual(prepared.terms.req_card_id, "PEN")  # type: ignore[union-attr]
         self.assertEqual(prepared.terms.req_dupe_code, buyer_dupe)  # type: ignore[union-attr]
 
-    def test_execute_drop_claim_returns_cooldown_error_when_pull_not_ready(self) -> None:
+    def test_execute_drop_claim_returns_cooldown_error_when_pull_not_ready(
+        self,
+    ) -> None:
         guild_id = 1
         user_id = 600
         now = time.time()
@@ -907,7 +968,12 @@ class ServicesTests(unittest.TestCase):
             buyer_id=buyer_id,
             card_id="SPG",
             dupe_code=seller_dupe,
-            terms=services.TradeTerms(mode="card", req_card_id="PEN", req_generation=200, req_dupe_code=buyer_dupe),
+            terms=services.TradeTerms(
+                mode="card",
+                req_card_id="PEN",
+                req_generation=200,
+                req_dupe_code=buyer_dupe,
+            ),
             accepted=True,
         )
 
@@ -922,15 +988,15 @@ class ServicesTests(unittest.TestCase):
         self.assertEqual(len(buyer_after), 1)
         self.assertEqual(buyer_after[0][1], "SPG")
 
-
-
     def test_resolve_morph_roll_applies_selected_morph(self) -> None:
         guild_id = 1
         user_id = 720
         storage.add_dough(guild_id, user_id, 50)
         instance_id = storage.add_card_to_player(guild_id, user_id, "SPG", 333)
 
-        with patch("noodswap.services.weighted_trait_choice", return_value="black_and_white"):
+        with patch(
+            "noodswap.services.weighted_trait_choice", return_value="black_and_white"
+        ):
             result = services.resolve_morph_roll(
                 guild_id,
                 user_id,
@@ -946,7 +1012,9 @@ class ServicesTests(unittest.TestCase):
         self.assertEqual(result.morph_key, "black_and_white")
         self.assertEqual(result.rolled_rarity, "common")
         self.assertEqual(result.rolled_multiplier, 1.0)
-        self.assertEqual(storage.get_instance_morph(guild_id, instance_id), "black_and_white")
+        self.assertEqual(
+            storage.get_instance_morph(guild_id, instance_id), "black_and_white"
+        )
 
     def test_resolve_frame_roll_applies_selected_frame(self) -> None:
         guild_id = 1
@@ -955,7 +1023,10 @@ class ServicesTests(unittest.TestCase):
         instance_id = storage.add_card_to_player(guild_id, user_id, "SPG", 333)
 
         with (
-            patch("noodswap.services.available_frame_keys", return_value=["buttery", "gilded", "drizzled"]),
+            patch(
+                "noodswap.services.available_frame_keys",
+                return_value=["buttery", "gilded", "drizzled"],
+            ),
             patch("noodswap.services.weighted_trait_choice", return_value="buttery"),
         ):
             result = services.resolve_frame_roll(

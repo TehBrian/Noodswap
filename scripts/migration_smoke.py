@@ -36,20 +36,52 @@ def _run_fresh_init_validation() -> None:
             storage.init_db()
 
             with closing(sqlite3.connect(db_path)) as conn:
-                _assert(_table_exists(conn, "schema_migrations"), "schema_migrations table was not created")
-                version_row = conn.execute("SELECT version FROM schema_migrations LIMIT 1").fetchone()
+                _assert(
+                    _table_exists(conn, "schema_migrations"),
+                    "schema_migrations table was not created",
+                )
+                version_row = conn.execute(
+                    "SELECT version FROM schema_migrations LIMIT 1"
+                ).fetchone()
                 _assert(version_row is not None, "schema_migrations has no version row")
-                _assert(int(version_row[0]) == storage.TARGET_SCHEMA_VERSION, "schema version does not match target")
+                _assert(
+                    int(version_row[0]) == storage.TARGET_SCHEMA_VERSION,
+                    "schema version does not match target",
+                )
 
                 _assert(_table_exists(conn, "players"), "players table was not created")
-                _assert(_table_exists(conn, "card_instances"), "card_instances table was not created")
-                _assert(_table_exists(conn, "wishlist_cards"), "wishlist_cards table was not created")
-                _assert(_column_exists(conn, "players", "married_instance_id"), "players.married_instance_id missing")
-                _assert(_column_exists(conn, "players", "last_dropped_instance_id"), "players.last_dropped_instance_id missing")
-                _assert(_column_exists(conn, "players", "last_slots_at"), "players.last_slots_at missing")
-                _assert(_column_exists(conn, "card_instances", "morph_key"), "card_instances.morph_key missing")
-                _assert(_column_exists(conn, "card_instances", "frame_key"), "card_instances.frame_key missing")
-                _assert(_column_exists(conn, "card_instances", "font_key"), "card_instances.font_key missing")
+                _assert(
+                    _table_exists(conn, "card_instances"),
+                    "card_instances table was not created",
+                )
+                _assert(
+                    _table_exists(conn, "wishlist_cards"),
+                    "wishlist_cards table was not created",
+                )
+                _assert(
+                    _column_exists(conn, "players", "married_instance_id"),
+                    "players.married_instance_id missing",
+                )
+                _assert(
+                    _column_exists(conn, "players", "last_dropped_instance_id"),
+                    "players.last_dropped_instance_id missing",
+                )
+                _assert(
+                    _column_exists(conn, "players", "last_slots_at"),
+                    "players.last_slots_at missing",
+                )
+                _assert(
+                    _column_exists(conn, "card_instances", "morph_key"),
+                    "card_instances.morph_key missing",
+                )
+                _assert(
+                    _column_exists(conn, "card_instances", "frame_key"),
+                    "card_instances.frame_key missing",
+                )
+                _assert(
+                    _column_exists(conn, "card_instances", "font_key"),
+                    "card_instances.font_key missing",
+                )
         finally:
             storage.DB_PATH = original_db_path
 

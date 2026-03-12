@@ -82,7 +82,11 @@ def _read_card_metadata() -> dict[str, _CardMetaData]:
         series = value.get("series")
         rarity = value.get("rarity")
         image = value.get("image")
-        if not isinstance(name, str) or not isinstance(series, str) or not isinstance(rarity, str):
+        if (
+            not isinstance(name, str)
+            or not isinstance(series, str)
+            or not isinstance(rarity, str)
+        ):
             continue
 
         card_meta: _CardMetaData = {
@@ -203,18 +207,24 @@ CARD_IMAGE_URLS: dict[str, str] = _build_local_card_image_map()
 
 
 for _card_id, _card in CARD_CATALOG.items():
-    _card["image"] = _card.get("image") or CARD_IMAGE_URLS.get(_card_id) or default_card_image(_card_id)
+    _card["image"] = (
+        _card.get("image")
+        or CARD_IMAGE_URLS.get(_card_id)
+        or default_card_image(_card_id)
+    )
 
 
 def _validate_no_remote_image_paths() -> None:
     remote_ids = [
         card_id
         for card_id, card in CARD_CATALOG.items()
-        if isinstance(card.get("image"), str) and str(card.get("image")).startswith(("http://", "https://"))
+        if isinstance(card.get("image"), str)
+        and str(card.get("image")).startswith(("http://", "https://"))
     ]
     if remote_ids:
         raise RuntimeError(
-            "Remote image URLs are not allowed in local-only mode for: " + ", ".join(sorted(remote_ids))
+            "Remote image URLs are not allowed in local-only mode for: "
+            + ", ".join(sorted(remote_ids))
         )
 
 
@@ -227,20 +237,34 @@ def _validate_image_paths_use_runtime_card_images() -> None:
     ]
     if invalid_ids:
         raise RuntimeError(
-            "Card image paths must use runtime/card_images/: " + ", ".join(sorted(invalid_ids))
+            "Card image paths must use runtime/card_images/: "
+            + ", ".join(sorted(invalid_ids))
         )
 
 
 def _validate_card_series_metadata() -> None:
-    unknown_series = sorted({card["series"] for card in CARD_CATALOG.values() if card["series"] not in SERIES_CATALOG})
+    unknown_series = sorted(
+        {
+            card["series"]
+            for card in CARD_CATALOG.values()
+            if card["series"] not in SERIES_CATALOG
+        }
+    )
     if unknown_series:
         raise RuntimeError(
-            "Card series must be declared in data/series.json; unknown series: " + ", ".join(unknown_series)
+            "Card series must be declared in data/series.json; unknown series: "
+            + ", ".join(unknown_series)
         )
 
-    missing_emojis = sorted(series_id for series_id, series in SERIES_CATALOG.items() if not series["emoji"].strip())
+    missing_emojis = sorted(
+        series_id
+        for series_id, series in SERIES_CATALOG.items()
+        if not series["emoji"].strip()
+    )
     if missing_emojis:
-        raise RuntimeError("Series emojis must be non-empty for: " + ", ".join(missing_emojis))
+        raise RuntimeError(
+            "Series emojis must be non-empty for: " + ", ".join(missing_emojis)
+        )
 
 
 _validate_no_remote_image_paths()

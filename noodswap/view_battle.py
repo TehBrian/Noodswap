@@ -3,7 +3,11 @@ from typing import Optional
 import discord
 
 from .presentation import battle_arena_description, italy_embed
-from .services import get_battle_snapshot, resolve_battle_offer, resolve_battle_turn_action
+from .services import (
+    get_battle_snapshot,
+    resolve_battle_offer,
+    resolve_battle_turn_action,
+)
 from .settings import BATTLE_PROPOSAL_TIMEOUT_SECONDS, BATTLE_TURN_TIMEOUT_SECONDS
 
 
@@ -37,7 +41,9 @@ class BattleTurnView(discord.ui.View):
         self.finished = False
         self.message: Optional[discord.Message] = None
 
-    async def _apply_action(self, interaction: discord.Interaction, action: str) -> None:
+    async def _apply_action(
+        self, interaction: discord.Interaction, action: str
+    ) -> None:
         snapshot = get_battle_snapshot(self.guild_id, self.battle_id)
         if snapshot is None:
             await interaction.response.send_message(
@@ -100,19 +106,27 @@ class BattleTurnView(discord.ui.View):
         )
 
     @discord.ui.button(label="Attack", style=discord.ButtonStyle.danger)
-    async def attack_button(self, interaction: discord.Interaction, _button: discord.ui.Button) -> None:
+    async def attack_button(
+        self, interaction: discord.Interaction, _button: discord.ui.Button
+    ) -> None:
         await self._apply_action(interaction, "attack")
 
     @discord.ui.button(label="Defend", style=discord.ButtonStyle.primary)
-    async def defend_button(self, interaction: discord.Interaction, _button: discord.ui.Button) -> None:
+    async def defend_button(
+        self, interaction: discord.Interaction, _button: discord.ui.Button
+    ) -> None:
         await self._apply_action(interaction, "defend")
 
     @discord.ui.button(label="Switch", style=discord.ButtonStyle.secondary)
-    async def switch_button(self, interaction: discord.Interaction, _button: discord.ui.Button) -> None:
+    async def switch_button(
+        self, interaction: discord.Interaction, _button: discord.ui.Button
+    ) -> None:
         await self._apply_action(interaction, "switch")
 
     @discord.ui.button(label="Surrender", style=discord.ButtonStyle.secondary)
-    async def surrender_button(self, interaction: discord.Interaction, _button: discord.ui.Button) -> None:
+    async def surrender_button(
+        self, interaction: discord.Interaction, _button: discord.ui.Button
+    ) -> None:
         await self._apply_action(interaction, "surrender")
 
     async def on_timeout(self) -> None:
@@ -120,7 +134,11 @@ class BattleTurnView(discord.ui.View):
             return
 
         snapshot = get_battle_snapshot(self.guild_id, self.battle_id)
-        if snapshot is None or snapshot.status != "active" or snapshot.acting_user_id is None:
+        if (
+            snapshot is None
+            or snapshot.status != "active"
+            or snapshot.acting_user_id is None
+        ):
             self._disable_buttons()
             try:
                 await self.message.edit(view=self)
@@ -137,7 +155,10 @@ class BattleTurnView(discord.ui.View):
         if result.snapshot is None:
             self._disable_buttons()
             try:
-                await self.message.edit(embed=italy_embed("Battle", "Battle state could not be refreshed."), view=self)
+                await self.message.edit(
+                    embed=italy_embed("Battle", "Battle state could not be refreshed."),
+                    view=self,
+                )
             except discord.HTTPException:
                 pass
             return
@@ -153,7 +174,9 @@ class BattleTurnView(discord.ui.View):
         next_view = BattleTurnView(self.guild_id, self.battle_id)
         next_view.message = self.message
         try:
-            await self.message.edit(embed=_battle_embed(result.snapshot), view=next_view)
+            await self.message.edit(
+                embed=_battle_embed(result.snapshot), view=next_view
+            )
         except discord.HTTPException:
             pass
 
@@ -182,14 +205,18 @@ class BattleProposalView(discord.ui.View):
     async def _resolve(self, interaction: discord.Interaction, accepted: bool) -> None:
         if interaction.user.id != self.challenged_id:
             await interaction.response.send_message(
-                embed=italy_embed("Battle", "Only the challenged member can respond to this battle."),
+                embed=italy_embed(
+                    "Battle", "Only the challenged member can respond to this battle."
+                ),
                 ephemeral=True,
             )
             return
 
         if self.finished:
             await interaction.response.send_message(
-                embed=italy_embed("Battle", "This battle proposal has already been resolved."),
+                embed=italy_embed(
+                    "Battle", "This battle proposal has already been resolved."
+                ),
                 ephemeral=True,
             )
             return
@@ -226,7 +253,9 @@ class BattleProposalView(discord.ui.View):
         if snapshot is None:
             await interaction.response.edit_message(
                 content=None,
-                embed=italy_embed("Battle Failed", "Battle setup failed while loading arena state."),
+                embed=italy_embed(
+                    "Battle Failed", "Battle setup failed while loading arena state."
+                ),
                 view=self,
             )
             return

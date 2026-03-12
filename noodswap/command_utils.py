@@ -7,7 +7,9 @@ import random
 import time
 from typing import Awaitable, Callable, cast
 
-from . import compat as _compat  # noqa: F401 - applies asyncio patch before discord import
+from . import (
+    compat as _compat,
+)  # noqa: F401 - applies asyncio patch before discord import
 
 import aiohttp
 import discord
@@ -191,16 +193,14 @@ def _lookup_trait_breakdown_description(
         font_key=font_key,
     )
 
-    dupe_display = [
-        card_dupe_display(
-            card_id,
-            generation,
-            dupe_code=dupe_code,
-            morph_key=morph_key,
-            frame_key=frame_key,
-            font_key=font_key,
-        ),
-    ]
+    dupe_display = card_dupe_display(
+        card_id,
+        generation,
+        dupe_code=dupe_code,
+        morph_key=morph_key,
+        frame_key=frame_key,
+        font_key=font_key,
+    )
 
     lines = []
 
@@ -212,7 +212,8 @@ def _lookup_trait_breakdown_description(
 
     hp, attack, defense = value_to_stats(computed_value)
     lines.append("")
-    lines.append(f"Battle Stats: HP: **{hp}** • ATK: **{attack}** • DEF: **{defense}**")
+    lines.append("**Battle Stats**")
+    lines.append(f"HP: **{hp}** • ATK: **{attack}** • DEF: **{defense}**")
 
     if morph_key or frame_key or font_key:
         lines.append("")
@@ -220,16 +221,21 @@ def _lookup_trait_breakdown_description(
 
         if morph_key:
             lines.append(f"Morph: **{morph_label(morph_key)}**")
-            lines.append(f"({_title_case_rarity(morph_rarity_label)}) • **x{morph_multiplier:.2f}**")
+            lines.append(
+                f"({_title_case_rarity(morph_rarity_label)}) • **x{morph_multiplier:.2f}**"
+            )
 
         if frame_key:
             lines.append(f"Frame: **{frame_label(frame_key)}**")
-            lines.append(f"({_title_case_rarity(frame_rarity_label)}) • **x{frame_multiplier:.2f}**")
-
+            lines.append(
+                f"({_title_case_rarity(frame_rarity_label)}) • **x{frame_multiplier:.2f}**"
+            )
 
         if font_key:
             lines.append(f"Font: **{font_label(font_key)}**")
-            lines.append(f"({_title_case_rarity(font_rarity_label)}) • **x{font_multiplier:.2f}**")
+            lines.append(
+                f"({_title_case_rarity(font_rarity_label)}) • **x{font_multiplier:.2f}**"
+            )
 
     lines.extend(
         [
@@ -245,7 +251,9 @@ def _lookup_trait_breakdown_description(
     return multiline_text(lines)
 
 
-async def resolve_member_argument(ctx: commands.Context, raw_member: str) -> tuple[discord.Member | None, str | None]:
+async def resolve_member_argument(
+    ctx: commands.Context, raw_member: str
+) -> tuple[discord.Member | None, str | None]:
     if ctx.guild is None:
         return None, "Use this command in a server."
 
@@ -263,7 +271,10 @@ async def resolve_member_argument(ctx: commands.Context, raw_member: str) -> tup
         candidate = candidate[1:].strip()
 
     if not candidate:
-        return None, "Could not find that player. Mention them like `@Friend` or use their exact username."
+        return (
+            None,
+            "Could not find that player. Mention them like `@Friend` or use their exact username.",
+        )
 
     matches = [
         member
@@ -275,9 +286,15 @@ async def resolve_member_argument(ctx: commands.Context, raw_member: str) -> tup
     if len(matches) == 1:
         return matches[0], None
     if len(matches) > 1:
-        return None, "Multiple users match that name. Mention the user directly to disambiguate."
+        return (
+            None,
+            "Multiple users match that name. Mention the user directly to disambiguate.",
+        )
 
-    return None, "Could not find that player. Mention them like `@Friend` or use their exact username."
+    return (
+        None,
+        "Could not find that player. Mention them like `@Friend` or use their exact username.",
+    )
 
 
 async def resolve_optional_player_argument(
@@ -314,7 +331,9 @@ async def resolve_optional_player_argument(
         fetch_message = getattr(channel, "fetch_message", None)
         if callable(fetch_message):
             try:
-                fetch_message_coro = cast(Callable[[int], Awaitable[discord.Message]], fetch_message)
+                fetch_message_coro = cast(
+                    Callable[[int], Awaitable[discord.Message]], fetch_message
+                )
                 referenced_message = await fetch_message_coro(reference_message_id)
                 fetched_author_id = getattr(referenced_message.author, "id", None)
                 if isinstance(fetched_author_id, int):
@@ -332,7 +351,9 @@ async def resolve_optional_player_argument(
     fetch_member = getattr(ctx.guild, "fetch_member", None)
     if callable(fetch_member):
         try:
-            fetch_member_coro = cast(Callable[[int], Awaitable[discord.Member]], fetch_member)
+            fetch_member_coro = cast(
+                Callable[[int], Awaitable[discord.Member]], fetch_member
+            )
             return await fetch_member_coro(replied_author_id), None
         except (discord.NotFound, discord.Forbidden, discord.HTTPException):
             return ctx.author, None
@@ -383,14 +404,18 @@ def _build_drop_preview_blocking(choices: list[tuple[str, int]]) -> bytes | None
     return output.getvalue()
 
 
-async def build_drop_preview_file(choices: list[tuple[str, int]]) -> discord.File | None:
+async def build_drop_preview_file(
+    choices: list[tuple[str, int]],
+) -> discord.File | None:
     image_bytes = await asyncio.to_thread(_build_drop_preview_blocking, choices)
     if image_bytes is None:
         return None
     return discord.File(io.BytesIO(image_bytes), filename="drop_choices.png")
 
 
-def _cooldown_status_line(label: str, elapsed_seconds: float, cooldown_seconds: float) -> str:
+def _cooldown_status_line(
+    label: str, elapsed_seconds: float, cooldown_seconds: float
+) -> str:
     remaining = max(0.0, cooldown_seconds - elapsed_seconds)
     if remaining > 0:
         return f"{label}: **Cooling Down** (ready in **{format_cooldown(remaining)}**)"
@@ -399,7 +424,11 @@ def _cooldown_status_line(label: str, elapsed_seconds: float, cooldown_seconds: 
 
 def _vote_link_view(vote_url: str) -> discord.ui.View:
     view = discord.ui.View(timeout=None)
-    view.add_item(discord.ui.Button(label="Vote on Top.gg", style=discord.ButtonStyle.link, url=vote_url))
+    view.add_item(
+        discord.ui.Button(
+            label="Vote on Top.gg", style=discord.ButtonStyle.link, url=vote_url
+        )
+    )
     return view
 
 
@@ -443,7 +472,9 @@ def _normalize_flip_side(side_raw: str | None) -> str | None:
     return None
 
 
-def _parse_burn_selector_tokens(raw_targets: tuple[str, ...]) -> tuple[list[tuple[str, str]], str | None]:
+def _parse_burn_selector_tokens(
+    raw_targets: tuple[str, ...],
+) -> tuple[list[tuple[str, str]], str | None]:
     if not raw_targets:
         return [], None
 
@@ -473,7 +504,10 @@ def _parse_burn_selector_tokens(raw_targets: tuple[str, ...]) -> tuple[list[tupl
                 index += 1
                 continue
             if selector_prefix in {"tag", "folder"}:
-                return [], "Use `t:<tag_name>` and `f:<folder_name>` for burn selectors."
+                return (
+                    [],
+                    "Use `t:<tag_name>` and `f:<folder_name>` for burn selectors.",
+                )
 
         if lowered == "card":
             if index + 1 >= len(raw_targets):
@@ -511,7 +545,9 @@ def _resolve_burn_selector_instances(
     if selector_type == "card":
         normalized_card_id = normalize_card_id(selector_value)
         if normalized_card_id in CARD_CATALOG:
-            selected = get_burn_candidate_by_card_id(guild_id, user_id, normalized_card_id)
+            selected = get_burn_candidate_by_card_id(
+                guild_id, user_id, normalized_card_id
+            )
             if selected is None:
                 return [], f"You do not own any copies of `{normalized_card_id}`."
             return [selected], None
@@ -551,13 +587,17 @@ def _revealed_flip_side(did_win: bool, selected_side: str | None) -> str:
 def _slots_embed(status_lines: list[str]) -> discord.Embed:
     return italy_embed(
         "Slots",
-        multiline_text([
-            *status_lines,
-        ]),
+        multiline_text(
+            [
+                *status_lines,
+            ]
+        ),
     )
 
 
-async def _animate_slots_spin(message: discord.Message, final_symbols: list[str]) -> None:
+async def _animate_slots_spin(
+    message: discord.Message, final_symbols: list[str]
+) -> None:
     spin_steps = random.randint(SLOTS_SPIN_MIN_STEPS, SLOTS_SPIN_MAX_STEPS)
     for step in range(spin_steps):
         frame_symbols: list[str] = []
@@ -575,7 +615,11 @@ async def _animate_slots_spin(message: discord.Message, final_symbols: list[str]
             progress = step / (spin_steps - 1)
             delay_seconds = (
                 SLOTS_SPIN_FRAME_MIN_DELAY_SECONDS
-                + (SLOTS_SPIN_FRAME_MAX_DELAY_SECONDS - SLOTS_SPIN_FRAME_MIN_DELAY_SECONDS) * progress
+                + (
+                    SLOTS_SPIN_FRAME_MAX_DELAY_SECONDS
+                    - SLOTS_SPIN_FRAME_MIN_DELAY_SECONDS
+                )
+                * progress
             )
         await asyncio.sleep(delay_seconds)
 
@@ -610,7 +654,9 @@ def _topgg_auth_header(api_token: str) -> str:
     return f"Bearer {token}"
 
 
-async def _topgg_recent_vote_status(user_id: int, api_token: str) -> tuple[bool | None, str | None]:
+async def _topgg_recent_vote_status(
+    user_id: int, api_token: str
+) -> tuple[bool | None, str | None]:
     # top.gg v1 endpoint for checking a single user's vote status on the authenticated project.
     check_url = f"https://top.gg/api/v1/projects/@me/votes/{user_id}?source=discord"
     headers = {"Authorization": _topgg_auth_header(api_token)}
@@ -633,7 +679,10 @@ async def _topgg_recent_vote_status(user_id: int, api_token: str) -> tuple[bool 
                         continue
 
                     if response.status != 200:
-                        return None, f"Top.gg API responded with status {response.status}."
+                        return (
+                            None,
+                            f"Top.gg API responded with status {response.status}.",
+                        )
 
                     payload = await response.json(content_type=None)
                     break
@@ -661,7 +710,11 @@ async def _wish_add(ctx: commands.Context, card_id: str) -> None:
         return
 
     normalized_card_id = normalize_card_id(card_id)
-    matched_card_ids = [normalized_card_id] if normalized_card_id in CARD_CATALOG else search_card_ids_by_name(card_id)
+    matched_card_ids = (
+        [normalized_card_id]
+        if normalized_card_id in CARD_CATALOG
+        else search_card_ids_by_name(card_id)
+    )
     if not matched_card_ids:
         await _reply(ctx, embed=italy_embed("Wishlist", "Unknown card id."))
         return
@@ -671,17 +724,29 @@ async def _wish_add(ctx: commands.Context, card_id: str) -> None:
             f"{index}. {card_base_display(matched_card_id)}"
             for index, matched_card_id in enumerate(matched_card_ids, start=1)
         ]
-        await _reply(ctx, embed=italy_embed("Wishlist Matches", multiline_text(match_lines)))
+        await _reply(
+            ctx, embed=italy_embed("Wishlist Matches", multiline_text(match_lines))
+        )
         return
 
     resolved_card_id = matched_card_ids[0]
 
     was_added = add_card_to_wishlist(_guild_id(ctx), ctx.author.id, resolved_card_id)
     if not was_added:
-        await _reply(ctx, embed=italy_embed("Wishlist", f"Already wishlisted: {card_base_display(resolved_card_id)}"))
+        await _reply(
+            ctx,
+            embed=italy_embed(
+                "Wishlist", f"Already wishlisted: {card_base_display(resolved_card_id)}"
+            ),
+        )
         return
 
-    await _reply(ctx, embed=italy_embed("Wishlist", f"Added to wishlist: {card_base_display(resolved_card_id)}"))
+    await _reply(
+        ctx,
+        embed=italy_embed(
+            "Wishlist", f"Added to wishlist: {card_base_display(resolved_card_id)}"
+        ),
+    )
 
 
 async def _wish_remove(ctx: commands.Context, card_id: str) -> None:
@@ -689,7 +754,11 @@ async def _wish_remove(ctx: commands.Context, card_id: str) -> None:
         return
 
     normalized_card_id = normalize_card_id(card_id)
-    matched_card_ids = [normalized_card_id] if normalized_card_id in CARD_CATALOG else search_card_ids_by_name(card_id)
+    matched_card_ids = (
+        [normalized_card_id]
+        if normalized_card_id in CARD_CATALOG
+        else search_card_ids_by_name(card_id)
+    )
     if not matched_card_ids:
         await _reply(ctx, embed=italy_embed("Wishlist", "Unknown card id."))
         return
@@ -699,20 +768,36 @@ async def _wish_remove(ctx: commands.Context, card_id: str) -> None:
             f"{index}. {card_base_display(matched_card_id)}"
             for index, matched_card_id in enumerate(matched_card_ids, start=1)
         ]
-        await _reply(ctx, embed=italy_embed("Wishlist Matches", multiline_text(match_lines)))
+        await _reply(
+            ctx, embed=italy_embed("Wishlist Matches", multiline_text(match_lines))
+        )
         return
 
     resolved_card_id = matched_card_ids[0]
 
-    was_removed = remove_card_from_wishlist(_guild_id(ctx), ctx.author.id, resolved_card_id)
+    was_removed = remove_card_from_wishlist(
+        _guild_id(ctx), ctx.author.id, resolved_card_id
+    )
     if not was_removed:
-        await _reply(ctx, embed=italy_embed("Wishlist", f"Not on wishlist: {card_base_display(resolved_card_id)}"))
+        await _reply(
+            ctx,
+            embed=italy_embed(
+                "Wishlist", f"Not on wishlist: {card_base_display(resolved_card_id)}"
+            ),
+        )
         return
 
-    await _reply(ctx, embed=italy_embed("Wishlist", f"Removed from wishlist: {card_base_display(resolved_card_id)}"))
+    await _reply(
+        ctx,
+        embed=italy_embed(
+            "Wishlist", f"Removed from wishlist: {card_base_display(resolved_card_id)}"
+        ),
+    )
 
 
-async def _wish_list(ctx: commands.Context, target_member: discord.abc.User | None = None) -> None:
+async def _wish_list(
+    ctx: commands.Context, target_member: discord.abc.User | None = None
+) -> None:
     if not await _require_guild(ctx, "Wishlist"):
         return
 
@@ -723,7 +808,9 @@ async def _wish_list(ctx: commands.Context, target_member: discord.abc.User | No
     title = f"{target_member.display_name}'s Wishlist"
     if not wishlisted_card_ids:
         if target_member.id == ctx.author.id:
-            description = "Your wishlist is empty. Add cards with `ns wish add <card_id>`."
+            description = (
+                "Your wishlist is empty. Add cards with `ns wish add <card_id>`."
+            )
         else:
             description = f"{target_member.display_name} has an empty wishlist."
         await _reply(ctx, embed=italy_embed(title, description))
@@ -759,11 +846,12 @@ async def _tag_add(ctx: commands.Context, tag_name: str) -> None:
     created = create_player_tag(_guild_id(ctx), ctx.author.id, tag_name)
     normalized = tag_name.strip().lower()
     if not created:
-        await _reply(ctx,
+        await _reply(
+            ctx,
             embed=italy_embed(
                 "Tags",
                 "Could not create that tag. Tags must be unique, non-empty, and up to 32 characters.",
-            )
+            ),
         )
         return
 
@@ -789,11 +877,17 @@ async def _tag_list(ctx: commands.Context) -> None:
 
     tags = list_player_tags(_guild_id(ctx), ctx.author.id)
     if not tags:
-        await _reply(ctx, embed=italy_embed("Your Tags", "No tags yet. Create one with `ns tag add <tag_name>`."))
+        await _reply(
+            ctx,
+            embed=italy_embed(
+                "Your Tags", "No tags yet. Create one with `ns tag add <tag_name>`."
+            ),
+        )
         return
 
     lines = [
-        f"{'🔒 ' if is_locked else '`  ` '}" f"`{tag_name}` - {'Locked' if is_locked else 'Unlocked'} - {card_count} card(s)"
+        f"{'🔒 ' if is_locked else '`  ` '}"
+        f"`{tag_name}` - {'Locked' if is_locked else 'Unlocked'} - {card_count} card(s)"
         for tag_name, is_locked, card_count in tags
     ]
     await _reply(ctx, embed=italy_embed("Your Tags", multiline_text(lines)))
@@ -810,7 +904,9 @@ async def _tag_lock(ctx: commands.Context, tag_name: str, locked: bool) -> None:
         return
 
     state = "locked" if locked else "unlocked"
-    await _reply(ctx, embed=italy_embed("Tags", f"Tag `{normalized}` is now **{state}**."))
+    await _reply(
+        ctx, embed=italy_embed("Tags", f"Tag `{normalized}` is now **{state}**.")
+    )
 
 
 async def _tag_assign(ctx: commands.Context, tag_name: str, card_code: str) -> None:
@@ -823,26 +919,34 @@ async def _tag_assign(ctx: commands.Context, tag_name: str, card_code: str) -> N
         return
 
     instance_id, card_id, generation, dupe_code = selected
-    if is_tag_assigned_to_instance(_guild_id(ctx), ctx.author.id, instance_id, tag_name):
-        await _reply(ctx, embed=italy_embed("Tags", "That card is already assigned to this tag."))
+    if is_tag_assigned_to_instance(
+        _guild_id(ctx), ctx.author.id, instance_id, tag_name
+    ):
+        await _reply(
+            ctx, embed=italy_embed("Tags", "That card is already assigned to this tag.")
+        )
         return
 
-    assigned = assign_tag_to_instance(_guild_id(ctx), ctx.author.id, instance_id, tag_name)
+    assigned = assign_tag_to_instance(
+        _guild_id(ctx), ctx.author.id, instance_id, tag_name
+    )
     normalized = tag_name.strip().lower()
     if not assigned:
-        await _reply(ctx,
+        await _reply(
+            ctx,
             embed=italy_embed(
                 "Tags",
                 "Could not tag that card. Make sure the tag exists and the card is yours.",
-            )
+            ),
         )
         return
 
-    await _reply(ctx,
+    await _reply(
+        ctx,
         embed=italy_embed(
             "Tags",
             f"Tagged {card_dupe_display(card_id, generation, dupe_code=dupe_code)} with `{normalized}`.",
-        )
+        ),
     )
 
 
@@ -856,17 +960,23 @@ async def _tag_unassign(ctx: commands.Context, tag_name: str, card_code: str) ->
         return
 
     instance_id, card_id, generation, dupe_code = selected
-    unassigned = unassign_tag_from_instance(_guild_id(ctx), ctx.author.id, instance_id, tag_name)
+    unassigned = unassign_tag_from_instance(
+        _guild_id(ctx), ctx.author.id, instance_id, tag_name
+    )
     normalized = tag_name.strip().lower()
     if not unassigned:
-        await _reply(ctx, embed=italy_embed("Tags", f"That card is not tagged with `{normalized}`."))
+        await _reply(
+            ctx,
+            embed=italy_embed("Tags", f"That card is not tagged with `{normalized}`."),
+        )
         return
 
-    await _reply(ctx,
+    await _reply(
+        ctx,
         embed=italy_embed(
             "Tags",
             f"Removed `{normalized}` from {card_dupe_display(card_id, generation, dupe_code=dupe_code)}.",
-        )
+        ),
     )
 
 
@@ -877,7 +987,9 @@ async def _tag_cards(ctx: commands.Context, tag_name: str) -> None:
     normalized = tag_name.strip().lower()
     tagged_instances = get_instances_by_tag(_guild_id(ctx), ctx.author.id, normalized)
     if not tagged_instances:
-        await _reply(ctx, embed=italy_embed("Tags", f"No cards found for tag `{normalized}`."))
+        await _reply(
+            ctx, embed=italy_embed("Tags", f"No cards found for tag `{normalized}`.")
+        )
         return
 
     view = SortableCollectionView(
@@ -887,10 +999,15 @@ async def _tag_cards(ctx: commands.Context, tag_name: str) -> None:
         locked_instance_ids=get_locked_instance_ids(
             _guild_id(ctx),
             ctx.author.id,
-            [instance_id for instance_id, _card_id, _generation, _dupe_code in tagged_instances],
+            [
+                instance_id
+                for instance_id, _card_id, _generation, _dupe_code in tagged_instances
+            ],
         ),
         wish_counts=get_card_wish_counts(_guild_id(ctx)),
-        folder_emojis_by_instance=_folder_emoji_map_for_instances(_guild_id(ctx), ctx.author.id, tagged_instances),
+        folder_emojis_by_instance=_folder_emoji_map_for_instances(
+            _guild_id(ctx), ctx.author.id, tagged_instances
+        ),
         instance_styles={
             instance_id: (
                 get_instance_morph(_guild_id(ctx), instance_id),
@@ -905,7 +1022,9 @@ async def _tag_cards(ctx: commands.Context, tag_name: str) -> None:
     view.message = message
 
 
-async def _folder_add(ctx: commands.Context, folder_name: str, emoji: str | None) -> None:
+async def _folder_add(
+    ctx: commands.Context, folder_name: str, emoji: str | None
+) -> None:
     if not await _require_guild(ctx, "Folders"):
         return
 
@@ -931,7 +1050,9 @@ async def _folder_remove(ctx: commands.Context, folder_name: str) -> None:
     removed = delete_player_folder(_guild_id(ctx), ctx.author.id, folder_name)
     normalized = folder_name.strip().lower()
     if not removed:
-        await _reply(ctx, embed=italy_embed("Folders", f"Folder not found: `{normalized}`"))
+        await _reply(
+            ctx, embed=italy_embed("Folders", f"Folder not found: `{normalized}`")
+        )
         return
 
     await _reply(ctx, embed=italy_embed("Folders", f"Deleted folder: `{normalized}`"))
@@ -943,7 +1064,13 @@ async def _folder_list(ctx: commands.Context) -> None:
 
     folders = list_player_folders(_guild_id(ctx), ctx.author.id)
     if not folders:
-        await _reply(ctx, embed=italy_embed("Your Folders", "No folders yet. Create one with `ns folder add <folder_name> [emoji]`."))
+        await _reply(
+            ctx,
+            embed=italy_embed(
+                "Your Folders",
+                "No folders yet. Create one with `ns folder add <folder_name> [emoji]`.",
+            ),
+        )
         return
 
     lines = [
@@ -960,14 +1087,20 @@ async def _folder_lock(ctx: commands.Context, folder_name: str, locked: bool) ->
     if not await _require_guild(ctx, "Folders"):
         return
 
-    updated = set_player_folder_locked(_guild_id(ctx), ctx.author.id, folder_name, locked)
+    updated = set_player_folder_locked(
+        _guild_id(ctx), ctx.author.id, folder_name, locked
+    )
     normalized = folder_name.strip().lower()
     if not updated:
-        await _reply(ctx, embed=italy_embed("Folders", f"Folder not found: `{normalized}`"))
+        await _reply(
+            ctx, embed=italy_embed("Folders", f"Folder not found: `{normalized}`")
+        )
         return
 
     state = "locked" if locked else "unlocked"
-    await _reply(ctx, embed=italy_embed("Folders", f"Folder `{normalized}` is now **{state}**."))
+    await _reply(
+        ctx, embed=italy_embed("Folders", f"Folder `{normalized}` is now **{state}**.")
+    )
 
 
 async def _folder_emoji(ctx: commands.Context, folder_name: str, emoji: str) -> None:
@@ -977,27 +1110,44 @@ async def _folder_emoji(ctx: commands.Context, folder_name: str, emoji: str) -> 
     updated = set_player_folder_emoji(_guild_id(ctx), ctx.author.id, folder_name, emoji)
     normalized = folder_name.strip().lower()
     if not updated:
-        await _reply(ctx, embed=italy_embed("Folders", f"Folder not found: `{normalized}`"))
+        await _reply(
+            ctx, embed=italy_embed("Folders", f"Folder not found: `{normalized}`")
+        )
         return
 
-    await _reply(ctx, embed=italy_embed("Folders", f"Updated emoji for `{normalized}`."))
+    await _reply(
+        ctx, embed=italy_embed("Folders", f"Updated emoji for `{normalized}`.")
+    )
 
 
-async def _folder_assign(ctx: commands.Context, folder_name: str, card_code: str) -> None:
+async def _folder_assign(
+    ctx: commands.Context, folder_name: str, card_code: str
+) -> None:
     if not await _require_guild(ctx, "Folders"):
         return
 
     selected = get_instance_by_code(_guild_id(ctx), ctx.author.id, card_code)
     if selected is None:
-        await _reply(ctx, embed=italy_embed("Folders", "You do not own that card code."))
+        await _reply(
+            ctx, embed=italy_embed("Folders", "You do not own that card code.")
+        )
         return
 
     instance_id, card_id, generation, dupe_code = selected
-    if is_instance_assigned_to_folder(_guild_id(ctx), ctx.author.id, instance_id, folder_name):
-        await _reply(ctx, embed=italy_embed("Folders", "That card is already assigned to this folder."))
+    if is_instance_assigned_to_folder(
+        _guild_id(ctx), ctx.author.id, instance_id, folder_name
+    ):
+        await _reply(
+            ctx,
+            embed=italy_embed(
+                "Folders", "That card is already assigned to this folder."
+            ),
+        )
         return
 
-    assigned = assign_instance_to_folder(_guild_id(ctx), ctx.author.id, instance_id, folder_name)
+    assigned = assign_instance_to_folder(
+        _guild_id(ctx), ctx.author.id, instance_id, folder_name
+    )
     normalized = folder_name.strip().lower()
     if not assigned:
         await _reply(
@@ -1018,20 +1168,31 @@ async def _folder_assign(ctx: commands.Context, folder_name: str, card_code: str
     )
 
 
-async def _folder_unassign(ctx: commands.Context, folder_name: str, card_code: str) -> None:
+async def _folder_unassign(
+    ctx: commands.Context, folder_name: str, card_code: str
+) -> None:
     if not await _require_guild(ctx, "Folders"):
         return
 
     selected = get_instance_by_code(_guild_id(ctx), ctx.author.id, card_code)
     if selected is None:
-        await _reply(ctx, embed=italy_embed("Folders", "You do not own that card code."))
+        await _reply(
+            ctx, embed=italy_embed("Folders", "You do not own that card code.")
+        )
         return
 
     instance_id, card_id, generation, dupe_code = selected
-    removed = unassign_instance_from_folder(_guild_id(ctx), ctx.author.id, instance_id, folder_name)
+    removed = unassign_instance_from_folder(
+        _guild_id(ctx), ctx.author.id, instance_id, folder_name
+    )
     normalized = folder_name.strip().lower()
     if not removed:
-        await _reply(ctx, embed=italy_embed("Folders", f"That card is not assigned to `{normalized}`."))
+        await _reply(
+            ctx,
+            embed=italy_embed(
+                "Folders", f"That card is not assigned to `{normalized}`."
+            ),
+        )
         return
 
     await _reply(
@@ -1048,9 +1209,14 @@ async def _folder_cards(ctx: commands.Context, folder_name: str) -> None:
         return
 
     normalized = folder_name.strip().lower()
-    folder_instances = get_instances_by_folder(_guild_id(ctx), ctx.author.id, normalized)
+    folder_instances = get_instances_by_folder(
+        _guild_id(ctx), ctx.author.id, normalized
+    )
     if not folder_instances:
-        await _reply(ctx, embed=italy_embed("Folders", f"No cards found for folder `{normalized}`."))
+        await _reply(
+            ctx,
+            embed=italy_embed("Folders", f"No cards found for folder `{normalized}`."),
+        )
         return
 
     view = SortableCollectionView(
@@ -1060,10 +1226,15 @@ async def _folder_cards(ctx: commands.Context, folder_name: str) -> None:
         locked_instance_ids=get_locked_instance_ids(
             _guild_id(ctx),
             ctx.author.id,
-            [instance_id for instance_id, _card_id, _generation, _dupe_code in folder_instances],
+            [
+                instance_id
+                for instance_id, _card_id, _generation, _dupe_code in folder_instances
+            ],
         ),
         wish_counts=get_card_wish_counts(_guild_id(ctx)),
-        folder_emojis_by_instance=_folder_emoji_map_for_instances(_guild_id(ctx), ctx.author.id, folder_instances),
+        folder_emojis_by_instance=_folder_emoji_map_for_instances(
+            _guild_id(ctx), ctx.author.id, folder_instances
+        ),
         instance_styles={
             instance_id: (
                 get_instance_morph(_guild_id(ctx), instance_id),
@@ -1116,7 +1287,12 @@ async def _team_list(ctx: commands.Context) -> None:
 
     teams = list_player_teams(_guild_id(ctx), ctx.author.id)
     if not teams:
-        await _reply(ctx, embed=italy_embed("Your Teams", "No teams yet. Create one with `ns team add <team_name>`."))
+        await _reply(
+            ctx,
+            embed=italy_embed(
+                "Your Teams", "No teams yet. Create one with `ns team add <team_name>`."
+            ),
+        )
         return
 
     lines = [
@@ -1136,14 +1312,25 @@ async def _team_assign(ctx: commands.Context, team_name: str, card_code: str) ->
         return
 
     instance_id, card_id, generation, dupe_code = selected
-    if is_instance_assigned_to_team(_guild_id(ctx), ctx.author.id, instance_id, team_name):
-        await _reply(ctx, embed=italy_embed("Teams", "That card is already on this team."))
+    if is_instance_assigned_to_team(
+        _guild_id(ctx), ctx.author.id, instance_id, team_name
+    ):
+        await _reply(
+            ctx, embed=italy_embed("Teams", "That card is already on this team.")
+        )
         return
 
-    success, message = assign_instance_to_team(_guild_id(ctx), ctx.author.id, instance_id, team_name)
+    success, message = assign_instance_to_team(
+        _guild_id(ctx), ctx.author.id, instance_id, team_name
+    )
     normalized = team_name.strip().lower()
     if not success:
-        await _reply(ctx, embed=italy_embed("Teams", message or "Could not assign that card to this team."))
+        await _reply(
+            ctx,
+            embed=italy_embed(
+                "Teams", message or "Could not assign that card to this team."
+            ),
+        )
         return
 
     await _reply(
@@ -1165,10 +1352,15 @@ async def _team_unassign(ctx: commands.Context, team_name: str, card_code: str) 
         return
 
     instance_id, card_id, generation, dupe_code = selected
-    removed = unassign_instance_from_team(_guild_id(ctx), ctx.author.id, instance_id, team_name)
+    removed = unassign_instance_from_team(
+        _guild_id(ctx), ctx.author.id, instance_id, team_name
+    )
     normalized = team_name.strip().lower()
     if not removed:
-        await _reply(ctx, embed=italy_embed("Teams", f"That card is not assigned to `{normalized}`."))
+        await _reply(
+            ctx,
+            embed=italy_embed("Teams", f"That card is not assigned to `{normalized}`."),
+        )
         return
 
     await _reply(
@@ -1187,7 +1379,9 @@ async def _team_cards(ctx: commands.Context, team_name: str) -> None:
     normalized = team_name.strip().lower()
     team_instances = get_instances_by_team(_guild_id(ctx), ctx.author.id, normalized)
     if not team_instances:
-        await _reply(ctx, embed=italy_embed("Teams", f"No cards found for team `{normalized}`."))
+        await _reply(
+            ctx, embed=italy_embed("Teams", f"No cards found for team `{normalized}`.")
+        )
         return
 
     view = SortableCollectionView(
@@ -1197,10 +1391,15 @@ async def _team_cards(ctx: commands.Context, team_name: str) -> None:
         locked_instance_ids=get_locked_instance_ids(
             _guild_id(ctx),
             ctx.author.id,
-            [instance_id for instance_id, _card_id, _generation, _dupe_code in team_instances],
+            [
+                instance_id
+                for instance_id, _card_id, _generation, _dupe_code in team_instances
+            ],
         ),
         wish_counts=get_card_wish_counts(_guild_id(ctx)),
-        folder_emojis_by_instance=_folder_emoji_map_for_instances(_guild_id(ctx), ctx.author.id, team_instances),
+        folder_emojis_by_instance=_folder_emoji_map_for_instances(
+            _guild_id(ctx), ctx.author.id, team_instances
+        ),
         instance_styles={
             instance_id: (
                 get_instance_morph(_guild_id(ctx), instance_id),
@@ -1247,9 +1446,16 @@ async def _team_active(ctx: commands.Context, team_name: str | None) -> None:
     if team_name is None:
         active_team_name = get_active_team_name(_guild_id(ctx), ctx.author.id)
         if active_team_name is None:
-            await _reply(ctx, embed=italy_embed("Teams", "No active team set. Use `ns team active <team_name>`."))
+            await _reply(
+                ctx,
+                embed=italy_embed(
+                    "Teams", "No active team set. Use `ns team active <team_name>`."
+                ),
+            )
             return
-        await _reply(ctx, embed=italy_embed("Teams", f"Active team: `{active_team_name}`"))
+        await _reply(
+            ctx, embed=italy_embed("Teams", f"Active team: `{active_team_name}`")
+        )
         return
 
     normalized = team_name.strip().lower()
@@ -1266,7 +1472,10 @@ async def _battle(ctx: commands.Context, player: str, stake: int) -> None:
 
     resolved_member, resolve_error = await resolve_member_argument(ctx, player)
     if resolved_member is None:
-        await _reply(ctx, embed=italy_embed("Battle", resolve_error or "Could not resolve player."))
+        await _reply(
+            ctx,
+            embed=italy_embed("Battle", resolve_error or "Could not resolve player."),
+        )
         return
 
     prepared = prepare_battle_offer(
@@ -1277,7 +1486,12 @@ async def _battle(ctx: commands.Context, player: str, stake: int) -> None:
         stake=stake,
     )
     if prepared.is_error:
-        await _reply(ctx, embed=italy_embed("Battle", prepared.error_message or "Could not create battle proposal."))
+        await _reply(
+            ctx,
+            embed=italy_embed(
+                "Battle", prepared.error_message or "Could not create battle proposal."
+            ),
+        )
         return
 
     if (
@@ -1285,7 +1499,9 @@ async def _battle(ctx: commands.Context, player: str, stake: int) -> None:
         or prepared.challenger_team_name is None
         or prepared.challenged_team_name is None
     ):
-        await _reply(ctx, embed=italy_embed("Battle", "Could not create battle proposal."))
+        await _reply(
+            ctx, embed=italy_embed("Battle", "Could not create battle proposal.")
+        )
         return
 
     view = BattleProposalView(

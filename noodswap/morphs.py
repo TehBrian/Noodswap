@@ -1,6 +1,5 @@
 from typing import Final
 
-
 MORPH_BLACK_AND_WHITE: Final[str] = "black_and_white"
 MORPH_INVERSE: Final[str] = "inverse"
 MORPH_TINT_ROSE: Final[str] = "tint_rose"

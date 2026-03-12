@@ -7,7 +7,6 @@ from typing import Callable, Mapping, TypedDict
 
 from .settings import GENERATION_MAX, GENERATION_MIN
 
-
 GENERATION_ROLL_TAU = 0.95
 
 
@@ -16,7 +15,9 @@ class CardEconomyRecord(TypedDict):
     base_value: int
 
 
-def compute_rarity_card_counts(card_catalog: Mapping[str, CardEconomyRecord]) -> Counter[str]:
+def compute_rarity_card_counts(
+    card_catalog: Mapping[str, CardEconomyRecord],
+) -> Counter[str]:
     return Counter(card["rarity"] for card in card_catalog.values())
 
 
@@ -62,14 +63,18 @@ def target_rarity_odds(
     return {rarity: active_weights[rarity] / total_weight for rarity in active_weights}
 
 
-def card_base_value(card_id: str, *, card_catalog: Mapping[str, CardEconomyRecord]) -> int:
+def card_base_value(
+    card_id: str, *, card_catalog: Mapping[str, CardEconomyRecord]
+) -> int:
     return int(card_catalog[card_id]["base_value"])
 
 
-def generation_value_multiplier(generation: int, *, generation_min: int, generation_max: int) -> float:
+def generation_value_multiplier(
+    generation: int, *, generation_min: int, generation_max: int
+) -> float:
     clamped_generation = max(generation_min, min(generation_max, generation))
     progress = (generation_max - clamped_generation) / (generation_max - generation_min)
-    return 1.0 + (2 * progress ** 2) + (9 * progress ** 9) + (49 * progress ** 49)
+    return 1.0 + (2 * progress**2) + (9 * progress**9) + (49 * progress**49)
 
 
 def card_value(
@@ -117,16 +122,20 @@ def random_generation(*, generation_min: int, generation_max: int) -> int:
 
 
 @lru_cache(maxsize=16)
-def _generation_sampler(generation_min: int, generation_max: int, tau: float) -> tuple[tuple[int, ...], tuple[float, ...]]:
+def _generation_sampler(
+    generation_min: int, generation_max: int, tau: float
+) -> tuple[tuple[int, ...], tuple[float, ...]]:
     if generation_min >= generation_max:
         return (int(generation_min),), (1.0,)
 
     generations = tuple(range(generation_min, generation_max + 1))
     multipliers = tuple(
-        generation_value_multiplier(generation, generation_min=generation_min, generation_max=generation_max)
+        generation_value_multiplier(
+            generation, generation_min=generation_min, generation_max=generation_max
+        )
         for generation in generations
     )
-    weights = tuple(1.0 / (multiplier ** tau) for multiplier in multipliers)
+    weights = tuple(1.0 / (multiplier**tau) for multiplier in multipliers)
     total = sum(weights)
     if total <= 0 or not math.isfinite(total):
         return (), ()
@@ -178,7 +187,9 @@ def get_burn_payout(
     base_value = card_base_value_func(card_id)
     multiplier = generation_multiplier_func(generation) * max(1.0, trait_multiplier)
     value = max(1, int(round(base_value * multiplier)))
-    resolved_delta_range = burn_delta_range_func(value) if delta_range is None else max(1, delta_range)
+    resolved_delta_range = (
+        burn_delta_range_func(value) if delta_range is None else max(1, delta_range)
+    )
     delta = random.randint(-resolved_delta_range, resolved_delta_range)
     payout = max(1, value + delta)
     return payout, value, base_value, delta, multiplier, resolved_delta_range
