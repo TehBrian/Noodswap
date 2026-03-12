@@ -2122,7 +2122,9 @@ class CommandsVoteTests:
         self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)
         register_commands(self.bot)
 
-    async def test_vote_shows_webhook_registration_message(self) -> None:
+    async def test_vote_shows_configuration_message_when_topgg_token_missing(
+        self,
+    ) -> None:
         vote_command = _get_command(self.bot, "vote")
 
         ctx = AsyncMock()
@@ -2138,11 +2140,11 @@ class CommandsVoteTests:
         sent_embed = ctx.send.await_args.kwargs["embed"]
         sent_view = ctx.send.await_args.kwargs["view"]
         assert sent_embed.title == "Vote"
-        assert "Votes are registered automatically through Top.gg webhooks." in sent_embed.description
-        assert "After voting, rewards are applied as soon as Top.gg delivers the webhook event." in sent_embed.description
+        assert "The reward system is temporarily unavailable." in sent_embed.description
+        assert "You can still vote, but you won't earn starter for now." in sent_embed.description
         assert isinstance(sent_view, discord.ui.View)
 
-    async def test_vote_uses_topgg_bot_vote_url_when_bot_id_is_known(self) -> None:
+    async def test_vote_claims_starter_when_topgg_vote_detected(self) -> None:
         vote_command = _get_command(self.bot, "vote")
 
         ctx = AsyncMock()
@@ -2151,15 +2153,24 @@ class CommandsVoteTests:
         ctx.send = AsyncMock()
         ctx.reply = ctx.send
 
-        with patch.dict("os.environ", {"TOPGG_BOT_ID": "123"}, clear=True):
+        with (
+            patch.dict(
+                "os.environ",
+                {"TOPGG_API_TOKEN": "token", "TOPGG_BOT_ID": "123"},
+                clear=True,
+            ),
+            patch(
+                "bot.commands_catalog._topgg_recent_vote_status",
+                new=AsyncMock(return_value=(True, None)),
+            ),
+            patch("bot.commands_catalog.claim_vote_reward", return_value=5),
+        ):
             await vote_command.callback(ctx)
 
         ctx.send.assert_awaited_once()
-        sent_view = ctx.send.await_args.kwargs["view"]
-        assert isinstance(sent_view, discord.ui.View)
-        vote_button = next((child for child in sent_view.children if isinstance(child, discord.ui.Button)), None)
-        assert vote_button is not None
-        assert vote_button.url == "https://top.gg/bot/123/vote"
+        sent_embed = ctx.send.await_args.kwargs["embed"]
+        assert "Claimed:" in sent_embed.description
+        assert "Starter Balance: **5**" in sent_embed.description
 
 
 class CommandsBurnTests:

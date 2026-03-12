@@ -20,10 +20,10 @@ Discord trading-card style bot using `discord.py`.
    ```
    - Optional top.gg vote verification and rewards:
    ```bash
-   export TOPGG_WEBHOOK_SECRET=your-topgg-webhook-secret
+   export TOPGG_API_TOKEN=your-topgg-api-token
    export TOPGG_BOT_ID=your-discord-bot-id
    ```
-   `TOPGG_WEBHOOK_SECRET` must match the Authorization value configured in your bot's webhook settings on top.gg. `TOPGG_BOT_ID` is optional and only used if the bot id cannot be resolved at runtime for the vote-link URL.
+   `TOPGG_API_TOKEN` is required for vote verification (`top.gg` API v1). `TOPGG_BOT_ID` is optional and only used if the bot id cannot be resolved at runtime for the vote-link URL.
    - Production (recommended): inject secret from your platform secret manager as either `DISCORD_TOKEN` or a mounted file path in `DISCORD_TOKEN_FILE`.
 4. Initialize local runtime state:
    ```bash
@@ -68,7 +68,7 @@ If startup fails with `401 Unauthorized` / `Improper token has been passed`, ver
 
 Optional runtime values:
 
-- `TOPGG_WEBHOOK_SECRET`
+- `TOPGG_API_TOKEN`
 - `TOPGG_BOT_ID`
 
 ### Manual deploy/update
@@ -133,7 +133,7 @@ This bot uses privileged intents. Enable these for your application in Discord D
 - `ns buy drop [quantity]` — buy drop tickets using `starter` (cost: 1 starter per ticket; default quantity is 1).
 - `ns slots` / `ns sl` — spin 3 food reels; 2 matches award 200-400 dough, and 3 matches award 800-1200 dough plus 1-3 `starter`.
 - `ns flip <stake>` / `ns f <stake>` — coin flip wager with 46% win / 54% lose odds; heads wins `+stake`, tails loses `-stake` (2m cooldown).
-- `ns vote` / `ns v` — open the top.gg vote page; rewards are registered automatically when top.gg sends the webhook event.
+- `ns vote` / `ns v` — open the top.gg vote page and claim `starter` reward when your vote is detected.
 - `ns cooldown [player]` / `ns cd [player]` — show drop (6m), pull (4m), flip (2m), slots (22m), and monopoly (11m) cooldowns for yourself or another player.
 - `ns burn [targets...]` / `ns b [targets...]` — burn one or more targets for dough. Supports card codes/IDs plus selectors `t:<tag_name>` and `f:<folder_name>`. If any selected card is in a locked tag or locked folder, the entire burn is blocked.
 - `ns gift dough <player> <dough>` / `ns gift d <player> <dough>` — send dough directly to another player.
