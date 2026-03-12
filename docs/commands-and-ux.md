@@ -355,10 +355,10 @@ Shows:
 ## Vote UX
 
 - `vote` / `v` sends an embed with top.gg voting info and a link button
-- if top.gg API v1 verification is configured, running `vote` after voting attempts to claim `starter` immediately
-- successful claim grants `starter`
-- if no recent vote is detected by top.gg, command should instruct user to vote and retry
-- if top.gg API config is missing, command still sends the vote link and a player-facing retry hint without deployment/config details
+- embed copy should state that vote rewards are webhook-driven and claim automatically after top.gg delivers the vote event
+- successful webhook claim grants `starter`
+- command should not imply that rerunning `vote` performs verification or claiming
+- if webhook config is missing or broken, command should still send the vote link without surfacing deployment-only details to players
 
 ## Marriage UX
 
