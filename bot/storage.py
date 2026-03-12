@@ -1651,7 +1651,7 @@ def execute_monopoly_roll(
 
         if space.kind != "property":
             lines.append("")
-            lines.append(f"Landed on **{space.name}** {space.emoji}.")
+            lines.append(f"Landed on **{space.name}** {space.emoji}")
 
         if space.kind == "tax":
             paid = _deduct_up_to(players, guild_id, user_id, MONOPOLY_CHEESE_TAX_DOUGH)
@@ -1866,7 +1866,7 @@ def execute_monopoly_roll(
                 font_key = instances.get_font_key(guild_id, selected_instance_id)
                 card_name = str(CARD_CATALOG[str(card_id)]["name"])
                 lines.append("")
-                lines.append(f"Landed on **{card_name}** {space.emoji}! (#{card_code})")
+                lines.append(f"Landed on **{card_name}** {space.emoji} (#{card_code})")
                 rent_due = (
                     card_value(
                         card_id,
