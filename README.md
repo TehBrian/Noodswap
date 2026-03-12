@@ -18,12 +18,11 @@ Discord trading-card style bot using `discord.py`.
    ```bash
    export DISCORD_TOKEN=your-token
    ```
-   - Optional top.gg vote verification and rewards:
+   - Optional top.gg webhook integration:
    ```bash
-   export TOPGG_API_TOKEN=your-topgg-api-token
    export TOPGG_BOT_ID=your-discord-bot-id
    ```
-   `TOPGG_API_TOKEN` is required for vote verification (`top.gg` API v1). `TOPGG_BOT_ID` is optional and only used if the bot id cannot be resolved at runtime for the vote-link URL.
+   `TOPGG_BOT_ID` is optional and only used if the bot id cannot be resolved at runtime for the vote-link URL.
    - Production (recommended): inject secret from your platform secret manager as either `DISCORD_TOKEN` or a mounted file path in `DISCORD_TOKEN_FILE`.
 4. Initialize local runtime state:
    ```bash
@@ -66,9 +65,9 @@ Set required values:
 
 If startup fails with `401 Unauthorized` / `Improper token has been passed`, verify `deploy/runtime.env` contains a current bot token with no surrounding quotes and no extra whitespace.
 
-Optional runtime values:
+Optional runtime values for top.gg webhook integration:
 
-- `TOPGG_API_TOKEN`
+- `TOPGG_WEBHOOK_SECRET`
 - `TOPGG_BOT_ID`
 
 ### Manual deploy/update

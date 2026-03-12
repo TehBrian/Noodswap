@@ -161,27 +161,7 @@ from .command_utils import (
 )  # noqa: F403
 
 
-async def _topgg_recent_vote_status(*, user_id: int, bot_id: int | None, api_token: str) -> tuple[bool, str | None]:
-    if bot_id is None:
-        return False, "Top.gg bot id is not configured."
 
-    url = f"https://top.gg/api/bots/{bot_id}/check?userId={user_id}"
-    headers = {"Authorization": api_token}
-    try:
-        timeout = aiohttp.ClientTimeout(total=7)
-        async with aiohttp.ClientSession(timeout=timeout) as session:
-            async with session.get(url, headers=headers) as response:
-                if response.status != 200:
-                    return False, "Could not verify your vote right now."
-                payload = await response.json(content_type=None)
-    except Exception:
-        return False, "Could not verify your vote right now."
-
-    voted_raw = payload.get("voted") if isinstance(payload, dict) else None
-    voted = str(voted_raw).strip() in {"1", "true", "True"}
-    if voted:
-        return True, None
-    return False, "Vote on Top.gg, then run `ns vote` again to claim."
 
 
 def register_catalog_commands(bot: commands.Bot) -> None:
@@ -425,56 +405,9 @@ def register_catalog_commands(bot: commands.Bot) -> None:
         if bot_id is not None:
             vote_url = f"https://top.gg/bot/{bot_id}/vote"
 
-        api_token = os.getenv("TOPGG_API_TOKEN", "").strip()
-        if not api_token:
-            await _reply(
-                ctx,
-                embed=italy_embed(
-                    "Vote",
-                    multiline_text(
-                        [
-                            "Support Noodswap by voting on Top.gg!",
-                            f"Reward: **+{VOTE_STARTER_REWARD} starter**",
-                            "",
-                            "The reward system is temporarily unavailable.",
-                            "You can still vote, but you won't earn starter for now.",
-                        ]
-                    ),
-                ),
-                view=_vote_link_view(vote_url),
-            )
-            return
-
-        voted_recently, verify_error = await _topgg_recent_vote_status(
-            user_id=ctx.author.id,
-            bot_id=bot_id,
-            api_token=api_token,
-        )
-        if voted_recently:
-            starter_total = claim_vote_reward(_guild_id(ctx), ctx.author.id, VOTE_STARTER_REWARD)
-            await _reply(
-                ctx,
-                embed=italy_embed(
-                    "Vote",
-                    multiline_text(
-                        [
-                            "Top.gg vote detected.",
-                            f"Claimed: **+{VOTE_STARTER_REWARD} starter**",
-                            f"Starter Balance: **{starter_total}**",
-                        ]
-                    ),
-                ),
-                view=_vote_link_view(vote_url),
-            )
-            return
-
         lines: list[str] = [
             "Support Noodswap by voting on Top.gg!",
             f"Reward: **+{VOTE_STARTER_REWARD} starter**",
-            "",
-            verify_error or "Votes are registered automatically through Top.gg webhooks.",
-            "After voting, rewards are applied as soon as Top.gg delivers the webhook event.",
-            "If your reward does not appear after a short delay, contact an admin.",
         ]
 
         await _reply(
