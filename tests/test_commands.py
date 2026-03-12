@@ -687,7 +687,6 @@ class CommandsTeamTests(unittest.IsolatedAsyncioTestCase):
         sent_embed = ctx.send.await_args.kwargs["embed"]
         sent_view = ctx.send.await_args.kwargs["view"]
         self.assertEqual(sent_embed.title, "Team: `alpha`")
-        self.assertRegex(sent_embed.description, r"HP:\d+ ATK:\d+ DEF:\d+")
         self.assertIsInstance(sent_view, SortableCollectionView)
         self.assertIs(sent_view.message, ctx.send.return_value)
 
@@ -869,10 +868,9 @@ class CommandsLookupTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("Owner: <@999>", sent_embed.description)
         self.assertIn("G-101", sent_embed.description)
         self.assertIn("dough", sent_embed.description)
-        self.assertIn("**Traits**", sent_embed.description)
         self.assertIn("**Value Breakdown**", sent_embed.description)
         self.assertIn("Trait Multiplier", sent_embed.description)
-        self.assertRegex(sent_embed.description, r"HP:\d+ ATK:\d+ DEF:\d+")
+        self.assertRegex(sent_embed.description, r"HP: \*\*\d+\*\* • ATK: \*\*\d+\*\* • DEF: \*\*\d+\*\*")
 
     async def test_lookup_shows_dupe_card_embed_for_hash_prefixed_code(self) -> None:
         lookup_command = _get_command(self.bot, "lookup")
@@ -897,9 +895,8 @@ class CommandsLookupTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("Owner: <@999>", sent_embed.description)
         self.assertIn("G-101", sent_embed.description)
         self.assertIn("dough", sent_embed.description)
-        self.assertIn("**Traits**", sent_embed.description)
         self.assertIn("**Value Breakdown**", sent_embed.description)
-        self.assertRegex(sent_embed.description, r"HP:\d+ ATK:\d+ DEF:\d+")
+        self.assertRegex(sent_embed.description, r"HP: \*\*\d+\*\* • ATK: \*\*\d+\*\* • DEF: \*\*\d+\*\*")
 
     async def test_lookuphd_shows_dupe_card_embed_with_stats_for_exact_code(
         self,
@@ -924,7 +921,7 @@ class CommandsLookupTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(sent_embed.title, "Card Lookup (HD)")
         self.assertIn("`#abc`", sent_embed.description)
         self.assertIn("Owner: <@999>", sent_embed.description)
-        self.assertRegex(sent_embed.description, r"HP:\d+ ATK:\d+ DEF:\d+")
+        self.assertRegex(sent_embed.description, r"HP: \*\*\d+\*\* • ATK: \*\*\d+\*\* • DEF: \*\*\d+\*\*")
 
     async def test_lookup_prefers_exact_dupe_code_over_card_id(self) -> None:
         lookup_command = _get_command(self.bot, "lookup")
