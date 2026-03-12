@@ -1,6 +1,2 @@
 target-version = "py314"
 line-length = 150
-
-[lint.per-file-ignores]
-"bot/app.py" = ["F401"]
-"bot/command_utils.py" = ["F401"]

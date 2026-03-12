@@ -2,9 +2,6 @@ import os
 import logging
 
 # compat must be imported before discord to apply runtime patches.
-from . import (
-    compat as _compat,
-)  # noqa: F401 - applies asyncio patch before discord import
 
 import discord
 from discord.ext import commands
