@@ -1,16 +1,16 @@
 from typing import Callable, Mapping
 
 
-def display_dupe_code(dupe_code: str | None) -> str:
-    if dupe_code is None:
+def display_card_code(card_code: str | None) -> str:
+    if card_code is None:
         return "?  "
-    return dupe_code.strip().lower().ljust(3)
+    return card_code.strip().lower().ljust(3)
 
 
-def display_dupe_code_raw(dupe_code: str | None) -> str:
-    if dupe_code is None:
+def display_card_code_raw(card_code: str | None) -> str:
+    if card_code is None:
         return "?"
-    return dupe_code.strip().lower()
+    return card_code.strip().lower()
 
 
 def generation_label(generation: int) -> str:
@@ -52,12 +52,12 @@ def card_base_display(
     )
 
 
-def card_dupe_display(
+def card_display(
     card_id: str,
     generation: int,
-    dupe_code: str | None = None,
+    card_code: str | None = None,
     *,
-    pad_dupe_code: bool = True,
+    pad_card_code: bool = True,
     morph_key: str | None = None,
     frame_key: str | None = None,
     font_key: str | None = None,
@@ -66,9 +66,9 @@ def card_dupe_display(
     card_value: Callable[..., int],
 ) -> str:
     card = card_catalog[card_id]
-    dupe_code_text = display_dupe_code(dupe_code) if pad_dupe_code else display_dupe_code_raw(dupe_code)
+    card_code_text = display_card_code(card_code) if pad_card_code else display_card_code_raw(card_code)
     return (
-        f"`#{dupe_code_text}` **{card['name']}** • (`{card_id}`) "
+        f"`#{card_code_text}` **{card['name']}** • (`{card_id}`) "
         f"[{series_display(str(card['series']), series_catalog=series_catalog)}] "
         f"({proper_case(str(card['rarity']))}) "
         f"• **{generation_label(generation)}** "
@@ -76,10 +76,10 @@ def card_dupe_display(
     )
 
 
-def card_dupe_display_concise(
+def card_display_concise(
     card_id: str,
     generation: int,
-    dupe_code: str | None = None,
+    card_code: str | None = None,
     *,
     morph_key: str | None = None,
     frame_key: str | None = None,
@@ -89,9 +89,9 @@ def card_dupe_display_concise(
     card_value: Callable[..., int],
 ) -> str:
     card = card_catalog[card_id]
-    dupe_code_text = display_dupe_code(dupe_code)
+    card_code_text = display_card_code(card_code)
     return (
-        f"`#{dupe_code_text}` (`{card_id}`) [{series_emoji(str(card['series']), series_catalog=series_catalog)}] "
+        f"`#{card_code_text}` (`{card_id}`) [{series_emoji(str(card['series']), series_catalog=series_catalog)}] "
         f"**{card['name']}** ({proper_case(str(card['rarity']))}) • **{generation_label(generation)}** "
         f"(**{card_value(card_id, generation, morph_key=morph_key, frame_key=frame_key, font_key=font_key)}** dough)"
     )

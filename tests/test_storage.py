@@ -424,14 +424,14 @@ class StorageTests:
         assert result.status == "ok"
         assert result.mpreg_card_id == "SPG"
         assert result.mpreg_generation == 321
-        assert result.mpreg_dupe_code is not None
+        assert result.mpreg_card_code is not None
         assert result.thumbnail_card_id == "SPG"
         assert result.thumbnail_generation == 321
 
-        expected_line = storage.card_dupe_display(
+        expected_line = storage.card_display(
             "SPG",
             321,
-            dupe_code=result.mpreg_dupe_code,
+            card_code=result.mpreg_card_code,
             morph_key=result.mpreg_morph_key,
             frame_key=result.mpreg_frame_key,
             font_key=result.mpreg_font_key,
@@ -551,7 +551,7 @@ class StorageTests:
         assert selected is not None
         if selected is None:
             return
-        _instance_id, selected_card_id, selected_generation, _selected_dupe_code = selected
+        _instance_id, selected_card_id, selected_generation, _selected_card_code = selected
         assert selected_card_id == card_id
         assert selected_generation == 900
 
@@ -569,20 +569,20 @@ class StorageTests:
         assert selected is not None
         if selected is None:
             return
-        _, _, _, selected_dupe_code = selected
+        _, _, _, selected_card_code = selected
 
-        success, message, traded_generation, traded_dupe_code, _ = storage.execute_trade(
+        success, message, traded_generation, traded_card_code, _ = storage.execute_trade(
             guild_id=guild_id,
             seller_id=seller_id,
             buyer_id=buyer_id,
             card_id=card_id,
-            dupe_code=selected_dupe_code,
+            card_code=selected_card_code,
             terms=TradeTerms(mode="dough", amount=30),
         )
         assert success
         assert message == ""
         assert traded_generation == 800
-        assert traded_dupe_code is not None
+        assert traded_card_code is not None
 
         seller_instances = storage.get_player_card_instances(guild_id, seller_id)
         buyer_instances = storage.get_player_card_instances(guild_id, buyer_id)
@@ -604,18 +604,18 @@ class StorageTests:
         storage.init_db()
         storage.add_dough(guild_id, buyer_id, 100)
 
-        success, message, traded_generation, traded_dupe_code, _ = storage.execute_trade(
+        success, message, traded_generation, traded_card_code, _ = storage.execute_trade(
             guild_id=guild_id,
             seller_id=seller_id,
             buyer_id=buyer_id,
             card_id="SPG",
-            dupe_code="0",
+            card_code="0",
             terms=TradeTerms(mode="dough", amount=10),
         )
         assert not (success)
         assert message == "Trade failed: seller no longer has that card code."
         assert traded_generation is None
-        assert traded_dupe_code is None
+        assert traded_card_code is None
 
         seller_dough, _, _ = storage.get_player_info(guild_id, seller_id)
         buyer_dough, _, _ = storage.get_player_info(guild_id, buyer_id)
@@ -634,20 +634,20 @@ class StorageTests:
         assert selected is not None
         if selected is None:
             return
-        _, _, _, selected_dupe_code = selected
+        _, _, _, selected_card_code = selected
 
-        success, message, traded_generation, traded_dupe_code, _ = storage.execute_trade(
+        success, message, traded_generation, traded_card_code, _ = storage.execute_trade(
             guild_id=guild_id,
             seller_id=seller_id,
             buyer_id=buyer_id,
             card_id="SPG",
-            dupe_code=selected_dupe_code,
+            card_code=selected_card_code,
             terms=TradeTerms(mode="dough", amount=20),
         )
         assert not (success)
         assert message == "Trade failed: buyer does not have enough dough."
         assert traded_generation is None
-        assert traded_dupe_code is None
+        assert traded_card_code is None
 
         seller_instances = storage.get_player_card_instances(guild_id, seller_id)
         buyer_instances = storage.get_player_card_instances(guild_id, buyer_id)
@@ -671,14 +671,14 @@ class StorageTests:
         assert selected is not None
         if selected is None:
             return
-        _, _, _, dupe_code = selected
+        _, _, _, card_code = selected
 
         success, message, gen, _dupe, received = storage.execute_trade(
             guild_id=guild_id,
             seller_id=seller_id,
             buyer_id=buyer_id,
             card_id="SPG",
-            dupe_code=dupe_code,
+            card_code=card_code,
             terms=TradeTerms(mode="starter", amount=4),
         )
         assert success
@@ -704,14 +704,14 @@ class StorageTests:
         assert selected is not None
         if selected is None:
             return
-        _, _, _, dupe_code = selected
+        _, _, _, card_code = selected
 
         success, message, gen, _dupe, received = storage.execute_trade(
             guild_id=guild_id,
             seller_id=seller_id,
             buyer_id=buyer_id,
             card_id="SPG",
-            dupe_code=dupe_code,
+            card_code=card_code,
             terms=TradeTerms(mode="starter", amount=5),
         )
         assert not (success)
@@ -736,14 +736,14 @@ class StorageTests:
         assert selected is not None
         if selected is None:
             return
-        _, _, _, dupe_code = selected
+        _, _, _, card_code = selected
 
         success, message, gen, _dupe, received = storage.execute_trade(
             guild_id=guild_id,
             seller_id=seller_id,
             buyer_id=buyer_id,
             card_id="SPG",
-            dupe_code=dupe_code,
+            card_code=card_code,
             terms=TradeTerms(mode="drop", amount=3),
         )
         assert success
@@ -769,14 +769,14 @@ class StorageTests:
         assert selected is not None
         if selected is None:
             return
-        _, _, _, dupe_code = selected
+        _, _, _, card_code = selected
 
         success, message, gen, _dupe, received = storage.execute_trade(
             guild_id=guild_id,
             seller_id=seller_id,
             buyer_id=buyer_id,
             card_id="SPG",
-            dupe_code=dupe_code,
+            card_code=card_code,
             terms=TradeTerms(mode="drop", amount=5),
         )
         assert not (success)
@@ -799,14 +799,14 @@ class StorageTests:
         assert selected is not None
         if selected is None:
             return
-        _, _, _, dupe_code = selected
+        _, _, _, card_code = selected
 
         success, message, gen, _dupe, received = storage.execute_trade(
             guild_id=guild_id,
             seller_id=seller_id,
             buyer_id=buyer_id,
             card_id="SPG",
-            dupe_code=dupe_code,
+            card_code=card_code,
             terms=TradeTerms(mode="pull", amount=3),
         )
         assert success
@@ -834,8 +834,8 @@ class StorageTests:
             seller_id=seller_id,
             buyer_id=buyer_id,
             card_id="SPG",
-            dupe_code=seller_dupe,
-            terms=TradeTerms(mode="card", req_dupe_code=buyer_dupe),
+            card_code=seller_dupe,
+            terms=TradeTerms(mode="card", req_card_code=buyer_dupe),
         )
         assert success
         assert message == ""
@@ -869,8 +869,8 @@ class StorageTests:
             seller_id=seller_id,
             buyer_id=buyer_id,
             card_id="SPG",
-            dupe_code=seller_dupe,
-            terms=TradeTerms(mode="card", req_dupe_code="zzz"),
+            card_code=seller_dupe,
+            terms=TradeTerms(mode="card", req_card_code="zzz"),
         )
         assert not (success)
         assert message == "Trade failed: buyer no longer has the requested card."
@@ -904,8 +904,8 @@ class StorageTests:
             seller_id=seller_id,
             buyer_id=buyer_id,
             card_id="SPG",
-            dupe_code=seller_dupe,
-            terms=TradeTerms(mode="card", req_dupe_code=buyer_dupe),
+            card_code=seller_dupe,
+            terms=TradeTerms(mode="card", req_card_code=buyer_dupe),
         )
         assert success
 
@@ -927,19 +927,19 @@ class StorageTests:
         assert selected is not None
         if selected is None:
             return
-        _, _card_id, _generation, selected_dupe_code = selected
+        _, _card_id, _generation, selected_card_code = selected
 
-        success, message, gifted_card_id, gifted_generation, gifted_dupe_code = storage.execute_gift_card(
+        success, message, gifted_card_id, gifted_generation, gifted_card_code = storage.execute_gift_card(
             guild_id=guild_id,
             sender_id=sender_id,
             recipient_id=recipient_id,
-            card_code=selected_dupe_code,
+            card_code=selected_card_code,
         )
         assert success
         assert message == ""
         assert gifted_card_id == "SPG"
         assert gifted_generation == 200
-        assert gifted_dupe_code == selected_dupe_code
+        assert gifted_card_code == selected_card_code
 
         sender_instances = storage.get_player_card_instances(guild_id, sender_id)
         recipient_instances = storage.get_player_card_instances(guild_id, recipient_id)
@@ -964,19 +964,19 @@ class StorageTests:
         assert selected is not None
         if selected is None:
             return
-        _instance_id, _card_id, _generation, dupe_code = selected
+        _instance_id, _card_id, _generation, card_code = selected
 
-        success, message, gifted_card_id, gifted_generation, gifted_dupe_code = storage.execute_gift_card(
+        success, message, gifted_card_id, gifted_generation, gifted_card_code = storage.execute_gift_card(
             guild_id=guild_id,
             sender_id=sender_id,
             recipient_id=recipient_id,
-            card_code=dupe_code,
+            card_code=card_code,
         )
         assert success
         assert message == ""
         assert gifted_card_id == "SPG"
         assert gifted_generation == 300
-        assert gifted_dupe_code == dupe_code
+        assert gifted_card_code == card_code
         assert storage.get_last_pulled_instance(guild_id, sender_id) is None
 
     def test_gift_starter_transfers_balances(self) -> None:
@@ -1170,7 +1170,7 @@ class StorageTests:
             second_message,
             second_card_id,
             second_generation,
-            second_dupe_code,
+            second_card_code,
         ) = storage.marry_card_instance(
             guild_id,
             user_id,
@@ -1180,7 +1180,7 @@ class StorageTests:
         assert second_message == "You are already married. Use `ns divorce` first."
         assert second_card_id is None
         assert second_generation is None
-        assert second_dupe_code is None
+        assert second_card_code is None
 
     def test_remove_card_clears_last_pulled_pointer(self) -> None:
         guild_id = 1
@@ -1237,21 +1237,21 @@ class StorageTests:
         assert selected is not None
         if selected is None:
             return
-        _instance_id, _card_id, _generation, dupe_code = selected
+        _instance_id, _card_id, _generation, card_code = selected
 
         storage.add_dough(guild_id, buyer_id, 100)
-        success, message, traded_generation, traded_dupe_code, _ = storage.execute_trade(
+        success, message, traded_generation, traded_card_code, _ = storage.execute_trade(
             guild_id=guild_id,
             seller_id=seller_id,
             buyer_id=buyer_id,
             card_id=card_id,
-            dupe_code=dupe_code,
+            card_code=card_code,
             terms=TradeTerms(mode="dough", amount=10),
         )
         assert success
         assert message == ""
         assert traded_generation == 300
-        assert traded_dupe_code == dupe_code
+        assert traded_card_code == card_code
         assert storage.get_last_pulled_instance(guild_id, seller_id) is None
 
         with closing(sqlite3.connect(storage.DB_PATH)) as conn:
@@ -1264,7 +1264,7 @@ class StorageTests:
             return
         assert row[0] is None
 
-    def test_dupe_codes_assign_sequential_and_reuse_lowest_free(self) -> None:
+    def test_card_codes_assign_sequential_and_reuse_lowest_free(self) -> None:
         guild_id = 1
         user_id = 911
 
@@ -1275,7 +1275,7 @@ class StorageTests:
 
         with closing(sqlite3.connect(storage.DB_PATH)) as conn:
             dupe_rows = conn.execute(
-                "SELECT instance_id, dupe_code FROM card_instances WHERE guild_id = ? ORDER BY instance_id ASC",
+                "SELECT instance_id, card_code FROM card_instances WHERE guild_id = ? ORDER BY instance_id ASC",
                 (storage.GLOBAL_GUILD_ID,),
             ).fetchall()
         dupe_by_instance = {int(row[0]): str(row[1]) for row in dupe_rows}
@@ -1291,7 +1291,7 @@ class StorageTests:
 
         with closing(sqlite3.connect(storage.DB_PATH)) as conn:
             dupe_rows = conn.execute(
-                "SELECT instance_id, dupe_code FROM card_instances WHERE guild_id = ? ORDER BY instance_id ASC",
+                "SELECT instance_id, card_code FROM card_instances WHERE guild_id = ? ORDER BY instance_id ASC",
                 (storage.GLOBAL_GUILD_ID,),
             ).fetchall()
         dupe_by_instance = {int(row[0]): str(row[1]) for row in dupe_rows}
@@ -1308,11 +1308,11 @@ class StorageTests:
         assert instance is not None
         if instance is None:
             return
-        _found_instance_id, _card_id, _generation, dupe_code = instance
+        _found_instance_id, _card_id, _generation, card_code = instance
 
-        by_plain_code = storage.get_instance_by_code(guild_id, user_id, dupe_code.upper())
-        by_hash_code = storage.get_instance_by_code(guild_id, user_id, f"#{dupe_code.upper()}")
-        by_hash_global = storage.get_instance_by_dupe_code(guild_id, f"#{dupe_code.upper()}")
+        by_plain_code = storage.get_instance_by_code(guild_id, user_id, card_code.upper())
+        by_hash_code = storage.get_instance_by_code(guild_id, user_id, f"#{card_code.upper()}")
+        by_hash_global = storage.get_instance_by_card_code(guild_id, f"#{card_code.upper()}")
         assert by_plain_code == by_hash_code
         assert by_hash_global is not None
         if by_hash_global is None or by_plain_code is None:
@@ -1323,17 +1323,17 @@ class StorageTests:
             global_user_id,
             global_card_id,
             global_generation,
-            global_dupe_code,
+            global_card_code,
             global_dropped_by_user_id,
             global_pulled_by_user_id,
         ) = by_hash_global
-        plain_instance_id, plain_card_id, plain_generation, plain_dupe_code = by_plain_code
+        plain_instance_id, plain_card_id, plain_generation, plain_card_code = by_plain_code
         assert global_user_id == user_id
-        assert (global_instance_id, global_card_id, global_generation, global_dupe_code) == (plain_instance_id, plain_card_id, plain_generation, plain_dupe_code)
+        assert (global_instance_id, global_card_id, global_generation, global_card_code) == (plain_instance_id, plain_card_id, plain_generation, plain_card_code)
         assert global_dropped_by_user_id is None
         assert global_pulled_by_user_id is None
 
-    def test_init_db_v5_ensures_dupe_code_column_and_index(self) -> None:
+    def test_init_db_v5_ensures_card_code_column_and_index(self) -> None:
         with closing(sqlite3.connect(storage.DB_PATH)) as conn:
             with conn:
                 conn.executescript("""
@@ -1363,9 +1363,9 @@ class StorageTests:
 
             columns = conn.execute("PRAGMA table_info(card_instances)").fetchall()
             column_names = {str(column[1]) for column in columns}
-            assert "dupe_code" in column_names
+            assert "card_code" in column_names
 
-            index_row = conn.execute("SELECT name FROM sqlite_master WHERE type = 'index' AND name = 'idx_card_instances_dupe_code'").fetchone()
+            index_row = conn.execute("SELECT name FROM sqlite_master WHERE type = 'index' AND name = 'idx_card_instances_card_code'").fetchone()
             assert index_row is not None
 
     def test_wishlist_add_remove_and_read(self) -> None:

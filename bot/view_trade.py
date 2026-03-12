@@ -3,7 +3,7 @@ from typing import Optional
 
 import discord
 
-from .cards import card_base_display, card_dupe_display
+from .cards import card_base_display, card_display
 from .presentation import italy_embed
 from .services import TradeTerms, resolve_trade_offer
 from .settings import TRADE_TIMEOUT_SECONDS
@@ -11,15 +11,15 @@ from .storage import get_instance_by_code, get_instance_font, get_instance_frame
 from .view_utils import InteractionView, logger
 
 
-def _instance_style_from_code(guild_id: int, user_id: int, dupe_code: str | None) -> tuple[str | None, str | None, str | None]:
-    if dupe_code is None:
+def _instance_style_from_code(guild_id: int, user_id: int, card_code: str | None) -> tuple[str | None, str | None, str | None]:
+    if card_code is None:
         return None, None, None
 
     try:
-        instance = get_instance_by_code(guild_id, user_id, dupe_code)
+        instance = get_instance_by_code(guild_id, user_id, card_code)
         if instance is None:
             return None, None, None
-        instance_id, _card_id, _generation, _resolved_dupe_code = instance
+        instance_id, _card_id, _generation, _resolved_card_code = instance
         return (
             get_instance_morph(guild_id, instance_id),
             get_instance_frame(guild_id, instance_id),
@@ -49,7 +49,7 @@ class TradeView(InteractionView):
         seller_id: int,
         buyer_id: int,
         card_id: str,
-        dupe_code: str,
+        card_code: str,
         terms: TradeTerms,
     ):
         super().__init__(timeout=TRADE_TIMEOUT_SECONDS)
@@ -57,7 +57,7 @@ class TradeView(InteractionView):
         self.seller_id = seller_id
         self.buyer_id = buyer_id
         self.card_id = card_id
-        self.dupe_code = dupe_code
+        self.card_code = card_code
         self.terms = terms
         self.finished = False
         self.message: Optional[discord.Message] = None
@@ -85,7 +85,7 @@ class TradeView(InteractionView):
                     seller_id=self.seller_id,
                     buyer_id=self.buyer_id,
                     card_id=self.card_id,
-                    dupe_code=self.dupe_code,
+                    card_code=self.card_code,
                     terms=self.terms,
                     accepted=False,
                 )
@@ -103,7 +103,7 @@ class TradeView(InteractionView):
                 seller_id=self.seller_id,
                 buyer_id=self.buyer_id,
                 card_id=self.card_id,
-                dupe_code=self.dupe_code,
+                card_code=self.card_code,
                 terms=self.terms,
                 accepted=True,
             )
@@ -125,12 +125,12 @@ class TradeView(InteractionView):
                 sold_morph_key, sold_frame_key, sold_font_key = _instance_style_from_code(
                     self.guild_id,
                     self.buyer_id,
-                    trade_result.dupe_code,
+                    trade_result.card_code,
                 )
-                traded_card_text = card_dupe_display(
+                traded_card_text = card_display(
                     self.card_id,
                     trade_result.generation,
-                    dupe_code=trade_result.dupe_code,
+                    card_code=trade_result.card_code,
                     morph_key=sold_morph_key,
                     frame_key=sold_frame_key,
                     font_key=sold_font_key,
@@ -142,12 +142,12 @@ class TradeView(InteractionView):
                     received_morph_key, received_frame_key, received_font_key = _instance_style_from_code(
                         self.guild_id,
                         self.seller_id,
-                        trade_result.received_dupe_code,
+                        trade_result.received_card_code,
                     )
-                    received_text = card_dupe_display(
+                    received_text = card_display(
                         trade_result.received_card_id,
                         trade_result.received_generation,
-                        dupe_code=trade_result.received_dupe_code,
+                        card_code=trade_result.received_card_code,
                         morph_key=received_morph_key,
                         frame_key=received_frame_key,
                         font_key=received_font_key,

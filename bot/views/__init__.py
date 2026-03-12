@@ -3,7 +3,7 @@ import discord
 from ..cards import (
     CARD_CATALOG,
     card_base_display,
-    card_dupe_display,
+    card_display,
     get_burn_payout,
     card_value,
 )
@@ -46,7 +46,7 @@ __all__ = [
     "discord",
     "CARD_CATALOG",
     "card_base_display",
-    "card_dupe_display",
+    "card_display",
     "get_burn_payout",
     "card_value",
     "embed_image_payload",

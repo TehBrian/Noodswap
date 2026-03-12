@@ -130,7 +130,7 @@ class BattleCard:
     instance_id: int
     card_id: str
     generation: int
-    dupe_code: str
+    card_code: str
     rarity: str
     series: str
     max_hp: int
@@ -175,7 +175,7 @@ def build_battle_card(
     instance_id: int,
     card_id: str,
     generation: int,
-    dupe_code: str,
+    card_code: str,
     *,
     morph_key: str | None = None,
     frame_key: str | None = None,
@@ -196,7 +196,7 @@ def build_battle_card(
         instance_id=instance_id,
         card_id=card_id,
         generation=generation,
-        dupe_code=dupe_code,
+        card_code=card_code,
         rarity=rarity,
         series=series,
         max_hp=hp,
@@ -208,7 +208,7 @@ def build_battle_card(
 def build_team_battle_cards(
     instances: list[tuple[int, str, int, str]],
 ) -> list[BattleCard]:
-    return [build_battle_card(instance_id, card_id, generation, dupe_code) for instance_id, card_id, generation, dupe_code in instances]
+    return [build_battle_card(instance_id, card_id, generation, card_code) for instance_id, card_id, generation, card_code in instances]
 
 
 def resolve_attack(

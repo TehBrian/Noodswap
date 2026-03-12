@@ -510,7 +510,7 @@ class CommandsBurnSelectorTests:
                             instance_id=10,
                             card_id="SPG",
                             generation=100,
-                            dupe_code="0",
+                            card_code="0",
                             value=10,
                             base_value=9,
                             delta_range=1,
@@ -549,7 +549,7 @@ class CommandsBurnSelectorTests:
                 instance_id=10,
                 card_id="SPG",
                 generation=100,
-                dupe_code="0",
+                card_code="0",
                 value=12,
                 base_value=3,
                 delta_range=2,
@@ -559,7 +559,7 @@ class CommandsBurnSelectorTests:
                 instance_id=11,
                 card_id="PEN",
                 generation=200,
-                dupe_code="1",
+                card_code="1",
                 value=14,
                 base_value=4,
                 delta_range=3,
@@ -797,7 +797,7 @@ class CommandsLookupTests:
         ctx.reply = ctx.send
 
         with patch(
-            "bot.commands_catalog.get_instance_by_dupe_code",
+            "bot.commands_catalog.get_instance_by_card_code",
             return_value=(123, 999, "SPG", 101, "abc", 222, 333),
         ) as lookup_dupe:
             await lookup_command.callback(ctx, card_id="AbC")
@@ -826,7 +826,7 @@ class CommandsLookupTests:
         ctx.reply = ctx.send
 
         with patch(
-            "bot.commands_catalog.get_instance_by_dupe_code",
+            "bot.commands_catalog.get_instance_by_card_code",
             return_value=(123, 999, "SPG", 101, "abc", None, None),
         ) as lookup_dupe:
             await lookup_command.callback(ctx, card_id="#AbC")
@@ -856,7 +856,7 @@ class CommandsLookupTests:
         ctx.reply = ctx.send
 
         with patch(
-            "bot.commands_catalog.get_instance_by_dupe_code",
+            "bot.commands_catalog.get_instance_by_card_code",
             return_value=(123, 999, "SPG", 101, "abc", 222, 333),
         ) as lookup_dupe:
             await lookup_command.callback(ctx, card_id="AbC")
@@ -871,7 +871,7 @@ class CommandsLookupTests:
         assert "Pulled by: <@333>" in sent_embed.description
         assert re.search(r"HP: \*\*\d+\*\* • ATK: \*\*\d+\*\* • DEF: \*\*\d+\*\*", sent_embed.description)
 
-    async def test_lookup_prefers_exact_dupe_code_over_card_id(self) -> None:
+    async def test_lookup_prefers_exact_card_code_over_card_id(self) -> None:
         lookup_command = _get_command(self.bot, "lookup")
 
         ctx = AsyncMock()
@@ -881,7 +881,7 @@ class CommandsLookupTests:
         ctx.reply = ctx.send
 
         with patch(
-            "bot.commands_catalog.get_instance_by_dupe_code",
+            "bot.commands_catalog.get_instance_by_card_code",
             return_value=(777, 999, "SPG", 88, "spg", 999, 111),
         ) as lookup_dupe:
             await lookup_command.callback(ctx, card_id="spg")
@@ -2178,7 +2178,7 @@ class CommandsBurnTests:
         self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)
         register_commands(self.bot)
 
-    async def test_burn_confirmation_embed_shows_dupe_code(self) -> None:
+    async def test_burn_confirmation_embed_shows_card_code(self) -> None:
         burn_command = _get_command(self.bot, "burn")
 
         ctx = AsyncMock()
@@ -2195,7 +2195,7 @@ class CommandsBurnTests:
                     instance_id=77,
                     card_id="SPG",
                     generation=321,
-                    dupe_code="a",
+                    card_code="a",
                     value=40,
                     base_value=38,
                     delta_range=8,
@@ -2238,7 +2238,7 @@ class CommandsBurnTests:
                     instance_id=10,
                     card_id="SPG",
                     generation=100,
-                    dupe_code="0",
+                    card_code="0",
                     value=10,
                     base_value=9,
                     delta_range=1,
@@ -2301,7 +2301,7 @@ class CommandsMonopolyTests:
             ),
             mpreg_card_id="SPG",
             mpreg_generation=321,
-            mpreg_dupe_code="a",
+            mpreg_card_code="a",
             mpreg_morph_key=None,
             mpreg_frame_key=None,
             mpreg_font_key=None,
@@ -2418,7 +2418,7 @@ class CommandsMorphTests:
             instance_id=77,
             card_id="SPG",
             generation=321,
-            dupe_code="a",
+            card_code="a",
             current_morph_key=None,
             cost=9,
         )
@@ -2476,7 +2476,7 @@ class CommandsFrameTests:
             instance_id=77,
             card_id="SPG",
             generation=321,
-            dupe_code="a",
+            card_code="a",
             current_frame_key=None,
             cost=9,
         )
@@ -2534,7 +2534,7 @@ class CommandsFontTests:
             instance_id=77,
             card_id="SPG",
             generation=321,
-            dupe_code="a",
+            card_code="a",
             current_font_key=None,
             cost=9,
         )

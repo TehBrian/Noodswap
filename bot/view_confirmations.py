@@ -2,7 +2,7 @@ from typing import Optional
 
 import discord
 
-from .cards import card_dupe_display
+from .cards import card_display
 from .fonts import font_label
 from .frames import frame_label
 from .images import morph_transition_image_payload
@@ -44,7 +44,7 @@ def _format_skip_reasons(reasons: tuple[str, ...] | list[str]) -> str:
 
 
 def _burn_result_has_required_fields(result: object) -> bool:
-    return all(getattr(result, field_name) is not None for field_name in ("card_id", "generation", "dupe_code", "payout", "delta"))
+    return all(getattr(result, field_name) is not None for field_name in ("card_id", "generation", "card_code", "payout", "delta"))
 
 
 def _format_trait_roll_details(rolled_rarity: str, rolled_multiplier: float) -> str:
@@ -144,7 +144,7 @@ class BurnConfirmView(InteractionView):
 
             burned_embed = italy_embed(
                 "**Card Burned**",
-                f"""{card_dupe_display(burn_result.card_id, burn_result.generation, dupe_code=burn_result.dupe_code)}
+                f"""{card_display(burn_result.card_id, burn_result.generation, card_code=burn_result.card_code)}
 
 Payout: **{burn_result.payout} dough**
     RNG: **{burn_result.delta:+}**""",
@@ -189,7 +189,7 @@ Payout: **{burn_result.payout} dough**
         for entry in burn_result.burned_entries:
             total_payout += entry.payout
             burned_lines.append(
-                f"{card_dupe_display(entry.card_id, entry.generation, dupe_code=entry.dupe_code)}\n"
+                f"{card_display(entry.card_id, entry.generation, card_code=entry.card_code)}\n"
                 f"Payout: **{entry.payout} dough** | RNG: **{entry.delta:+}**"
             )
 
@@ -277,7 +277,7 @@ class MorphConfirmView(InteractionView):
         instance_id: int,
         card_id: str,
         generation: int,
-        dupe_code: str,
+        card_code: str,
         before_morph_key: str | None,
         before_frame_key: str | None,
         before_font_key: str | None,
@@ -289,7 +289,7 @@ class MorphConfirmView(InteractionView):
         self.instance_id = instance_id
         self.card_id = card_id
         self.generation = generation
-        self.dupe_code = dupe_code
+        self.card_code = card_code
         self.before_morph_key = before_morph_key
         self.before_frame_key = before_frame_key
         self.before_font_key = before_font_key
@@ -322,7 +322,7 @@ class MorphConfirmView(InteractionView):
             instance_id=self.instance_id,
             card_id=self.card_id,
             generation=self.generation,
-            dupe_code=self.dupe_code,
+            card_code=self.card_code,
             current_morph_key=self.before_morph_key,
             cost=self.cost,
         )
@@ -362,7 +362,7 @@ class MorphConfirmView(InteractionView):
             "Morph Rolled",
             (
                 f"Rolled **{result.morph_name}** for "
-                f"{card_dupe_display(self.card_id, self.generation, dupe_code=self.dupe_code, morph_key=self.before_morph_key, frame_key=self.before_frame_key, font_key=self.before_font_key)}.\n\n"
+                f"{card_display(self.card_id, self.generation, card_code=self.card_code, morph_key=self.before_morph_key, frame_key=self.before_frame_key, font_key=self.before_font_key)}.\n\n"
                 f"Before: **{morph_label(self.before_morph_key)}**\n"
                 f"After: **{result.morph_name}**\n\n"
                 f"{_format_trait_roll_details(result.rolled_rarity, result.rolled_multiplier)}\n"
@@ -448,7 +448,7 @@ class FrameConfirmView(InteractionView):
         instance_id: int,
         card_id: str,
         generation: int,
-        dupe_code: str,
+        card_code: str,
         before_morph_key: str | None,
         before_frame_key: str | None,
         before_font_key: str | None,
@@ -460,7 +460,7 @@ class FrameConfirmView(InteractionView):
         self.instance_id = instance_id
         self.card_id = card_id
         self.generation = generation
-        self.dupe_code = dupe_code
+        self.card_code = card_code
         self.before_morph_key = before_morph_key
         self.before_frame_key = before_frame_key
         self.before_font_key = before_font_key
@@ -493,7 +493,7 @@ class FrameConfirmView(InteractionView):
             instance_id=self.instance_id,
             card_id=self.card_id,
             generation=self.generation,
-            dupe_code=self.dupe_code,
+            card_code=self.card_code,
             current_frame_key=self.before_frame_key,
             cost=self.cost,
         )
@@ -533,7 +533,7 @@ class FrameConfirmView(InteractionView):
             "Frame Rolled",
             (
                 f"Rolled **{result.frame_name}** for "
-                f"{card_dupe_display(self.card_id, self.generation, dupe_code=self.dupe_code, morph_key=self.before_morph_key, frame_key=self.before_frame_key, font_key=self.before_font_key)}.\n\n"
+                f"{card_display(self.card_id, self.generation, card_code=self.card_code, morph_key=self.before_morph_key, frame_key=self.before_frame_key, font_key=self.before_font_key)}.\n\n"
                 f"Before: **{frame_label(self.before_frame_key)}**\n"
                 f"After: **{result.frame_name}**\n\n"
                 f"{_format_trait_roll_details(result.rolled_rarity, result.rolled_multiplier)}\n"
@@ -619,7 +619,7 @@ class FontConfirmView(InteractionView):
         instance_id: int,
         card_id: str,
         generation: int,
-        dupe_code: str,
+        card_code: str,
         before_morph_key: str | None,
         before_frame_key: str | None,
         before_font_key: str | None,
@@ -631,7 +631,7 @@ class FontConfirmView(InteractionView):
         self.instance_id = instance_id
         self.card_id = card_id
         self.generation = generation
-        self.dupe_code = dupe_code
+        self.card_code = card_code
         self.before_morph_key = before_morph_key
         self.before_frame_key = before_frame_key
         self.before_font_key = before_font_key
@@ -664,7 +664,7 @@ class FontConfirmView(InteractionView):
             instance_id=self.instance_id,
             card_id=self.card_id,
             generation=self.generation,
-            dupe_code=self.dupe_code,
+            card_code=self.card_code,
             current_font_key=self.before_font_key,
             cost=self.cost,
         )
@@ -704,7 +704,7 @@ class FontConfirmView(InteractionView):
             "Font Rolled",
             (
                 f"Rolled **{result.font_name}** for "
-                f"{card_dupe_display(self.card_id, self.generation, dupe_code=self.dupe_code, morph_key=self.before_morph_key, frame_key=self.before_frame_key, font_key=self.before_font_key)}.\n\n"
+                f"{card_display(self.card_id, self.generation, card_code=self.card_code, morph_key=self.before_morph_key, frame_key=self.before_frame_key, font_key=self.before_font_key)}.\n\n"
                 f"Before: **{font_label(self.before_font_key)}**\n"
                 f"After: **{result.font_name}**\n\n"
                 f"{_format_trait_roll_details(result.rolled_rarity, result.rolled_multiplier)}\n"

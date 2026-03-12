@@ -127,7 +127,7 @@ Stage 3 implementation guide: `docs/refactor-phase-3.md`.
 - Replaced beta-based `cards.random_generation()` sampling with an inverse-value discrete sampler (`P(gen) ∝ 1 / generation_multiplier(gen)^0.95`) so generation supply aligns directly with multiplier-driven value.
 - Standardized dupe-code input parsing to accept an optional leading `#` (for example, `10` and `#10` now resolve to the same owned instance) across burn/trade/marry/lookup paths.
 - Added sortable + gallery-capable collection embeds (`collection`) using the same interaction pattern as catalog/wishlist/lookup while preserving per-instance card display.
-- Added `Actual Value` sort mode to duplicate-instance collection views and switched `tag cards` to the same sortable collection UI so tagged dupes can be ordered by computed per-instance value.
+- Added `Actual Value` sort mode to duplicate-instance collection views and switched `tag cards` to the same sortable collection UI so tagged cards can be ordered by computed per-instance value.
 - Added a `Gallery` toggle to sortable card-list embeds (`cards`, `wish list`, and multi-result `lookup`) to switch between paginated list mode and one-card image mode while keeping navigation controls.
 - Applied the same sortable-card dropdown interaction pattern to `wish list` and multi-result `lookup` embeds (`Rarity`, `Series`, `Base Value`, `Alphabetical`).
 - Added a sort-mode dropdown to the `cards` catalog embed with `Rarity`, `Series`, `Base Value`, and `Alphabetical` modes, while keeping wishlist counts visible per entry.

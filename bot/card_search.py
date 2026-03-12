@@ -108,8 +108,8 @@ def search_card_ids_by_name(query: str, *, card_catalog: Mapping[str, CardSearch
     return search_card_ids(query, card_catalog=card_catalog)
 
 
-def card_code(_card_id: str, dupe_code: str) -> str:
-    return dupe_code.strip().lower()
+def card_code(_card_id: str, card_code: str) -> str:
+    return card_code.strip().lower()
 
 
 def split_card_code(raw_code: str) -> str | None:
@@ -122,9 +122,9 @@ def split_card_code(raw_code: str) -> str | None:
         if not cleaned:
             return None
 
-    dupe_code = cleaned.lower()
+    card_code = cleaned.lower()
 
-    if not all(char.isdigit() or ("a" <= char <= "z") for char in dupe_code):
+    if not all(char.isdigit() or ("a" <= char <= "z") for char in card_code):
         return None
 
-    return dupe_code
+    return card_code

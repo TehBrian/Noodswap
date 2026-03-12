@@ -8,7 +8,7 @@ from typing import Optional
 
 from .cards import (
     CARD_CATALOG,
-    card_dupe_display,
+    card_display,
     card_value,
     random_generation,
     split_card_code,
@@ -66,7 +66,7 @@ class MonopolyRollResult:
     lines: tuple[str, ...]
     mpreg_card_id: str | None = None
     mpreg_generation: int | None = None
-    mpreg_dupe_code: str | None = None
+    mpreg_card_code: str | None = None
     mpreg_morph_key: str | None = None
     mpreg_frame_key: str | None = None
     mpreg_font_key: str | None = None
@@ -701,12 +701,12 @@ def resolve_battle_proposal(
                 bool,
             ]
         ] = []
-        for slot_index, (instance_id, card_id, generation, dupe_code) in enumerate(challenger_instances):
+        for slot_index, (instance_id, card_id, generation, card_code) in enumerate(challenger_instances):
             battle_card = build_battle_card(
                 instance_id,
                 card_id,
                 generation,
-                dupe_code,
+                card_code,
                 morph_key=instances.get_morph_key(guild_id, instance_id),
                 frame_key=instances.get_frame_key(guild_id, instance_id),
                 font_key=instances.get_font_key(guild_id, instance_id),
@@ -720,7 +720,7 @@ def resolve_battle_proposal(
                     instance_id,
                     card_id,
                     generation,
-                    dupe_code,
+                    card_code,
                     battle_card.max_hp,
                     battle_card.max_hp,
                     battle_card.attack,
@@ -730,12 +730,12 @@ def resolve_battle_proposal(
                     False,
                 )
             )
-        for slot_index, (instance_id, card_id, generation, dupe_code) in enumerate(challenged_instances):
+        for slot_index, (instance_id, card_id, generation, card_code) in enumerate(challenged_instances):
             battle_card = build_battle_card(
                 instance_id,
                 card_id,
                 generation,
-                dupe_code,
+                card_code,
                 morph_key=instances.get_morph_key(guild_id, instance_id),
                 frame_key=instances.get_frame_key(guild_id, instance_id),
                 font_key=instances.get_font_key(guild_id, instance_id),
@@ -749,7 +749,7 @@ def resolve_battle_proposal(
                     instance_id,
                     card_id,
                     generation,
-                    dupe_code,
+                    card_code,
                     battle_card.max_hp,
                     battle_card.max_hp,
                     battle_card.attack,
@@ -881,7 +881,7 @@ def execute_battle_turn_action(
             switched_active = _active_row(actor_rows)
             switched_name = "new card"
             if switched_active is not None:
-                switched_name = f"{switched_active['card_id']}#{switched_active['dupe_code']}"
+                switched_name = f"{switched_active['card_type_id']}#{switched_active['card_code']}"
 
             turn_number = int(battle["turn_number"]) + 1
             last_action = f"<@{actor_id}> switched to **{switched_name}**."
@@ -932,18 +932,18 @@ def execute_battle_turn_action(
 
             attacker = build_battle_card(
                 int(actor_active["instance_id"]),
-                str(actor_active["card_id"]),
+                str(actor_active["card_type_id"]),
                 int(actor_active["generation"]),
-                str(actor_active["dupe_code"]),
+                str(actor_active["card_code"]),
                 morph_key=instances.get_morph_key(guild_id, int(actor_active["instance_id"])),
                 frame_key=instances.get_frame_key(guild_id, int(actor_active["instance_id"])),
                 font_key=instances.get_font_key(guild_id, int(actor_active["instance_id"])),
             )
             defender = build_battle_card(
                 int(opponent_active["instance_id"]),
-                str(opponent_active["card_id"]),
+                str(opponent_active["card_type_id"]),
                 int(opponent_active["generation"]),
-                str(opponent_active["dupe_code"]),
+                str(opponent_active["card_code"]),
                 morph_key=instances.get_morph_key(guild_id, int(opponent_active["instance_id"])),
                 frame_key=instances.get_frame_key(guild_id, int(opponent_active["instance_id"])),
                 font_key=instances.get_font_key(guild_id, int(opponent_active["instance_id"])),
@@ -1290,12 +1290,12 @@ def get_instance_by_code(guild_id: int, user_id: int, card_code: str) -> Optiona
     if parsed is None:
         return None
 
-    dupe_code = parsed
+    card_code = parsed
     with get_db_connection() as conn:
         players = PlayerRepository(conn, STARTING_DOUGH)
         instances = CardInstanceRepository(conn)
         players.ensure_player(guild_id, user_id)
-        return instances.get_by_code(guild_id, user_id, dupe_code)
+        return instances.get_by_code(guild_id, user_id, card_code)
 
 
 def apply_morph_to_instance(
@@ -1400,7 +1400,7 @@ def apply_font_to_instance(
         return True, ""
 
 
-def get_instance_by_dupe_code(
+def get_instance_by_card_code(
     guild_id: int,
     card_code: str,
 ) -> Optional[tuple[int, int, str, int, str, int | None, int | None]]:
@@ -1411,7 +1411,7 @@ def get_instance_by_dupe_code(
 
     with get_db_connection() as conn:
         instances = CardInstanceRepository(conn)
-        return instances.get_by_dupe_code(guild_id, parsed)
+        return instances.get_by_card_code(guild_id, parsed)
 
 
 def set_last_drop_at(guild_id: int, user_id: int, timestamp: float) -> None:
@@ -1572,7 +1572,7 @@ def execute_monopoly_roll(
         lines: list[str] = [f"Dice: **{die_a} + {die_b} = {rolled_spaces}**"]
         mpreg_card_id: str | None = None
         mpreg_generation: int | None = None
-        mpreg_dupe_code: str | None = None
+        mpreg_card_code: str | None = None
         mpreg_morph_key: str | None = None
         mpreg_frame_key: str | None = None
         mpreg_font_key: str | None = None
@@ -1689,14 +1689,14 @@ def execute_monopoly_roll(
             instance_id = instances.create_owned_instance(guild_id, user_id, card_id, generation)
             players.set_last_pulled_instance(guild_id, user_id, instance_id)
             created_instance = instances.get_by_id(guild_id, instance_id)
-            dupe_code = created_instance[3] if created_instance is not None else None
+            card_code = created_instance[3] if created_instance is not None else None
             morph_key = instances.get_morph_key(guild_id, instance_id)
             frame_key = instances.get_frame_key(guild_id, instance_id)
             font_key = instances.get_font_key(guild_id, instance_id)
 
             mpreg_card_id = card_id
             mpreg_generation = generation
-            mpreg_dupe_code = dupe_code
+            mpreg_card_code = card_code
             mpreg_morph_key = morph_key
             mpreg_frame_key = frame_key
             mpreg_font_key = font_key
@@ -1708,10 +1708,10 @@ def execute_monopoly_roll(
 
             lines.append("Mpreg square effect: you gave birth to a dupe.")
             lines.append(
-                card_dupe_display(
+                card_display(
                     card_id,
                     generation,
-                    dupe_code=dupe_code,
+                    card_code=card_code,
                     morph_key=morph_key,
                     frame_key=frame_key,
                     font_key=font_key,
@@ -1842,21 +1842,21 @@ def execute_monopoly_roll(
 
         elif space.kind == "property" and space.rarity is not None:
             candidates = [
-                (instance_id, owner_id, card_id, generation, dupe_code)
-                for instance_id, owner_id, card_id, generation, dupe_code in instances.list_owner_instances_for_guild(guild_id)
+                (instance_id, owner_id, card_id, generation, card_code)
+                for instance_id, owner_id, card_id, generation, card_code in instances.list_owner_instances_for_guild(guild_id)
                 if owner_id != user_id
                 and str(card_id) in CARD_CATALOG
                 and str(CARD_CATALOG[str(card_id)]["rarity"]).lower() == space.rarity
                 and (valid_guild_member_ids is None or owner_id in valid_guild_member_ids)
             ]
             if candidates:
-                selected_instance_id, owner_id, card_id, generation, dupe_code = random.choice(candidates)
+                selected_instance_id, owner_id, card_id, generation, card_code = random.choice(candidates)
                 morph_key = instances.get_morph_key(guild_id, selected_instance_id)
                 frame_key = instances.get_frame_key(guild_id, selected_instance_id)
                 font_key = instances.get_font_key(guild_id, selected_instance_id)
                 card_name = str(CARD_CATALOG[str(card_id)]["name"])
                 lines.append("")
-                lines.append(f"Landed on **{card_name}** {space.emoji}! (#{dupe_code})")
+                lines.append(f"Landed on **{card_name}** {space.emoji}! (#{card_code})")
                 rent_due = (
                     card_value(
                         card_id,
@@ -1904,7 +1904,7 @@ def execute_monopoly_roll(
             lines=tuple(lines),
             mpreg_card_id=mpreg_card_id,
             mpreg_generation=mpreg_generation,
-            mpreg_dupe_code=mpreg_dupe_code,
+            mpreg_card_code=mpreg_card_code,
             mpreg_morph_key=mpreg_morph_key,
             mpreg_frame_key=mpreg_frame_key,
             mpreg_font_key=mpreg_font_key,
@@ -2251,7 +2251,7 @@ def get_player_leaderboard_info(
         balances = players.list_balances(guild_id)
         wish_counts = wishlist.get_wish_counts_by_user(guild_id)
         all_instances = instances.list_owner_instances_for_guild(guild_id)
-        for instance_id, owner_id, card_id, generation, _dupe_code in all_instances:
+        for instance_id, owner_id, card_id, generation, _card_code in all_instances:
             cards_count_by_user[owner_id] = cards_count_by_user.get(owner_id, 0) + 1
             morph_key = instances.get_morph_key(guild_id, instance_id)
             frame_key = instances.get_frame_key(guild_id, instance_id)
@@ -2473,11 +2473,11 @@ def execute_gift_card(
         if selected is None:
             return False, "You do not own that card code.", None, None, None
 
-        instance_id, card_id, generation, dupe_code = selected
+        instance_id, card_id, generation, card_code = selected
         instances.transfer_to_user(instance_id, recipient_id)
         players.clear_marriage_if_matches(guild_id, sender_id, instance_id)
         players.clear_last_pulled_if_matches(guild_id, sender_id, instance_id)
-        return True, "", card_id, generation, dupe_code
+        return True, "", card_id, generation, card_code
 
 
 def remove_card_from_player(guild_id: int, user_id: int, card_id: str) -> Optional[tuple[int, int]]:
@@ -2565,10 +2565,10 @@ def burn_instances(guild_id: int, user_id: int, instance_ids: list[int]) -> tupl
             if burned is None:
                 return None, {}
 
-            burned_card_id, burned_generation, burned_dupe_code = burned
+            burned_card_id, burned_generation, burned_card_code = burned
             players.clear_marriage_if_matches(guild_id, user_id, instance_id)
             players.clear_last_pulled_if_matches(guild_id, user_id, instance_id)
-            burned_rows.append((instance_id, burned_card_id, burned_generation, burned_dupe_code))
+            burned_rows.append((instance_id, burned_card_id, burned_generation, burned_card_code))
 
         return burned_rows, {}
 
@@ -2625,7 +2625,7 @@ def marry_card_instance(
         if selected is None:
             return False, "You can only marry a card you own.", None, None, None
 
-        selected_card_id, selected_generation, selected_dupe_code = selected
+        selected_card_id, selected_generation, selected_card_code = selected
 
         married_instance_id = players.get_married_instance_id(guild_id, user_id)
 
@@ -2649,7 +2649,7 @@ def marry_card_instance(
             )
 
         players.set_marriage(guild_id, user_id, instance_id, selected_card_id)
-        return True, "", selected_card_id, selected_generation, selected_dupe_code
+        return True, "", selected_card_id, selected_generation, selected_card_code
 
 
 def divorce_card(guild_id: int, user_id: int) -> Optional[tuple[str, int, str]]:
@@ -2664,10 +2664,10 @@ def divorce_card(guild_id: int, user_id: int) -> Optional[tuple[str, int, str]]:
             players.clear_marriage(guild_id, user_id)
             return None
 
-        _instance_id, card_id, generation, dupe_code = selected
+        _instance_id, card_id, generation, card_code = selected
         players.clear_marriage(guild_id, user_id)
 
-        return card_id, generation, dupe_code
+        return card_id, generation, card_code
 
 
 def execute_trade(
@@ -2675,18 +2675,18 @@ def execute_trade(
     seller_id: int,
     buyer_id: int,
     card_id: str,
-    dupe_code: str,
+    card_code: str,
     terms: object,  # TradeTerms; typed as object to avoid circular import
 ) -> tuple[bool, str, Optional[int], Optional[str], Optional[tuple[str, int, str]]]:
     """Execute a trade atomically.
 
-    Returns (success, message, sold_generation, sold_dupe_code, received_info).
-    received_info is (card_id, generation, dupe_code) for card-for-card mode, else None.
+    Returns (success, message, sold_generation, sold_card_code, received_info).
+    received_info is (card_id, generation, card_code) for card-for-card mode, else None.
     """
     # Access TradeTerms fields via attribute access to avoid importing services here.
     mode: str = getattr(terms, "mode")
     amount: Optional[int] = getattr(terms, "amount", None)
-    req_dupe_code: Optional[str] = getattr(terms, "req_dupe_code", None)
+    req_card_code: Optional[str] = getattr(terms, "req_card_code", None)
 
     guild_id = _scope_guild_id(guild_id)
     with get_db_connection() as conn:
@@ -2696,7 +2696,7 @@ def execute_trade(
         players.ensure_player(guild_id, seller_id)
         players.ensure_player(guild_id, buyer_id)
 
-        seller_trade_instance = instances.get_seller_trade_instance(guild_id, seller_id, dupe_code)
+        seller_trade_instance = instances.get_seller_trade_instance(guild_id, seller_id, card_code)
         if seller_trade_instance is None:
             return (
                 False,
@@ -2706,7 +2706,7 @@ def execute_trade(
                 None,
             )
 
-        instance_id, fetched_card_id, generation, traded_dupe_code = seller_trade_instance
+        instance_id, fetched_card_id, generation, traded_card_code = seller_trade_instance
         if fetched_card_id != card_id:
             return False, "Trade failed: card mismatch.", None, None, None
 
@@ -2727,7 +2727,7 @@ def execute_trade(
             players.clear_last_pulled_if_matches(guild_id, seller_id, instance_id)
             players.add_dough(guild_id, seller_id, amount)
             players.add_dough(guild_id, buyer_id, -amount)
-            return True, "", generation, traded_dupe_code, None
+            return True, "", generation, traded_card_code, None
 
         if mode == "starter":
             if amount is None or amount <= 0:
@@ -2746,7 +2746,7 @@ def execute_trade(
             players.clear_last_pulled_if_matches(guild_id, seller_id, instance_id)
             players.add_starter(guild_id, seller_id, amount)
             players.add_starter(guild_id, buyer_id, -amount)
-            return True, "", generation, traded_dupe_code, None
+            return True, "", generation, traded_card_code, None
 
         if mode == "drop":
             if amount is None or amount <= 0:
@@ -2765,7 +2765,7 @@ def execute_trade(
             players.clear_last_pulled_if_matches(guild_id, seller_id, instance_id)
             players.add_drop_tickets(guild_id, seller_id, amount)
             players.add_drop_tickets(guild_id, buyer_id, -amount)
-            return True, "", generation, traded_dupe_code, None
+            return True, "", generation, traded_card_code, None
 
         if mode == "pull":
             if amount is None or amount <= 0:
@@ -2784,10 +2784,10 @@ def execute_trade(
             players.clear_last_pulled_if_matches(guild_id, seller_id, instance_id)
             players.add_pull_tickets(guild_id, seller_id, amount)
             players.add_pull_tickets(guild_id, buyer_id, -amount)
-            return True, "", generation, traded_dupe_code, None
+            return True, "", generation, traded_card_code, None
 
         if mode == "card":
-            if req_dupe_code is None:
+            if req_card_code is None:
                 return (
                     False,
                     "Trade failed: missing requested card code.",
@@ -2795,7 +2795,7 @@ def execute_trade(
                     None,
                     None,
                 )
-            buyer_trade_instance = instances.get_seller_trade_instance(guild_id, buyer_id, req_dupe_code)
+            buyer_trade_instance = instances.get_seller_trade_instance(guild_id, buyer_id, req_card_code)
             if buyer_trade_instance is None:
                 return (
                     False,
@@ -2817,7 +2817,7 @@ def execute_trade(
                 True,
                 "",
                 generation,
-                traded_dupe_code,
+                traded_card_code,
                 (req_card_id, req_generation, req_traded_dupe),
             )
 

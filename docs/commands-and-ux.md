@@ -132,7 +132,7 @@ Burn flow:
 
 - `burn` with no argument targets the player's most recently pulled card instance
 - `burn` accepts one or many targets in the same command
-- card targets can be provided as a card code (for an exact dupe) or as a base card id (burns the highest-generation owned copy)
+- card targets can be provided as a card code (for an exact card) or as a card type id (burns the highest-generation owned copy)
 - tag targets are provided as `t:<tag_name>`
 - folder targets are provided as `f:<folder_name>`
 - all selected targets are confirmed together and listed individually in the confirmation embed
@@ -187,7 +187,7 @@ Burn result format should remain:
 ## Morph UX
 
 - `morph` with no argument targets the player's most recently pulled card instance
-- `morph <card_code>` targets that exact owned dupe code
+- `morph <card_code>` targets that exact owned card code
 - card code format is standalone base36 with optional leading `#` (examples: `0`, `a`, `10`, `#10`)
 - morph selection is random from available morphs
 - morph cost is `20%` of the target card's computed value (`card_value`), rounded up to the nearest whole dough
@@ -199,7 +199,7 @@ Burn result format should remain:
 ## Frame UX
 
 - `frame` with no argument targets the player's most recently pulled card instance
-- `frame <card_code>` targets that exact owned dupe code
+- `frame <card_code>` targets that exact owned card code
 - card code format is standalone base36 with optional leading `#` (examples: `0`, `a`, `10`, `#10`)
 - frame selection is random from available frames
 - frame cost is `20%` of the target card's computed value (`card_value`), rounded up to the nearest whole dough
@@ -211,7 +211,7 @@ Burn result format should remain:
 ## Font UX
 
 - `font` with no argument targets the player's most recently pulled card instance
-- `font <card_code>` targets that exact owned dupe code
+- `font <card_code>` targets that exact owned card code
 - card code format is standalone base36 with optional leading `#` (examples: `0`, `a`, `10`, `#10`)
 - font selection is random from available fonts
 - font cost is `20%` of the target card's computed value (`card_value`), rounded up to the nearest whole dough
@@ -230,8 +230,8 @@ Card identity terms:
 ## Card text format
 
 - Card references in embeds should use this shared display style:
-  - base card: `**CARD_NAME** • (ID: CARD_ID) [Series] (Rarity) (Base: **N** dough)`
-  - dupe card: `**CARD_NAME** • (Code: DUPE_CODE) [Series] (Rarity) • **G-####** (Value: **N** dough)`
+  - card type: `**CARD_NAME** • (ID: CARD_ID) [Series] (Rarity) (Base: **N** dough)`
+  - owned card: `**CARD_NAME** • (Code: DUPE_CODE) [Series] (Rarity) • **G-####** (Value: **N** dough)`
 
 ## Trade UX
 
@@ -274,8 +274,8 @@ Card identity terms:
 
 ## Wishlist UX
 
-- `wish add <card_id>` / `w add <card_id>` adds a base card id to the invoker's wishlist
-- `wish remove <card_id>` / `w remove <card_id>` removes a base card id from the invoker's wishlist
+- `wish add <card_id>` / `w add <card_id>` adds a card type id to the invoker's wishlist
+- `wish remove <card_id>` / `w remove <card_id>` removes a card type id from the invoker's wishlist
 - `wish list` / `w list` returns the invoker's wishlist as embed lines
 - `wish list` / `w list` includes a sort dropdown with modes: `Wishes`, `Rarity`, `Series`, `Base Value`, `Alphabetical`
 - default sort mode is `Alphabetical`
@@ -300,9 +300,9 @@ Card identity terms:
 
 ## Lookup UX
 
-- `lookup` accepts a base `card_id`, an exact dupe `card_code`, or a name/series query
+- `lookup` accepts a base `card_id`, an exact card `card_code`, or a name/series query
 - If input exactly matches an existing `card_code`, show dupe-card output (`Code`, `G-####`, and computed `Value`)
-- If no exact dupe code is found, fall back to base card lookup behavior (`card_id` match, then name/series search)
+- If no exact card code is found, fall back to card type lookup behavior (`card_id` match, then name/series search)
 - Entries include wishlist counts regardless of selected sort mode
 
 ## Info UX
@@ -363,7 +363,7 @@ Shows:
 ## Marriage UX
 
 - `marry` with no argument targets the player's most recently pulled card instance
-- `marry <card_code>` targets that exact owned dupe code
+- `marry <card_code>` targets that exact owned card code
 - card code format is standalone base36 with optional leading `#` (examples: `0`, `a`, `10`, `#10`)
 - `marry` success responses display the selected card image
 - `divorce` success responses display the divorced card image

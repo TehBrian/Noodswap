@@ -4,10 +4,10 @@ from typing import NotRequired, TypedDict
 
 from ..card_display import (
     card_base_display as _card_base_display_impl,
-    card_dupe_display as _card_dupe_display_impl,
-    card_dupe_display_concise as _card_dupe_display_concise_impl,
-    display_dupe_code as _display_dupe_code_impl,
-    display_dupe_code_raw as _display_dupe_code_raw_impl,
+    card_display as _card_display_impl,
+    card_display_concise as _card_display_concise_impl,
+    display_card_code as _display_card_code_impl,
+    display_card_code_raw as _display_card_code_raw_impl,
     generation_label as _generation_label_impl,
     proper_case as _proper_case_impl,
     series_display as _series_display_impl,
@@ -278,20 +278,20 @@ def search_card_ids_by_name(query: str) -> list[str]:
     return _search_card_ids_by_name_impl(query, card_catalog=CARD_CATALOG)
 
 
-def card_code(card_id: str, dupe_code: str) -> str:
-    return _card_code_impl(card_id, dupe_code)
+def card_code(card_id: str, card_code: str) -> str:
+    return _card_code_impl(card_id, card_code)
 
 
 def split_card_code(raw_code: str) -> str | None:
     return _split_card_code_impl(raw_code)
 
 
-def display_dupe_code(dupe_code: str | None) -> str:
-    return _display_dupe_code_impl(dupe_code)
+def display_card_code(card_code: str | None) -> str:
+    return _display_card_code_impl(card_code)
 
 
-def display_dupe_code_raw(dupe_code: str | None) -> str:
-    return _display_dupe_code_raw_impl(dupe_code)
+def display_card_code_raw(card_code: str | None) -> str:
+    return _display_card_code_raw_impl(card_code)
 
 
 def generation_label(generation: int) -> str:
@@ -357,21 +357,21 @@ def card_base_display(card_id: str) -> str:
     )
 
 
-def card_dupe_display(
+def card_display(
     card_id: str,
     generation: int,
-    dupe_code: str | None = None,
+    card_code: str | None = None,
     *,
-    pad_dupe_code: bool = True,
+    pad_card_code: bool = True,
     morph_key: str | None = None,
     frame_key: str | None = None,
     font_key: str | None = None,
 ) -> str:
-    return _card_dupe_display_impl(
+    return _card_display_impl(
         card_id,
         generation,
-        dupe_code,
-        pad_dupe_code=pad_dupe_code,
+        card_code,
+        pad_card_code=pad_card_code,
         morph_key=morph_key,
         frame_key=frame_key,
         font_key=font_key,
@@ -381,19 +381,19 @@ def card_dupe_display(
     )
 
 
-def card_dupe_display_concise(
+def card_display_concise(
     card_id: str,
     generation: int,
-    dupe_code: str | None = None,
+    card_code: str | None = None,
     *,
     morph_key: str | None = None,
     frame_key: str | None = None,
     font_key: str | None = None,
 ) -> str:
-    return _card_dupe_display_concise_impl(
+    return _card_display_concise_impl(
         card_id,
         generation,
-        dupe_code,
+        card_code,
         morph_key=morph_key,
         frame_key=frame_key,
         font_key=font_key,

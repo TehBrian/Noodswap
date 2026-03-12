@@ -3,7 +3,7 @@ from typing import Optional
 
 import discord
 
-from .cards import CARD_CATALOG, card_dupe_display
+from .cards import CARD_CATALOG, card_display
 from .images import embed_image_payload
 from .presentation import italy_embed
 from .services import execute_drop_claim
@@ -82,11 +82,11 @@ class DropView(InteractionView):
                 if all(isinstance(item, discord.ui.Button) and item.disabled for item in self.children):
                     self.finished = True
 
-            pulled_dupe_code = claim_result.dupe_code
+            pulled_card_code = claim_result.card_code
 
             pulled_embed = italy_embed(
                 "Pulled Card",
-                (f"<@{interaction.user.id}> pulled {card_dupe_display(card_id, generation, dupe_code=pulled_dupe_code, pad_dupe_code=False)}."),
+                (f"<@{interaction.user.id}> pulled {card_display(card_id, generation, card_code=pulled_card_code, pad_card_code=False)}."),
             )
             image_url, image_file = embed_image_payload(card_id, generation=generation)
             if image_url is not None:

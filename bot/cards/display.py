@@ -1,9 +1,9 @@
 from . import (
     card_base_display,
-    card_dupe_display,
-    card_dupe_display_concise,
-    display_dupe_code,
-    display_dupe_code_raw,
+    card_display,
+    card_display_concise,
+    display_card_code,
+    display_card_code_raw,
     generation_label,
     proper_case,
     series_display,
@@ -12,10 +12,10 @@ from . import (
 
 __all__ = [
     "card_base_display",
-    "card_dupe_display",
-    "card_dupe_display_concise",
-    "display_dupe_code",
-    "display_dupe_code_raw",
+    "card_display",
+    "card_display_concise",
+    "display_card_code",
+    "display_card_code_raw",
     "generation_label",
     "proper_case",
     "series_display",

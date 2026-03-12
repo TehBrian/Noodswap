@@ -49,8 +49,8 @@ from .command_utils import (
     buy_drop_tickets_with_starter as buy_drop_tickets_with_starter,
     card_base_display as card_base_display,
     card_base_value as card_base_value,
-    card_dupe_display as card_dupe_display,
-    card_dupe_display_concise as card_dupe_display_concise,
+    card_display as card_display,
+    card_display_concise as card_display_concise,
     card_value as card_value,
     cast as cast,
     claim_vote_reward as claim_vote_reward,
@@ -86,7 +86,7 @@ from .command_utils import (
     get_folder_emojis_for_instances as get_folder_emojis_for_instances,
     get_gambling_pot as get_gambling_pot,
     get_instance_by_code as get_instance_by_code,
-    get_instance_by_dupe_code as get_instance_by_dupe_code,
+    get_instance_by_card_code as get_instance_by_card_code,
     get_instance_by_id as get_instance_by_id,
     get_instance_font as get_instance_font,
     get_instance_frame as get_instance_frame,
@@ -467,8 +467,8 @@ def register_social_commands(bot: commands.Bot) -> None:
         if married_instance_id is not None:
             married_instance = get_instance_by_id(_guild_id(ctx), married_instance_id)
             if married_instance is not None:
-                _, married_card_id, married_generation, married_dupe_code = married_instance
-                married = card_dupe_display(married_card_id, married_generation, dupe_code=married_dupe_code)
+                _, married_card_id, married_generation, married_card_code = married_instance
+                married = card_display(married_card_id, married_generation, card_code=married_card_code)
                 married_image_url, married_image_file = embed_image_payload(
                     married_card_id,
                     generation=married_generation,

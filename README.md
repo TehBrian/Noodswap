@@ -162,7 +162,7 @@ This bot uses privileged intents. Enable these for your application in Discord D
 - `ns tag remove <tag_name>` / `ns tag r <tag_name>` — delete one of your tags.
 - `ns tag list` / `ns tag l` — list your tags, lock status, and card counts.
 - `ns tag lock <tag_name>` / `ns tag unlock <tag_name>` — toggle burn protection for that tag.
-- `ns tag assign <tag_name> <card_code>` / `ns tag as ...` — tag one of your owned dupes.
+- `ns tag assign <tag_name> <card_code>` / `ns tag as ...` — tag one of your owned cards.
 - `ns tag unassign <tag_name> <card_code>` / `ns tag u ...` — remove a card from a tag.
 - `ns tag cards <tag_name>` / `ns tag c <tag_name>` — list cards in a specific tag.
 - `ns folder` / `ns fd` — folder command group.
@@ -217,7 +217,7 @@ Machine-readable output is available with `--json`.
 - Drop preview generation prefers locally cached images when available.
 - User-facing dupe actions (`burn`, `marry`, `trade`) accept standalone card `Code` (e.g. `0`, `a`, `10`, `#10`) and target that exact copy.
 - Catalog `ID` (e.g. `SPG`) is internal/base-card identity used in storage/catalog logic.
-- **DUPE CARDS have CODES. BASE CARDS have IDS.**
+- **CARDS have CODES. CARD TYPES have IDS.**
 - Player state is global across all guilds: inventories, dough, marriages, and wishlist are shared across every server where the bot is installed.
 - `starter` is a higher-tier currency earned from verified top.gg votes.
 - `drop tickets` are a consumable currency that bypasses `drop` cooldown when used automatically.

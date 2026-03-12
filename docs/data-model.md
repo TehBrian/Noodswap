@@ -48,7 +48,7 @@ Columns:
 - `user_id INTEGER NOT NULL`
 - `card_id TEXT NOT NULL`
 - `generation INTEGER NOT NULL`
-- `dupe_code TEXT` (base36 dupe identifier, globally unique)
+- `card_code TEXT` (base36 dupe identifier, globally unique)
 - `morph_key TEXT` (optional per-instance visual modifier)
 - `frame_key TEXT` (optional per-instance frame modifier)
 - `font_key TEXT` (optional per-instance font modifier)
@@ -59,7 +59,7 @@ Purpose:
 
 Indexes:
 - `idx_card_instances_owner(guild_id, user_id, card_id, generation)`
-- `idx_card_instances_dupe_code(dupe_code)` (unique where `dupe_code` is not null)
+- `idx_card_instances_card_code(card_code)` (unique where `card_code` is not null)
 
 ### schema_migrations
 
@@ -81,7 +81,7 @@ Columns:
 - `card_id TEXT NOT NULL`
 
 Purpose:
-- Stores each player's wishlisted base card IDs in global scope
+- Stores each player's wishlisted card type IDs in global scope
 - Supports `wish add/remove` command flows
 
 ### player_tags
@@ -216,7 +216,7 @@ Columns:
 - `instance_id INTEGER NOT NULL`
 - `card_id TEXT NOT NULL`
 - `generation INTEGER NOT NULL`
-- `dupe_code TEXT NOT NULL`
+- `card_code TEXT NOT NULL`
 - `max_hp INTEGER NOT NULL`
 - `current_hp INTEGER NOT NULL`
 - `is_active INTEGER NOT NULL DEFAULT 0`
@@ -243,17 +243,17 @@ Current migration set:
 - `v2`:
 	- Adds `wishlist_cards` table and owner index.
 - `v3`:
-	- Adds `card_instances.dupe_code`.
+	- Adds `card_instances.card_code`.
 	- Backfills existing rows with sequential base36 ids per guild.
-	- Enforces unique per-guild dupe ids with `idx_card_instances_dupe_code`.
+	- Enforces unique per-guild dupe ids with `idx_card_instances_card_code`.
 - `v4`:
 	- Normalizes all persisted data into global scope (`guild_id = 0`).
 	- Merges per-user player rows across guilds into one global player row.
-	- Reassigns `dupe_code` globally across all instances using ascending base36.
-	- Enforces global `dupe_code` uniqueness.
+	- Reassigns `card_code` globally across all instances using ascending base36.
+	- Enforces global `card_code` uniqueness.
 - `v5`:
-	- Ensures `card_instances.dupe_code` exists and is indexed.
-	- Rebuilds duplicate-code uniqueness index as `idx_card_instances_dupe_code`.
+	- Ensures `card_instances.card_code` exists and is indexed.
+	- Rebuilds duplicate-code uniqueness index as `idx_card_instances_card_code`.
 - `v6`:
 	- Adds `players.last_drop_at` and resets `players.last_pull_at` to support split drop vs pull cooldown tracking.
 - `v7`:
@@ -307,7 +307,7 @@ Notes:
 
 - BASE CARDS have IDS (catalog identity like `SPG`).
 - DUPE CARDS have CODES (owned-copy identity like `0`, `a`, `10`).
-- Never use base ID and dupe code interchangeably in UX, storage, or command args.
+- Never use base ID and card code interchangeably in UX, storage, or command args.
 
 ## Selection policies
 
@@ -321,7 +321,7 @@ Notes:
 
 ## Terminology (explicit)
 
-- DUPE CARDS have CODES (`dupe_code`, e.g. `0`, `a`, `10`, `#10`).
+- DUPE CARDS have CODES (`card_code`, e.g. `0`, `a`, `10`, `#10`).
 - BASE CARDS have IDS (`card_id`, e.g. `SPG`, `PEN`).
 - Treat these as different concepts in commands, storage, and documentation.
 

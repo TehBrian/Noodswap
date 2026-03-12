@@ -1,6 +1,6 @@
 import discord
 
-from .cards import card_dupe_display
+from .cards import card_display
 from .utils import multiline_text
 
 ITALY_RED = 0xCE2B37
@@ -16,7 +16,7 @@ def italy_marry_embed(title: str, description: str = "") -> discord.Embed:
 
 
 def format_drop_choice_line(card_id: str, generation: int) -> str:
-    return card_dupe_display(card_id, generation, pad_dupe_code=False)
+    return card_display(card_id, generation, pad_card_code=False)
 
 
 def drop_choices_description(choices: list[tuple[str, int]]) -> str:
@@ -27,7 +27,7 @@ def drop_choices_description(choices: list[tuple[str, int]]) -> str:
 def burn_confirmation_description(
     card_id: str,
     generation: int,
-    dupe_code: str | None,
+    card_code: str | None,
     value: int,
     base_value: int,
     delta_range: int,
@@ -35,7 +35,7 @@ def burn_confirmation_description(
 ) -> str:
     return f"""Burn this card?
 
-{card_dupe_display(card_id, generation, dupe_code=dupe_code)}
+{card_display(card_id, generation, card_code=card_code)}
 
 Base Value: **{base_value}**
 Total Multiplier: **x{multiplier:.2f}**
@@ -48,7 +48,7 @@ def trade_offer_description(
     seller_mention: str,
     card_id: str,
     generation: int,
-    dupe_code: str | None,
+    card_code: str | None,
     terms: object,  # TradeTerms; typed as object to avoid circular import
 ) -> str:
     mode: str = getattr(terms, "mode")
@@ -64,16 +64,16 @@ def trade_offer_description(
         # card mode
         req_card_id = getattr(terms, "req_card_id", None)
         req_gen = getattr(terms, "req_generation", None)
-        req_dupe = getattr(terms, "req_dupe_code", None)
+        req_dupe = getattr(terms, "req_card_code", None)
         if req_card_id is not None and req_gen is not None:
-            req_text = card_dupe_display(req_card_id, req_gen, dupe_code=req_dupe)
+            req_text = card_display(req_card_id, req_gen, card_code=req_dupe)
         else:
             req_text = "unknown card"
         price_line = f"Requesting: {req_text}"
     return f"""Offered to: {offered_to_mention}
 Seller: {seller_mention}
 
-Card: {card_dupe_display(card_id, generation, dupe_code=dupe_code)}
+Card: {card_display(card_id, generation, card_code=card_code)}
 {price_line}"""
 
 
@@ -82,12 +82,12 @@ def gift_offer_description(
     sender_mention: str,
     card_id: str,
     generation: int,
-    dupe_code: str | None,
+    card_code: str | None,
 ) -> str:
     return f"""Offered to: {offered_to_mention}
 Sender: {sender_mention}
 
-Card: {card_dupe_display(card_id, generation, dupe_code=dupe_code)}"""
+Card: {card_display(card_id, generation, card_code=card_code)}"""
 
 
 def battle_offer_description(
@@ -117,7 +117,7 @@ def _hp_bar(current_hp: int, max_hp: int, width: int = 12) -> str:
 
 def _combatant_line(row: dict[str, int | str | bool]) -> str:
     card_id = str(row["card_id"])
-    dupe_code = str(row["dupe_code"])
+    card_code = str(row["card_code"])
     current_hp = int(row["current_hp"])
     max_hp = int(row["max_hp"])
     attack = int(row["attack"]) if row.get("attack") is not None else 0
@@ -135,7 +135,7 @@ def _combatant_line(row: dict[str, int | str | bool]) -> str:
     state_text = f" ({', '.join(state_bits)})" if state_bits else ""
     hp_text = f"{current_hp:>3}/{max_hp:<3}"
     health_line = f"`HP {hp_text}` {_hp_bar(current_hp, max_hp)}"
-    info_line = f"`{card_id}#{dupe_code}`{state_text} • HP:{current_hp} ATK:{attack} DEF:{defense}"
+    info_line = f"`{card_id}#{card_code}`{state_text} • HP:{current_hp} ATK:{attack} DEF:{defense}"
     return f"{health_line}\n{info_line}"
 
 

@@ -94,9 +94,9 @@ class ServicesTests:
         user_id = 212
         storage.add_card_to_player(guild_id, user_id, "SPG", 333)
         instances = storage.get_player_card_instances(guild_id, user_id)
-        dupe_code = instances[0][3]
+        card_code = instances[0][3]
 
-        prepared = services.prepare_burn(guild_id=guild_id, user_id=user_id, card_code=f"#{dupe_code.upper()}")
+        prepared = services.prepare_burn(guild_id=guild_id, user_id=user_id, card_code=f"#{card_code.upper()}")
         assert not (prepared.is_error)
         assert prepared.card_id == "SPG"
         assert prepared.generation == 333
@@ -303,7 +303,7 @@ class ServicesTests:
             instance_id=instance_id,
             card_id="SPG",
             generation=333,
-            dupe_code="0",
+            card_code="0",
             morph_key="black_and_white",
             morph_name="Black and White",
             rolled_rarity="common",
@@ -397,7 +397,7 @@ class ServicesTests:
             instance_id=instance_id,
             card_id="SPG",
             generation=333,
-            dupe_code="0",
+            card_code="0",
             frame_key="buttery",
             frame_name="Buttery",
             rolled_rarity="common",
@@ -449,7 +449,7 @@ class ServicesTests:
             instance_id=instance_id,
             card_id="SPG",
             generation=333,
-            dupe_code="0",
+            card_code="0",
             font_key="serif",
             font_name="Serif",
             rolled_rarity="uncommon",
@@ -496,7 +496,7 @@ class ServicesTests:
         assert not (result.is_error)
         assert result.card_id == instances[0][1]
         assert result.generation == instances[0][2]
-        assert result.dupe_code == instances[0][3]
+        assert result.card_code == instances[0][3]
 
     def test_execute_marry_without_card_uses_last_pulled(self) -> None:
         guild_id = 1
@@ -623,14 +623,14 @@ class ServicesTests:
         seller_id = 59
         storage.add_card_to_player(guild_id, seller_id, "SPG", 444)
         instances = storage.get_player_card_instances(guild_id, seller_id)
-        dupe_code = instances[0][3]
+        card_code = instances[0][3]
 
         prepared = services.prepare_trade_offer(
             guild_id=guild_id,
             seller_id=seller_id,
             buyer_id=60,
             buyer_is_bot=False,
-            card_code=dupe_code.upper(),
+            card_code=card_code.upper(),
             mode="dough",
             amount=10,
         )
@@ -646,14 +646,14 @@ class ServicesTests:
         seller_id = 591
         storage.add_card_to_player(guild_id, seller_id, "SPG", 444)
         instances = storage.get_player_card_instances(guild_id, seller_id)
-        dupe_code = instances[0][3]
+        card_code = instances[0][3]
 
         prepared = services.prepare_trade_offer(
             guild_id=guild_id,
             seller_id=seller_id,
             buyer_id=60,
             buyer_is_bot=False,
-            card_code=f"#{dupe_code.upper()}",
+            card_code=f"#{card_code.upper()}",
             mode="dough",
             amount=10,
         )
@@ -666,14 +666,14 @@ class ServicesTests:
         seller_id = 592
         storage.add_card_to_player(guild_id, seller_id, "SPG", 200)
         instances = storage.get_player_card_instances(guild_id, seller_id)
-        dupe_code = instances[0][3]
+        card_code = instances[0][3]
 
         prepared = services.prepare_trade_offer(
             guild_id=guild_id,
             seller_id=seller_id,
             buyer_id=593,
             buyer_is_bot=False,
-            card_code=dupe_code,
+            card_code=card_code,
             mode="starter",
             amount=5,
         )
@@ -687,14 +687,14 @@ class ServicesTests:
         seller_id = 594
         storage.add_card_to_player(guild_id, seller_id, "SPG", 300)
         instances = storage.get_player_card_instances(guild_id, seller_id)
-        dupe_code = instances[0][3]
+        card_code = instances[0][3]
 
         prepared = services.prepare_trade_offer(
             guild_id=guild_id,
             seller_id=seller_id,
             buyer_id=595,
             buyer_is_bot=False,
-            card_code=dupe_code,
+            card_code=card_code,
             mode="drop",
             amount=2,
         )
@@ -750,7 +750,7 @@ class ServicesTests:
         assert prepared.terms is not None
         assert prepared.terms.mode == "card"
         assert prepared.terms.req_card_id == "PEN"
-        assert prepared.terms.req_dupe_code == buyer_dupe
+        assert prepared.terms.req_card_code == buyer_dupe
 
     def test_execute_drop_claim_returns_cooldown_error_when_pull_not_ready(
         self,
@@ -780,7 +780,7 @@ class ServicesTests:
         assert second_claim.is_error
         assert second_claim.cooldown_remaining_seconds or 0.0 > 0.0
 
-    def test_execute_drop_claim_returns_resolved_dupe_code(self) -> None:
+    def test_execute_drop_claim_returns_resolved_card_code(self) -> None:
         guild_id = 1
         user_id = 601
 
@@ -796,7 +796,7 @@ class ServicesTests:
         assert claim.card_id == "SPG"
         assert claim.generation == 777
         assert claim.instance_id is not None
-        assert claim.dupe_code is not None
+        assert claim.card_code is not None
 
     def test_execute_drop_claim_persists_drop_and_pull_provenance(self) -> None:
         guild_id = 1
@@ -813,9 +813,9 @@ class ServicesTests:
             dropped_by_user_id=dropped_by_user_id,
         )
         assert not (claim.is_error)
-        assert claim.dupe_code is not None
+        assert claim.card_code is not None
 
-        looked_up = storage.get_instance_by_dupe_code(guild_id, claim.dupe_code)
+        looked_up = storage.get_instance_by_card_code(guild_id, claim.card_code)
         assert looked_up is not None
         if looked_up is None:
             return
@@ -825,7 +825,7 @@ class ServicesTests:
             owner_user_id,
             _card_id,
             _generation,
-            _dupe_code,
+            _card_code,
             stored_dropped_by_user_id,
             stored_pulled_by_user_id,
         ) = looked_up
@@ -839,7 +839,7 @@ class ServicesTests:
             seller_id=700,
             buyer_id=701,
             card_id="SPG",
-            dupe_code="0",
+            card_code="0",
             terms=services.TradeTerms(mode="dough", amount=25),
             accepted=False,
         )
@@ -852,7 +852,7 @@ class ServicesTests:
         buyer_id = 711
         storage.add_card_to_player(guild_id, seller_id, "SPG", 420)
         seller_instances = storage.get_player_card_instances(guild_id, seller_id)
-        dupe_code = seller_instances[0][3]
+        card_code = seller_instances[0][3]
         storage.add_dough(guild_id, buyer_id, 100)
 
         result = services.resolve_trade_offer(
@@ -860,7 +860,7 @@ class ServicesTests:
             seller_id=seller_id,
             buyer_id=buyer_id,
             card_id="SPG",
-            dupe_code=dupe_code,
+            card_code=card_code,
             terms=services.TradeTerms(mode="dough", amount=25),
             accepted=True,
         )
@@ -876,7 +876,7 @@ class ServicesTests:
         buyer_id = 713
         storage.add_card_to_player(guild_id, seller_id, "SPG", 100)
         seller_instances = storage.get_player_card_instances(guild_id, seller_id)
-        dupe_code = seller_instances[0][3]
+        card_code = seller_instances[0][3]
         storage.add_starter(guild_id, buyer_id, 10)
 
         result = services.resolve_trade_offer(
@@ -884,7 +884,7 @@ class ServicesTests:
             seller_id=seller_id,
             buyer_id=buyer_id,
             card_id="SPG",
-            dupe_code=dupe_code,
+            card_code=card_code,
             terms=services.TradeTerms(mode="starter", amount=5),
             accepted=True,
         )
@@ -898,7 +898,7 @@ class ServicesTests:
         buyer_id = 715
         storage.add_card_to_player(guild_id, seller_id, "SPG", 100)
         seller_instances = storage.get_player_card_instances(guild_id, seller_id)
-        dupe_code = seller_instances[0][3]
+        card_code = seller_instances[0][3]
         storage.add_starter(guild_id, buyer_id, 3)
         storage.buy_drop_tickets_with_starter(guild_id, buyer_id, 3)
 
@@ -907,7 +907,7 @@ class ServicesTests:
             seller_id=seller_id,
             buyer_id=buyer_id,
             card_id="SPG",
-            dupe_code=dupe_code,
+            card_code=card_code,
             terms=services.TradeTerms(mode="drop", amount=2),
             accepted=True,
         )
@@ -921,7 +921,7 @@ class ServicesTests:
         buyer_id = 1715
         storage.add_card_to_player(guild_id, seller_id, "SPG", 100)
         seller_instances = storage.get_player_card_instances(guild_id, seller_id)
-        dupe_code = seller_instances[0][3]
+        card_code = seller_instances[0][3]
         storage.add_starter(guild_id, buyer_id, 3)
         storage.buy_pull_tickets_with_starter(guild_id, buyer_id, 3)
 
@@ -930,7 +930,7 @@ class ServicesTests:
             seller_id=seller_id,
             buyer_id=buyer_id,
             card_id="SPG",
-            dupe_code=dupe_code,
+            card_code=card_code,
             terms=services.TradeTerms(mode="pull", amount=2),
             accepted=True,
         )
@@ -954,12 +954,12 @@ class ServicesTests:
             seller_id=seller_id,
             buyer_id=buyer_id,
             card_id="SPG",
-            dupe_code=seller_dupe,
+            card_code=seller_dupe,
             terms=services.TradeTerms(
                 mode="card",
                 req_card_id="PEN",
                 req_generation=200,
-                req_dupe_code=buyer_dupe,
+                req_card_code=buyer_dupe,
             ),
             accepted=True,
         )
@@ -987,7 +987,7 @@ class ServicesTests:
                 instance_id=instance_id,
                 card_id="SPG",
                 generation=333,
-                dupe_code="0",
+                card_code="0",
                 current_morph_key=None,
                 cost=1,
             )
@@ -1016,7 +1016,7 @@ class ServicesTests:
                 instance_id=instance_id,
                 card_id="SPG",
                 generation=333,
-                dupe_code="0",
+                card_code="0",
                 current_frame_key=None,
                 cost=1,
             )
@@ -1039,7 +1039,7 @@ class ServicesTests:
                 instance_id=instance_id,
                 card_id="SPG",
                 generation=333,
-                dupe_code="0",
+                card_code="0",
                 current_font_key=None,
                 cost=1,
             )

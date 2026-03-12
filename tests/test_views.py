@@ -88,7 +88,7 @@ class ViewTests:
             challenger_rows=(
                 {
                     "card_id": "SPG",
-                    "dupe_code": "0",
+                    "card_code": "0",
                     "current_hp": 80,
                     "max_hp": 100,
                     "attack": 18,
@@ -101,7 +101,7 @@ class ViewTests:
             challenged_rows=(
                 {
                     "card_id": "PEN",
-                    "dupe_code": "1",
+                    "card_code": "1",
                     "current_hp": 0,
                     "max_hp": 100,
                     "attack": 16,
@@ -134,7 +134,7 @@ class ViewTests:
             challenger_combatants=(
                 {
                     "card_id": "SPG",
-                    "dupe_code": "0",
+                    "card_code": "0",
                     "current_hp": 0,
                     "max_hp": 100,
                     "attack": 18,
@@ -147,7 +147,7 @@ class ViewTests:
             challenged_combatants=(
                 {
                     "card_id": "PEN",
-                    "dupe_code": "1",
+                    "card_code": "1",
                     "current_hp": 45,
                     "max_hp": 100,
                     "attack": 16,
@@ -178,7 +178,7 @@ class ViewTests:
             challenger_combatants=(
                 {
                     "card_id": "SPG",
-                    "dupe_code": "0",
+                    "card_code": "0",
                     "current_hp": 88,
                     "max_hp": 100,
                     "attack": 18,
@@ -191,7 +191,7 @@ class ViewTests:
             challenged_combatants=(
                 {
                     "card_id": "PEN",
-                    "dupe_code": "1",
+                    "card_code": "1",
                     "current_hp": 72,
                     "max_hp": 100,
                     "attack": 16,
@@ -344,7 +344,7 @@ class ViewTests:
 
         with patch(
             "bot.view_drop.execute_drop_claim",
-            return_value=type("Result", (), {"is_error": False, "dupe_code": "abc"})(),
+            return_value=type("Result", (), {"is_error": False, "card_code": "abc"})(),
         ) as execute_claim:
             await callback(interaction)
 
@@ -377,7 +377,7 @@ class ViewTests:
 
         with patch(
             "bot.view_drop.execute_drop_claim",
-            return_value=type("Result", (), {"is_error": False, "dupe_code": "abc"})(),
+            return_value=type("Result", (), {"is_error": False, "card_code": "abc"})(),
         ) as execute_claim:
             await callback(first_interaction)
             await callback(second_interaction)
@@ -394,7 +394,7 @@ class ViewTests:
 
         with patch(
             "bot.view_drop.execute_drop_claim",
-            return_value=type("Result", (), {"is_error": False, "dupe_code": "abc"})(),
+            return_value=type("Result", (), {"is_error": False, "card_code": "abc"})(),
         ):
             await callback(first_interaction)
         assert not (view.finished)
@@ -437,7 +437,7 @@ class ViewTests:
             seller_id=10,
             buyer_id=20,
             card_id="SPG",
-            dupe_code="0",
+            card_code="0",
             terms=TradeTerms(mode="dough", amount=25),
         )
         interaction = _FakeInteraction(user_id=30)
@@ -456,7 +456,7 @@ class ViewTests:
             seller_id=10,
             buyer_id=20,
             card_id="SPG",
-            dupe_code="0",
+            card_code="0",
             terms=TradeTerms(mode="dough", amount=25),
         )
         interaction = _FakeInteraction(user_id=20)
@@ -469,7 +469,7 @@ class ViewTests:
                 {
                     "is_failed": False,
                     "generation": 123,
-                    "dupe_code": "a",
+                    "card_code": "a",
                     "received_card_id": None,
                 },
             )(),
@@ -493,7 +493,7 @@ class ViewTests:
             seller_id=10,
             buyer_id=20,
             card_id="SPG",
-            dupe_code="0",
+            card_code="0",
             terms=TradeTerms(mode="dough", amount=25),
         )
         fake_message = _FakeMessage()
@@ -510,8 +510,8 @@ class ViewTests:
             seller_id=10,
             buyer_id=20,
             card_id="SPG",
-            dupe_code="0",
-            terms=TradeTerms(mode="card", req_card_id="PEN", req_generation=200, req_dupe_code="1"),
+            card_code="0",
+            terms=TradeTerms(mode="card", req_card_id="PEN", req_generation=200, req_card_code="1"),
         )
         interaction = _FakeInteraction(user_id=20)
 
@@ -523,10 +523,10 @@ class ViewTests:
                 {
                     "is_failed": False,
                     "generation": 100,
-                    "dupe_code": "0",
+                    "card_code": "0",
                     "received_card_id": "PEN",
                     "received_generation": 200,
-                    "received_dupe_code": "1",
+                    "received_card_code": "1",
                 },
             )(),
         ):
@@ -559,7 +559,7 @@ class ViewTests:
                 "is_failed": False,
                 "card_id": "SPG",
                 "generation": 321,
-                "dupe_code": "a",
+                "card_code": "a",
                 "payout": 42,
                 "delta": 2,
                 "locked_tags": (),
@@ -600,7 +600,7 @@ class ViewTests:
                 "is_failed": False,
                 "card_id": None,
                 "generation": None,
-                "dupe_code": None,
+                "card_code": None,
                 "payout": None,
                 "delta": None,
                 "locked_tags": ("safe",),
@@ -646,7 +646,7 @@ class ViewTests:
             instance_id=77,
             card_id="SPG",
             generation=321,
-            dupe_code="a",
+            card_code="a",
             before_morph_key=None,
             before_frame_key=None,
             before_font_key=None,
@@ -689,7 +689,7 @@ class ViewTests:
             instance_id=77,
             card_id="SPG",
             generation=321,
-            dupe_code="a",
+            card_code="a",
             before_morph_key=None,
             before_frame_key=None,
             before_font_key=None,
@@ -711,7 +711,7 @@ class ViewTests:
             instance_id=77,
             card_id="SPG",
             generation=321,
-            dupe_code="a",
+            card_code="a",
             before_morph_key=None,
             before_frame_key=None,
             before_font_key=None,
@@ -736,7 +736,7 @@ class ViewTests:
             instance_id=77,
             card_id="SPG",
             generation=321,
-            dupe_code="a",
+            card_code="a",
             before_morph_key=None,
             before_frame_key=None,
             before_font_key=None,
@@ -779,7 +779,7 @@ class ViewTests:
             instance_id=77,
             card_id="SPG",
             generation=321,
-            dupe_code="a",
+            card_code="a",
             before_morph_key=None,
             before_frame_key=None,
             before_font_key=None,
@@ -804,7 +804,7 @@ class ViewTests:
             instance_id=77,
             card_id="SPG",
             generation=321,
-            dupe_code="a",
+            card_code="a",
             before_morph_key=None,
             before_frame_key=None,
             before_font_key=None,
@@ -847,7 +847,7 @@ class ViewTests:
             instance_id=77,
             card_id="SPG",
             generation=321,
-            dupe_code="a",
+            card_code="a",
             before_morph_key=None,
             before_frame_key=None,
             before_font_key=None,

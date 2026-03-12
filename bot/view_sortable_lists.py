@@ -3,7 +3,7 @@ from typing import Optional
 
 import discord
 
-from .cards import CARD_CATALOG, card_base_display, card_dupe_display, card_value
+from .cards import CARD_CATALOG, card_base_display, card_display, card_value
 from .images import embed_image_payload
 from .presentation import italy_embed
 from .settings import TRADE_TIMEOUT_SECONDS
@@ -335,7 +335,7 @@ class SortableCollectionView(discord.ui.View):
         self.folder_emojis_by_instance = folder_emojis_by_instance or {}
         self.wish_counts = wish_counts or {}
         self.instance_styles = instance_styles or {}
-        self.card_line_formatter = card_line_formatter or card_dupe_display
+        self.card_line_formatter = card_line_formatter or card_display
         self.guard_title = guard_title
         self.default_page_size = max(1, page_size)
         self.page_index = 0
@@ -510,19 +510,19 @@ class SortableCollectionView(discord.ui.View):
         if not page_instances:
             description = "No entries available."
         elif self.gallery_mode:
-            instance_id, card_id, generation, dupe_code = page_instances[0]
+            instance_id, card_id, generation, card_code = page_instances[0]
             marker = self._instance_marker(instance_id)
-            description = f"{start + 1}. {marker}{self._format_card_line(instance_id, card_id, generation, dupe_code)}"
+            description = f"{start + 1}. {marker}{self._format_card_line(instance_id, card_id, generation, card_code)}"
         else:
             lines = [
-                f"{idx}. {self._instance_marker(instance_id)}{self._format_card_line(instance_id, card_id, generation, dupe_code)}"
-                for idx, (instance_id, card_id, generation, dupe_code) in enumerate(page_instances, start=start + 1)
+                f"{idx}. {self._instance_marker(instance_id)}{self._format_card_line(instance_id, card_id, generation, card_code)}"
+                for idx, (instance_id, card_id, generation, card_code) in enumerate(page_instances, start=start + 1)
             ]
             description = multiline_text(lines)
 
         embed = italy_embed(self.title, description)
         if self.gallery_mode and page_instances:
-            instance_id, card_id, generation, _dupe_code = page_instances[0]
+            instance_id, card_id, generation, _card_code = page_instances[0]
             morph_key, frame_key, font_key = self.instance_styles.get(instance_id, (None, None, None))
 
             image_url, image_file = embed_image_payload(
@@ -556,19 +556,19 @@ class SortableCollectionView(discord.ui.View):
         folder_marker = f"{folder_emoji} " if folder_emoji is not None else "`  ` "
         return f"{folder_marker}{lock_marker}"
 
-    def _format_card_line(self, instance_id: int, card_id: str, generation: int, dupe_code: str | None) -> str:
+    def _format_card_line(self, instance_id: int, card_id: str, generation: int, card_code: str | None) -> str:
         morph_key, frame_key, font_key = self.instance_styles.get(instance_id, (None, None, None))
         try:
             return self.card_line_formatter(
                 card_id,
                 generation,
-                dupe_code,
+                card_code,
                 morph_key=morph_key,
                 frame_key=frame_key,
                 font_key=font_key,
             )
         except TypeError:
-            return self.card_line_formatter(card_id, generation, dupe_code)
+            return self.card_line_formatter(card_id, generation, card_code)
 
     def build_embed(self) -> discord.Embed:
         embed, _file = self._build_embed_and_file()
