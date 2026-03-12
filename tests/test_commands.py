@@ -2440,6 +2440,61 @@ class CommandsMonopolyTests:
         assert final_embed.thumbnail.url == "attachment://property.png"
         assert final_attachments == [image_file]
 
+    async def test_monopoly_roll_preserves_property_owner_ping_in_rent_line(self) -> None:
+        monopoly_roll_command = _get_group_command(self.bot, "monopoly", "roll")
+
+        message = AsyncMock()
+        ctx = AsyncMock()
+        ctx.guild = _FakeGuild(1)
+        ctx.author = _FakeMember(100, "Caller")
+        ctx.send = AsyncMock(return_value=message)
+        ctx.reply = ctx.send
+
+        image_file = discord.File(io.BytesIO(b"png"), filename="rent.png")
+        result = SimpleNamespace(
+            status="ok",
+            cooldown_remaining=0.0,
+            die_a=2,
+            die_b=3,
+            position=5,
+            in_jail=False,
+            doubles=False,
+            lines=(
+                "Dice: **2 + 3 = 5**",
+                "",
+                "Landed on **Sample Card** 🟫 (#abc123)",
+                "Rent paid to <@200>: **50/50 dough**",
+            ),
+            mpreg_card_id=None,
+            mpreg_generation=None,
+            mpreg_morph_key=None,
+            mpreg_frame_key=None,
+            mpreg_font_key=None,
+            thumbnail_card_id="SPG",
+            thumbnail_generation=222,
+            thumbnail_morph_key=None,
+            thumbnail_frame_key=None,
+            thumbnail_font_key=None,
+        )
+
+        with (
+            patch("bot.commands_gambling.execute_monopoly_roll", return_value=result),
+            patch("bot.commands_gambling.random.choice", return_value="spinning"),
+            patch("bot.commands_gambling.asyncio.sleep", new=AsyncMock()) as sleep_mock,
+            patch(
+                "bot.commands_gambling.embed_image_payload",
+                return_value=("attachment://rent.png", image_file),
+            ) as image_payload,
+        ):
+            await monopoly_roll_command.callback(ctx)
+
+        image_payload.assert_called_once()
+        sleep_mock.assert_awaited_once_with(3.0)
+
+        message.edit.assert_awaited_once()
+        final_embed = message.edit.await_args.kwargs["embed"]
+        assert "Rent paid to <@200>: **50/50 dough**" in final_embed.description
+
 
 class CommandsMorphTests:
     def setup_method(self) -> None:
