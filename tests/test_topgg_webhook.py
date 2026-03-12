@@ -108,7 +108,7 @@ async def test_claims_vote_reward_on_valid_payload(webhook_server: TopggWebhookS
         "/bot/topgg-vote-webhook",
         headers={"Authorization": "secret", "Content-Type": "application/json"},
     )
-    request.json = AsyncMock(return_value={"user": "123"})
+    request.json = AsyncMock(return_value={"user": "123", "type": "upvote"})
 
     response = await webhook_server._handle_vote(request)
 
@@ -123,14 +123,14 @@ async def test_duplicate_vote_claims_reward_each_time(webhook_server: TopggWebho
         "/bot/topgg-vote-webhook",
         headers={"Authorization": "secret", "Content-Type": "application/json"},
     )
-    first_request.json = AsyncMock(return_value={"user": "456"})
+    first_request.json = AsyncMock(return_value={"user": "456", "type": "upvote"})
 
     second_request = make_mocked_request(
         "POST",
         "/bot/topgg-vote-webhook",
         headers={"Authorization": "secret", "Content-Type": "application/json"},
     )
-    second_request.json = AsyncMock(return_value={"user": "456"})
+    second_request.json = AsyncMock(return_value={"user": "456", "type": "upvote"})
 
     first_response = await webhook_server._handle_vote(first_request)
 
@@ -148,7 +148,7 @@ async def test_rejects_non_json_content_type_when_enforced(webhook_server: Topgg
         "/bot/topgg-vote-webhook",
         headers={"Authorization": "secret", "Content-Type": "text/plain"},
     )
-    request.json = AsyncMock(return_value={"user": "123"})
+    request.json = AsyncMock(return_value={"user": "123", "type": "upvote"})
 
     response = await webhook_server._handle_vote(request)
 
@@ -165,8 +165,38 @@ async def test_rejects_payload_too_large_from_content_length(webhook_server: Top
             "Content-Length": "999999",
         },
     )
-    request.json = AsyncMock(return_value={"user": "123"})
+    request.json = AsyncMock(return_value={"user": "123", "type": "upvote"})
 
     response = await webhook_server._handle_vote(request)
 
     assert response.status == 413
+
+
+async def test_acknowledges_test_type_without_claiming_reward(webhook_server: TopggWebhookServer) -> None:
+    request = make_mocked_request(
+        "POST",
+        "/bot/topgg-vote-webhook",
+        headers={"Authorization": "secret", "Content-Type": "application/json"},
+    )
+    request.json = AsyncMock(return_value={"user": "123", "type": "test"})
+
+    response = await webhook_server._handle_vote(request)
+
+    assert response.status == 200
+    assert storage.get_player_starter(0, 123) == 0
+    assert storage.get_player_votes(0, 123) == 0
+
+
+async def test_rejects_unknown_vote_type(webhook_server: TopggWebhookServer) -> None:
+    request = make_mocked_request(
+        "POST",
+        "/bot/topgg-vote-webhook",
+        headers={"Authorization": "secret", "Content-Type": "application/json"},
+    )
+    request.json = AsyncMock(return_value={"user": "123", "type": "mystery"})
+
+    response = await webhook_server._handle_vote(request)
+
+    assert response.status == 400
+    assert storage.get_player_starter(0, 123) == 0
+    assert storage.get_player_votes(0, 123) == 0

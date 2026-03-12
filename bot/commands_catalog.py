@@ -157,7 +157,6 @@ from .command_utils import (
     _lookup_trait_breakdown_description as _lookup_trait_breakdown_description,
     _reply as _reply,
     _require_guild as _require_guild,
-    _topgg_recent_vote_status as _topgg_recent_vote_status,
     _vote_link_view as _vote_link_view,
 )  # noqa: F403
 
@@ -406,53 +405,11 @@ def register_catalog_commands(bot: commands.Bot) -> None:
         lines: list[str] = [
             "Support Noodswap by voting on Top.gg!",
             f"Reward: **+{VOTE_STARTER_REWARD} starter**",
+            "",
+            "Votes are registered automatically through Top.gg webhooks.",
+            "After voting, rewards are applied as soon as Top.gg delivers the webhook event.",
+            "If your reward does not appear after a short delay, contact an admin.",
         ]
-
-        api_token = os.getenv("TOPGG_API_TOKEN", "").strip()
-        if not api_token:
-            lines.extend(
-                [
-                    "",
-                    "The reward system is temporarily unavailable.",
-                    "You can still vote, but you won't earn starter for now.",
-                ]
-            )
-            await _reply(
-                ctx,
-                embed=italy_embed("Vote", multiline_text(lines)),
-                view=_vote_link_view(vote_url),
-            )
-            return
-
-        voted, vote_error = await _topgg_recent_vote_status(ctx.author.id, api_token)
-        if voted:
-            starter_total = claim_vote_reward(
-                guild_id=_guild_id(ctx),
-                user_id=ctx.author.id,
-                reward_amount=VOTE_STARTER_REWARD,
-            )
-            lines.extend(
-                [
-                    "",
-                    f"Claimed: **+{VOTE_STARTER_REWARD} starter**",
-                    f"Starter Balance: **{starter_total}**",
-                ]
-            )
-        elif voted is False:
-            lines.extend(
-                [
-                    "",
-                    "No recent Top.gg vote detected for your account yet.",
-                    "Cast your vote using the button, then try `ns vote` again.",
-                ]
-            )
-        else:
-            lines.extend(
-                [
-                    "",
-                    f"Could not verify your Top.gg vote right now: {vote_error or 'unknown error'}",
-                ]
-            )
 
         await _reply(
             ctx,

@@ -746,62 +746,6 @@ async def _require_guild(
     return False
 
 
-def _topgg_auth_header(api_token: str) -> str:
-    token = api_token.strip()
-    if token.lower().startswith("bearer "):
-        return token
-    return f"Bearer {token}"
-
-
-async def _topgg_recent_vote_status(user_id: int, api_token: str) -> tuple[bool | None, str | None]:
-    # top.gg v1 endpoint for checking a single user's vote status on the authenticated project.
-    check_url = f"https://top.gg/api/v1/projects/@me/votes/{user_id}?source=discord"
-    headers = {"Authorization": _topgg_auth_header(api_token)}
-    timeout = aiohttp.ClientTimeout(total=8)
-    max_attempts = 3
-
-    for attempt in range(max_attempts):
-        try:
-            async with aiohttp.ClientSession(timeout=timeout) as session:
-                async with session.get(check_url, headers=headers) as response:
-                    if response.status == 404:
-                        return False, None
-
-                    if response.status == 429 and attempt < max_attempts - 1:
-                        await asyncio.sleep(0.5 * (2**attempt))
-                        continue
-
-                    if 500 <= response.status < 600 and attempt < max_attempts - 1:
-                        await asyncio.sleep(0.5 * (2**attempt))
-                        continue
-
-                    if response.status != 200:
-                        return (
-                            None,
-                            f"Top.gg API responded with status {response.status}.",
-                        )
-
-                    payload = await response.json(content_type=None)
-                    break
-        except (aiohttp.ClientError, asyncio.TimeoutError) as exc:
-            if attempt < max_attempts - 1:
-                await asyncio.sleep(0.5 * (2**attempt))
-                continue
-            if isinstance(exc, asyncio.TimeoutError):
-                return None, "Top.gg request timed out."
-            return None, f"Top.gg request failed: {exc}"
-        except ValueError:
-            return None, "Top.gg response was not valid JSON."
-    else:
-        return None, "Top.gg request failed after retries."
-
-    created_at = payload.get("created_at")
-    expires_at = payload.get("expires_at")
-    if created_at is None and expires_at is None:
-        return None, "Top.gg response did not include vote status fields."
-    return True, None
-
-
 async def _wish_add(ctx: commands.Context, *card_ids: str) -> None:
     if not await _require_guild(ctx, "Wishlist"):
         return

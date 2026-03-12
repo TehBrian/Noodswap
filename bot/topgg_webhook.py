@@ -152,6 +152,22 @@ class TopggWebhookServer:
         if user_id is None:
             return web.json_response({"ok": False, "error": "missing_user"}, status=400)
 
+        payload_type = str(payload.get("type", "")).strip().lower()
+        if payload_type not in {"upvote", "test"}:
+            return web.json_response({"ok": False, "error": "invalid_type"}, status=400)
+
+        if payload_type == "test":
+            logger.info("top.gg test webhook acknowledged for user_id=%s", user_id)
+            return web.json_response(
+                {
+                    "ok": True,
+                    "claimed": False,
+                    "starter_total": None,
+                    "event_type": "test",
+                },
+                status=200,
+            )
+
         starter_total = claim_vote_reward(
             guild_id=0,
             user_id=user_id,
@@ -167,6 +183,7 @@ class TopggWebhookServer:
                 "ok": True,
                 "claimed": True,
                 "starter_total": starter_total,
+                "event_type": "upvote",
             },
             status=200,
         )
