@@ -3,6 +3,13 @@ def format_cooldown(seconds_remaining: float) -> str:
     total = int(seconds_remaining)
     mins = total // 60
     secs = total % 60
+
+    if mins == 0:
+        return f"{secs}s"
+    
+    if secs == 0:
+        return f"{mins}m"
+
     return f"{mins}m {secs}s"
 
 
