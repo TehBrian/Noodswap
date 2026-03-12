@@ -100,14 +100,14 @@ This includes:
 - The in-canvas card body is rendered at `5:7` to match standard trading-card proportions while preserving border margin.
 - Cards use a rounded outer border and rounded inner art window.
 - Border color is rarity-driven:
-  - `common`: brown
-  - `uncommon`: gray
-  - `rare`: light purple
+  - `common`: white
+  - `uncommon`: brown
+  - `rare`: purple
   - `epic`: orange
-  - `legendary`: light blue
-  - `mythical`: dark purple
+  - `legendary`: red
+  - `mythical`: green
   - `divine`: yellow
-  - `celestial`: bright near-white blue
+  - `celestial`: blue
 
 ## Drop UX
 

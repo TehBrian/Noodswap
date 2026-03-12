@@ -44,45 +44,45 @@ RARITY_GROUP_ORDER = (
 
 BOARD_SPACES: tuple[MonopolySpace, ...] = (
     MonopolySpace(0, "GO", "go", "➡️"),
-    MonopolySpace(1, "Common Property", "property", "🟫", "common"),
+    MonopolySpace(1, "Common Property", "property", "⬜", "common"),
     MonopolySpace(2, "Community Charcuterie", "community", "🧺"),
-    MonopolySpace(3, "Common Property", "property", "🟫", "common"),
-    MonopolySpace(4, "Cheese Tax", "tax", "💸"),
-    MonopolySpace(5, "Uncommon Property", "property", "🟦", "uncommon"),
-    MonopolySpace(6, "Uncommon Property", "property", "🟦", "uncommon"),
+    MonopolySpace(3, "Common Property", "property", "⬜", "common"),
+    MonopolySpace(4, "Tomato Tax", "tax", "💸"),
+    MonopolySpace(5, "Community Charcuterie", "community", "🧺"),
+    MonopolySpace(6, "Uncommon Property", "property", "🟫", "uncommon"),
     MonopolySpace(7, "Cheese Chance", "chance", "❓"),
-    MonopolySpace(8, "Uncommon Property", "property", "🟦", "uncommon"),
-    MonopolySpace(9, "Rare Property", "property", "🩷", "rare"),
+    MonopolySpace(8, "Uncommon Property", "property", "🟫", "uncommon"),
+    MonopolySpace(9, "Uncommon Property", "property", "🟫", "uncommon"),
     MonopolySpace(10, "Mpreg Square", "mpreg", "🤰"),
-    MonopolySpace(11, "Rare Property", "property", "🩷", "rare"),
-    MonopolySpace(12, "Rare Property", "property", "🩷", "rare"),
-    MonopolySpace(13, "Rare Property", "property", "🩷", "rare"),
-    MonopolySpace(14, "Epic Property", "property", "🟧", "epic"),
-    MonopolySpace(15, "Epic Property", "property", "🟧", "epic"),
-    MonopolySpace(16, "Cheese Chance", "chance", "❓"),
+    MonopolySpace(11, "Rare Property", "property", "🟪", "rare"),
+    MonopolySpace(12, "Community Charcuterie", "community", "🧺"),
+    MonopolySpace(13, "Rare Property", "property", "🟪", "rare"),
+    MonopolySpace(14, "Rare Property", "property", "🟪", "rare"),
+    MonopolySpace(15, "Cheese Chance", "chance", "❓"),
+    MonopolySpace(16, "Epic Property", "property", "🟧", "epic"),
     MonopolySpace(17, "Community Charcuterie", "community", "🧺"),
     MonopolySpace(18, "Epic Property", "property", "🟧", "epic"),
-    MonopolySpace(19, "Legendary Property", "property", "🟥", "legendary"),
+    MonopolySpace(19, "Epic Property", "property", "🟧", "epic"),
     MonopolySpace(20, "Free Parking", "free_parking", "🅿️"),
     MonopolySpace(21, "Legendary Property", "property", "🟥", "legendary"),
     MonopolySpace(22, "Cheese Chance", "chance", "❓"),
     MonopolySpace(23, "Legendary Property", "property", "🟥", "legendary"),
-    MonopolySpace(24, "Mythical Property", "property", "🟨", "mythical"),
-    MonopolySpace(25, "Mythical Property", "property", "🟨", "mythical"),
+    MonopolySpace(24, "Legendary Property", "property", "🟥", "legendary"),
+    MonopolySpace(25, "Community Charcuterie", "community", "🧺"),
     MonopolySpace(26, "Mythical Property", "property", "🟨", "mythical"),
-    MonopolySpace(27, "Divine Property", "property", "🟩", "divine"),
-    MonopolySpace(28, "Divine Property", "property", "🟩", "divine"),
-    MonopolySpace(29, "Divine Property", "property", "🟩", "divine"),
+    MonopolySpace(27, "Mythical Property", "property", "🟨", "mythical"),
+    MonopolySpace(28, "Cheese Chance", "chance", "❓"),
+    MonopolySpace(29, "Mythical Property", "property", "🟨", "mythical"),
     MonopolySpace(30, "Go To Jail", "go_to_jail", "❌"),
-    MonopolySpace(31, "Celestial Property", "property", "🔷", "celestial"),
-    MonopolySpace(32, "Celestial Property", "property", "🔷", "celestial"),
+    MonopolySpace(31, "Divine Property", "property", "🟩", "divine"),
+    MonopolySpace(32, "Divine Property", "property", "🟩", "divine"),
     MonopolySpace(33, "Community Charcuterie", "community", "🧺"),
-    MonopolySpace(34, "Celestial Property", "property", "🔷", "celestial"),
-    MonopolySpace(35, "Cheese Chance", "chance", "❓"),
+    MonopolySpace(34, "Divine Property", "property", "🟩", "divine"),
+    MonopolySpace(35, "Community Charcuterie", "community", "🧺"),
     MonopolySpace(36, "Cheese Chance", "chance", "❓"),
-    MonopolySpace(37, "Celestial Property", "property", "🔷", "celestial"),
-    MonopolySpace(38, "Cheese Tax", "tax", "💸"),
-    MonopolySpace(39, "Celestial Property", "property", "🔷", "celestial"),
+    MonopolySpace(37, "Celestial Property", "property", "🟦", "celestial"),
+    MonopolySpace(38, "Tomato Tax", "tax", "💸"),
+    MonopolySpace(39, "Celestial Property", "property", "🟦", "celestial"),
 )
 
 
@@ -205,7 +205,7 @@ def random_epic_or_better_card_id() -> str:
 
 def render_board(player_position: int) -> str:
     size = 11
-    grid = [["   " for _ in range(size)] for _ in range(size)]
+    grid = [["  " for _ in range(size)] for _ in range(size)]
 
     perimeter_map: dict[int, tuple[int, int]] = {}
 
@@ -230,11 +230,16 @@ def render_board(player_position: int) -> str:
         if row_col is None:
             continue
         row, col = row_col
-        marker = "👤" if space.position == player_position else " "
-        grid[row][col] = f"{space.emoji}{marker}"
+        grid[row][col] = f"{"👤" if space.position == player_position else space.position}"
 
     lines = [" ".join(row) for row in grid]
     lines.append("")
-    lines.append("Legend: ➡️ GO, 💸 Cheese Tax, 🧺 Community Charcuterie, ❓ Cheese Chance, 🅿️ Free Parking, ❌ Go To Jail, 🤰 Mpreg")
-    lines.append("Property tiers: 🟫 common, 🟦 uncommon, 🩷 rare, 🟧 epic, 🟥 legendary, 🟨 mythical, 🟩 divine, 🔷 celestial")
+    lines.append("""Legend:
+➡️ GO, 💸 Cheese Tax
+🧺 Community Charcuterie, ❓ Cheese Chance
+🅿️ Free Parking, ❌ Go To Jail, 🤰 Mpreg Square
+""")
+    lines.append("""Properties:
+⬜ Common, 🟫 Uncommon, 🟪 Rare, 🟧 Epic
+🟥 Legendary, 🟩 Mythical, 🟨 Divine, 🟦 Celestial""")
     return "\n".join(lines)
