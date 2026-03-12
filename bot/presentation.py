@@ -58,6 +58,8 @@ def trade_offer_description(
         price_line = f"Price: **{getattr(terms, 'amount')}** starter"
     elif mode == "drop":
         price_line = f"Price: **{getattr(terms, 'amount')}** drop ticket(s)"
+    elif mode == "pull":
+        price_line = f"Price: **{getattr(terms, 'amount')}** pull ticket(s)"
     else:
         # card mode
         req_card_id = getattr(terms, "req_card_id", None)
@@ -172,8 +174,9 @@ def battle_arena_description(
 COMMAND_SYNTAX_BY_KEY: dict[str, str] = {
     "battle": "ns battle <player> <stake>",
     "burn": "ns burn [targets...]",
-    "buy": "ns buy drop [quantity]",
+    "buy": "ns buy <drop|pull> [quantity]",
     "buy drop": "ns buy drop [quantity]",
+    "buy pull": "ns buy pull [quantity]",
     "cards": "ns cards",
     "collection": "ns collection [player]",
     "cooldown": "ns cooldown [player]",
@@ -199,10 +202,11 @@ COMMAND_SYNTAX_BY_KEY: dict[str, str] = {
     "folder unlock": "ns folder unlock <folder_name>",
     "font": "ns font [card_code]",
     "frame": "ns frame [card_code]",
-    "gift": "ns gift <dough|starter|drop|card> <player> <amount|card_code>",
+    "gift": "ns gift <dough|starter|drop|pull|card> <player> <amount|card_code>",
     "gift card": "ns gift card <player> <card_code>",
     "gift dough": "ns gift dough <player> <dough>",
     "gift drop": "ns gift drop <player> <tickets>",
+    "gift pull": "ns gift pull <player> <tickets>",
     "gift starter": "ns gift starter <player> <starter>",
     "help": "ns help",
     "info": "ns info [player]",
@@ -276,6 +280,7 @@ HELP_CATEGORY_PAGES: tuple[tuple[str, str, str], ...] = (
         "Economy",
         """- `drop` (`d`) — Drop 3 cards.
 - `buy drop [quantity]` — Buy drop tickets for 1 starter each. Defaults to 1.
+- `buy pull [quantity]` — Buy pull tickets for 1 starter each. Defaults to 1.
 - `cooldown [player]` (`cd`) — Check a player's cooldowns. Defaults to yourself or the replied user.
 - `vote` (`v`) — Vote for the bot to claim rewards.
 - `burn [target...]` (`b`) — Burn targets for dough. Supports card codes plus
@@ -283,8 +288,9 @@ HELP_CATEGORY_PAGES: tuple[tuple[str, str, str], ...] = (
 - `gift dough <player> <dough>` (`gift d`) — Send dough to a player.
 - `gift starter <player> <starter>` (`gift s`) — Send starter to a player.
 - `gift drop <player> <tickets>` — Send drop tickets to a player.
+- `gift pull <player> <tickets>` — Send pull tickets to a player.
 - `gift card <player> <card_code>` (`gift c`) — Send a card to a player.
-- `trade <player> <card_code> <mode> <amount|req_code>` (`t`) — Offer a trade. Mode: `dough`, `starter`, `drop`, or `card`.""",
+- `trade <player> <card_code> <mode> <amount|req_code>` (`t`) — Offer a trade. Mode: `dough`, `starter`, `drop`, `pull`, or `card`.""",
     ),
     (
         "gambling",

@@ -34,6 +34,7 @@ class StorageTests(unittest.TestCase):
             self.assertIn("last_dropped_instance_id", column_names)
             self.assertIn("starter", column_names)
             self.assertIn("drop_tickets", column_names)
+            self.assertIn("pull_tickets", column_names)
             self.assertIn("last_slots_at", column_names)
             self.assertIn("last_flip_at", column_names)
             self.assertIn("active_team_name", column_names)
@@ -158,6 +159,53 @@ class StorageTests(unittest.TestCase):
         self.assertEqual(drop_tickets, 2)
         self.assertEqual(spent, 2)
 
+    def test_buy_pull_tickets_with_starter_requires_sufficient_balance(self) -> None:
+        guild_id = 1
+        user_id = 2244
+
+        storage.init_db()
+        purchased, starter_balance, pull_tickets, spent = storage.buy_pull_tickets_with_starter(guild_id, user_id, 2)
+        self.assertFalse(purchased)
+        self.assertEqual(starter_balance, 0)
+        self.assertEqual(pull_tickets, 0)
+        self.assertEqual(spent, 0)
+
+        storage.add_starter(guild_id, user_id, 3)
+        purchased, starter_balance, pull_tickets, spent = storage.buy_pull_tickets_with_starter(guild_id, user_id, 2)
+        self.assertTrue(purchased)
+        self.assertEqual(starter_balance, 1)
+        self.assertEqual(pull_tickets, 2)
+        self.assertEqual(spent, 2)
+
+    def test_consume_pull_cooldown_or_ticket_bypasses_without_changing_timestamp(self) -> None:
+        guild_id = 1
+        user_id = 2245
+
+        storage.init_db()
+        storage.add_starter(guild_id, user_id, 1)
+        storage.buy_pull_tickets_with_starter(guild_id, user_id, 1)
+
+        now = 4_000.0
+        with storage.get_db_connection() as conn:
+            players = storage.PlayerRepository(conn, storage.STARTING_DOUGH)
+            players.ensure_player(storage._scope_guild_id(guild_id), user_id)
+            players.set_last_pull_at(storage._scope_guild_id(guild_id), user_id, now)
+
+        _last_drop_at, before_last_pull_at = storage.get_player_cooldown_timestamps(guild_id, user_id)
+
+        used_ticket, remaining = storage.consume_pull_cooldown_or_ticket(
+            guild_id,
+            user_id,
+            now=now + 1.0,
+            cooldown_seconds=360.0,
+        )
+        _last_drop_at, after_last_pull_at = storage.get_player_cooldown_timestamps(guild_id, user_id)
+
+        self.assertTrue(used_ticket)
+        self.assertEqual(remaining, 0.0)
+        self.assertEqual(before_last_pull_at, after_last_pull_at)
+        self.assertEqual(storage.get_player_pull_tickets(guild_id, user_id), 0)
+
     def test_consume_drop_cooldown_or_ticket_bypasses_without_changing_timestamp(
         self,
     ) -> None:
@@ -253,10 +301,11 @@ class StorageTests(unittest.TestCase):
         self.assertEqual(status, "lost")
         self.assertEqual(remaining, 0.0)
         self.assertEqual(balance, 75)
-        pot_dough, pot_starter, pot_tickets = storage.get_gambling_pot(guild_id)
+        pot_dough, pot_starter, pot_drop_tickets, pot_pull_tickets = storage.get_gambling_pot(guild_id)
         self.assertEqual(pot_dough, 25)
         self.assertEqual(pot_starter, 0)
-        self.assertEqual(pot_tickets, 0)
+        self.assertEqual(pot_drop_tickets, 0)
+        self.assertEqual(pot_pull_tickets, 0)
 
     def test_monopoly_roll_sets_cooldown_when_not_doubles(self) -> None:
         guild_id = 1
@@ -429,6 +478,7 @@ class StorageTests(unittest.TestCase):
                     dough_delta=0,
                     starter_delta=0,
                     drop_tickets_delta=0,
+                    pull_tickets_delta=0,
                     move_to=20,
                     go_to_jail=False,
                     reset_random_cooldown=False,
@@ -445,10 +495,11 @@ class StorageTests(unittest.TestCase):
         self.assertEqual(result.status, "ok")
         self.assertTrue(any("Free Parking jackpot" in line for line in result.lines))
 
-        pot_dough, pot_starter, pot_tickets = storage.get_gambling_pot(guild_id)
+        pot_dough, pot_starter, pot_drop_tickets, pot_pull_tickets = storage.get_gambling_pot(guild_id)
         self.assertEqual(pot_dough, 0)
         self.assertEqual(pot_starter, 0)
-        self.assertEqual(pot_tickets, 0)
+        self.assertEqual(pot_drop_tickets, 0)
+        self.assertEqual(pot_pull_tickets, 0)
 
         player_dough, _, _ = storage.get_player_info(guild_id, user_id)
         self.assertEqual(player_dough, 1734)
@@ -752,6 +803,37 @@ class StorageTests(unittest.TestCase):
         seller_instances = storage.get_player_card_instances(guild_id, seller_id)
         self.assertEqual(len(seller_instances), 1)
 
+    def test_trade_pull_tickets_mode_transfers_card_and_tickets(self) -> None:
+        guild_id = 1
+        seller_id = 1744
+        buyer_id = 1745
+
+        storage.init_db()
+        storage.add_card_to_player(guild_id, seller_id, "SPG", 100)
+        storage.add_starter(guild_id, buyer_id, 5)
+        storage.buy_pull_tickets_with_starter(guild_id, buyer_id, 5)
+        selected = storage.get_burn_candidate_by_card_id(guild_id, seller_id, "SPG")
+        self.assertIsNotNone(selected)
+        if selected is None:
+            return
+        _, _, _, dupe_code = selected
+
+        success, message, gen, _dupe, received = storage.execute_trade(
+            guild_id=guild_id,
+            seller_id=seller_id,
+            buyer_id=buyer_id,
+            card_id="SPG",
+            dupe_code=dupe_code,
+            terms=TradeTerms(mode="pull", amount=3),
+        )
+
+        self.assertTrue(success)
+        self.assertEqual(message, "")
+        self.assertEqual(gen, 100)
+        self.assertIsNone(received)
+        self.assertEqual(storage.get_player_pull_tickets(guild_id, seller_id), 3)
+        self.assertEqual(storage.get_player_pull_tickets(guild_id, buyer_id), 2)
+
     def test_trade_card_mode_swaps_both_instances(self) -> None:
         guild_id = 1
         seller_id = 748
@@ -1009,6 +1091,30 @@ class StorageTests(unittest.TestCase):
         self.assertEqual(recipient_balance, 0)
         self.assertEqual(storage.get_player_drop_tickets(guild_id, sender_id), 1)
         self.assertEqual(storage.get_player_drop_tickets(guild_id, recipient_id), 0)
+
+    def test_gift_pull_tickets_transfers_balances(self) -> None:
+        guild_id = 1
+        sender_id = 1734
+        recipient_id = 1735
+
+        storage.init_db()
+        storage.add_starter(guild_id, sender_id, 4)
+        purchased, _starter, _tickets, _spent = storage.buy_pull_tickets_with_starter(guild_id, sender_id, 4)
+        self.assertTrue(purchased)
+
+        gifted, message, sender_balance, recipient_balance = storage.execute_gift_pull_tickets(
+            guild_id=guild_id,
+            sender_id=sender_id,
+            recipient_id=recipient_id,
+            amount=3,
+        )
+
+        self.assertTrue(gifted)
+        self.assertEqual(message, "")
+        self.assertEqual(sender_balance, 1)
+        self.assertEqual(recipient_balance, 3)
+        self.assertEqual(storage.get_player_pull_tickets(guild_id, sender_id), 1)
+        self.assertEqual(storage.get_player_pull_tickets(guild_id, recipient_id), 3)
 
     def test_player_leaderboard_info_aggregates_cards_wishes_and_value(self) -> None:
         guild_id = 1

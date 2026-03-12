@@ -46,6 +46,7 @@ class PlayerRepository:
                 dough,
                 starter,
                 drop_tickets,
+                pull_tickets,
                 last_drop_at,
                 last_pull_at,
                 last_slots_at,
@@ -54,10 +55,10 @@ class PlayerRepository:
                 married_instance_id,
                 last_dropped_instance_id
             )
-            VALUES (?, ?, ?, ?, ?, 0, 0, 0, 0, NULL, NULL, NULL)
+            VALUES (?, ?, ?, ?, ?, ?, 0, 0, 0, 0, NULL, NULL, NULL)
             ON CONFLICT(guild_id, user_id) DO NOTHING
             """,
-            (guild_id, user_id, self.starting_dough, 0, 0),
+            (guild_id, user_id, self.starting_dough, 0, 0, 0),
         )
 
     def get_info(self, guild_id: int, user_id: int) -> tuple[int, float, Optional[int]]:
@@ -346,6 +347,27 @@ class PlayerRepository:
             (amount, guild_id, user_id),
         )
 
+    def get_pull_tickets(self, guild_id: int, user_id: int) -> int:
+        row = self.conn.execute(
+            """
+            SELECT pull_tickets
+            FROM players
+            WHERE guild_id = ? AND user_id = ?
+            """,
+            (guild_id, user_id),
+        ).fetchone()
+        return int(row["pull_tickets"]) if row is not None else 0
+
+    def add_pull_tickets(self, guild_id: int, user_id: int, amount: int) -> None:
+        self.conn.execute(
+            """
+            UPDATE players
+            SET pull_tickets = pull_tickets + ?
+            WHERE guild_id = ? AND user_id = ?
+            """,
+            (amount, guild_id, user_id),
+        )
+
     def list_balances(self, guild_id: int) -> list[tuple[int, int, int, int]]:
         rows = self.conn.execute(
             """
@@ -562,37 +584,38 @@ class GamblingPotRepository:
     def ensure_row(self, guild_id: int) -> None:
         self.conn.execute(
             """
-            INSERT INTO gambling_pot (guild_id, dough, starter, drop_tickets)
-            VALUES (?, 0, 0, 0)
+            INSERT INTO gambling_pot (guild_id, dough, starter, drop_tickets, pull_tickets)
+            VALUES (?, 0, 0, 0, 0)
             ON CONFLICT(guild_id) DO NOTHING
             """,
             (guild_id,),
         )
 
-    def get_balances(self, guild_id: int) -> tuple[int, int, int]:
+    def get_balances(self, guild_id: int) -> tuple[int, int, int, int]:
         row = self.conn.execute(
             """
-            SELECT dough, starter, drop_tickets
+            SELECT dough, starter, drop_tickets, pull_tickets
             FROM gambling_pot
             WHERE guild_id = ?
             """,
             (guild_id,),
         ).fetchone()
         if row is None:
-            return 0, 0, 0
-        return int(row["dough"]), int(row["starter"]), int(row["drop_tickets"])
+            return 0, 0, 0, 0
+        return int(row["dough"]), int(row["starter"]), int(row["drop_tickets"]), int(row["pull_tickets"])
 
-    def add(self, guild_id: int, *, dough: int = 0, starter: int = 0, drop_tickets: int = 0) -> None:
+    def add(self, guild_id: int, *, dough: int = 0, starter: int = 0, drop_tickets: int = 0, pull_tickets: int = 0) -> None:
         self.ensure_row(guild_id)
         self.conn.execute(
             """
             UPDATE gambling_pot
             SET dough = dough + ?,
                 starter = starter + ?,
-                drop_tickets = drop_tickets + ?
+                drop_tickets = drop_tickets + ?,
+                pull_tickets = pull_tickets + ?
             WHERE guild_id = ?
             """,
-            (dough, starter, drop_tickets, guild_id),
+            (dough, starter, drop_tickets, pull_tickets, guild_id),
         )
 
     def clear(self, guild_id: int) -> None:
@@ -602,7 +625,8 @@ class GamblingPotRepository:
             UPDATE gambling_pot
             SET dough = 0,
                 starter = 0,
-                drop_tickets = 0
+                drop_tickets = 0,
+                pull_tickets = 0
             WHERE guild_id = ?
             """,
             (guild_id,),

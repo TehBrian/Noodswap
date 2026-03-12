@@ -70,6 +70,7 @@ from .command_utils import (
     execute_gift_card as execute_gift_card,
     execute_gift_dough as execute_gift_dough,
     execute_gift_drop_tickets as execute_gift_drop_tickets,
+    execute_gift_pull_tickets as execute_gift_pull_tickets,
     execute_gift_starter as execute_gift_starter,
     execute_marry as execute_marry,
     execute_monopoly_fine as execute_monopoly_fine,
@@ -614,7 +615,7 @@ def register_economy_commands(bot: commands.Bot) -> None:
                 ctx,
                 embed=italy_embed(
                     "Trade",
-                    f"Unknown trade mode `{mode}`. Use `dough`, `starter`, `drop`, or `card`.",
+                    f"Unknown trade mode `{mode}`. Use `dough`, `starter`, `drop`, `pull`, or `card`.",
                 ),
             )
             return
@@ -702,6 +703,7 @@ def register_economy_commands(bot: commands.Bot) -> None:
                     "Usage: `ns gift dough <player> <dough>`, "
                     "`ns gift starter <player> <starter>`, "
                     "`ns gift drop <player> <tickets>`, "
+                    "`ns gift pull <player> <tickets>`, "
                     "or `ns gift card <player> <card_code>`."
                 ),
             ),
@@ -825,6 +827,47 @@ def register_economy_commands(bot: commands.Bot) -> None:
                         f"Sent: **{amount}** drop tickets to <@{resolved_member.id}>",
                         f"Your Drop Tickets: **{sender_balance}**",
                         f"{resolved_member.display_name}'s Drop Tickets: **{recipient_balance}**",
+                    ]
+                ),
+            ),
+        )
+
+    @gift.command(name="pull")
+    async def gift_pull(ctx: commands.Context, player: str, amount: int):
+        if not await _require_guild(ctx, "Gift"):
+            return
+
+        resolved_member, resolve_error = await resolve_member_argument(ctx, player)
+        if resolved_member is None:
+            await _reply(
+                ctx,
+                embed=italy_embed("Gift", resolve_error or "Could not resolve player."),
+            )
+            return
+
+        if resolved_member.bot:
+            await _reply(ctx, embed=italy_embed("Gift", "You cannot gift pull tickets to bots."))
+            return
+
+        gifted, error_message, sender_balance, recipient_balance = execute_gift_pull_tickets(
+            guild_id=_guild_id(ctx),
+            sender_id=ctx.author.id,
+            recipient_id=resolved_member.id,
+            amount=amount,
+        )
+        if not gifted:
+            await _reply(ctx, embed=italy_embed("Gift", error_message or "Gift failed."))
+            return
+
+        await _reply(
+            ctx,
+            embed=italy_embed(
+                "Gift",
+                multiline_text(
+                    [
+                        f"Sent: **{amount}** pull tickets to <@{resolved_member.id}>",
+                        f"Your Pull Tickets: **{sender_balance}**",
+                        f"{resolved_member.display_name}'s Pull Tickets: **{recipient_balance}**",
                     ]
                 ),
             ),

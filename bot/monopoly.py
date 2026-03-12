@@ -23,6 +23,7 @@ class MonopolyCard:
     dough_delta: int = 0
     starter_delta: int = 0
     drop_tickets_delta: int = 0
+    pull_tickets_delta: int = 0
     move_to: int | None = None
     go_to_jail: bool = False
     reset_random_cooldown: bool = False
@@ -126,8 +127,8 @@ COMMUNITY_CHARCUTERIE_CARDS: tuple[MonopolyCard, ...] = (
     MonopolyCard("Late-night carbonara hotline bonus. Collect 850 dough.", dough_delta=850),
     MonopolyCard("A sommelier funded your menu redesign. Collect 1200 dough.", dough_delta=1200),
     MonopolyCard("Pantry insurance paid out generously. Collect 1000 dough.", dough_delta=1000),
-    MonopolyCard("A golden ladle ceremony honored you. Gain 1 drop ticket.", drop_tickets_delta=1),
-    MonopolyCard("VIP pasta pass unlocked. Gain 1 drop ticket.", drop_tickets_delta=1),
+    MonopolyCard("A golden ladle ceremony honored you. Gain 1 drop ticket and 1 pull ticket.", drop_tickets_delta=1, pull_tickets_delta=1),
+    MonopolyCard("VIP pasta pass unlocked. Gain 1 drop ticket and 1 pull ticket.", drop_tickets_delta=1, pull_tickets_delta=1),
     MonopolyCard("You inherited a sacred sourdough starter. Gain 1 starter.", starter_delta=1),
 )
 
@@ -158,7 +159,7 @@ CHEESE_CHANCE_CARDS: tuple[MonopolyCard, ...] = (
         reset_random_cooldown=True,
     ),
     MonopolyCard("A sourdough mishap consumed your starter. Lose 1 starter.", starter_delta=-1),
-    MonopolyCard("You misplaced your drop voucher. Lose 1 drop ticket.", drop_tickets_delta=-1),
+    MonopolyCard("You misplaced your voucher stash. Lose 1 drop ticket and 1 pull ticket.", drop_tickets_delta=-1, pull_tickets_delta=-1),
     MonopolyCard("Truffle futures crashed. Lose 900 dough.", dough_delta=-900),
     MonopolyCard("Advance to GO and collect 4000 dough.", move_to=0, dough_delta=4000),
     MonopolyCard("Advance to Free Parking.", move_to=20),
@@ -174,7 +175,7 @@ CHEESE_CHANCE_CARDS: tuple[MonopolyCard, ...] = (
     MonopolyCard("Your espresso cart had a miracle shift. Gain 750 dough.", dough_delta=750),
     MonopolyCard("Mysterious benefactor mailed flour futures. Gain 1200 dough.", dough_delta=1200),
     MonopolyCard("A local angel investor funded you. Gain 1000 dough.", dough_delta=1000),
-    MonopolyCard("You found a bonus drop voucher. Gain 1 drop ticket.", drop_tickets_delta=1),
+    MonopolyCard("You found bonus vouchers. Gain 1 drop ticket and 1 pull ticket.", drop_tickets_delta=1, pull_tickets_delta=1),
     MonopolyCard("Legendary spoon blessing. Gain 1 starter.", starter_delta=1),
 )
 

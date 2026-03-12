@@ -905,6 +905,30 @@ class ServicesTests(unittest.TestCase):
         self.assertEqual(storage.get_player_drop_tickets(guild_id, seller_id), 2)
         self.assertEqual(storage.get_player_drop_tickets(guild_id, buyer_id), 1)
 
+    def test_resolve_trade_offer_pull_tickets_mode_accepted(self) -> None:
+        guild_id = 1
+        seller_id = 1714
+        buyer_id = 1715
+        storage.add_card_to_player(guild_id, seller_id, "SPG", 100)
+        seller_instances = storage.get_player_card_instances(guild_id, seller_id)
+        dupe_code = seller_instances[0][3]
+        storage.add_starter(guild_id, buyer_id, 3)
+        storage.buy_pull_tickets_with_starter(guild_id, buyer_id, 3)
+
+        result = services.resolve_trade_offer(
+            guild_id=guild_id,
+            seller_id=seller_id,
+            buyer_id=buyer_id,
+            card_id="SPG",
+            dupe_code=dupe_code,
+            terms=services.TradeTerms(mode="pull", amount=2),
+            accepted=True,
+        )
+
+        self.assertTrue(result.is_accepted)
+        self.assertEqual(storage.get_player_pull_tickets(guild_id, seller_id), 2)
+        self.assertEqual(storage.get_player_pull_tickets(guild_id, buyer_id), 1)
+
     def test_resolve_trade_offer_card_mode_accepted_swaps_both_cards(self) -> None:
         guild_id = 1
         seller_id = 716

@@ -435,7 +435,7 @@ def register_gambling_commands(bot: commands.Bot) -> None:
         if not await _require_guild(ctx, "Monopoly Pot"):
             return
 
-        pot_dough, pot_starter, pot_drop_tickets = get_gambling_pot(_guild_id(ctx))
+        pot_dough, pot_starter, pot_drop_tickets, pot_pull_tickets = get_gambling_pot(_guild_id(ctx))
         await _reply(
             ctx,
             embed=italy_embed(
@@ -445,6 +445,7 @@ def register_gambling_commands(bot: commands.Bot) -> None:
                         f"Dough: **{pot_dough}**",
                         f"Starter: **{pot_starter}**",
                         f"Drop Tickets: **{pot_drop_tickets}**",
+                        f"Pull Tickets: **{pot_pull_tickets}**",
                     ]
                 ),
             ),

@@ -1348,6 +1348,29 @@ class CommandsBuyTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("Starter Balance: **4**", sent_embed.description)
         self.assertIn("Drop Tickets: **7**", sent_embed.description)
 
+    async def test_buy_pull_purchases_with_starter(self) -> None:
+        buy_pull_command = _get_group_command(self.bot, "buy", "pull")
+
+        ctx = AsyncMock()
+        ctx.guild = _FakeGuild(1)
+        ctx.author = _FakeMember(100, "Caller")
+        ctx.send = AsyncMock()
+        ctx.reply = ctx.send
+
+        with patch(
+            "bot.commands_catalog.buy_pull_tickets_with_starter",
+            return_value=(True, 4, 8, 3),
+        ) as buy_tickets:
+            await buy_pull_command.callback(ctx, quantity=3)
+
+        buy_tickets.assert_called_once_with(1, 100, 3)
+        ctx.send.assert_awaited_once()
+        sent_embed = ctx.send.await_args.kwargs["embed"]
+        self.assertEqual(sent_embed.title, "Buy")
+        self.assertIn("Purchased: **3 pull ticket(s)**", sent_embed.description)
+        self.assertIn("Starter Balance: **4**", sent_embed.description)
+        self.assertIn("Pull Tickets: **8**", sent_embed.description)
+
 
 class CommandsDropTests(unittest.IsolatedAsyncioTestCase):
     def setUp(self) -> None:
@@ -1786,6 +1809,7 @@ class CommandsInfoTests(unittest.IsolatedAsyncioTestCase):
             ),
             patch("bot.commands_social.get_player_starter", return_value=9),
             patch("bot.commands_social.get_player_drop_tickets", return_value=4),
+            patch("bot.commands_social.get_player_pull_tickets", return_value=6),
             patch("bot.commands_social.get_total_cards", return_value=7),
             patch(
                 "bot.commands_social.get_wishlist_cards",
@@ -1801,6 +1825,7 @@ class CommandsInfoTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(field_values.get("Dough"), "123")
         self.assertEqual(field_values.get("Starter"), "9")
         self.assertEqual(field_values.get("Drop Tickets"), "4")
+        self.assertEqual(field_values.get("Pull Tickets"), "6")
         self.assertEqual(field_values.get("Wishes"), "3")
 
     async def test_info_uses_replied_player_when_argument_omitted(self) -> None:
@@ -1826,6 +1851,7 @@ class CommandsInfoTests(unittest.IsolatedAsyncioTestCase):
             ),
             patch("bot.commands_social.get_player_starter", return_value=2),
             patch("bot.commands_social.get_player_drop_tickets", return_value=0),
+            patch("bot.commands_social.get_player_pull_tickets", return_value=0),
             patch("bot.commands_social.get_total_cards", return_value=4),
             patch("bot.commands_social.get_wishlist_cards", return_value=["SPG"]),
         ):
@@ -2005,6 +2031,36 @@ class CommandsGiftTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("Sent: **2** drop tickets", sent_embed.description)
         self.assertIn("Your Drop Tickets: **6**", sent_embed.description)
         self.assertIn("Target's Drop Tickets: **2**", sent_embed.description)
+
+    async def test_gift_pull_success_updates_balances(self) -> None:
+        gift_pull_command = _get_group_command(self.bot, "gift", "pull")
+
+        ctx = AsyncMock()
+        ctx.guild = _FakeGuild(1)
+        ctx.author = _FakeMember(100, "Caller")
+        ctx.send = AsyncMock()
+        ctx.reply = ctx.send
+
+        target = _FakeMember(200, "Target")
+        with (
+            patch(
+                "bot.commands_economy.resolve_member_argument",
+                new=AsyncMock(return_value=(target, None)),
+            ),
+            patch(
+                "bot.commands_economy.execute_gift_pull_tickets",
+                return_value=(True, "", 6, 2),
+            ) as gift_pull,
+        ):
+            await gift_pull_command.callback(ctx, player="@Target", amount=2)
+
+        gift_pull.assert_called_once_with(guild_id=1, sender_id=100, recipient_id=200, amount=2)
+        ctx.send.assert_awaited_once()
+        sent_embed = ctx.send.await_args.kwargs["embed"]
+        self.assertEqual(sent_embed.title, "Gift")
+        self.assertIn("Sent: **2** pull tickets", sent_embed.description)
+        self.assertIn("Your Pull Tickets: **6**", sent_embed.description)
+        self.assertIn("Target's Pull Tickets: **2**", sent_embed.description)
 
 
 class CommandsVoteTests(unittest.IsolatedAsyncioTestCase):

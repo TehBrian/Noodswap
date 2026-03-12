@@ -46,6 +46,7 @@ from .command_utils import (
     asyncio as asyncio,
     battle_offer_description as battle_offer_description,
     build_drop_preview_file as build_drop_preview_file,
+    buy_pull_tickets_with_starter as buy_pull_tickets_with_starter,
     buy_drop_tickets_with_starter as buy_drop_tickets_with_starter,
     card_base_display as card_base_display,
     card_base_value as card_base_value,
@@ -166,7 +167,10 @@ def register_catalog_commands(bot: commands.Bot) -> None:
     async def buy(ctx: commands.Context):
         await _reply(
             ctx,
-            embed=italy_embed("Buy", "Usage: `ns buy drop [quantity]` (1 starter per drop ticket)."),
+            embed=italy_embed(
+                "Buy",
+                "Usage: `ns buy drop [quantity]` or `ns buy pull [quantity]` (1 starter per ticket).",
+            ),
         )
 
     @buy.command(name="drop")
@@ -205,6 +209,47 @@ def register_catalog_commands(bot: commands.Bot) -> None:
                         f"Spent: **{spent} starter**",
                         f"Starter Balance: **{starter_balance}**",
                         f"Drop Tickets: **{drop_tickets}**",
+                    ]
+                ),
+            ),
+        )
+
+    @buy.command(name="pull")
+    async def buy_pull(ctx: commands.Context, quantity: int = 1):
+        if not await _require_guild(ctx, "Buy"):
+            return
+
+        if quantity <= 0:
+            await _reply(ctx, embed=italy_embed("Buy", "Quantity must be a positive integer."))
+            return
+
+        purchased, starter_balance, pull_tickets, spent = buy_pull_tickets_with_starter(_guild_id(ctx), ctx.author.id, quantity)
+        if not purchased:
+            await _reply(
+                ctx,
+                embed=italy_embed(
+                    "Buy",
+                    multiline_text(
+                        [
+                            f"Cost: **{quantity} starter**",
+                            f"Starter Balance: **{starter_balance}**",
+                            "You do not have enough starter.",
+                        ]
+                    ),
+                ),
+            )
+            return
+
+        await _reply(
+            ctx,
+            embed=italy_embed(
+                "Buy",
+                multiline_text(
+                    [
+                        f"Purchased: **{spent} pull ticket(s)**",
+                        f"Spent: **{spent} starter**",
+                        f"Starter Balance: **{starter_balance}**",
+                        f"Pull Tickets: **{pull_tickets}**",
                     ]
                 ),
             ),

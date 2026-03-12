@@ -99,6 +99,7 @@ from .command_utils import (
     get_monopoly_state as get_monopoly_state,
     get_player_card_instances as get_player_card_instances,
     get_player_cooldown_timestamps as get_player_cooldown_timestamps,
+    get_player_pull_tickets as get_player_pull_tickets,
     get_player_drop_tickets as get_player_drop_tickets,
     get_player_flip_timestamp as get_player_flip_timestamp,
     get_player_info as get_player_info,
@@ -457,6 +458,7 @@ def register_social_commands(bot: commands.Bot) -> None:
         dough, _, married_instance_id = get_player_info(_guild_id(ctx), target_member.id)
         starter = get_player_starter(_guild_id(ctx), target_member.id)
         drop_tickets = get_player_drop_tickets(_guild_id(ctx), target_member.id)
+        pull_tickets = get_player_pull_tickets(_guild_id(ctx), target_member.id)
         wishes_count = len(get_wishlist_cards(_guild_id(ctx), target_member.id))
 
         married = "None"
@@ -484,6 +486,7 @@ def register_social_commands(bot: commands.Bot) -> None:
         embed.add_field(name="Dough", value=str(dough), inline=True)
         embed.add_field(name="Starter", value=str(starter), inline=True)
         embed.add_field(name="Drop Tickets", value=str(drop_tickets), inline=True)
+        embed.add_field(name="Pull Tickets", value=str(pull_tickets), inline=True)
         embed.add_field(name="Wishes", value=str(wishes_count), inline=True)
         embed.add_field(name="Married Card", value=married, inline=False)
         if married_image_url is not None:

@@ -21,6 +21,7 @@ Columns:
 - `dough INTEGER NOT NULL DEFAULT 0`
 - `starter INTEGER NOT NULL DEFAULT 0`
 - `drop_tickets INTEGER NOT NULL DEFAULT 0`
+- `pull_tickets INTEGER NOT NULL DEFAULT 0`
 - `votes INTEGER NOT NULL DEFAULT 0`
 - `last_drop_at REAL NOT NULL DEFAULT 0` (tracks last `drop` command usage timestamp)
 - `last_pull_at REAL NOT NULL DEFAULT 0` (tracks last successful drop-card claim timestamp)
@@ -32,7 +33,7 @@ Columns:
 
 Purpose:
 - Player economy and cooldown state in the global Noodswap scope
-- Includes standard (`dough`) and higher-tier currencies (`starter`, `drop_tickets`)
+- Includes standard (`dough`) and higher-tier currencies (`starter`, `drop_tickets`, `pull_tickets`)
 - Tracks cumulative successful top.gg vote rewards (`votes`)
 - Marriage linkage to a specific owned card instance
 
@@ -285,6 +286,9 @@ Current migration set:
 	- Adds `card_instance_folders` for one-folder-per-instance assignment.
 - `v19`:
 	- Adds `players.votes` for cumulative successful top.gg vote claims.
+- `v23`:
+	- Adds `players.pull_tickets` for pull-cooldown bypass purchases/consumption.
+	- Adds `gambling_pot.pull_tickets` for Monopoly pot parity.
 
 Notes:
 - Startup migration is in-code (`bot/migrations.py`) and invoked by `storage.init_db()` using incremental version checks.

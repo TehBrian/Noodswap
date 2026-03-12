@@ -15,7 +15,7 @@ from .storage import (
     apply_morph_to_instance,
     burn_instances,
     consume_drop_cooldown_or_ticket,
-    consume_pull_cooldown_if_ready,
+    consume_pull_cooldown_or_ticket,
     divorce_card,
     execute_trade,
     create_battle_proposal,
@@ -93,11 +93,11 @@ def execute_drop_claim(
     now: float,
     pull_cooldown_seconds: float,
 ) -> DropClaimExecution:
-    cooldown_remaining = consume_pull_cooldown_if_ready(
+    _, cooldown_remaining = consume_pull_cooldown_or_ticket(
         guild_id,
         user_id,
-        now,
-        pull_cooldown_seconds,
+        now=now,
+        cooldown_seconds=pull_cooldown_seconds,
     )
     if cooldown_remaining > 0:
         return DropClaimExecution(
@@ -132,6 +132,9 @@ _TRADE_MODE_ALIASES: dict[str, str] = {
     "tickets": "drop",
     "ticket": "drop",
     "drop_tickets": "drop",
+    "pull": "pull",
+    "pull_ticket": "pull",
+    "pull_tickets": "pull",
     "card": "card",
 }
 VALID_TRADE_MODES = frozenset(_TRADE_MODE_ALIASES.values())
@@ -146,7 +149,7 @@ def normalize_trade_mode(raw: str) -> Optional[str]:
 class TradeTerms:
     """Typed description of what the seller is asking for."""
 
-    mode: str  # "dough" | "starter" | "drop" | "card"
+    mode: str  # "dough" | "starter" | "drop" | "pull" | "card"
     amount: Optional[int] = None  # numeric modes
     req_card_id: Optional[str] = None  # card mode: buyer's offered card_id
     req_generation: Optional[int] = None  # card mode: buyer's offered generation

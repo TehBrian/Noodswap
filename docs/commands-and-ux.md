@@ -16,6 +16,8 @@ This document defines behavior and presentation for commands and interaction flo
 - `lookuphd <card_id|card_code|query>` / `lhd <card_id|card_code|query>`
 - `help` / `h`
 - `drop` / `d`
+- `buy drop [quantity]`
+- `buy pull [quantity]`
 - `slots` / `sl`
 - `flip <stake> [heads|tails]` / `f <stake> [heads|tails]`
 - `vote` / `v`
@@ -25,6 +27,7 @@ This document defines behavior and presentation for commands and interaction flo
 - `gift dough <player> <dough>` / `gift d <player> <dough>`
 - `gift starter <player> <starter>` / `gift s <player> <starter>`
 - `gift drop <player> <tickets>`
+- `gift pull <player> <tickets>`
 - `gift card <player> <card_code>` / `gift c <player> <card_code>`
 - `morph [card_code]` / `mo [card_code]`
 - `frame [card_code]` / `fr [card_code]`

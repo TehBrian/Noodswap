@@ -1240,6 +1240,14 @@ def get_player_drop_tickets(guild_id: int, user_id: int) -> int:
         return players.get_drop_tickets(guild_id, user_id)
 
 
+def get_player_pull_tickets(guild_id: int, user_id: int) -> int:
+    guild_id = _scope_guild_id(guild_id)
+    with get_db_connection() as conn:
+        players = PlayerRepository(conn, STARTING_DOUGH)
+        players.ensure_player(guild_id, user_id)
+        return players.get_pull_tickets(guild_id, user_id)
+
+
 def get_player_votes(guild_id: int, user_id: int) -> int:
     guild_id = _scope_guild_id(guild_id)
     with get_db_connection() as conn:
@@ -1444,7 +1452,7 @@ def get_monopoly_state(guild_id: int, user_id: int) -> tuple[int, float, bool, i
         return players.get_monopoly_state(guild_id, user_id)
 
 
-def get_gambling_pot(guild_id: int) -> tuple[int, int, int]:
+def get_gambling_pot(guild_id: int) -> tuple[int, int, int, int]:
     guild_id = _scope_guild_id(guild_id)
     with get_db_connection() as conn:
         pot = GamblingPotRepository(conn)
@@ -1644,15 +1652,20 @@ def execute_monopoly_roll(
             lines.append(f"Cheese tax paid: **{paid} dough**")
 
         elif space.kind == "free_parking":
-            pot_dough, pot_starter, pot_tickets = pot.get_balances(guild_id)
+            pot_dough, pot_starter, pot_drop_tickets, pot_pull_tickets = pot.get_balances(guild_id)
             if pot_dough > 0:
                 players.add_dough(guild_id, user_id, pot_dough)
             if pot_starter > 0:
                 players.add_starter(guild_id, user_id, pot_starter)
-            if pot_tickets > 0:
-                players.add_drop_tickets(guild_id, user_id, pot_tickets)
+            if pot_drop_tickets > 0:
+                players.add_drop_tickets(guild_id, user_id, pot_drop_tickets)
+            if pot_pull_tickets > 0:
+                players.add_pull_tickets(guild_id, user_id, pot_pull_tickets)
             pot.clear(guild_id)
-            lines.append(f"Free Parking jackpot: **+{pot_dough} dough, +{pot_starter} starter, +{pot_tickets} drop tickets**")
+            lines.append(
+                "Free Parking jackpot: "
+                f"**+{pot_dough} dough, +{pot_starter} starter, +{pot_drop_tickets} drop tickets, +{pot_pull_tickets} pull tickets**"
+            )
 
         elif space.kind == "go_to_jail":
             players.set_monopoly_position(guild_id, user_id, 10)
@@ -1725,6 +1738,15 @@ def execute_monopoly_roll(
                     if lost > 0:
                         players.add_drop_tickets(guild_id, user_id, -lost)
                         pot.add(guild_id, drop_tickets=lost)
+            if card.pull_tickets_delta != 0:
+                if card.pull_tickets_delta > 0:
+                    players.add_pull_tickets(guild_id, user_id, card.pull_tickets_delta)
+                else:
+                    current_tickets = players.get_pull_tickets(guild_id, user_id)
+                    lost = min(current_tickets, -card.pull_tickets_delta)
+                    if lost > 0:
+                        players.add_pull_tickets(guild_id, user_id, -lost)
+                        pot.add(guild_id, pull_tickets=lost)
 
         elif space.kind == "chance":
             card = draw_cheese_chance()
@@ -1761,15 +1783,20 @@ def execute_monopoly_roll(
                 else:
                     lines.append(f"Moved to **{target_space.name}**")
                 if target_space.kind == "free_parking":
-                    pot_dough, pot_starter, pot_tickets = pot.get_balances(guild_id)
+                    pot_dough, pot_starter, pot_drop_tickets, pot_pull_tickets = pot.get_balances(guild_id)
                     if pot_dough > 0:
                         players.add_dough(guild_id, user_id, pot_dough)
                     if pot_starter > 0:
                         players.add_starter(guild_id, user_id, pot_starter)
-                    if pot_tickets > 0:
-                        players.add_drop_tickets(guild_id, user_id, pot_tickets)
+                    if pot_drop_tickets > 0:
+                        players.add_drop_tickets(guild_id, user_id, pot_drop_tickets)
+                    if pot_pull_tickets > 0:
+                        players.add_pull_tickets(guild_id, user_id, pot_pull_tickets)
                     pot.clear(guild_id)
-                    lines.append(f"Free Parking jackpot: **+{pot_dough} dough, +{pot_starter} starter, +{pot_tickets} drop tickets**")
+                    lines.append(
+                        "Free Parking jackpot: "
+                        f"**+{pot_dough} dough, +{pot_starter} starter, +{pot_drop_tickets} drop tickets, +{pot_pull_tickets} pull tickets**"
+                    )
             if card.dough_delta != 0:
                 if card.dough_delta > 0:
                     players.add_dough(guild_id, user_id, card.dough_delta)
@@ -1795,6 +1822,15 @@ def execute_monopoly_roll(
                     if lost > 0:
                         players.add_drop_tickets(guild_id, user_id, -lost)
                         pot.add(guild_id, drop_tickets=lost)
+            if card.pull_tickets_delta != 0:
+                if card.pull_tickets_delta > 0:
+                    players.add_pull_tickets(guild_id, user_id, card.pull_tickets_delta)
+                else:
+                    current_tickets = players.get_pull_tickets(guild_id, user_id)
+                    lost = min(current_tickets, -card.pull_tickets_delta)
+                    if lost > 0:
+                        players.add_pull_tickets(guild_id, user_id, -lost)
+                        pot.add(guild_id, pull_tickets=lost)
 
         elif space.kind == "property" and space.rarity is not None:
             candidates = [
@@ -2007,6 +2043,39 @@ def buy_drop_tickets_with_starter(guild_id: int, user_id: int, quantity: int) ->
         )
 
 
+def buy_pull_tickets_with_starter(guild_id: int, user_id: int, quantity: int) -> tuple[bool, int, int, int]:
+    guild_id = _scope_guild_id(guild_id)
+    with get_db_connection() as conn:
+        _begin_immediate(conn)
+        players = PlayerRepository(conn, STARTING_DOUGH)
+        players.ensure_player(guild_id, user_id)
+
+        starter_balance = players.get_starter(guild_id, user_id)
+        if quantity <= 0:
+            return (
+                False,
+                starter_balance,
+                players.get_pull_tickets(guild_id, user_id),
+                0,
+            )
+        if starter_balance < quantity:
+            return (
+                False,
+                starter_balance,
+                players.get_pull_tickets(guild_id, user_id),
+                0,
+            )
+
+        players.add_starter(guild_id, user_id, -quantity)
+        players.add_pull_tickets(guild_id, user_id, quantity)
+        return (
+            True,
+            players.get_starter(guild_id, user_id),
+            players.get_pull_tickets(guild_id, user_id),
+            quantity,
+        )
+
+
 def consume_drop_cooldown_or_ticket(
     guild_id: int,
     user_id: int,
@@ -2054,6 +2123,34 @@ def consume_pull_cooldown_if_ready(
 
         players.set_last_pull_at(guild_id, user_id, now)
         return 0.0
+
+
+def consume_pull_cooldown_or_ticket(
+    guild_id: int,
+    user_id: int,
+    *,
+    now: float,
+    cooldown_seconds: float,
+) -> tuple[bool, float]:
+    guild_id = _scope_guild_id(guild_id)
+    with get_db_connection() as conn:
+        _begin_immediate(conn)
+        players = PlayerRepository(conn, STARTING_DOUGH)
+        players.ensure_player(guild_id, user_id)
+
+        last_pull_at = players.get_last_pull_at(guild_id, user_id)
+        elapsed = now - last_pull_at
+        if elapsed >= cooldown_seconds:
+            players.set_last_pull_at(guild_id, user_id, now)
+            return False, 0.0
+
+        pull_tickets = players.get_pull_tickets(guild_id, user_id)
+        if pull_tickets > 0:
+            # Ticket substitution bypasses pull cooldown without modifying last_pull_at.
+            players.add_pull_tickets(guild_id, user_id, -1)
+            return True, 0.0
+
+        return False, cooldown_seconds - elapsed
 
 
 def get_card_quantity(guild_id: int, user_id: int, card_id: str) -> int:
@@ -2280,6 +2377,43 @@ def execute_gift_drop_tickets(
             "",
             players.get_drop_tickets(guild_id, sender_id),
             players.get_drop_tickets(guild_id, recipient_id),
+        )
+
+
+def execute_gift_pull_tickets(
+    guild_id: int,
+    sender_id: int,
+    recipient_id: int,
+    amount: int,
+) -> tuple[bool, str, int | None, int | None]:
+    guild_id = _scope_guild_id(guild_id)
+    if amount < 1:
+        return False, "Gift amount must be at least 1 pull ticket.", None, None
+    if sender_id == recipient_id:
+        return False, "You cannot gift pull tickets to yourself.", None, None
+
+    with get_db_connection() as conn:
+        _begin_immediate(conn)
+        players = PlayerRepository(conn, STARTING_DOUGH)
+        players.ensure_player(guild_id, sender_id)
+        players.ensure_player(guild_id, recipient_id)
+
+        sender_balance = players.get_pull_tickets(guild_id, sender_id)
+        if sender_balance < amount:
+            return (
+                False,
+                "You do not have enough pull tickets.",
+                sender_balance,
+                players.get_pull_tickets(guild_id, recipient_id),
+            )
+
+        players.add_pull_tickets(guild_id, sender_id, -amount)
+        players.add_pull_tickets(guild_id, recipient_id, amount)
+        return (
+            True,
+            "",
+            players.get_pull_tickets(guild_id, sender_id),
+            players.get_pull_tickets(guild_id, recipient_id),
         )
 
 
@@ -2606,6 +2740,25 @@ def execute_trade(
             players.clear_last_pulled_if_matches(guild_id, seller_id, instance_id)
             players.add_drop_tickets(guild_id, seller_id, amount)
             players.add_drop_tickets(guild_id, buyer_id, -amount)
+            return True, "", generation, traded_dupe_code, None
+
+        if mode == "pull":
+            if amount is None or amount <= 0:
+                return False, "Invalid trade amount.", None, None, None
+            buyer_tickets = players.get_pull_tickets(guild_id, buyer_id)
+            if buyer_tickets < amount:
+                return (
+                    False,
+                    "Trade failed: buyer does not have enough pull tickets.",
+                    None,
+                    None,
+                    None,
+                )
+            instances.transfer_to_user(instance_id, buyer_id)
+            players.clear_marriage_if_matches(guild_id, seller_id, instance_id)
+            players.clear_last_pulled_if_matches(guild_id, seller_id, instance_id)
+            players.add_pull_tickets(guild_id, seller_id, amount)
+            players.add_pull_tickets(guild_id, buyer_id, -amount)
             return True, "", generation, traded_dupe_code, None
 
         if mode == "card":
