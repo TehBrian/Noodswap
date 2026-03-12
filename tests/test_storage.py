@@ -1,6 +1,6 @@
 import sqlite3
 import tempfile
-import unittest
+from tests.pytest_compat import TestCase
 from contextlib import closing
 from pathlib import Path
 from types import SimpleNamespace
@@ -10,7 +10,7 @@ from bot import storage
 from bot.services import TradeTerms
 
 
-class StorageTests(unittest.TestCase):
+class StorageTests(TestCase):
     def setUp(self) -> None:
         self._tmp_dir = tempfile.TemporaryDirectory()
         self._original_db_path = storage.DB_PATH

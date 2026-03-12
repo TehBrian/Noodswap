@@ -1,4 +1,4 @@
-import unittest
+from tests.pytest_compat import IsolatedAsyncioTestCase
 from unittest.mock import patch
 
 from bot.presentation import battle_arena_description
@@ -73,7 +73,7 @@ class _FakeMessage:
         self.replies.append(kwargs)
 
 
-class ViewTests(unittest.IsolatedAsyncioTestCase):
+class ViewTests(IsolatedAsyncioTestCase):
     async def test_battle_arena_description_adds_winner_celebration_emojis(
         self,
     ) -> None:

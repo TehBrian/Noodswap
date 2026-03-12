@@ -1,13 +1,13 @@
 import tempfile
 import time
-import unittest
+from tests.pytest_compat import TestCase
 from pathlib import Path
 from unittest.mock import patch
 
 from bot import services, storage
 
 
-class ServicesTests(unittest.TestCase):
+class ServicesTests(TestCase):
     def setUp(self) -> None:
         self._tmp_dir = tempfile.TemporaryDirectory()
         self._original_db_path = storage.DB_PATH

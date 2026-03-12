@@ -1,7 +1,7 @@
 import io
 import re
 import tempfile
-import unittest
+from tests.pytest_compat import IsolatedAsyncioTestCase, TestCase
 from types import SimpleNamespace
 from typing import Any
 from unittest.mock import AsyncMock, patch
@@ -148,7 +148,7 @@ _HELP_ALIAS_SHORTCUT_TARGETS: dict[str, str] = {
 }
 
 
-class CommandHelpAliasConsistencyTests(unittest.TestCase):
+class CommandHelpAliasConsistencyTests(TestCase):
     def setUp(self) -> None:
         self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)
         register_commands(self.bot)
@@ -173,7 +173,7 @@ class CommandHelpAliasConsistencyTests(unittest.TestCase):
                 )
 
 
-class CommandsWishlistTests(unittest.IsolatedAsyncioTestCase):
+class CommandsWishlistTests(IsolatedAsyncioTestCase):
     def setUp(self) -> None:
         self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)
         register_commands(self.bot)
@@ -277,7 +277,7 @@ class CommandsWishlistTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("2. (`CHJ`) [🧀] **Cheddar Jack**", sent_embed.description)
 
 
-class CommandsTagTests(unittest.IsolatedAsyncioTestCase):
+class CommandsTagTests(IsolatedAsyncioTestCase):
     def setUp(self) -> None:
         self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)
         register_commands(self.bot)
@@ -418,7 +418,7 @@ class CommandsTagTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("2. (`CHJ`) [🧀] **Cheddar Jack**", sent_embed.description)
 
 
-class CommandsFolderTests(unittest.IsolatedAsyncioTestCase):
+class CommandsFolderTests(IsolatedAsyncioTestCase):
     def setUp(self) -> None:
         self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)
         register_commands(self.bot)
@@ -471,7 +471,7 @@ class CommandsFolderTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(sent_embed.description, "That card is already assigned to this folder.")
 
 
-class CommandsBurnSelectorTests(unittest.IsolatedAsyncioTestCase):
+class CommandsBurnSelectorTests(IsolatedAsyncioTestCase):
     def setUp(self) -> None:
         self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)
         register_commands(self.bot)
@@ -610,7 +610,7 @@ class CommandsBurnSelectorTests(unittest.IsolatedAsyncioTestCase):
         )
 
 
-class CommandsTeamTests(unittest.IsolatedAsyncioTestCase):
+class CommandsTeamTests(IsolatedAsyncioTestCase):
     def setUp(self) -> None:
         self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)
         register_commands(self.bot)
@@ -652,7 +652,7 @@ class CommandsTeamTests(unittest.IsolatedAsyncioTestCase):
         self.assertIs(sent_view.message, ctx.send.return_value)
 
 
-class CommandsAliasRegistrationTests(unittest.TestCase):
+class CommandsAliasRegistrationTests(TestCase):
     def setUp(self) -> None:
         self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)
         register_commands(self.bot)
@@ -687,7 +687,7 @@ class CommandsAliasRegistrationTests(unittest.TestCase):
         self.assertIn("fd", _get_command(self.bot, "folder").aliases)
 
 
-class CommandsLeaderboardTests(unittest.IsolatedAsyncioTestCase):
+class CommandsLeaderboardTests(IsolatedAsyncioTestCase):
     def setUp(self) -> None:
         self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)
         register_commands(self.bot)
@@ -719,7 +719,7 @@ class CommandsLeaderboardTests(unittest.IsolatedAsyncioTestCase):
         self.assertIs(sent_view.message, ctx.send.return_value)
 
 
-class CommandsHelpTests(unittest.IsolatedAsyncioTestCase):
+class CommandsHelpTests(IsolatedAsyncioTestCase):
     def setUp(self) -> None:
         self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)
         register_commands(self.bot)
@@ -743,7 +743,7 @@ class CommandsHelpTests(unittest.IsolatedAsyncioTestCase):
         self.assertIs(sent_view.message, ctx.send.return_value)
 
 
-class CommandsLookupTests(unittest.IsolatedAsyncioTestCase):
+class CommandsLookupTests(IsolatedAsyncioTestCase):
     def setUp(self) -> None:
         self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)
         register_commands(self.bot)
@@ -1006,7 +1006,7 @@ class CommandsLookupTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(sent_embed.title, "Card Lookup (HD)")
 
 
-class CommandsCollectionTests(unittest.IsolatedAsyncioTestCase):
+class CommandsCollectionTests(IsolatedAsyncioTestCase):
     def setUp(self) -> None:
         self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)
         register_commands(self.bot)
@@ -1235,7 +1235,7 @@ class CommandsCollectionTests(unittest.IsolatedAsyncioTestCase):
         wish_list_impl.assert_awaited_once_with(ctx, target)
 
 
-class CommandsCooldownTests(unittest.IsolatedAsyncioTestCase):
+class CommandsCooldownTests(IsolatedAsyncioTestCase):
     def setUp(self) -> None:
         self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)
         register_commands(self.bot)
@@ -1306,7 +1306,7 @@ class CommandsCooldownTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(sent_embed.title, "Target's Cooldowns")
 
 
-class CommandsBuyTests(unittest.IsolatedAsyncioTestCase):
+class CommandsBuyTests(IsolatedAsyncioTestCase):
     def setUp(self) -> None:
         self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)
         register_commands(self.bot)
@@ -1372,7 +1372,7 @@ class CommandsBuyTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("Pull Tickets: **8**", sent_embed.description)
 
 
-class CommandsDropTests(unittest.IsolatedAsyncioTestCase):
+class CommandsDropTests(IsolatedAsyncioTestCase):
     def setUp(self) -> None:
         self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)
         register_commands(self.bot)
@@ -1409,7 +1409,7 @@ class CommandsDropTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("drop ticket used", sent_embed.footer.text)
 
 
-class CommandsCooldownReplyTargetTests(unittest.IsolatedAsyncioTestCase):
+class CommandsCooldownReplyTargetTests(IsolatedAsyncioTestCase):
     def setUp(self) -> None:
         self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)
         register_commands(self.bot)
@@ -1452,7 +1452,7 @@ class CommandsCooldownReplyTargetTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(sent_embed.title, "Target's Cooldowns")
 
 
-class CommandsSlotsTests(unittest.IsolatedAsyncioTestCase):
+class CommandsSlotsTests(IsolatedAsyncioTestCase):
     def setUp(self) -> None:
         self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)
         register_commands(self.bot)
@@ -1562,7 +1562,7 @@ class CommandsSlotsTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("+2 starter", final_embed.description)
 
 
-class CommandsFlipTests(unittest.IsolatedAsyncioTestCase):
+class CommandsFlipTests(IsolatedAsyncioTestCase):
     def setUp(self) -> None:
         self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)
         register_commands(self.bot)
@@ -1760,7 +1760,7 @@ class CommandsFlipTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("Result: **Tails**", final_embed.description)
 
 
-class CommandsSlotsAnimationTests(unittest.IsolatedAsyncioTestCase):
+class CommandsSlotsAnimationTests(IsolatedAsyncioTestCase):
     async def test_slots_reel_content_hides_status_emoji_until_result(self) -> None:
         symbols = ["🍞", "🍞", "🍞"]
         self.assertEqual(_slots_reel_content(symbols), "🍞🍞🍞")
@@ -1788,7 +1788,7 @@ class CommandsSlotsAnimationTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(all("✅" not in text and "❌" not in text and "🎉" not in text for text in intermediate_contents))
 
 
-class CommandsInfoTests(unittest.IsolatedAsyncioTestCase):
+class CommandsInfoTests(IsolatedAsyncioTestCase):
     def setUp(self) -> None:
         self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)
         register_commands(self.bot)
@@ -1862,7 +1862,7 @@ class CommandsInfoTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(sent_embed.title, "Target's Info")
 
 
-class CommandsGiftTests(unittest.IsolatedAsyncioTestCase):
+class CommandsGiftTests(IsolatedAsyncioTestCase):
     def setUp(self) -> None:
         self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)
         register_commands(self.bot)
@@ -2063,7 +2063,7 @@ class CommandsGiftTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("Target's Pull Tickets: **2**", sent_embed.description)
 
 
-class CommandsVoteTests(unittest.IsolatedAsyncioTestCase):
+class CommandsVoteTests(IsolatedAsyncioTestCase):
     def setUp(self) -> None:
         self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)
         register_commands(self.bot)
@@ -2122,7 +2122,7 @@ class CommandsVoteTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("Starter Balance: **5**", sent_embed.description)
 
 
-class CommandsBurnTests(unittest.IsolatedAsyncioTestCase):
+class CommandsBurnTests(IsolatedAsyncioTestCase):
     def setUp(self) -> None:
         self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)
         register_commands(self.bot)
@@ -2219,7 +2219,7 @@ class CommandsBurnTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(sent_embed.title, "Burn Confirmation")
 
 
-class CommandsMonopolyTests(unittest.IsolatedAsyncioTestCase):
+class CommandsMonopolyTests(IsolatedAsyncioTestCase):
     def setUp(self) -> None:
         self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)
         register_commands(self.bot)
@@ -2347,7 +2347,7 @@ class CommandsMonopolyTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(final_attachments, [image_file])
 
 
-class CommandsMorphTests(unittest.IsolatedAsyncioTestCase):
+class CommandsMorphTests(IsolatedAsyncioTestCase):
     def setUp(self) -> None:
         self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)
         register_commands(self.bot)
@@ -2406,7 +2406,7 @@ class CommandsMorphTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(sent_embed.description, "You do not have enough dough.")
 
 
-class CommandsFrameTests(unittest.IsolatedAsyncioTestCase):
+class CommandsFrameTests(IsolatedAsyncioTestCase):
     def setUp(self) -> None:
         self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)
         register_commands(self.bot)
@@ -2465,7 +2465,7 @@ class CommandsFrameTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(sent_embed.description, "You do not have enough dough.")
 
 
-class CommandsFontTests(unittest.IsolatedAsyncioTestCase):
+class CommandsFontTests(IsolatedAsyncioTestCase):
     def setUp(self) -> None:
         self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)
         register_commands(self.bot)
@@ -2524,7 +2524,7 @@ class CommandsFontTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(sent_embed.description, "You do not have enough dough.")
 
 
-class DropPreviewRegressionTests(unittest.TestCase):
+class DropPreviewRegressionTests(TestCase):
     def test_drop_preview_uses_placeholder_when_third_fetch_fails(self) -> None:
         try:
             from PIL import Image
@@ -2633,7 +2633,7 @@ class DropPreviewRegressionTests(unittest.TestCase):
         self.assertEqual(composed.getpixel((0, 0)), (0, 0, 0, 0))
 
 
-class CardRenderRegressionTests(unittest.TestCase):
+class CardRenderRegressionTests(TestCase):
     def test_render_card_image_bytes_applies_common_border_color(self) -> None:
         try:
             from PIL import Image
@@ -2952,7 +2952,7 @@ class CardRenderRegressionTests(unittest.TestCase):
         self.assertEqual(flipped_bottom, base_top)
 
 
-class LocalImageBytesTests(unittest.TestCase):
+class LocalImageBytesTests(TestCase):
     def test_get_card_image_bytes_returns_local_bytes(self) -> None:
         with patch(
             "bot.command_utils.read_local_card_image_bytes",
