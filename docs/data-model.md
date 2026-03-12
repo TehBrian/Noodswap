@@ -5,7 +5,7 @@ This document describes persistent storage for Noodswap.
 ## Database
 
 - Engine: SQLite
-- File location: `runtime/db/bot.db`
+- File location: `runtime/db/noodswap.db`
 - Access: through functions in `bot/storage.py`
 
 ## Tables

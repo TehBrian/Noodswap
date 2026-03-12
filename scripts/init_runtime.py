@@ -55,7 +55,7 @@ def main() -> None:
     runtime_db_dir.mkdir(parents=True, exist_ok=True)
     runtime_log_dir.mkdir(parents=True, exist_ok=True)
 
-    runtime_db_path = runtime_db_dir / "bot.db"
+    runtime_db_path = runtime_db_dir / "noodswap.db"
     if not runtime_db_path.exists() or args.force_db:
         if seed_db_path.is_file() and seed_db_path.stat().st_size > 0:
             shutil.copy2(seed_db_path, runtime_db_path)

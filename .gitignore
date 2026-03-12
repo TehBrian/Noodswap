@@ -9,7 +9,7 @@ __pycache__/
 .VSCodeCounter/
 
 # Runtime/persistent SQLite data
-bot.db
+noodswap.db
 
 # Mutable runtime state (host-mounted; never committed)
 runtime/**/*

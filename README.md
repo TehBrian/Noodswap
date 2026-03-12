@@ -112,13 +112,13 @@ Behavior notes:
 - The workflow waits for that exact GHCR tag to become available before running the deploy step, avoiding stale `latest` races.
 - After deploy, workflow verifies `noodswap-bot` is running and that its configured image exactly equals `IMAGE_REPOSITORY:<that-sha>`.
 - `deploy/update.sh` now performs a runtime writability preflight and fails before container startup if `runtime/{db,card_images,logs}` is not writable.
-- Production compose includes a SQLite healthcheck (`PRAGMA quick_check`) against `runtime/db/bot.db`.
+- Production compose includes a SQLite healthcheck (`PRAGMA quick_check`) against `runtime/db/noodswap.db`.
 
 Full Actions deploy instructions: `docs/deploy-github-actions.md`.
 
 ### Persistence notes
 
-- SQLite DB: `runtime/db/bot.db`
+- SQLite DB: `runtime/db/noodswap.db`
 - Cached card images: `runtime/card_images`
 - Seed fixtures live under `assets/` and can initialize fresh runtime directories.
 - Immutable render assets (fonts, frames) live under `assets/` and are baked into the image.
@@ -192,7 +192,7 @@ This bot uses privileged intents. Enable these for your application in Discord D
 
 ### Owner-only admin commands
 
-- `ns dbexport` — upload the SQLite file (`bot.db`) to Discord.
+- `ns dbexport` — upload the SQLite file (`noodswap.db`) to Discord.
 - `ns dbreset` — delete all persisted player/card data.
 
 ### Optional: runtime asset initialization
@@ -216,7 +216,7 @@ Machine-readable output is available with `--json`.
 
 ## Notes / current limitations
 
-- Data is persisted in local SQLite (`runtime/db/bot.db`) by default.
+- Data is persisted in local SQLite (`runtime/db/noodswap.db`) by default.
 - `.env` files are gitignored; keep real tokens only in untracked local env files or deployment secret managers.
 - No anti-abuse logging or sharding yet.
 - Alias conflict in the original spec (`d` for both `drop` and `divorce`) is resolved as:
@@ -258,4 +258,4 @@ Machine-readable output is available with `--json`.
 - Migrate to slash commands/app commands while keeping prefix aliases if desired.
 - Add anti-abuse checks (alt farming, suspicious transfer patterns).
 - Add paginated collection views and richer card metadata/assets.
-- Automate runtime state operations for production deploys: scheduled SQLite backups to remote storage, restore-on-empty bootstrap for `runtime/db/bot.db`, and first-run card-image cache bootstrap from a published artifact.
+- Automate runtime state operations for production deploys: scheduled SQLite backups to remote storage, restore-on-empty bootstrap for `runtime/db/noodswap.db`, and first-run card-image cache bootstrap from a published artifact.

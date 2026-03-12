@@ -6,6 +6,6 @@ __pycache__
 tests
 docs
 .VSCodeCounter
-bot.db
+noodswap.db
 runtime
 *.DS_Store

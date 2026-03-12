@@ -69,7 +69,7 @@ RUNTIME_IMAGE_DIR="$RUNTIME_DIR/card_images"
 RUNTIME_FONTS_DIR="$RUNTIME_DIR/fonts"
 RUNTIME_FRAMES_DIR="$RUNTIME_DIR/frames"
 RUNTIME_LOG_DIR="$RUNTIME_DIR/logs"
-DB_PATH="$RUNTIME_DB_DIR/bot.db"
+DB_PATH="$RUNTIME_DB_DIR/noodswap.db"
 
 if command -v python3 >/dev/null 2>&1; then
   PYTHON_BIN="python3"
@@ -84,7 +84,7 @@ fi
 "$PYTHON_BIN" "$REPO_ROOT/scripts/init_runtime.py" --repo-root "$REPO_ROOT"
 
 if [ ! -s "$DB_PATH" ]; then
-  echo "Warning: $DB_PATH is empty. If this is not a fresh install, restore your previous bot.db backup." >&2
+  echo "Warning: $DB_PATH is empty. If this is not a fresh install, restore your previous noodswap.db backup." >&2
 fi
 
 # Run container using the same UID/GID as the deploy user so bind-mounted data stays writable.

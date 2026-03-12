@@ -51,7 +51,7 @@
 - add lightweight economy event ledger tables for pull/burn/trade telemetry so balancing reports can use true time-window flow metrics instead of ownership snapshots
 
 6. Deploy-state automation
-- Add automated SQLite backup/restore workflow (scheduled backup to remote object storage + restore-on-empty bootstrap for `runtime/db/bot.db`).
+- Add automated SQLite backup/restore workflow (scheduled backup to remote object storage + restore-on-empty bootstrap for `runtime/db/noodswap.db`).
 - Publish/import a versioned card-image cache artifact so new hosts can bootstrap `runtime/card_images` without manual copy steps.
 
 ## Refactor backlog (staged)

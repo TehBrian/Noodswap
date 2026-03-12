@@ -8,7 +8,7 @@ This file is the primary handoff guide for AI coding agents working on Noodswap.
 - **Runtime:** Python 3.14+ (currently validated on 3.14.3)
 - **Entrypoint:** `bot/main.py` (thin launcher)
 - **Main package:** `bot/`
-- **State storage:** Local SQLite database (`runtime/db/bot.db` by default)
+- **State storage:** Local SQLite database (`runtime/db/noodswap.db` by default)
 - **Command prefix:** `ns `
 
 ## 2) Fast Onboarding Checklist

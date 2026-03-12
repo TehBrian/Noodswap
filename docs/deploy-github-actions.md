@@ -88,7 +88,7 @@ After deploy workflow completes:
 
 1. `docker ps` shows `noodswap-bot` running.
 2. Workflow deploy step confirms container image equals `IMAGE_REPOSITORY:<sha>`.
-3. `runtime/db/bot.db` persists across restarts.
+3. `runtime/db/noodswap.db` persists across restarts.
 4. Container health status reaches `healthy` (SQLite `PRAGMA quick_check` passes).
 
 ## Notes
