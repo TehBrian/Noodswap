@@ -1,6 +1,7 @@
 import io
 import re
 import tempfile
+from contextlib import asynccontextmanager
 from types import SimpleNamespace
 from typing import Any
 from unittest.mock import AsyncMock, patch
@@ -96,6 +97,11 @@ def _normalize_help_command_path(text: str) -> str:
             break
         tokens.append(token)
     return " ".join(tokens)
+
+
+@asynccontextmanager
+async def _gate_result(entered: bool):
+    yield entered
 
 
 def _expand_help_alias(alias: str, parent_tokens: list[str]) -> str | None:
@@ -1535,6 +1541,30 @@ class CommandsDropTests:
         sent_embed = ctx.send.await_args.kwargs["embed"]
         assert "drop ticket used" in sent_embed.footer.text
 
+    async def test_drop_rejects_when_in_flight(self) -> None:
+        drop_command = _get_command(self.bot, "drop")
+
+        ctx = AsyncMock()
+        ctx.guild = _FakeGuild(1)
+        ctx.author = _FakeMember(100, "Caller")
+        ctx.send = AsyncMock()
+        ctx.reply = ctx.send
+
+        with (
+            patch(
+                "bot.commands_economy.command_execution_gate",
+                side_effect=lambda *_args, **_kwargs: _gate_result(False),
+            ),
+            patch("bot.commands_economy.prepare_drop") as prepare_drop,
+        ):
+            await drop_command.callback(ctx)
+
+        prepare_drop.assert_not_called()
+        ctx.send.assert_awaited_once()
+        sent_embed = ctx.send.await_args.kwargs["embed"]
+        assert sent_embed.title == "Drop"
+        assert "already in progress" in sent_embed.description
+
 
 class CommandsCooldownReplyTargetTests:
     def setup_method(self) -> None:
@@ -1611,6 +1641,30 @@ class CommandsSlotsTests:
         sent_embed = ctx.send.await_args.kwargs["embed"]
         assert sent_embed.title == "Slots Cooldown"
         assert "remaining" in sent_embed.description
+
+    async def test_slots_rejects_when_in_flight(self) -> None:
+        slots_command = _get_command(self.bot, "slots")
+
+        ctx = AsyncMock()
+        ctx.guild = _FakeGuild(1)
+        ctx.author = _FakeMember(100, "Caller")
+        ctx.send = AsyncMock()
+        ctx.reply = ctx.send
+
+        with (
+            patch(
+                "bot.commands_gambling.command_execution_gate",
+                side_effect=lambda *_args, **_kwargs: _gate_result(False),
+            ),
+            patch("bot.commands_gambling.consume_slots_cooldown_if_ready") as consume,
+        ):
+            await slots_command.callback(ctx)
+
+        consume.assert_not_called()
+        ctx.send.assert_awaited_once()
+        sent_embed = ctx.send.await_args.kwargs["embed"]
+        assert sent_embed.title == "Slots"
+        assert "already in progress" in sent_embed.description
 
     async def test_slots_awards_dough_on_two_match(self) -> None:
         slots_command = _get_command(self.bot, "slots")
@@ -1746,6 +1800,30 @@ class CommandsFlipTests:
         sent_embed = ctx.send.await_args.kwargs["embed"]
         assert sent_embed.title == "Flip Cooldown"
         assert "remaining" in sent_embed.description
+
+    async def test_flip_rejects_when_in_flight(self) -> None:
+        flip_command = _get_command(self.bot, "flip")
+
+        ctx = AsyncMock()
+        ctx.guild = _FakeGuild(1)
+        ctx.author = _FakeMember(100, "Caller")
+        ctx.send = AsyncMock()
+        ctx.reply = ctx.send
+
+        with (
+            patch(
+                "bot.commands_gambling.command_execution_gate",
+                side_effect=lambda *_args, **_kwargs: _gate_result(False),
+            ),
+            patch("bot.commands_gambling.execute_flip_wager") as execute_flip,
+        ):
+            await flip_command.callback(ctx, stake_str="10")
+
+        execute_flip.assert_not_called()
+        ctx.send.assert_awaited_once()
+        sent_embed = ctx.send.await_args.kwargs["embed"]
+        assert sent_embed.title == "Flip"
+        assert "already in progress" in sent_embed.description
 
     async def test_flip_shows_insufficient_dough_message(self) -> None:
         flip_command = _get_command(self.bot, "flip")
@@ -2378,6 +2456,30 @@ class CommandsMonopolyTests:
         final_attachments = message.edit.await_args.kwargs["attachments"]
         assert final_embed.thumbnail.url == "attachment://mpreg.png"
         assert final_attachments == [image_file]
+
+    async def test_monopoly_roll_rejects_when_in_flight(self) -> None:
+        monopoly_roll_command = _get_group_command(self.bot, "monopoly", "roll")
+
+        ctx = AsyncMock()
+        ctx.guild = _FakeGuild(1)
+        ctx.author = _FakeMember(100, "Caller")
+        ctx.send = AsyncMock()
+        ctx.reply = ctx.send
+
+        with (
+            patch(
+                "bot.commands_gambling.command_execution_gate",
+                side_effect=lambda *_args, **_kwargs: _gate_result(False),
+            ),
+            patch("bot.commands_gambling.execute_monopoly_roll") as execute_roll,
+        ):
+            await monopoly_roll_command.callback(ctx)
+
+        execute_roll.assert_not_called()
+        ctx.send.assert_awaited_once()
+        sent_embed = ctx.send.await_args.kwargs["embed"]
+        assert sent_embed.title == "Monopoly Roll"
+        assert "already in progress" in sent_embed.description
 
     async def test_monopoly_roll_uses_generic_thumbnail_metadata(self) -> None:
         monopoly_roll_command = _get_group_command(self.bot, "monopoly", "roll")

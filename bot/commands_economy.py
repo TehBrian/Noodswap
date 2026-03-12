@@ -54,6 +54,7 @@ from .command_utils import (
     card_value as card_value,
     cast as cast,
     claim_vote_reward as claim_vote_reward,
+    command_execution_gate as command_execution_gate,
     commands as commands,
     consume_slots_cooldown_if_ready as consume_slots_cooldown_if_ready,
     create_player_folder as create_player_folder,
@@ -168,34 +169,42 @@ def register_economy_commands(bot: commands.Bot) -> None:
         if not await _require_guild(ctx, "Drop"):
             return
 
-        now = time.time()
-        prepared = prepare_drop(_guild_id(ctx), ctx.author.id, now)
+        async with command_execution_gate(ctx.author.id, "drop") as entered:
+            if not entered:
+                await _reply(
+                    ctx,
+                    embed=italy_embed("Drop", "A drop is already in progress."),
+                )
+                return
 
-        if prepared.is_cooldown:
-            await _reply(
-                ctx,
-                embed=italy_embed(
-                    "Drop Cooldown",
-                    f"You need to wait **{format_cooldown(prepared.cooldown_remaining_seconds)}** before your next drop.",
-                ),
-            )
-            return
+            now = time.time()
+            prepared = prepare_drop(_guild_id(ctx), ctx.author.id, now)
 
-        choices = prepared.choices
-        embed = italy_embed(f"{ctx.author.display_name}'s Drop", drop_choices_description(choices))
-        footer_text = f"Pull timeout: {DROP_TIMEOUT_SECONDS}s"
-        if prepared.used_drop_ticket:
-            footer_text = f"{footer_text} | 1 drop ticket used"
-        embed.set_footer(text=footer_text)
+            if prepared.is_cooldown:
+                await _reply(
+                    ctx,
+                    embed=italy_embed(
+                        "Drop Cooldown",
+                        f"You need to wait **{format_cooldown(prepared.cooldown_remaining_seconds)}** before your next drop.",
+                    ),
+                )
+                return
 
-        preview_file = await build_drop_preview_file(choices)
-        send_kwargs: dict[str, object] = {"embed": embed}
-        if preview_file is not None:
-            send_kwargs["file"] = preview_file
+            choices = prepared.choices
+            embed = italy_embed(f"{ctx.author.display_name}'s Drop", drop_choices_description(choices))
+            footer_text = f"Pull timeout: {DROP_TIMEOUT_SECONDS}s"
+            if prepared.used_drop_ticket:
+                footer_text = f"{footer_text} | 1 drop ticket used"
+            embed.set_footer(text=footer_text)
 
-        view = DropView(_guild_id(ctx), ctx.author.id, choices)
-        message = await _reply(ctx, view=view, **send_kwargs)
-        view.message = message
+            preview_file = await build_drop_preview_file(choices)
+            send_kwargs: dict[str, object] = {"embed": embed}
+            if preview_file is not None:
+                send_kwargs["file"] = preview_file
+
+            view = DropView(_guild_id(ctx), ctx.author.id, choices)
+            message = await _reply(ctx, view=view, **send_kwargs)
+            view.message = message
 
     @bot.command(name="marry", aliases=["m"])
     async def marry(ctx: commands.Context, card_code: str | None = None):

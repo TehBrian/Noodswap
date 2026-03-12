@@ -341,6 +341,8 @@ Shows:
 - Slots cooldown is 11 minutes and applies to `ns slots`
 - Flip cooldown is 15 seconds and applies to `ns flip`
 - Monopoly cooldown is 3.5 minutes and applies to `ns monopoly roll`
+- Cooldown-sensitive actions (`drop`, `pull`, `slots`, `flip`, `monopoly roll`) reject duplicate in-flight attempts from the same player with an immediate status message
+- Monopoly doubles still allow immediate follow-up rolls after the active roll resolves
 - Embed title format is `{Player}'s Cooldowns`
 
 ## Slots UX

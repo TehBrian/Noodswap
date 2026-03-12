@@ -9,6 +9,7 @@ import aiohttp
 import discord
 from discord.ext import commands
 
+from .command_gate import command_execution_gate
 from .battle_engine import value_to_stats
 from .cards import (
     CARD_CATALOG,

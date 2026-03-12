@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from unittest.mock import patch
 
 from bot.presentation import battle_arena_description
@@ -469,6 +470,29 @@ class ViewTests:
         assert len(interaction.response.sent_messages) == 1
         sent = interaction.response.sent_messages[0]
         assert sent["embed"].title == "Pull Cooldown"
+        assert sent.get("ephemeral")
+
+    async def test_drop_rejects_when_pull_is_already_in_progress(self) -> None:
+        view = DropView(guild_id=1, user_id=100, choices=[("SPG", 50)])
+        interaction = _FakeInteraction(user_id=200)
+        callback = view.children[0].callback
+        assert callback is not None
+
+        @asynccontextmanager
+        async def gate_closed(*_args, **_kwargs):
+            yield False
+
+        with (
+            patch("bot.view_drop.command_execution_gate", side_effect=gate_closed),
+            patch("bot.view_drop.execute_drop_claim") as execute_claim,
+        ):
+            await callback(interaction)
+
+        execute_claim.assert_not_called()
+        assert len(interaction.response.sent_messages) == 1
+        sent = interaction.response.sent_messages[0]
+        assert sent["embed"].title == "Drop"
+        assert "already in progress" in sent["embed"].description
         assert sent.get("ephemeral")
 
     async def test_trade_rejects_non_buyer(self) -> None:

@@ -4,6 +4,7 @@ from typing import Optional
 import discord
 
 from .cards import CARD_CATALOG, card_display
+from .command_gate import command_execution_gate
 from .images import embed_image_payload
 from .presentation import italy_embed
 from .services import execute_drop_claim
@@ -42,68 +43,76 @@ class DropView(InteractionView):
                 )
                 return
 
-            async with self._claim_lock:
-                if button_id in self._claimed_button_ids:
+            async with command_execution_gate(interaction.user.id, "pull") as entered:
+                if not entered:
                     await interaction.response.send_message(
-                        embed=italy_embed("Drop", "That card has already been claimed."),
+                        embed=italy_embed("Drop", "A pull is already in progress."),
                         ephemeral=True,
                     )
                     return
 
-                claim_result = execute_drop_claim(
-                    self.guild_id,
-                    interaction.user.id,
-                    card_id,
-                    generation,
-                    now=discord.utils.utcnow().timestamp(),
-                    pull_cooldown_seconds=PULL_COOLDOWN_SECONDS,
-                    dropped_by_user_id=self.user_id,
-                )
-                if claim_result.is_error:
-                    cooldown_remaining = claim_result.cooldown_remaining_seconds or 0.0
-                    await interaction.response.send_message(
-                        embed=italy_embed(
-                            "Pull Cooldown",
-                            f"You need to wait before your next pull (**{int(cooldown_remaining)}s** remaining).",
-                        ),
-                        ephemeral=True,
+                async with self._claim_lock:
+                    if button_id in self._claimed_button_ids:
+                        await interaction.response.send_message(
+                            embed=italy_embed("Drop", "That card has already been claimed."),
+                            ephemeral=True,
+                        )
+                        return
+
+                    claim_result = execute_drop_claim(
+                        self.guild_id,
+                        interaction.user.id,
+                        card_id,
+                        generation,
+                        now=discord.utils.utcnow().timestamp(),
+                        pull_cooldown_seconds=PULL_COOLDOWN_SECONDS,
+                        dropped_by_user_id=self.user_id,
                     )
-                    return
+                    if claim_result.is_error:
+                        cooldown_remaining = claim_result.cooldown_remaining_seconds or 0.0
+                        await interaction.response.send_message(
+                            embed=italy_embed(
+                                "Pull Cooldown",
+                                f"You need to wait before your next pull (**{int(cooldown_remaining)}s** remaining).",
+                            ),
+                            ephemeral=True,
+                        )
+                        return
 
-                self._claimed_button_ids.add(button_id)
+                    self._claimed_button_ids.add(button_id)
 
-                claimed_button = next(
-                    (item for item in self.children if isinstance(item, discord.ui.Button) and item.custom_id == button_id),
-                    None,
+                    claimed_button = next(
+                        (item for item in self.children if isinstance(item, discord.ui.Button) and item.custom_id == button_id),
+                        None,
+                    )
+                    if claimed_button is not None:
+                        claimed_button.disabled = True
+
+                    if all(isinstance(item, discord.ui.Button) and item.disabled for item in self.children):
+                        self.finished = True
+
+                pulled_card_code = claim_result.card_code
+
+                pulled_embed = italy_embed(
+                    "Pulled Card",
+                    (f"<@{interaction.user.id}> pulled {card_display(card_id, generation, card_code=pulled_card_code, pad_card_code=False)}."),
                 )
-                if claimed_button is not None:
-                    claimed_button.disabled = True
+                image_url, image_file = embed_image_payload(card_id, generation=generation)
+                if image_url is not None:
+                    pulled_embed.set_thumbnail(url=image_url)
 
-                if all(isinstance(item, discord.ui.Button) and item.disabled for item in self.children):
-                    self.finished = True
-
-            pulled_card_code = claim_result.card_code
-
-            pulled_embed = italy_embed(
-                "Pulled Card",
-                (f"<@{interaction.user.id}> pulled {card_display(card_id, generation, card_code=pulled_card_code, pad_card_code=False)}."),
-            )
-            image_url, image_file = embed_image_payload(card_id, generation=generation)
-            if image_url is not None:
-                pulled_embed.set_thumbnail(url=image_url)
-
-            await interaction.response.edit_message(
-                content=None,
-                view=self,
-            )
-            if interaction.message is not None:
-                send_kwargs: dict[str, object] = {
-                    "embed": pulled_embed,
-                    "mention_author": False,
-                }
-                if image_file is not None:
-                    send_kwargs["file"] = image_file
-                await interaction.message.reply(**send_kwargs)
+                await interaction.response.edit_message(
+                    content=None,
+                    view=self,
+                )
+                if interaction.message is not None:
+                    send_kwargs: dict[str, object] = {
+                        "embed": pulled_embed,
+                        "mention_author": False,
+                    }
+                    if image_file is not None:
+                        send_kwargs["file"] = image_file
+                    await interaction.message.reply(**send_kwargs)
 
         return callback
 
