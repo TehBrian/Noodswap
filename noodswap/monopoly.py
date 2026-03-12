@@ -69,15 +69,15 @@ BOARD_SPACES: tuple[MonopolySpace, ...] = (
     MonopolySpace(23, "Legendary Property", "property", "🟥", "legendary"),
     MonopolySpace(24, "Legendary Property", "property", "🟥", "legendary"),
     MonopolySpace(25, "Community Charcuterie", "community", "🧺"),
-    MonopolySpace(26, "Mythical Property", "property", "🟨", "mythical"),
-    MonopolySpace(27, "Mythical Property", "property", "🟨", "mythical"),
+    MonopolySpace(26, "Mythical Property", "property", "🟩", "mythical"),
+    MonopolySpace(27, "Mythical Property", "property", "🟩", "mythical"),
     MonopolySpace(28, "Cheese Chance", "chance", "❓"),
-    MonopolySpace(29, "Mythical Property", "property", "🟨", "mythical"),
+    MonopolySpace(29, "Mythical Property", "property", "🟩", "mythical"),
     MonopolySpace(30, "Go To Jail", "go_to_jail", "❌"),
-    MonopolySpace(31, "Divine Property", "property", "🟩", "divine"),
-    MonopolySpace(32, "Divine Property", "property", "🟩", "divine"),
+    MonopolySpace(31, "Divine Property", "property", "🟨", "divine"),
+    MonopolySpace(32, "Divine Property", "property", "🟨", "divine"),
     MonopolySpace(33, "Community Charcuterie", "community", "🧺"),
-    MonopolySpace(34, "Divine Property", "property", "🟩", "divine"),
+    MonopolySpace(34, "Divine Property", "property", "🟨", "divine"),
     MonopolySpace(35, "Community Charcuterie", "community", "🧺"),
     MonopolySpace(36, "Cheese Chance", "chance", "❓"),
     MonopolySpace(37, "Celestial Property", "property", "🟦", "celestial"),
@@ -230,9 +230,9 @@ def render_board(player_position: int) -> str:
         if row_col is None:
             continue
         row, col = row_col
-        grid[row][col] = f"{"👤" if space.position == player_position else space.position}"
+        grid[row][col] = f"{"👤" if space.position == player_position else space.emoji}"
 
-    lines = [" ".join(row) for row in grid]
+    lines = ["\n".join(row) for row in grid]
     lines.append("")
     lines.append("""Legend:
 ➡️ GO, 💸 Cheese Tax
