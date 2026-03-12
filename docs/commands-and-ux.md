@@ -342,8 +342,9 @@ Shows:
 
 - `slots` / `s` spins 3 side-by-side food emoji reels in a single embed message
 - Reels should animate via rapid embed edits before finalizing the result
+- Matching exactly 2 reels rewards `dough` in the range `200..400`
 - A jackpot requires all 3 reels to match the same emoji
-- Jackpot rewards `starter` in the range `1..3`
+- Jackpot rewards `800..1200` `dough` plus `starter` in the range `1..3`
 - `slots` uses a 22-minute cooldown
 
 ## Vote UX

@@ -1444,11 +1444,13 @@ class CommandsSlotsTests(unittest.IsolatedAsyncioTestCase):
                 "noodswap.commands_gambling.consume_slots_cooldown_if_ready",
                 return_value=60.0,
             ),
+            patch("noodswap.commands_gambling.add_dough") as add_dough,
             patch("noodswap.commands_gambling.add_starter") as add_starter,
             patch("noodswap.commands_gambling._animate_slots_spin", new=AsyncMock()) as animate,
         ):
             await slots_command.callback(ctx)
 
+        add_dough.assert_not_called()
         add_starter.assert_not_called()
         animate.assert_not_awaited()
         ctx.send.assert_awaited_once()
@@ -1456,7 +1458,46 @@ class CommandsSlotsTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(sent_embed.title, "Slots Cooldown")
         self.assertIn("remaining", sent_embed.description)
 
-    async def test_slots_awards_starter_on_three_match(self) -> None:
+    async def test_slots_awards_dough_on_two_match(self) -> None:
+        slots_command = _get_command(self.bot, "slots")
+
+        message = AsyncMock()
+        ctx = AsyncMock()
+        ctx.guild = _FakeGuild(1)
+        ctx.author = _FakeMember(100, "Caller")
+        ctx.send = AsyncMock(return_value=message)
+        ctx.reply = ctx.send
+
+        with (
+            patch(
+                "noodswap.commands_gambling.consume_slots_cooldown_if_ready",
+                return_value=0.0,
+            ),
+            patch(
+                "noodswap.commands_gambling.random.choice",
+                side_effect=["🍞", "🍞", "🍷", "🍝", "🧀", "🍇"],
+            ),
+            patch("noodswap.commands_gambling.random.randint", return_value=250),
+            patch("noodswap.commands_gambling.add_dough") as add_dough,
+            patch(
+                "noodswap.commands_gambling.get_player_info",
+                return_value=(4250, 0.0, None),
+            ),
+            patch("noodswap.commands_gambling.add_starter") as add_starter,
+            patch("noodswap.commands_gambling._animate_slots_spin", new=AsyncMock()) as animate,
+        ):
+            await slots_command.callback(ctx)
+
+        add_dough.assert_called_once_with(1, 100, 250)
+        add_starter.assert_not_called()
+        animate.assert_awaited_once()
+        final_embed = message.edit.await_args.kwargs["embed"]
+        self.assertEqual(final_embed.title, "Slots")
+        self.assertIn("Two matched", final_embed.description)
+        self.assertIn("+250 dough", final_embed.description)
+        self.assertIn("4250", final_embed.description)
+
+    async def test_slots_awards_dough_and_starter_on_three_match(self) -> None:
         slots_command = _get_command(self.bot, "slots")
 
         message = AsyncMock()
@@ -1472,18 +1513,25 @@ class CommandsSlotsTests(unittest.IsolatedAsyncioTestCase):
                 return_value=0.0,
             ),
             patch("noodswap.commands_gambling.random.choice", return_value="🍞"),
-            patch("noodswap.commands_gambling.random.randint", return_value=2),
+            patch("noodswap.commands_gambling.random.randint", side_effect=[900, 2]),
+            patch("noodswap.commands_gambling.add_dough") as add_dough,
+            patch(
+                "noodswap.commands_gambling.get_player_info",
+                return_value=(4900, 0.0, None),
+            ),
             patch("noodswap.commands_gambling.add_starter", return_value=7) as add_starter,
             patch("noodswap.commands_gambling._animate_slots_spin", new=AsyncMock()) as animate,
         ):
             await slots_command.callback(ctx)
 
+        add_dough.assert_called_once_with(1, 100, 900)
         add_starter.assert_called_once_with(1, 100, 2)
         animate.assert_awaited_once()
         self.assertGreaterEqual(message.edit.await_count, 1)
         final_embed = message.edit.await_args.kwargs["embed"]
         self.assertEqual(final_embed.title, "Slots")
         self.assertIn("Jackpot", final_embed.description)
+        self.assertIn("+900 dough", final_embed.description)
         self.assertIn("+2 starter", final_embed.description)
 
 
