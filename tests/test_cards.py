@@ -1,7 +1,7 @@
 from collections import Counter
 
 from bot.cards import CARD_CATALOG, SERIES_CATALOG, default_card_image
-from bot.card_economy import random_generation
+from bot.card_value import random_generation
 from bot.rarities import (
     RARITY_CURVE_LINEAR_RATE,
     RARITY_ORDER,

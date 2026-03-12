@@ -362,7 +362,7 @@ class MorphConfirmView(InteractionView):
             "Morph Rolled",
             (
                 f"Rolled **{result.morph_name}** for "
-                f"{card_dupe_display(self.card_id, self.generation, dupe_code=self.dupe_code)}.\n\n"
+                f"{card_dupe_display(self.card_id, self.generation, dupe_code=self.dupe_code, morph_key=self.before_morph_key, frame_key=self.before_frame_key, font_key=self.before_font_key)}.\n\n"
                 f"Before: **{morph_label(self.before_morph_key)}**\n"
                 f"After: **{result.morph_name}**\n\n"
                 f"{_format_trait_roll_details(result.rolled_rarity, result.rolled_multiplier)}\n"
@@ -533,7 +533,7 @@ class FrameConfirmView(InteractionView):
             "Frame Rolled",
             (
                 f"Rolled **{result.frame_name}** for "
-                f"{card_dupe_display(self.card_id, self.generation, dupe_code=self.dupe_code)}.\n\n"
+                f"{card_dupe_display(self.card_id, self.generation, dupe_code=self.dupe_code, morph_key=self.before_morph_key, frame_key=self.before_frame_key, font_key=self.before_font_key)}.\n\n"
                 f"Before: **{frame_label(self.before_frame_key)}**\n"
                 f"After: **{result.frame_name}**\n\n"
                 f"{_format_trait_roll_details(result.rolled_rarity, result.rolled_multiplier)}\n"
@@ -704,7 +704,7 @@ class FontConfirmView(InteractionView):
             "Font Rolled",
             (
                 f"Rolled **{result.font_name}** for "
-                f"{card_dupe_display(self.card_id, self.generation, dupe_code=self.dupe_code)}.\n\n"
+                f"{card_dupe_display(self.card_id, self.generation, dupe_code=self.dupe_code, morph_key=self.before_morph_key, frame_key=self.before_frame_key, font_key=self.before_font_key)}.\n\n"
                 f"Before: **{font_label(self.before_font_key)}**\n"
                 f"After: **{result.font_name}**\n\n"
                 f"{_format_trait_roll_details(result.rolled_rarity, result.rolled_multiplier)}\n"

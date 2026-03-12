@@ -213,10 +213,6 @@ def register_economy_commands(bot: commands.Bot) -> None:
             await _reply(ctx, embed=italy_marry_embed("Marry", "Marry failed."))
             return
 
-        marry_embed = italy_marry_embed(
-            "Marry",
-            f"You are now married to {card_dupe_display(result.card_id, result.generation, dupe_code=result.dupe_code)}.",
-        )
         morph_key = None
         frame_key = None
         font_key = None
@@ -227,6 +223,11 @@ def register_economy_commands(bot: commands.Bot) -> None:
                 morph_key = get_instance_morph(_guild_id(ctx), married_instance_id)
                 frame_key = get_instance_frame(_guild_id(ctx), married_instance_id)
                 font_key = get_instance_font(_guild_id(ctx), married_instance_id)
+
+        marry_embed = italy_marry_embed(
+            "Marry",
+            f"You are now married to {card_dupe_display(result.card_id, result.generation, dupe_code=result.dupe_code, morph_key=morph_key, frame_key=frame_key, font_key=font_key)}.",
+        )
 
         image_url, image_file = embed_image_payload(
             result.card_id,
@@ -259,10 +260,6 @@ def register_economy_commands(bot: commands.Bot) -> None:
             await _reply(ctx, embed=italy_marry_embed("Divorce", "Divorce failed."))
             return
 
-        divorce_embed = italy_marry_embed(
-            "Divorce",
-            f"You divorced {card_dupe_display(result.card_id, result.generation, dupe_code=result.dupe_code)}.",
-        )
         morph_key = None
         frame_key = None
         font_key = None
@@ -273,6 +270,11 @@ def register_economy_commands(bot: commands.Bot) -> None:
                 morph_key = get_instance_morph(_guild_id(ctx), divorced_instance_id)
                 frame_key = get_instance_frame(_guild_id(ctx), divorced_instance_id)
                 font_key = get_instance_font(_guild_id(ctx), divorced_instance_id)
+
+        divorce_embed = italy_marry_embed(
+            "Divorce",
+            f"You divorced {card_dupe_display(result.card_id, result.generation, dupe_code=result.dupe_code, morph_key=morph_key, frame_key=frame_key, font_key=font_key)}.",
+        )
 
         image_url, image_file = embed_image_payload(
             result.card_id,
@@ -404,8 +406,11 @@ def register_economy_commands(bot: commands.Bot) -> None:
 
         item_lines: list[str] = []
         for item in prepared.items:
+            item_morph_key = get_instance_morph(_guild_id(ctx), item.instance_id)
+            item_frame_key = get_instance_frame(_guild_id(ctx), item.instance_id)
+            item_font_key = get_instance_font(_guild_id(ctx), item.instance_id)
             item_lines.append(
-                f"{card_dupe_display(item.card_id, item.generation, dupe_code=item.dupe_code)}\n"
+                f"{card_dupe_display(item.card_id, item.generation, dupe_code=item.dupe_code, morph_key=item_morph_key, frame_key=item_frame_key, font_key=item_font_key)}\n"
                 f"Base: **{item.base_value}** | Generation: **x{item.multiplier:.2f}** | "
                 f"Value: **{item.value}** | Payout: **{item.value}** ± **{item.delta_range}**"
             )
@@ -477,17 +482,18 @@ def register_economy_commands(bot: commands.Bot) -> None:
             await _reply(ctx, embed=italy_embed("Morph", "Morph failed."))
             return
 
+        before_frame_key = get_instance_frame(_guild_id(ctx), prepared.instance_id)
+        before_font_key = get_instance_font(_guild_id(ctx), prepared.instance_id)
+
         confirm_embed = italy_embed(
             "Morph Confirmation",
             (
-                f"{card_dupe_display(prepared.card_id, prepared.generation, dupe_code=prepared.dupe_code)}\n\n"
+                f"{card_dupe_display(prepared.card_id, prepared.generation, dupe_code=prepared.dupe_code, morph_key=prepared.current_morph_key, frame_key=before_frame_key, font_key=before_font_key)}\n\n"
                 f"Current Morph: **{morph_label(prepared.current_morph_key)}**\n"
                 "Roll Result: **?**\n\n"
                 f"Roll Cost: **{prepared.cost}** dough"
             ),
         )
-        before_frame_key = get_instance_frame(_guild_id(ctx), prepared.instance_id)
-        before_font_key = get_instance_font(_guild_id(ctx), prepared.instance_id)
 
         view = MorphConfirmView(
             guild_id=_guild_id(ctx),
@@ -528,17 +534,18 @@ def register_economy_commands(bot: commands.Bot) -> None:
             await _reply(ctx, embed=italy_embed("Frame", "Frame failed."))
             return
 
+        current_morph_key = get_instance_morph(_guild_id(ctx), prepared.instance_id)
+        current_font_key = get_instance_font(_guild_id(ctx), prepared.instance_id)
+
         confirm_embed = italy_embed(
             "Frame Confirmation",
             (
-                f"{card_dupe_display(prepared.card_id, prepared.generation, dupe_code=prepared.dupe_code)}\n\n"
+                f"{card_dupe_display(prepared.card_id, prepared.generation, dupe_code=prepared.dupe_code, morph_key=current_morph_key, frame_key=prepared.current_frame_key, font_key=current_font_key)}\n\n"
                 f"Current Frame: **{frame_label(prepared.current_frame_key)}**\n"
                 "Roll Result: **?**\n\n"
                 f"Roll Cost: **{prepared.cost}** dough"
             ),
         )
-        current_morph_key = get_instance_morph(_guild_id(ctx), prepared.instance_id)
-        current_font_key = get_instance_font(_guild_id(ctx), prepared.instance_id)
 
         view = FrameConfirmView(
             guild_id=_guild_id(ctx),
@@ -576,17 +583,18 @@ def register_economy_commands(bot: commands.Bot) -> None:
             await _reply(ctx, embed=italy_embed("Font", "Font failed."))
             return
 
+        current_morph_key = get_instance_morph(_guild_id(ctx), prepared.instance_id)
+        current_frame_key = get_instance_frame(_guild_id(ctx), prepared.instance_id)
+
         confirm_embed = italy_embed(
             "Font Confirmation",
             (
-                f"{card_dupe_display(prepared.card_id, prepared.generation, dupe_code=prepared.dupe_code)}\n\n"
+                f"{card_dupe_display(prepared.card_id, prepared.generation, dupe_code=prepared.dupe_code, morph_key=current_morph_key, frame_key=current_frame_key, font_key=prepared.current_font_key)}\n\n"
                 f"Current Font: **{font_label(prepared.current_font_key)}**\n"
                 "Roll Result: **?**\n\n"
                 f"Roll Cost: **{prepared.cost}** dough"
             ),
         )
-        current_morph_key = get_instance_morph(_guild_id(ctx), prepared.instance_id)
-        current_frame_key = get_instance_frame(_guild_id(ctx), prepared.instance_id)
 
         view = FontConfirmView(
             guild_id=_guild_id(ctx),
@@ -904,14 +912,6 @@ def register_economy_commands(bot: commands.Bot) -> None:
             await _reply(ctx, embed=italy_embed("Gift", "Gift failed."))
             return
 
-        gifted_card_text = card_base_display(card_id)
-        if dupe_code is not None:
-            gifted_card_text = card_dupe_display(
-                card_id,
-                generation,
-                dupe_code=dupe_code,
-            )
-
         gifted_instance = None
         if dupe_code is not None:
             gifted_instance = get_instance_by_code(_guild_id(ctx), resolved_member.id, dupe_code)
@@ -928,6 +928,17 @@ def register_economy_commands(bot: commands.Bot) -> None:
             morph_key = get_instance_morph(_guild_id(ctx), gifted_instance_id)
             frame_key = get_instance_frame(_guild_id(ctx), gifted_instance_id)
             font_key = get_instance_font(_guild_id(ctx), gifted_instance_id)
+
+        gifted_card_text = card_base_display(card_id)
+        if dupe_code is not None:
+            gifted_card_text = card_dupe_display(
+                card_id,
+                generation,
+                dupe_code=dupe_code,
+                morph_key=morph_key,
+                frame_key=frame_key,
+                font_key=font_key,
+            )
 
         image_url, image_file = embed_image_payload(
             card_id,

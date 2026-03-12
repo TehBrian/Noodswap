@@ -158,6 +158,23 @@ def _title_case_rarity(rarity: str) -> str:
     return rarity.strip().replace("_", " ").title()
 
 
+def _instance_dupe_display(
+    guild_id: int,
+    instance_id: int,
+    card_id: str,
+    generation: int,
+    dupe_code: str | None,
+) -> str:
+    return card_dupe_display(
+        card_id,
+        generation,
+        dupe_code=dupe_code,
+        morph_key=get_instance_morph(guild_id, instance_id),
+        frame_key=get_instance_frame(guild_id, instance_id),
+        font_key=get_instance_font(guild_id, instance_id),
+    )
+
+
 def _lookup_trait_breakdown_description(
     card_id: str,
     generation: int,
@@ -1029,7 +1046,13 @@ async def _tag_assign(ctx: commands.Context, tag_name: str, *card_codes: str) ->
         if not assigned:
             await _reply(ctx, embed=italy_embed("Tags", "Could not tag that card. Make sure the tag exists and the card is yours."))
             return
-        await _reply(ctx, embed=italy_embed("Tags", f"Tagged {card_dupe_display(card_id, generation, dupe_code=dupe_code)} with `{normalized}`."))
+        await _reply(
+            ctx,
+            embed=italy_embed(
+                "Tags",
+                f"Tagged {_instance_dupe_display(_guild_id(ctx), instance_id, card_id, generation, dupe_code)} with `{normalized}`.",
+            ),
+        )
         return
 
     tagged: list[str] = []
@@ -1044,10 +1067,10 @@ async def _tag_assign(ctx: commands.Context, tag_name: str, *card_codes: str) ->
             continue
         instance_id, card_id, generation, dupe_code = selected
         if is_tag_assigned_to_instance(_guild_id(ctx), ctx.author.id, instance_id, tag_name):
-            already.append(card_dupe_display(card_id, generation, dupe_code=dupe_code))
+            already.append(_instance_dupe_display(_guild_id(ctx), instance_id, card_id, generation, dupe_code))
             continue
         if assign_tag_to_instance(_guild_id(ctx), ctx.author.id, instance_id, tag_name):
-            tagged.append(card_dupe_display(card_id, generation, dupe_code=dupe_code))
+            tagged.append(_instance_dupe_display(_guild_id(ctx), instance_id, card_id, generation, dupe_code))
         else:
             failed.append(card_code)
 
@@ -1084,7 +1107,13 @@ async def _tag_unassign(ctx: commands.Context, tag_name: str, *card_codes: str) 
         if not unassigned:
             await _reply(ctx, embed=italy_embed("Tags", f"That card is not tagged with `{normalized}`."))
             return
-        await _reply(ctx, embed=italy_embed("Tags", f"Removed `{normalized}` from {card_dupe_display(card_id, generation, dupe_code=dupe_code)}."))
+        await _reply(
+            ctx,
+            embed=italy_embed(
+                "Tags",
+                f"Removed `{normalized}` from {_instance_dupe_display(_guild_id(ctx), instance_id, card_id, generation, dupe_code)}.",
+            ),
+        )
         return
 
     removed: list[str] = []
@@ -1098,9 +1127,9 @@ async def _tag_unassign(ctx: commands.Context, tag_name: str, *card_codes: str) 
             continue
         instance_id, card_id, generation, dupe_code = selected
         if unassign_tag_from_instance(_guild_id(ctx), ctx.author.id, instance_id, tag_name):
-            removed.append(card_dupe_display(card_id, generation, dupe_code=dupe_code))
+            removed.append(_instance_dupe_display(_guild_id(ctx), instance_id, card_id, generation, dupe_code))
         else:
-            not_tagged.append(card_dupe_display(card_id, generation, dupe_code=dupe_code))
+            not_tagged.append(_instance_dupe_display(_guild_id(ctx), instance_id, card_id, generation, dupe_code))
 
     lines: list[str] = []
     if removed:
@@ -1255,7 +1284,13 @@ async def _folder_assign(ctx: commands.Context, folder_name: str, *card_codes: s
                 embed=italy_embed("Folders", err or "Could not assign that card to this folder. Make sure the folder exists and the card is yours."),
             )
             return
-        await _reply(ctx, embed=italy_embed("Folders", f"Assigned {card_dupe_display(card_id, generation, dupe_code=dupe_code)} to `{normalized}`."))
+        await _reply(
+            ctx,
+            embed=italy_embed(
+                "Folders",
+                f"Assigned {_instance_dupe_display(_guild_id(ctx), instance_id, card_id, generation, dupe_code)} to `{normalized}`.",
+            ),
+        )
         return
 
     assigned: list[str] = []
@@ -1270,11 +1305,11 @@ async def _folder_assign(ctx: commands.Context, folder_name: str, *card_codes: s
             continue
         instance_id, card_id, generation, dupe_code = selected
         if is_instance_assigned_to_folder(_guild_id(ctx), ctx.author.id, instance_id, folder_name):
-            already.append(card_dupe_display(card_id, generation, dupe_code=dupe_code))
+            already.append(_instance_dupe_display(_guild_id(ctx), instance_id, card_id, generation, dupe_code))
             continue
         success, _ = assign_instance_to_folder(_guild_id(ctx), ctx.author.id, instance_id, folder_name)
         if success:
-            assigned.append(card_dupe_display(card_id, generation, dupe_code=dupe_code))
+            assigned.append(_instance_dupe_display(_guild_id(ctx), instance_id, card_id, generation, dupe_code))
         else:
             failed.append(card_code)
 
@@ -1311,7 +1346,13 @@ async def _folder_unassign(ctx: commands.Context, folder_name: str, *card_codes:
         if not removed:
             await _reply(ctx, embed=italy_embed("Folders", f"That card is not assigned to `{normalized}`."))
             return
-        await _reply(ctx, embed=italy_embed("Folders", f"Removed {card_dupe_display(card_id, generation, dupe_code=dupe_code)} from `{normalized}`."))
+        await _reply(
+            ctx,
+            embed=italy_embed(
+                "Folders",
+                f"Removed {_instance_dupe_display(_guild_id(ctx), instance_id, card_id, generation, dupe_code)} from `{normalized}`.",
+            ),
+        )
         return
 
     removed_list: list[str] = []
@@ -1325,9 +1366,9 @@ async def _folder_unassign(ctx: commands.Context, folder_name: str, *card_codes:
             continue
         instance_id, card_id, generation, dupe_code = selected
         if unassign_instance_from_folder(_guild_id(ctx), ctx.author.id, instance_id, folder_name):
-            removed_list.append(card_dupe_display(card_id, generation, dupe_code=dupe_code))
+            removed_list.append(_instance_dupe_display(_guild_id(ctx), instance_id, card_id, generation, dupe_code))
         else:
-            not_assigned.append(card_dupe_display(card_id, generation, dupe_code=dupe_code))
+            not_assigned.append(_instance_dupe_display(_guild_id(ctx), instance_id, card_id, generation, dupe_code))
 
     lines: list[str] = []
     if removed_list:
@@ -1449,7 +1490,13 @@ async def _team_assign(ctx: commands.Context, team_name: str, *card_codes: str) 
         if not success:
             await _reply(ctx, embed=italy_embed("Teams", message or "Could not assign that card to this team."))
             return
-        await _reply(ctx, embed=italy_embed("Teams", f"Assigned {card_dupe_display(card_id, generation, dupe_code=dupe_code)} to `{normalized}`."))
+        await _reply(
+            ctx,
+            embed=italy_embed(
+                "Teams",
+                f"Assigned {_instance_dupe_display(_guild_id(ctx), instance_id, card_id, generation, dupe_code)} to `{normalized}`.",
+            ),
+        )
         return
 
     assigned: list[str] = []
@@ -1464,13 +1511,17 @@ async def _team_assign(ctx: commands.Context, team_name: str, *card_codes: str) 
             continue
         instance_id, card_id, generation, dupe_code = selected
         if is_instance_assigned_to_team(_guild_id(ctx), ctx.author.id, instance_id, team_name):
-            already.append(card_dupe_display(card_id, generation, dupe_code=dupe_code))
+            already.append(_instance_dupe_display(_guild_id(ctx), instance_id, card_id, generation, dupe_code))
             continue
         success, err = assign_instance_to_team(_guild_id(ctx), ctx.author.id, instance_id, team_name)
         if success:
-            assigned.append(card_dupe_display(card_id, generation, dupe_code=dupe_code))
+            assigned.append(_instance_dupe_display(_guild_id(ctx), instance_id, card_id, generation, dupe_code))
         else:
-            failed.append(f"{card_dupe_display(card_id, generation, dupe_code=dupe_code)} ({err})" if err else card_code)
+            failed.append(
+                f"{_instance_dupe_display(_guild_id(ctx), instance_id, card_id, generation, dupe_code)} ({err})"
+                if err
+                else card_code
+            )
 
     lines: list[str] = []
     if assigned:
@@ -1505,7 +1556,13 @@ async def _team_unassign(ctx: commands.Context, team_name: str, *card_codes: str
         if not removed:
             await _reply(ctx, embed=italy_embed("Teams", f"That card is not assigned to `{normalized}`."))
             return
-        await _reply(ctx, embed=italy_embed("Teams", f"Removed {card_dupe_display(card_id, generation, dupe_code=dupe_code)} from `{normalized}`."))
+        await _reply(
+            ctx,
+            embed=italy_embed(
+                "Teams",
+                f"Removed {_instance_dupe_display(_guild_id(ctx), instance_id, card_id, generation, dupe_code)} from `{normalized}`.",
+            ),
+        )
         return
 
     removed_list: list[str] = []
@@ -1519,9 +1576,9 @@ async def _team_unassign(ctx: commands.Context, team_name: str, *card_codes: str
             continue
         instance_id, card_id, generation, dupe_code = selected
         if unassign_instance_from_team(_guild_id(ctx), ctx.author.id, instance_id, team_name):
-            removed_list.append(card_dupe_display(card_id, generation, dupe_code=dupe_code))
+            removed_list.append(_instance_dupe_display(_guild_id(ctx), instance_id, card_id, generation, dupe_code))
         else:
-            not_assigned.append(card_dupe_display(card_id, generation, dupe_code=dupe_code))
+            not_assigned.append(_instance_dupe_display(_guild_id(ctx), instance_id, card_id, generation, dupe_code))
 
     lines: list[str] = []
     if removed_list:

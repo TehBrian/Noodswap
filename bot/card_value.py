@@ -10,13 +10,13 @@ from .settings import GENERATION_MAX, GENERATION_MIN
 GENERATION_ROLL_TAU = 0.95
 
 
-class CardEconomyRecord(TypedDict):
+class CardValueRecord(TypedDict):
     rarity: str
     base_value: int
 
 
 def compute_rarity_card_counts(
-    card_catalog: Mapping[str, CardEconomyRecord],
+    card_catalog: Mapping[str, CardValueRecord],
 ) -> Counter[str]:
     return Counter(card["rarity"] for card in card_catalog.values())
 
@@ -52,7 +52,7 @@ def target_rarity_odds(
     return {rarity: active_weights[rarity] / total_weight for rarity in active_weights}
 
 
-def card_base_value(card_id: str, *, card_catalog: Mapping[str, CardEconomyRecord]) -> int:
+def card_base_value(card_id: str, *, card_catalog: Mapping[str, CardValueRecord]) -> int:
     return int(card_catalog[card_id]["base_value"])
 
 
@@ -77,7 +77,7 @@ def card_value(
 
 def random_card_id(
     *,
-    card_catalog: Mapping[str, CardEconomyRecord],
+    card_catalog: Mapping[str, CardValueRecord],
     normalized_rarity_weights: Mapping[str, float],
 ) -> str:
     card_ids = list(card_catalog.keys())
@@ -131,7 +131,7 @@ _generation_sampler(GENERATION_MIN, GENERATION_MAX, GENERATION_ROLL_TAU)
 
 def make_drop_choices(
     *,
-    card_catalog: Mapping[str, CardEconomyRecord],
+    card_catalog: Mapping[str, CardValueRecord],
     random_card_id_func: Callable[[], str],
     random_generation_func: Callable[[], int],
     size: int = 3,

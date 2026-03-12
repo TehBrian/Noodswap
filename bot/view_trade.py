@@ -7,7 +7,26 @@ from .cards import card_base_display, card_dupe_display
 from .presentation import italy_embed
 from .services import TradeTerms, resolve_trade_offer
 from .settings import TRADE_TIMEOUT_SECONDS
+from .storage import get_instance_by_code, get_instance_font, get_instance_frame, get_instance_morph
 from .view_utils import InteractionView, logger
+
+
+def _instance_style_from_code(guild_id: int, user_id: int, dupe_code: str | None) -> tuple[str | None, str | None, str | None]:
+    if dupe_code is None:
+        return None, None, None
+
+    try:
+        instance = get_instance_by_code(guild_id, user_id, dupe_code)
+        if instance is None:
+            return None, None, None
+        instance_id, _card_id, _generation, _resolved_dupe_code = instance
+        return (
+            get_instance_morph(guild_id, instance_id),
+            get_instance_frame(guild_id, instance_id),
+            get_instance_font(guild_id, instance_id),
+        )
+    except Exception:
+        return None, None, None
 
 
 def _trade_accepted_payment_text(terms: TradeTerms) -> str:
@@ -103,19 +122,35 @@ class TradeView(InteractionView):
 
             traded_card_text = card_base_display(self.card_id)
             if trade_result.generation is not None:
+                sold_morph_key, sold_frame_key, sold_font_key = _instance_style_from_code(
+                    self.guild_id,
+                    self.buyer_id,
+                    trade_result.dupe_code,
+                )
                 traded_card_text = card_dupe_display(
                     self.card_id,
                     trade_result.generation,
                     dupe_code=trade_result.dupe_code,
+                    morph_key=sold_morph_key,
+                    frame_key=sold_frame_key,
+                    font_key=sold_font_key,
                 )
 
             if self.terms.mode == "card" and trade_result.received_card_id is not None:
                 received_text = card_base_display(trade_result.received_card_id)
                 if trade_result.received_generation is not None:
+                    received_morph_key, received_frame_key, received_font_key = _instance_style_from_code(
+                        self.guild_id,
+                        self.seller_id,
+                        trade_result.received_dupe_code,
+                    )
                     received_text = card_dupe_display(
                         trade_result.received_card_id,
                         trade_result.received_generation,
                         dupe_code=trade_result.received_dupe_code,
+                        morph_key=received_morph_key,
+                        frame_key=received_frame_key,
+                        font_key=received_font_key,
                     )
                 accepted_body = (
                     f"Buyer: <@{self.buyer_id}>\nSeller: <@{self.seller_id}>\n\nSeller gave: {traded_card_text}\nBuyer gave: {received_text}"

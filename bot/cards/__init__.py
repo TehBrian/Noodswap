@@ -13,7 +13,7 @@ from ..card_display import (
     series_display as _series_display_impl,
     series_emoji as _series_emoji_impl,
 )
-from ..card_economy import (
+from ..card_value import (
     burn_delta_range as _burn_delta_range_impl,
     card_base_value as _card_base_value_impl,
     card_value as _card_value_impl,
