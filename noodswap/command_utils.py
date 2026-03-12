@@ -183,7 +183,6 @@ def _lookup_trait_breakdown_description(
     )
     base_value = card_base_value(card_id)
     generation_multiplier = generation_value_multiplier(generation)
-    total_multiplier = generation_multiplier * trait_multiplier
     computed_value = card_value(
         card_id,
         generation,
@@ -192,7 +191,7 @@ def _lookup_trait_breakdown_description(
         font_key=font_key,
     )
 
-    lines = [
+    dupe_display = [
         card_dupe_display(
             card_id,
             generation,
@@ -202,36 +201,47 @@ def _lookup_trait_breakdown_description(
             font_key=font_key,
         ),
     ]
-    hp, attack, defense = value_to_stats(computed_value)
-    lines[0] = f"{lines[0]} • HP:{hp} ATK:{attack} DEF:{defense}"
+
+    lines = []
+
+    lines.append(dupe_display)
+
     if owner_mention is not None:
+        lines.append("")
         lines.append(f"Owner: {owner_mention}")
+
+    hp, attack, defense = value_to_stats(computed_value)
+    lines.append("")
+    lines.append(f"Battle Stats: HP: **{hp}** • ATK: **{attack}** • DEF: **{defense}**")
+
+    if morph_key or frame_key or font_key:
+        lines.append("")
+        lines.append("**Traits**")
+
+        if morph_key:
+            lines.append(f"Morph: **{morph_label(morph_key)}**")
+            lines.append(f"({_title_case_rarity(morph_rarity_label)}) • **x{morph_multiplier:.2f}**")
+
+        if frame_key:
+            lines.append(f"Frame: **{frame_label(frame_key)}**")
+            lines.append(f"({_title_case_rarity(frame_rarity_label)}) • **x{frame_multiplier:.2f}**")
+
+
+        if font_key:
+            lines.append(f"Font: **{font_label(font_key)}**")
+            lines.append(f"({_title_case_rarity(font_rarity_label)}) • **x{font_multiplier:.2f}**")
 
     lines.extend(
         [
-            "",
-            "**Traits**",
-            (
-                f"Morph: **{morph_label(morph_key)}** "
-                f"({_title_case_rarity(morph_rarity_label)}) • **x{morph_multiplier:.2f}**"
-            ),
-            (
-                f"Frame: **{frame_label(frame_key)}** "
-                f"({_title_case_rarity(frame_rarity_label)}) • **x{frame_multiplier:.2f}**"
-            ),
-            (
-                f"Font: **{font_label(font_key)}** "
-                f"({_title_case_rarity(font_rarity_label)}) • **x{font_multiplier:.2f}**"
-            ),
             "",
             "**Value Breakdown**",
             f"Base Value: **{base_value}**",
             f"Generation Multiplier: **x{generation_multiplier:.2f}**",
             f"Trait Multiplier: **x{trait_multiplier:.2f}**",
-            f"Total Multiplier: **x{total_multiplier:.2f}**",
-            f"Computed Value: **{computed_value}** dough",
+            f"Value: **{computed_value}** dough",
         ]
     )
+
     return multiline_text(lines)
 
 

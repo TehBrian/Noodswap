@@ -41,14 +41,14 @@ DROP_CARD_BODY_SCALE = 0.96
 BORDER_MASK_SUPERSAMPLE_SCALE = 6
 
 RARITY_BORDER_COLORS: dict[str, tuple[int, int, int]] = {
-    "common": (244, 242, 234),
-    "uncommon": (148, 88, 42),
-    "rare": (136, 67, 219),
-    "epic": (241, 106, 0),
-    "legendary": (230, 0, 35),
-    "mythical": (0, 165, 59),
-    "divine": (244, 217, 22),
-    "celestial": (0, 126, 230),
+    "common": (189, 180, 177),
+    "uncommon": (143, 105, 76),
+    "rare": (151, 108, 204),
+    "epic": (245, 162, 80),
+    "legendary": (247, 79, 89),
+    "mythical": (92, 214, 134),
+    "divine": (250, 224, 32),
+    "celestial": (91, 178, 250),
 }
 
 

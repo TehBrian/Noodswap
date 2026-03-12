@@ -205,7 +205,7 @@ def random_epic_or_better_card_id() -> str:
 
 def render_board(player_position: int) -> str:
     size = 11
-    grid = [["  " for _ in range(size)] for _ in range(size)]
+    grid = [["▪️" for _ in range(size)] for _ in range(size)]
 
     perimeter_map: dict[int, tuple[int, int]] = {}
 
