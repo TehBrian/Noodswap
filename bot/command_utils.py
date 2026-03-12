@@ -215,16 +215,13 @@ def _lookup_trait_breakdown_description(
         lines.append("**Traits**")
 
         if morph_key:
-            lines.append(f"Morph: **{morph_label(morph_key)}**")
-            lines.append(f"({_title_case_rarity(morph_rarity_label)}) • **x{morph_multiplier:.2f}**")
+            lines.append(f"Morph: **{morph_label(morph_key)}** • ({_title_case_rarity(morph_rarity_label)}) • **x{morph_multiplier:.2f}**")
 
         if frame_key:
-            lines.append(f"Frame: **{frame_label(frame_key)}**")
-            lines.append(f"({_title_case_rarity(frame_rarity_label)}) • **x{frame_multiplier:.2f}**")
+            lines.append(f"Frame: **{frame_label(frame_key)}** • ({_title_case_rarity(frame_rarity_label)}) • **x{frame_multiplier:.2f}**")
 
         if font_key:
-            lines.append(f"Font: **{font_label(font_key)}**")
-            lines.append(f"({_title_case_rarity(font_rarity_label)}) • **x{font_multiplier:.2f}**")
+            lines.append(f"Font: **{font_label(font_key)}** • ({_title_case_rarity(font_rarity_label)}) • **x{font_multiplier:.2f}**")
 
     lines.extend(
         [

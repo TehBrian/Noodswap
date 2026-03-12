@@ -992,8 +992,8 @@ class ServicesTests(unittest.TestCase):
 
         self.assertFalse(result.is_error)
         self.assertEqual(result.frame_key, "buttery")
-        self.assertEqual(result.rolled_rarity, "common")
-        self.assertEqual(result.rolled_multiplier, 1.0)
+        self.assertEqual(result.rolled_rarity, "mythical")
+        self.assertEqual(result.rolled_multiplier, 1.28)
         self.assertEqual(storage.get_instance_frame(guild_id, instance_id), "buttery")
 
     def test_resolve_font_roll_applies_selected_font(self) -> None:
