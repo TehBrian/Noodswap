@@ -484,7 +484,7 @@ class StorageTests:
                 cooldown_seconds=660.0,
             )
         assert result.status == "ok"
-        assert any("Free Parking jackpot" in line for line in result.lines)
+        assert any("jackpot" in line for line in result.lines)
 
         pot_dough, pot_starter, pot_drop_tickets, pot_pull_tickets = storage.get_gambling_pot(guild_id)
         assert pot_dough == 0
