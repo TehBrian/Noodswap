@@ -19,6 +19,7 @@ jobs:
   deploy:
     if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     env:
       IMAGE_REPOSITORY: ${{ vars.DEPLOY_IMAGE_REPOSITORY }}
@@ -51,7 +52,7 @@ jobs:
           fi
 
       - name: Login to GHCR
-        uses: docker/login-action@v3
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9  # v3
         with:
           registry: ghcr.io
           username: ${{ env.GHCR_USERNAME }}
@@ -92,13 +93,20 @@ jobs:
 
           ghcr_token_b64="$(printf '%s' "${GHCR_TOKEN}" | base64 | tr -d '\n')"
 
+          q_deploy_path=$(printf '%q' "${DEPLOY_PATH}")
+          q_deploy_as_user=$(printf '%q' "${DEPLOY_AS_USER}")
+          q_image_repository=$(printf '%q' "${IMAGE_REPOSITORY}")
+          q_image_tag=$(printf '%q' "${IMAGE_TAG}")
+          q_ghcr_username=$(printf '%q' "${GHCR_USERNAME}")
+          q_ghcr_token_b64=$(printf '%q' "${ghcr_token_b64}")
+
           ssh -i "$HOME/.ssh/id_ed25519" \
             -o BatchMode=yes \
             -o StrictHostKeyChecking=yes \
             -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
             -p "${DEPLOY_SSH_PORT}" \
             "${DEPLOY_SSH_USER}@${DEPLOY_HOST}" \
-            "DEPLOY_PATH='${DEPLOY_PATH}' DEPLOY_AS_USER='${DEPLOY_AS_USER}' IMAGE_REPOSITORY='${IMAGE_REPOSITORY}' IMAGE_TAG='${IMAGE_TAG}' GHCR_USERNAME='${GHCR_USERNAME}' GHCR_TOKEN_B64='${ghcr_token_b64}' bash -se" <<'EOF'
+            "DEPLOY_PATH=${q_deploy_path} DEPLOY_AS_USER=${q_deploy_as_user} IMAGE_REPOSITORY=${q_image_repository} IMAGE_TAG=${q_image_tag} GHCR_USERNAME=${q_ghcr_username} GHCR_TOKEN_B64=${q_ghcr_token_b64} bash -se" <<'EOF'
           set -euo pipefail
 
           run_as_deploy_user() {
