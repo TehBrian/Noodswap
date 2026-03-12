@@ -408,7 +408,7 @@ def _vote_link_view(vote_url: str) -> discord.ui.View:
     return view
 
 
-SLOTS_REEL_EMOJIS: tuple[str, ...] = ("🍞", "🍷", "🧀", "🍕", "🍇", "🥖", "🍝")
+SLOTS_REEL_EMOJIS: tuple[str, ...] = ("🍷", "🧀", "🥖", "🍝")
 SLOTS_REEL_COUNT = 3
 SLOTS_SPIN_MIN_STEPS = 4
 SLOTS_SPIN_MAX_STEPS = 7
