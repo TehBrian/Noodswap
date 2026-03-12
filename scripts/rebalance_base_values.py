@@ -8,7 +8,7 @@ DEFAULT_BASE_VALUES_PATH = Path("bot/data/base_values.json")
 # Tuned for strong rarity separation with a steeper late-tier curve and
 # celestial values capped at 1200.
 RARITY_VALUE_BANDS: dict[str, tuple[int, int]] = {
-    "common": (0, 30),
+    "common": (5, 30),
     "uncommon": (40, 70),
     "rare": (85, 145),
     "epic": (170, 260),
