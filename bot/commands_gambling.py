@@ -20,6 +20,7 @@ from .command_utils import (
     HD_CARD_RENDER_SIZE as HD_CARD_RENDER_SIZE,
     HelpView as HelpView,
     MONOPOLY_JAIL_FINE_DOUGH as MONOPOLY_JAIL_FINE_DOUGH,
+    MONOPOLY_ROLL_ACTIVITY_PHRASES as MONOPOLY_ROLL_ACTIVITY_PHRASES,
     MONOPOLY_ROLL_COOLDOWN_SECONDS as MONOPOLY_ROLL_COOLDOWN_SECONDS,
     MorphConfirmView as MorphConfirmView,
     PULL_COOLDOWN_SECONDS as PULL_COOLDOWN_SECONDS,
@@ -370,6 +371,13 @@ def register_gambling_commands(bot: commands.Bot) -> None:
             )
             return
 
+        suspense_embed = italy_embed(
+            "Monopoly Roll",
+            f"The dice are **{random.choice(MONOPOLY_ROLL_ACTIVITY_PHRASES)}**...",
+        )
+        message = await _reply(ctx, embed=suspense_embed)
+        await asyncio.sleep(FLIP_REVEAL_DELAY_SECONDS)
+
         embed = italy_embed("Monopoly Roll", multiline_text(list(result.lines)))
         image_file = None
         thumbnail_card_id = getattr(result, "thumbnail_card_id", None) or result.mpreg_card_id
@@ -389,7 +397,7 @@ def register_gambling_commands(bot: commands.Bot) -> None:
             if attachment_url is not None:
                 embed.set_thumbnail(url=attachment_url)
 
-        await _reply(ctx, embed=embed, file=image_file)
+        await message.edit(embed=embed, attachments=[image_file] if image_file is not None else [])
 
     @monopoly.command(name="fine")
     async def monopoly_fine(ctx: commands.Context):
