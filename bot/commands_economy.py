@@ -407,7 +407,7 @@ def register_economy_commands(bot: commands.Bot) -> None:
             item_lines.append(
                 f"{card_dupe_display(item.card_id, item.generation, dupe_code=item.dupe_code)}\n"
                 f"Base: **{item.base_value}** | Generation: **x{item.multiplier:.2f}** | "
-                f"Value: **{item.value}** | Payout: **{item.value}** +- **{item.delta_range}**"
+                f"Value: **{item.value}** | Payout: **{item.value}** ± **{item.delta_range}**"
             )
 
         single = len(prepared.items) == 1
@@ -418,7 +418,7 @@ def register_economy_commands(bot: commands.Bot) -> None:
                 "\n\n"
                 + f"Cards: **{len(prepared.items)}**\n"
                 + f"Total Value: **{prepared.total_value}**\n"
-                + f"Total Payout Range: **{prepared.total_value}** +- **{prepared.total_delta_range}**"
+                + f"Total Payout Range: **{prepared.total_value}** ± **{prepared.total_delta_range}**"
             )
         )
         confirm_embed = italy_embed(
