@@ -15,7 +15,7 @@
 - A migration path should preserve existing UX where possible.
 
 4. Test coverage is still limited
-- `unittest` coverage now exists for `storage` migration/selection/failure semantics, `services` orchestration flows, and core `views` interaction guard + timeout behavior.
+- `pytest` coverage now exists for `storage` migration/selection/failure semantics, `services` orchestration flows, and core `views` interaction guard + timeout behavior.
 - Test tasks now run on the workspace venv interpreter where `discord.py` is installed, so `views` tests execute in normal development flow.
 - Broader command UX paths and economy invariants still need coverage.
 
@@ -139,7 +139,7 @@ Stage 3 implementation guide: `docs/refactor-phase-3.md`.
 - Fixed `remove_card_from_player()` to clear `last_dropped_instance_id` when the pointed instance is removed.
 - Added `tests/test_views.py` for interaction authorization/resolution and timeout behavior checks for `DropView` and `TradeView`.
 - Expanded `tests/test_storage.py` to cover trade failure behavior (missing seller card / insufficient buyer dough) and marriage uniqueness edge cases.
-- Added initial `unittest` suite in `tests/test_storage.py` covering migration behavior and generation-selection rules for marry/burn/trade.
+- Added initial automated test suite in `tests/test_storage.py` covering migration behavior and generation-selection rules for marry/burn/trade.
 - Added `scripts/migration_smoke.py` for quick validation of fresh-init migration behavior.
 - Added explicit schema version tracking via `schema_migrations` and versioned startup migration flow in `init_db()`.
 - Moved from quantity-owned cards to instance-based ownership.
