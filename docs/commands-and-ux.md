@@ -224,8 +224,8 @@ Card identity terms:
 
 - `ID` means base catalog card identity (internal/base concept)
 - `Code` means a specific owned dupe reference (user-facing, e.g. `0`, `a`, `10`, `#10`)
-- DUPE CARDS have CODES.
-- BASE CARDS have IDS.
+- CARDS have CODES.
+- CARD TYPES have IDS.
 
 ## Card text format
 

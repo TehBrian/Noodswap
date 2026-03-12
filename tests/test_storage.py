@@ -375,7 +375,7 @@ class StorageTests:
         assert roller_dough == 10_000 - expected_rent
         assert owner_dough == expected_rent
 
-    def test_monopoly_property_landing_uses_dupe_card_name_and_thumbnail_metadata(
+    def test_monopoly_property_landing_uses_card_name_and_thumbnail_metadata(
         self,
     ) -> None:
         guild_id = 1

@@ -354,39 +354,34 @@ def register_economy_commands(bot: commands.Bot) -> None:
         target_member = resolved_member
 
         instances = get_player_card_instances(_guild_id(ctx), target_member.id)
-        card_counts: dict[str, int] = {}
-        for _instance_id, card_id, _generation, _card_code in instances:
-            card_counts[card_id] = card_counts.get(card_id, 0) + 1
-        dupe_card_ids = {card_id for card_id, count in card_counts.items() if count > 1}
-        dupe_instances = [item for item in instances if item[1] in dupe_card_ids]
 
         title = f"{target_member.display_name}'s Cards"
-        if not dupe_instances:
+        if not instances:
             if target_member.id == ctx.author.id:
-                description = "You have no extra cards."
+                description = "You have no cards. Try `ns drop`."
             else:
-                description = f"{target_member.display_name} has no extra cards."
+                description = f"{target_member.display_name} has no cards."
             await _reply(ctx, embed=italy_embed(title, description))
             return
 
         view = SortableCollectionView(
             user_id=ctx.author.id,
             title=title,
-            instances=dupe_instances,
+            instances=instances,
             locked_instance_ids=get_locked_instance_ids(
                 _guild_id(ctx),
                 target_member.id,
-                [instance_id for instance_id, _card_id, _generation, _card_code in dupe_instances],
+                [instance_id for instance_id, _card_id, _generation, _card_code in instances],
             ),
             wish_counts=get_card_wish_counts(_guild_id(ctx)),
-            folder_emojis_by_instance=_folder_emoji_map_for_instances(_guild_id(ctx), target_member.id, dupe_instances),
+            folder_emojis_by_instance=_folder_emoji_map_for_instances(_guild_id(ctx), target_member.id, instances),
             instance_styles={
                 instance_id: (
                     get_instance_morph(_guild_id(ctx), instance_id),
                     get_instance_frame(_guild_id(ctx), instance_id),
                     get_instance_font(_guild_id(ctx), instance_id),
                 )
-                for instance_id, _card_id, _generation, _card_code in dupe_instances
+                for instance_id, _card_id, _generation, _card_code in instances
             },
             card_line_formatter=card_display_concise,
             guard_title="Cards",

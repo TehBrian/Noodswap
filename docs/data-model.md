@@ -305,8 +305,8 @@ Notes:
 
 ## Identity terminology (critical)
 
-- BASE CARDS have IDS (catalog identity like `SPG`).
-- DUPE CARDS have CODES (owned-copy identity like `0`, `a`, `10`).
+- CARD TYPES have IDS (catalog identity like `SPG`).
+- CARDS have CODES (owned-copy identity like `0`, `a`, `10`).
 - Never use base ID and card code interchangeably in UX, storage, or command args.
 
 ## Selection policies
@@ -321,8 +321,8 @@ Notes:
 
 ## Terminology (explicit)
 
-- DUPE CARDS have CODES (`card_code`, e.g. `0`, `a`, `10`, `#10`).
-- BASE CARDS have IDS (`card_id`, e.g. `SPG`, `PEN`).
+- CARDS have CODES (`card_code`, e.g. `0`, `a`, `10`, `#10`).
+- CARD TYPES have IDS (`card_id`, e.g. `SPG`, `PEN`).
 - Treat these as different concepts in commands, storage, and documentation.
 
 ## Operational caveats

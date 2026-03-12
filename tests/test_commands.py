@@ -771,7 +771,7 @@ class CommandsLookupTests:
         assert sent_embed.title == "Lookup"
         assert sent_embed.description == "Usage: `ns lookup <card_id|card_code|query>`."
 
-    async def test_lookup_shows_base_card_embed(self) -> None:
+    async def test_lookup_shows_card_type_embed(self) -> None:
         lookup_command = _get_command(self.bot, "lookup")
 
         ctx = AsyncMock()
@@ -787,7 +787,7 @@ class CommandsLookupTests:
         assert sent_embed.title == "Card Lookup"
         assert "(`SPG`)" in sent_embed.description
 
-    async def test_lookup_shows_dupe_card_embed_for_exact_code(self) -> None:
+    async def test_lookup_shows_card_embed_for_exact_code(self) -> None:
         lookup_command = _get_command(self.bot, "lookup")
 
         ctx = AsyncMock()
@@ -816,7 +816,7 @@ class CommandsLookupTests:
         assert "Trait Multiplier" in sent_embed.description
         assert re.search(r"HP: \*\*\d+\*\* • ATK: \*\*\d+\*\* • DEF: \*\*\d+\*\*", sent_embed.description)
 
-    async def test_lookup_shows_dupe_card_embed_for_hash_prefixed_code(self) -> None:
+    async def test_lookup_shows_card_embed_for_hash_prefixed_code(self) -> None:
         lookup_command = _get_command(self.bot, "lookup")
 
         ctx = AsyncMock()
@@ -844,7 +844,7 @@ class CommandsLookupTests:
         assert "**Value Breakdown**" in sent_embed.description
         assert re.search(r"HP: \*\*\d+\*\* • ATK: \*\*\d+\*\* • DEF: \*\*\d+\*\*", sent_embed.description)
 
-    async def test_lookuphd_shows_dupe_card_embed_with_stats_for_exact_code(
+    async def test_lookuphd_shows_card_embed_with_stats_for_exact_code(
         self,
     ) -> None:
         lookup_command = _get_command(self.bot, "lookuphd")
@@ -1146,7 +1146,7 @@ class CommandsCollectionTests:
         assert isinstance(send_kwargs["view"], SortableCollectionView)
         assert send_kwargs["embed"].footer.text == "Page 1/2 • Sort: Alphabetical (Asc)"
 
-    async def test_cards_shows_empty_state_when_no_duplicate_cards(self) -> None:
+    async def test_cards_shows_empty_state_when_no_cards(self) -> None:
         cards_command = _get_command(self.bot, "cards")
 
         ctx = AsyncMock()
@@ -1155,21 +1155,17 @@ class CommandsCollectionTests:
         ctx.send = AsyncMock()
         ctx.reply = ctx.send
 
-        unique_instances = [
-            (1, "SPG", 100, "0"),
-            (2, "BAR", 200, "1"),
-            (3, "PEN", 300, "2"),
-        ]
+        empty_instances: list = []
         with patch(
             "bot.commands_economy.get_player_card_instances",
-            return_value=unique_instances,
+            return_value=empty_instances,
         ):
             await cards_command.callback(ctx, player=None)
 
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
         assert sent_embed.title == "Caller's Cards"
-        assert sent_embed.description == "You have no extra cards."
+        assert sent_embed.description == "You have no cards. Try `ns drop`."
 
     async def test_cards_lists_only_instances_for_duplicate_card_ids(self) -> None:
         cards_command = _get_command(self.bot, "cards")
@@ -1207,7 +1203,7 @@ class CommandsCollectionTests:
         assert sent_embed.title == "Caller's Cards"
         assert sent_embed.description.count("Spaghetti") == 2
         assert sent_embed.description.count("Penne") == 2
-        assert "(`BAR`)" not in sent_embed.description
+        assert sent_embed.description.count("Barolo") == 1
         assert isinstance(sent_view, SortableCollectionView)
         assert sent_embed.footer.text == "Page 1/1 • Sort: Alphabetical (Asc)"
 
