@@ -1167,7 +1167,7 @@ class CommandsCollectionTests:
         assert sent_embed.title == "All Cards"
         assert sent_embed.description == "No cards have been claimed yet. Try `ns drop`."
 
-    async def test_cards_lists_all_owned_instances_with_owner_names(self) -> None:
+    async def test_cards_lists_all_owned_instances_without_owner_details(self) -> None:
         cards_command = _get_command(self.bot, "cards")
 
         ctx = AsyncMock()
@@ -1205,9 +1205,10 @@ class CommandsCollectionTests:
         assert sent_embed.description.count("Spaghetti") == 2
         assert sent_embed.description.count("Penne") == 1
         assert sent_embed.description.count("Barolo") == 1
-        assert "Owner: Caller" in sent_embed.description
-        assert "Owner: Friend" in sent_embed.description
-        assert "Owner: User 300" in sent_embed.description
+        assert "Owner:" not in sent_embed.description
+        assert "<@100>" not in sent_embed.description
+        assert "<@200>" not in sent_embed.description
+        assert "<@300>" not in sent_embed.description
         assert isinstance(sent_view, SortableCollectionView)
         assert sent_embed.footer.text == "Page 1/1 • Sort: Alphabetical (Asc)"
 

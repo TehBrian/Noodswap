@@ -360,11 +360,8 @@ def register_economy_commands(bot: commands.Bot) -> None:
             instance_id: (morph_key, frame_key, font_key)
             for instance_id, _owner_id, _card_id, _generation, _card_code, morph_key, frame_key, font_key in instance_rows
         }
-        owner_labels_by_instance: dict[int, str] = {}
         instance_ids_by_owner: dict[int, list[int]] = {}
         for instance_id, owner_id, _card_id, _generation, _card_code, _morph_key, _frame_key, _font_key in instance_rows:
-            member = ctx.guild.get_member(owner_id)
-            owner_labels_by_instance[instance_id] = member.display_name if member is not None else f"User {owner_id}"
             instance_ids_by_owner.setdefault(owner_id, []).append(instance_id)
 
         locked_instance_ids: set[int] = set()
@@ -383,10 +380,13 @@ def register_economy_commands(bot: commands.Bot) -> None:
             frame_key: str | None = None,
             font_key: str | None = None,
         ) -> str:
-            owner_text = owner_labels_by_instance.get(instance_id or -1, "Unknown")
-            return (
-                f"{card_display_concise(card_id, generation, card_code, morph_key=morph_key, frame_key=frame_key, font_key=font_key)}"
-                f" • Owner: {owner_text}"
+            return card_display_concise(
+                card_id,
+                generation,
+                card_code,
+                morph_key=morph_key,
+                frame_key=frame_key,
+                font_key=font_key,
             )
 
         view = SortableCollectionView(
