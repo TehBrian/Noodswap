@@ -1,7 +1,7 @@
 from collections.abc import Callable
 import sqlite3
 
-TARGET_SCHEMA_VERSION = 25
+TARGET_SCHEMA_VERSION = 26
 _BASE36_ALPHABET = "0123456789abcdefghijklmnopqrstuvwxyz"
 
 
@@ -821,6 +821,42 @@ def _apply_migration_v25(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE battle_combatants RENAME COLUMN card_id TO card_type_id")
 
 
+def _apply_migration_v26(conn: sqlite3.Connection) -> None:
+    card_instances_table_exists = (
+        conn.execute(
+            """
+        SELECT 1
+        FROM sqlite_master
+        WHERE type = 'table' AND name = 'card_instances'
+        LIMIT 1
+        """
+        ).fetchone()
+        is not None
+    )
+    if not card_instances_table_exists:
+        return
+
+    has_card_code = _has_column(conn, "card_instances", "card_code")
+    has_dupe_code = _has_column(conn, "card_instances", "dupe_code")
+
+    if has_dupe_code and not has_card_code:
+        conn.execute("ALTER TABLE card_instances RENAME COLUMN dupe_code TO card_code")
+        has_card_code = True
+
+    if not has_card_code:
+        conn.execute("ALTER TABLE card_instances ADD COLUMN card_code TEXT")
+
+    conn.execute("DROP INDEX IF EXISTS idx_card_instances_card_code")
+    conn.execute("DROP INDEX IF EXISTS idx_card_instances_dupe_code")
+    conn.execute(
+        """
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_card_instances_card_code
+            ON card_instances(card_code)
+            WHERE card_code IS NOT NULL
+        """
+    )
+
+
 def run_migrations(
     conn: sqlite3.Connection,
     *,
@@ -954,6 +990,11 @@ def run_migrations(
         _apply_migration_v25(conn)
         _set_schema_version(conn, 25)
         current_version = 25
+
+    if current_version < 26:
+        _apply_migration_v26(conn)
+        _set_schema_version(conn, 26)
+        current_version = 26
 
     if current_version > target_schema_version:
         raise RuntimeError(f"Database schema version {current_version} is newer than supported {target_schema_version}.")

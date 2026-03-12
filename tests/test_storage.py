@@ -1368,6 +1368,54 @@ class StorageTests:
             index_row = conn.execute("SELECT name FROM sqlite_master WHERE type = 'index' AND name = 'idx_card_instances_card_code'").fetchone()
             assert index_row is not None
 
+    def test_init_db_v26_renames_legacy_dupe_code_column(self) -> None:
+        with closing(sqlite3.connect(storage.DB_PATH)) as conn:
+            with conn:
+                conn.executescript("""
+                    CREATE TABLE schema_migrations (
+                        version INTEGER NOT NULL
+                    );
+                    INSERT INTO schema_migrations(version) VALUES (25);
+
+                    CREATE TABLE card_instances (
+                        instance_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        guild_id INTEGER NOT NULL,
+                        user_id INTEGER NOT NULL,
+                        card_type_id TEXT NOT NULL,
+                        generation INTEGER NOT NULL,
+                        dupe_code TEXT,
+                        morph_key TEXT,
+                        frame_key TEXT,
+                        font_key TEXT
+                    );
+
+                    CREATE UNIQUE INDEX idx_card_instances_dupe_code
+                        ON card_instances(dupe_code)
+                        WHERE dupe_code IS NOT NULL;
+
+                    INSERT INTO card_instances (guild_id, user_id, card_type_id, generation, dupe_code)
+                    VALUES (0, 42, 'SPG', 123, 'a');
+                    """)
+
+        storage.init_db()
+
+        with closing(sqlite3.connect(storage.DB_PATH)) as conn:
+            version_row = conn.execute("SELECT version FROM schema_migrations LIMIT 1").fetchone()
+            assert version_row is not None
+            assert int(version_row[0]) == storage.TARGET_SCHEMA_VERSION
+
+            columns = conn.execute("PRAGMA table_info(card_instances)").fetchall()
+            column_names = {str(column[1]) for column in columns}
+            assert "card_code" in column_names
+            assert "dupe_code" not in column_names
+
+            row = conn.execute("SELECT card_code FROM card_instances LIMIT 1").fetchone()
+            assert row is not None
+            assert str(row[0]) == "a"
+
+            index_row = conn.execute("SELECT name FROM sqlite_master WHERE type = 'index' AND name = 'idx_card_instances_card_code'").fetchone()
+            assert index_row is not None
+
     def test_wishlist_add_remove_and_read(self) -> None:
         guild_id = 1
         user_id = 920

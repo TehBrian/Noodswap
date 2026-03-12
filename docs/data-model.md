@@ -254,6 +254,11 @@ Current migration set:
 - `v5`:
 	- Ensures `card_instances.card_code` exists and is indexed.
 	- Rebuilds duplicate-code uniqueness index as `idx_card_instances_card_code`.
+- `v25`:
+	- Renames lingering `*_card_id` columns to `*_card_type_id` during the card-type naming cleanup.
+- `v26`:
+	- Repairs legacy deployed databases that still use `card_instances.dupe_code` by renaming it to `card_code`.
+	- Rebuilds the duplicate-code uniqueness index on `card_instances.card_code`.
 - `v6`:
 	- Adds `players.last_drop_at` and resets `players.last_pull_at` to support split drop vs pull cooldown tracking.
 - `v7`:

@@ -4,6 +4,7 @@
 
 1. Migration framework is minimal
 - `schema_migrations` + in-code step migrations now exist in `init_db()`.
+- A recovery migration now normalizes legacy `card_instances.dupe_code` databases to `card_code` on startup so older persistent runtime volumes can survive schema refactors.
 - Still missing richer migration ergonomics (standalone migration files and downgrade strategy).
 
 2. Concurrency/race handling is basic
