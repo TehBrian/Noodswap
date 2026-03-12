@@ -12,15 +12,6 @@ from .fonts import (
 )
 from .frames import frame_path, normalize_frame_key
 from .morphs import (
-    MORPH_BLACK_AND_WHITE,
-    MORPH_INVERSE,
-    MORPH_TINT_AQUA,
-    MORPH_TINT_COOL,
-    MORPH_TINT_LIME,
-    MORPH_TINT_ROSE,
-    MORPH_TINT_VIOLET,
-    MORPH_TINT_WARM,
-    MORPH_UPSIDE_DOWN,
     normalize_morph_key,
 )
 from .settings import CARD_BODY_ASPECT_RATIO, CARD_IMAGE_MANIFEST
@@ -531,6 +522,593 @@ def _apply_color_tint(image, *, color: tuple[int, int, int], strength: float = 0
     return Image.blend(base, overlay, strength)
 
 
+def _apply_duotone(image, *, dark: tuple[int, int, int], light: tuple[int, int, int]):
+    from PIL import ImageOps
+
+    gray = ImageOps.grayscale(image.convert("RGB"))
+    return ImageOps.colorize(gray, black=dark, white=light)
+
+
+def _apply_tritone(image):
+    from PIL import Image, ImageOps
+
+    base = image.convert("RGB")
+    gray = ImageOps.grayscale(base)
+    low = ImageOps.colorize(gray, black=(12, 18, 56), white=(136, 198, 255)).convert("RGB")
+    high = ImageOps.colorize(gray, black=(44, 12, 64), white=(255, 182, 104)).convert("RGB")
+    mask = gray.point(lambda value: 255 if value >= 132 else 0)
+    mixed = Image.composite(high, low, mask)
+    return Image.blend(base, mixed, 0.42)
+
+
+def _apply_partial_inversion(image):
+    from PIL import Image, ImageOps
+
+    base = image.convert("RGB")
+    inverted = ImageOps.invert(base)
+    mask = Image.new("L", base.size, 0)
+
+    start_x = int(base.width * 0.60)
+    for x in range(start_x, base.width):
+        ratio = (x - start_x) / max(1, base.width - start_x)
+        alpha = int(255 * min(1.0, ratio * 1.25))
+        for y in range(base.height):
+            mask.putpixel((x, y), alpha)
+
+    return Image.composite(inverted, base, mask)
+
+
+def _apply_channel_shift(
+    image,
+    *,
+    r_mul: float = 1.0,
+    g_mul: float = 1.0,
+    b_mul: float = 1.0,
+    r_add: int = 0,
+    g_add: int = 0,
+    b_add: int = 0,
+):
+    from PIL import Image
+
+    red, green, blue = image.convert("RGB").split()
+
+    def _apply(band, mul: float, add: int):
+        return band.point(lambda value: max(0, min(255, int(round((value * mul) + add)))))
+
+    shifted_red = _apply(red, r_mul, r_add)
+    shifted_green = _apply(green, g_mul, g_add)
+    shifted_blue = _apply(blue, b_mul, b_add)
+    return Image.merge("RGB", (shifted_red, shifted_green, shifted_blue))
+
+
+def _apply_quadrant_swap(image):
+    from PIL import Image
+
+    base = image.convert("RGB")
+    mid_x = base.width // 2
+    mid_y = base.height // 2
+
+    tl = base.crop((0, 0, mid_x, mid_y))
+    tr = base.crop((mid_x, 0, base.width, mid_y))
+    bl = base.crop((0, mid_y, mid_x, base.height))
+    br = base.crop((mid_x, mid_y, base.width, base.height))
+
+    out = Image.new("RGB", base.size)
+    out.paste(br, (0, 0))
+    out.paste(bl, (mid_x, 0))
+    out.paste(tr, (0, mid_y))
+    out.paste(tl, (mid_x, mid_y))
+    return out
+
+
+def _apply_double_vision(image):
+    from PIL import Image, ImageChops
+
+    base = image.convert("RGB")
+    ghost = ImageChops.offset(base, 6, 0)
+    return Image.blend(base, ghost, 0.35)
+
+
+def _apply_motion_blur(image, *, horizontal: bool, radius: int = 4):
+    from PIL import Image, ImageChops
+
+    base = image.convert("RGB")
+    offsets = range(-radius, radius + 1)
+    accum = Image.new("RGB", base.size, (0, 0, 0))
+    weight = 1.0 / float(len(list(offsets)))
+
+    for offset in offsets:
+        shifted = ImageChops.offset(base, offset if horizontal else 0, 0 if horizontal else offset)
+        accum = Image.blend(accum, shifted, weight)
+
+    return accum
+
+
+def _apply_vignette(image, *, reverse: bool = False, strength: float = 0.48):
+    from PIL import Image, ImageDraw, ImageFilter
+
+    base = image.convert("RGB")
+    width, height = base.size
+    mask = Image.new("L", (width, height), 0)
+    draw = ImageDraw.Draw(mask)
+
+    inset_x = max(12, width // 7)
+    inset_y = max(12, height // 7)
+    draw.ellipse((inset_x, inset_y, width - inset_x, height - inset_y), fill=255)
+    mask = mask.filter(ImageFilter.GaussianBlur(radius=max(8.0, min(width, height) * 0.12)))
+
+    edge_target = Image.new("RGB", (width, height), (255, 255, 255) if reverse else (0, 0, 0))
+    edged = Image.blend(base, edge_target, 0.60 if reverse else strength)
+    return Image.composite(base, edged, mask)
+
+
+def _apply_scanlines(image, *, spacing: int = 4, opacity: int = 34):
+    from PIL import Image, ImageDraw
+
+    base = image.convert("RGB")
+    overlay = Image.new("RGBA", base.size, (0, 0, 0, 0))
+    draw = ImageDraw.Draw(overlay)
+
+    for y in range(0, base.height, max(1, spacing)):
+        draw.line((0, y, base.width, y), fill=(0, 0, 0, opacity), width=1)
+
+    composed = Image.alpha_composite(base.convert("RGBA"), overlay)
+    return composed.convert("RGB")
+
+
+def _apply_checker_overlay(image, *, cell_size: int = 12, opacity: int = 30):
+    from PIL import Image, ImageDraw
+
+    base = image.convert("RGB")
+    overlay = Image.new("RGBA", base.size, (0, 0, 0, 0))
+    draw = ImageDraw.Draw(overlay)
+    step = max(3, cell_size)
+
+    for y in range(0, base.height, step):
+        row_index = y // step
+        for x in range(0, base.width, step):
+            col_index = x // step
+            if (row_index + col_index) % 2 == 0:
+                draw.rectangle((x, y, x + step - 1, y + step - 1), fill=(255, 255, 255, opacity))
+
+    return Image.alpha_composite(base.convert("RGBA"), overlay).convert("RGB")
+
+
+def _apply_diagonal_stripes(image, *, spacing: int = 18, opacity: int = 24):
+    from PIL import Image, ImageDraw
+
+    base = image.convert("RGB")
+    overlay = Image.new("RGBA", base.size, (0, 0, 0, 0))
+    draw = ImageDraw.Draw(overlay)
+    span = base.width + base.height
+    step = max(6, spacing)
+    for start in range(-base.height, span, step):
+        draw.line((start, 0, start + base.height, base.height), fill=(255, 255, 255, opacity), width=2)
+    return Image.alpha_composite(base.convert("RGBA"), overlay).convert("RGB")
+
+
+def _apply_film_grain(image, *, alpha: float = 0.10):
+    from PIL import Image
+
+    base = image.convert("RGB")
+    noise = Image.effect_noise(base.size, 16)
+    noise_rgb = noise.convert("RGB")
+    return Image.blend(base, noise_rgb, alpha)
+
+
+def _apply_dust_specks(image):
+    from PIL import Image, ImageDraw
+
+    base = image.convert("RGB")
+    overlay = Image.new("RGBA", base.size, (0, 0, 0, 0))
+    draw = ImageDraw.Draw(overlay)
+
+    step = max(14, min(base.size) // 18)
+    offset = step // 2
+    for y in range(offset, base.height, step):
+        for x in range(offset, base.width, step):
+            if ((x // step) + (y // step)) % 3 == 0:
+                draw.ellipse((x - 1, y - 1, x + 1, y + 1), fill=(245, 238, 225, 64))
+
+    return Image.alpha_composite(base.convert("RGBA"), overlay).convert("RGB")
+
+
+def _apply_glitch_slices(image):
+    from PIL import ImageChops
+
+    base = image.convert("RGB")
+    shifted = base.copy()
+    band_height = max(6, base.height // 18)
+    for band in range(0, base.height, band_height):
+        offset = ((band // band_height) % 5 - 2) * 5
+        crop = base.crop((0, band, base.width, min(base.height, band + band_height)))
+        shifted.paste(ImageChops.offset(crop, offset, 0), (0, band))
+    return shifted
+
+
+def _apply_rgb_shift(image):
+    from PIL import Image
+
+    base = image.convert("RGB")
+    red, green, blue = base.split()
+    shifted_red = red.transform(red.size, Image.Transform.AFFINE, (1, 0, 2, 0, 1, 0))
+    shifted_blue = blue.transform(blue.size, Image.Transform.AFFINE, (1, 0, -2, 0, 1, 0))
+    return Image.merge("RGB", (shifted_red, green, shifted_blue))
+
+
+def _apply_dead_pixels(image):
+    base = image.convert("RGB")
+    result = base.copy()
+    step = max(16, min(base.size) // 14)
+
+    for y in range(0, base.height, step):
+        for x in range(0, base.width, step):
+            selector = ((x // step) * 7 + (y // step) * 13) % 19
+            if selector == 0:
+                result.putpixel((x, y), (0, 0, 0))
+            elif selector == 1:
+                result.putpixel((x, y), (255, 255, 255))
+            elif selector == 2:
+                result.putpixel((x, y), (255, 0, 255))
+
+    return result
+
+
+def _apply_pixelate(image, *, factor: int = 8):
+    from PIL import Image
+
+    base = image.convert("RGB")
+    width, height = base.size
+    block = max(2, factor)
+    small = base.resize((max(1, width // block), max(1, height // block)), resample=Image.Resampling.NEAREST)
+    return small.resize((width, height), resample=Image.Resampling.NEAREST)
+
+
+def _apply_edge_tint(image, *, color: tuple[int, int, int], strength: float = 0.38):
+    from PIL import Image, ImageDraw, ImageFilter
+
+    base = image.convert("RGB")
+    overlay = Image.new("RGB", base.size, color)
+    tinted = Image.blend(base, overlay, strength)
+
+    mask = Image.new("L", base.size, 0)
+    draw = ImageDraw.Draw(mask)
+    margin = max(8, min(base.size) // 10)
+    draw.rectangle((0, 0, base.width - 1, base.height - 1), fill=255)
+    draw.rectangle((margin, margin, base.width - margin, base.height - margin), fill=0)
+    mask = mask.filter(ImageFilter.GaussianBlur(radius=max(4.0, margin * 0.3)))
+    return Image.composite(tinted, base, mask)
+
+
+def _apply_halftone(image):
+    from PIL import Image, ImageOps
+
+    base = image.convert("RGB")
+    gray = ImageOps.grayscale(base)
+    small = gray.resize((max(1, base.width // 6), max(1, base.height // 6)), resample=Image.Resampling.BOX)
+    dots = small.point(lambda value: 255 if value > 120 else 0)
+    dots = dots.resize(base.size, resample=Image.Resampling.NEAREST).convert("RGB")
+    return Image.blend(base, dots, 0.24)
+
+
+def _apply_morph_effect(image, morph_key: str | None):
+    if morph_key is None:
+        return image.convert("RGB")
+
+    from PIL import Image, ImageEnhance, ImageFilter, ImageOps
+
+    base = image.convert("RGB")
+
+    alias_map: dict[str, str] = {
+        "grayscale": "black_and_white",
+        "saturation_up": "high_saturation",
+        "saturation_down": "desaturated",
+        "contrast_up": "ultra_contrast",
+        "contrast_down": "low_contrast",
+        "brighten": "brightened",
+        "darken": "darkened",
+        "duotone": "duotone_sunset",
+        "vintage_fade": "sepia",
+        "moonlight_cast": "duotone_moonlight",
+        "toxic_cast": "neon_cyber",
+        "small_tilt": "tilt_left",
+        "strong_tilt": "tilt_right",
+        "mirrored_halves": "flip_horizontal",
+        "slice_shuffle": "glitch_slices",
+        "off_center_crop_zoom": "mosaic",
+        "thin_gold_border": "tint_gold",
+        "thick_gold_border": "tint_gold",
+        "thin_silver_border": "frosted_edges",
+        "thick_silver_border": "frosted_edges",
+        "thin_bronze_border": "worn_edges",
+        "thick_bronze_border": "worn_edges",
+        "silver_border": "frosted_edges",
+        "bronze_border": "worn_edges",
+        "rainbow_border": "tint_violet",
+        "neon_border": "neon_cyber",
+        "double_border": "edge_glow",
+        "dashed_border": "scanlines",
+        "dotted_border": "dust_specks",
+        "vignette_edge": "vignette",
+        "glow_border": "edge_glow",
+        "shadow_border": "reverse_vignette",
+        "checker_border": "checker_overlay",
+        "barcode_border": "scanlines",
+        "pixel_frame": "pixelate",
+        "outer_glow": "edge_glow",
+        "inner_glow": "soft_glow",
+        "spotlight_left": "reverse_vignette",
+        "spotlight_center": "reverse_vignette",
+        "spotlight_right": "reverse_vignette",
+        "halo": "reverse_vignette",
+        "rim_light": "edge_glow",
+        "light_leak_left": "tint_warm",
+        "light_leak_right": "tint_cool",
+        "dreamy_glow_haze": "bloom",
+        "neon_edge_glow": "neon_cyber",
+        "soft_blur": "gaussian_blur",
+        "heavy_blur": "motion_blur_h",
+        "soft_focus": "soft_glow",
+        "ghosted_duplicate": "double_vision",
+        "noise_grain": "film_grain",
+        "scratches": "contour",
+        "crosshatch": "diagonal_stripes",
+        "newsprint": "halftone",
+        "frosted_overlay": "frosted_edges",
+        "smudged_ink": "emboss",
+        "crackle_aged_print": "photocopy",
+        "glitter_noise": "heavy_grain",
+        "cloudy_veil": "soft_glow",
+        "corner_wear": "worn_edges",
+        "edge_wear": "worn_edges",
+        "fold_lines": "diagonal_stripes",
+        "scuffs": "film_grain",
+        "burn_corners": "burnt_edges",
+        "soot_darkening": "darkened",
+        "water_stain": "frosted_edges",
+        "ink_splatter": "dust_specks",
+        "torn_corner_illusion": "worn_edges",
+        "top_sun_fade": "brightened",
+        "static_corruption": "dead_pixels",
+        "glitch_tears": "glitch_slices",
+        "polka_dots": "dust_specks",
+        "stripes": "diagonal_stripes",
+        "chevron": "diagonal_stripes",
+        "checkerboard": "checker_overlay",
+        "grid": "checker_overlay",
+        "hex_grid": "checker_overlay",
+        "zigzag": "diagonal_stripes",
+        "concentric_rings": "reverse_vignette",
+        "wave_pattern": "motion_blur_h",
+        "star_field": "dust_specks",
+        "rain_streaks": "scanlines",
+        "lightning_zigzags": "edge_glow",
+        "circuit_traces": "contour",
+        "glyph_rain": "security_cam",
+        "binary_overlay": "security_cam",
+        "web_lattice": "checker_overlay",
+        "rgb_offset": "rgb_shift",
+        "glitch_slices_horizontal": "glitch_slices",
+        "glitch_slices_vertical": "glitch_slices",
+        "random_band_displacement": "glitch_slices",
+        "static_burst": "heavy_grain",
+        "corrupted_strip": "glitch_slices",
+        "jitter": "double_vision",
+        "frame_tearing": "top_bottom_swap",
+        "low_bit_8": "posterized",
+        "low_bit_4": "mosaic",
+        "pixelation": "pixelate",
+        "mosaic_blocks": "mosaic",
+        "terminal_green": "security_cam",
+        "blue_screen_tint": "tint_blue",
+        "chromatic_aberration": "rgb_shift",
+        "prism_split": "rgb_shift",
+        "kaleidoscope_quadrant_mirror": "quadrant_swap",
+        "radial_echo": "double_vision",
+        "toxic": "toxic_cast",
+        "arcane": "void",
+        "storm": "channel_shift_cool",
+        "retro_arcade": "posterized",
+        "vintage_print": "photocopy",
+        "haunted": "xray",
+        "dreamscape": "soft_glow",
+        "nightmare": "infernal",
+        "industrial": "contour",
+        "celestial": "holy",
+        "lunar": "duotone_moonlight",
+        "solar": "duotone_sunset",
+        "photocopied": "photocopy",
+        "flashlight_mode": "reverse_vignette",
+        "security_cam_mono": "security_cam",
+        "xray_fake": "xray",
+        "low_ink_printer": "low_ink",
+        "lagging_echo": "double_vision",
+    }
+    morph_key = alias_map.get(morph_key, morph_key)
+
+    if morph_key == "black_and_white":
+        return ImageOps.grayscale(base).convert("RGB")
+    if morph_key == "inverse":
+        return ImageOps.invert(base)
+    if morph_key == "sepia":
+        return _apply_duotone(base, dark=(38, 24, 16), light=(236, 209, 161))
+
+    tint_settings: dict[str, tuple[tuple[int, int, int], float]] = {
+        "tint_rose": ((255, 92, 140), 0.24),
+        "tint_aqua": ((74, 214, 228), 0.22),
+        "tint_lime": ((162, 232, 80), 0.20),
+        "tint_warm": ((255, 170, 88), 0.30),
+        "tint_cool": ((98, 170, 255), 0.28),
+        "tint_violet": ((176, 112, 255), 0.32),
+        "tint_red": ((230, 72, 66), 0.24),
+        "tint_blue": ((72, 132, 255), 0.24),
+        "tint_green": ((90, 210, 120), 0.24),
+        "tint_gold": ((248, 192, 72), 0.30),
+        "tint_pink": ((255, 145, 194), 0.24),
+        "tint_cyan": ((70, 229, 238), 0.24),
+    }
+    tint_config = tint_settings.get(morph_key)
+    if tint_config is not None:
+        tint_color, tint_strength = tint_config
+        return _apply_color_tint(base, color=tint_color, strength=tint_strength)
+
+    if morph_key == "high_saturation":
+        return ImageEnhance.Color(base).enhance(1.55)
+    if morph_key == "desaturated":
+        return ImageEnhance.Color(base).enhance(0.42)
+    if morph_key == "ultra_contrast":
+        return ImageEnhance.Contrast(base).enhance(1.55)
+    if morph_key == "low_contrast":
+        return ImageEnhance.Contrast(base).enhance(0.72)
+    if morph_key == "brightened":
+        return ImageEnhance.Brightness(base).enhance(1.20)
+    if morph_key == "darkened":
+        return ImageEnhance.Brightness(base).enhance(0.78)
+    if morph_key == "posterized":
+        return ImageOps.posterize(base, bits=4)
+    if morph_key == "solarized":
+        return ImageOps.solarize(base, threshold=132)
+    if morph_key == "threshold_bw":
+        return base.convert("L").point(lambda value: 255 if value > 122 else 0).convert("RGB")
+    if morph_key == "duotone_sunset":
+        return _apply_duotone(base, dark=(48, 11, 62), light=(255, 172, 92))
+    if morph_key == "duotone_moonlight":
+        return _apply_duotone(base, dark=(14, 28, 66), light=(175, 220, 252))
+    if morph_key == "tritone":
+        return _apply_tritone(base)
+    if morph_key == "channel_shift_warm":
+        return _apply_channel_shift(base, r_mul=1.12, g_mul=1.00, b_mul=0.92, r_add=8)
+    if morph_key == "channel_shift_cool":
+        return _apply_channel_shift(base, r_mul=0.90, g_mul=1.02, b_mul=1.14, b_add=8)
+    if morph_key == "partial_inversion":
+        return _apply_partial_inversion(base)
+
+    if morph_key == "flip_horizontal":
+        return ImageOps.mirror(base)
+    if morph_key == "flip_vertical":
+        return ImageOps.flip(base)
+    if morph_key == "rotate_90":
+        return base.rotate(90, resample=Image.Resampling.BICUBIC, expand=False)
+    if morph_key == "rotate_180":
+        return base.transpose(Image.Transpose.ROTATE_180)
+    if morph_key == "rotate_270":
+        return base.rotate(270, resample=Image.Resampling.BICUBIC, expand=False)
+    if morph_key == "tilt_left":
+        return base.rotate(8, resample=Image.Resampling.BICUBIC, expand=False)
+    if morph_key == "tilt_right":
+        return base.rotate(-8, resample=Image.Resampling.BICUBIC, expand=False)
+    if morph_key == "shear_left":
+        return base.transform(base.size, Image.Transform.AFFINE, (1, -0.16, 24, 0, 1, 0), resample=Image.Resampling.BICUBIC)
+    if morph_key == "shear_right":
+        return base.transform(base.size, Image.Transform.AFFINE, (1, 0.16, -24, 0, 1, 0), resample=Image.Resampling.BICUBIC)
+    if morph_key == "top_bottom_swap":
+        top = base.crop((0, 0, base.width, base.height // 2))
+        bottom = base.crop((0, base.height // 2, base.width, base.height))
+        swapped = base.copy()
+        swapped.paste(bottom, (0, 0))
+        swapped.paste(top, (0, base.height - top.height))
+        return swapped
+    if morph_key == "quadrant_swap":
+        return _apply_quadrant_swap(base)
+
+    if morph_key == "vignette":
+        return _apply_vignette(base, reverse=False)
+    if morph_key == "reverse_vignette":
+        return _apply_vignette(base, reverse=True)
+    if morph_key == "soft_glow":
+        blur = base.filter(ImageFilter.GaussianBlur(radius=3.0))
+        return ImageEnhance.Brightness(Image.blend(base, blur, 0.34)).enhance(1.08)
+    if morph_key == "bloom":
+        blur = base.filter(ImageFilter.GaussianBlur(radius=5.2))
+        return ImageEnhance.Brightness(Image.blend(base, blur, 0.46)).enhance(1.14)
+    if morph_key == "gaussian_blur":
+        return base.filter(ImageFilter.GaussianBlur(radius=2.2))
+    if morph_key == "motion_blur_h":
+        return _apply_motion_blur(base, horizontal=True, radius=4)
+    if morph_key == "motion_blur_v":
+        return _apply_motion_blur(base, horizontal=False, radius=4)
+    if morph_key == "sharpen":
+        return base.filter(ImageFilter.SHARPEN)
+    if morph_key == "oversharpen":
+        return ImageEnhance.Sharpness(base).enhance(2.2)
+    if morph_key == "double_vision":
+        return _apply_double_vision(base)
+    if morph_key == "emboss":
+        return base.filter(ImageFilter.EMBOSS)
+    if morph_key == "contour":
+        return base.filter(ImageFilter.CONTOUR)
+    if morph_key == "edge_glow":
+        edges = base.filter(ImageFilter.FIND_EDGES)
+        return Image.blend(base, ImageEnhance.Color(edges).enhance(1.3), 0.30)
+
+    if morph_key == "film_grain":
+        return _apply_film_grain(base, alpha=0.11)
+    if morph_key == "heavy_grain":
+        return _apply_film_grain(base, alpha=0.24)
+    if morph_key == "dust_specks":
+        return _apply_dust_specks(base)
+    if morph_key == "scanlines":
+        return _apply_scanlines(base, spacing=4, opacity=36)
+    if morph_key == "crt_mask":
+        return _apply_scanlines(_apply_channel_shift(base, r_mul=1.05, g_mul=1.0, b_mul=0.95), spacing=3, opacity=24)
+    if morph_key == "glitch_slices":
+        return _apply_glitch_slices(base)
+    if morph_key == "rgb_shift":
+        return _apply_rgb_shift(base)
+    if morph_key == "dead_pixels":
+        return _apply_dead_pixels(base)
+    if morph_key == "pixelate":
+        return _apply_pixelate(base, factor=8)
+    if morph_key == "mosaic":
+        return _apply_pixelate(base, factor=14)
+    if morph_key == "checker_overlay":
+        return _apply_checker_overlay(base)
+    if morph_key == "diagonal_stripes":
+        return _apply_diagonal_stripes(base)
+    if morph_key == "halftone":
+        return _apply_halftone(base)
+
+    if morph_key == "worn_edges":
+        return _apply_edge_tint(base, color=(112, 96, 82), strength=0.30)
+    if morph_key == "burnt_edges":
+        return _apply_edge_tint(base, color=(70, 22, 10), strength=0.45)
+    if morph_key == "frosted_edges":
+        return _apply_edge_tint(base, color=(210, 235, 255), strength=0.35)
+
+    if morph_key == "photocopy":
+        bw = ImageOps.grayscale(base).convert("RGB")
+        high = ImageEnhance.Contrast(bw).enhance(1.5)
+        return _apply_film_grain(high, alpha=0.08)
+    if morph_key == "blueprint":
+        return _apply_duotone(base, dark=(8, 38, 112), light=(199, 227, 255))
+    if morph_key == "security_cam":
+        mono = _apply_duotone(base, dark=(7, 30, 7), light=(142, 247, 112))
+        return _apply_scanlines(mono, spacing=3, opacity=28)
+    if morph_key == "xray":
+        return ImageOps.invert(ImageOps.grayscale(base)).convert("RGB")
+    if morph_key == "low_ink":
+        return _apply_channel_shift(base, r_mul=0.82, g_mul=0.88, b_mul=0.84, r_add=18, g_add=18, b_add=18)
+
+    if morph_key == "neon_cyber":
+        shifted = _apply_rgb_shift(base)
+        tinted = _apply_color_tint(shifted, color=(66, 220, 255), strength=0.20)
+        return _apply_scanlines(tinted, spacing=3, opacity=18)
+    if morph_key == "frozen":
+        cool = _apply_color_tint(base, color=(166, 222, 255), strength=0.30)
+        return ImageEnhance.Contrast(cool).enhance(1.12)
+    if morph_key == "infernal":
+        hot = _apply_color_tint(base, color=(255, 90, 44), strength=0.32)
+        return ImageEnhance.Contrast(hot).enhance(1.18)
+    if morph_key == "void":
+        dark = ImageEnhance.Brightness(base).enhance(0.62)
+        return _apply_color_tint(dark, color=(122, 52, 170), strength=0.25)
+    if morph_key == "holy":
+        bright = ImageEnhance.Brightness(base).enhance(1.18)
+        return _apply_color_tint(bright, color=(255, 244, 188), strength=0.24)
+
+    return base
+
+
 def render_card_surface(
     card_id: str,
     *,
@@ -587,22 +1165,7 @@ def render_card_surface(
 
     fitted = ImageOps.fit(source_image, (inner_width, inner_height), method=Image.Resampling.LANCZOS)
     normalized_morph_key = normalize_morph_key(morph_key)
-    if normalized_morph_key == MORPH_BLACK_AND_WHITE:
-        fitted = ImageOps.grayscale(fitted).convert("RGB")
-    elif normalized_morph_key == MORPH_INVERSE:
-        fitted = ImageOps.invert(fitted.convert("RGB"))
-    elif normalized_morph_key == MORPH_TINT_ROSE:
-        fitted = _apply_color_tint(fitted, color=(255, 92, 140), strength=0.24)
-    elif normalized_morph_key == MORPH_TINT_AQUA:
-        fitted = _apply_color_tint(fitted, color=(74, 214, 228), strength=0.22)
-    elif normalized_morph_key == MORPH_TINT_LIME:
-        fitted = _apply_color_tint(fitted, color=(162, 232, 80), strength=0.20)
-    elif normalized_morph_key == MORPH_TINT_WARM:
-        fitted = _apply_color_tint(fitted, color=(255, 170, 88), strength=0.30)
-    elif normalized_morph_key == MORPH_TINT_COOL:
-        fitted = _apply_color_tint(fitted, color=(98, 170, 255), strength=0.28)
-    elif normalized_morph_key == MORPH_TINT_VIOLET:
-        fitted = _apply_color_tint(fitted, color=(176, 112, 255), strength=0.32)
+    fitted = _apply_morph_effect(fitted, normalized_morph_key)
 
     fitted = _apply_text_legibility_overlay(
         fitted,
@@ -611,7 +1174,7 @@ def render_card_surface(
         color=rarity_border_color(normalized_card_id),
         font_key=normalize_font_key(font_key),
     )
-    if normalized_morph_key == MORPH_UPSIDE_DOWN:
+    if normalized_morph_key == "upside_down":
         fitted = fitted.transpose(Image.Transpose.ROTATE_180)
 
     card_body = Image.new("RGBA", (body_width, body_height), (0, 0, 0, 0))

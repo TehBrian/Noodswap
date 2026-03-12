@@ -89,8 +89,9 @@ This includes:
 - Per-instance morph state (`card_instances.morph_key`) must be applied when rendering owned-instance images.
 - Per-instance frame state (`card_instances.frame_key`) must be applied when rendering owned-instance images.
 - Per-instance font state (`card_instances.font_key`) must be applied when rendering owned-instance images.
-- Current morph set includes `black_and_white`, `inverse`, `tint_rose`, `tint_aqua`, `tint_lime`, `tint_warm`, `tint_cool`, `tint_violet`, and `upside_down`.
-- Tint morphs blend the card art toward a target color, while `upside_down` rotates the rendered card art by 180 degrees.
+- Morph set now includes a broad procedural catalog grouped by family: color/tone, geometric transforms, lighting/focus, glitch/digital, texture/surface, wear/edge, pattern overlays, and recipe-style themed variants.
+- Legacy morph keys remain supported (`black_and_white`, `inverse`, tint variants, and `upside_down`) and are now part of the larger catalog.
+- Tint morphs blend card art toward target colors, geometric morphs apply flips/rotations/shears, and higher-tier recipe morphs combine multiple primitive effects.
 - Supported frame keys are `buttery`, `gilded`, and `drizzled`.
 - All three frames are currently bundled.
 - `gilded` and `drizzled` are temporary placeholders until distinct frame art is added.

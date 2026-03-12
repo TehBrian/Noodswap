@@ -1,9 +1,11 @@
 import tempfile
 import time
+from collections import Counter
 from pathlib import Path
 from unittest.mock import patch
 
 from bot import services, storage
+from bot.morphs import AVAILABLE_MORPHS, MORPH_LABELS, MORPH_RARITIES, normalize_morph_key
 
 
 class ServicesTests:
@@ -325,6 +327,44 @@ class ServicesTests:
             result = services.prepare_morph(guild_id=guild_id, user_id=user_id, card_code=None)
         assert result.is_error
         assert result.error_message == "No new morphs are currently available for this card."
+
+    def test_all_available_morphs_have_labels_and_rarities(self) -> None:
+        assert AVAILABLE_MORPHS
+        for morph_key in AVAILABLE_MORPHS:
+            assert morph_key in MORPH_LABELS
+            assert morph_key in MORPH_RARITIES
+
+    def test_all_available_morphs_normalize_successfully(self) -> None:
+        for morph_key in AVAILABLE_MORPHS:
+            assert normalize_morph_key(morph_key.upper()) == morph_key
+
+    def test_morph_rarities_cover_all_trait_tiers(self) -> None:
+        expected_rarities = {
+            "common",
+            "uncommon",
+            "rare",
+            "epic",
+            "legendary",
+            "mythical",
+            "divine",
+            "celestial",
+        }
+        assert expected_rarities.issubset(set(MORPH_RARITIES.values()))
+
+    def test_morph_rarities_are_roughly_evenly_distributed(self) -> None:
+        expected_rarities = {
+            "common",
+            "uncommon",
+            "rare",
+            "epic",
+            "legendary",
+            "mythical",
+            "divine",
+            "celestial",
+        }
+        counts = Counter(MORPH_RARITIES.values())
+        used_counts = [counts[rarity] for rarity in expected_rarities]
+        assert max(used_counts) - min(used_counts) <= 1
 
     def test_prepare_frame_returns_preview_without_applying(self) -> None:
         guild_id = 1

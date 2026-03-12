@@ -25,6 +25,7 @@ from bot.images import (
     RARITY_BORDER_COLORS,
     render_card_image_bytes,
 )
+from bot.morphs import AVAILABLE_MORPHS
 from bot.presentation import HELP_CATEGORY_PAGES
 from bot.views import (
     HelpView,
@@ -2904,6 +2905,33 @@ class CardRenderRegressionTests:
         flipped_bottom = upside_down_image.getpixel((center_x, bottom_y))
         assert flipped_top == base_bottom
         assert flipped_bottom == base_top
+
+    def test_render_card_image_bytes_supports_all_available_morph_keys(self) -> None:
+        try:
+            from PIL import Image
+        except ImportError:
+            self.skipTest("Pillow is not installed")
+
+        def png_bytes() -> bytes:
+            image = Image.new("RGB", (36, 36), (65, 110, 170))
+            output = io.BytesIO()
+            image.save(output, format="PNG")
+            return output.getvalue()
+
+        with (
+            patch("bot.images.read_local_card_image_bytes", return_value=png_bytes()),
+            patch(
+                "bot.images._apply_text_legibility_overlay",
+                side_effect=lambda img, **_: img,
+            ),
+        ):
+            for morph_key in AVAILABLE_MORPHS:
+                rendered = render_card_image_bytes("SPG", generation=10, morph_key=morph_key)
+                assert rendered is not None, f"Expected rendered bytes for morph {morph_key}"
+                if rendered is None:
+                    self.fail(f"Expected rendered card image bytes for morph {morph_key}")
+                image = Image.open(io.BytesIO(rendered)).convert("RGB")
+                assert image.size == DEFAULT_CARD_RENDER_SIZE
 
 
 class LocalImageBytesTests:

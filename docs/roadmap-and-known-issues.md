@@ -118,6 +118,7 @@ Stage 3 implementation guide: `docs/refactor-phase-3.md`.
 - Added `morph` / `mo` confirmation flow with before/after transition previews (`before -> after`), and ensured morph persistence + dough charge happen only on explicit confirmation.
 - Expanded morph traits with additional visual variants (`inverse`, `tint_rose`, `tint_aqua`, `tint_lime`, `upside_down`) while keeping the same random-roll + confirmation UX.
 - Added more tint morph variants (`tint_warm`, `tint_cool`, `tint_violet`) and tuned tint strengths to keep each color treatment visually distinct.
+- Started large-scale PIL-first morph expansion with additional procedural families (color/tone, transform, glow/focus, glitch, texture, pattern, edge wear, and themed recipes), and added `docs/morph-expansion-backlog.md` to track deferred animation-first or shader-like variants plus PNG->GIF migration planning.
 - Changed drop claiming to be contestable: any user can claim any unclaimed drop card, each card can only be claimed once, and drops remain active until timeout (or all cards are claimed).
 - Reduced pull cooldown from 6 minutes to 4 minutes and updated cooldown messaging to use pull terminology.
 - Added a shared card-render pipeline (`bot/images.py`) that normalizes card output to portrait `5:7`, applies rounded rarity-based borders, and routes both single-card embeds and drop-preview composites through the same renderer to support future dupe-specific visual customization.
