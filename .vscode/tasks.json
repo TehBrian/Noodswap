@@ -19,7 +19,7 @@
 		{
 			"label": "check:tests",
 			"type": "shell",
-			"command": "${workspaceFolder}/.venv/bin/python -m unittest discover -s tests -p 'test_*.py'",
+			"command": "${workspaceFolder}/.venv/bin/python -m unittest discover -s tests -p 'test_*.py' -b",
 			"group": "test"
 		},
 		{
@@ -31,7 +31,7 @@
 		{
 			"label": "check:all",
 			"type": "shell",
-			"command": "${workspaceFolder}/.venv/bin/python -m pylint noodswap scripts tests --score=n && ${workspaceFolder}/.venv/bin/python -m py_compile bot.py noodswap/*.py scripts/*.py tests/*.py && ${workspaceFolder}/.venv/bin/python scripts/migration_smoke.py && ${workspaceFolder}/.venv/bin/python -m unittest discover -s tests -p 'test_*.py'",
+			"command": "${workspaceFolder}/.venv/bin/python -m pylint noodswap scripts tests --score=n && ${workspaceFolder}/.venv/bin/python -m py_compile bot.py noodswap/*.py scripts/*.py tests/*.py && ${workspaceFolder}/.venv/bin/python scripts/migration_smoke.py && ${workspaceFolder}/.venv/bin/python -m unittest discover -s tests -p 'test_*.py' -b",
 			"group": "test"
 		},
 		{

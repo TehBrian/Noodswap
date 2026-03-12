@@ -729,7 +729,7 @@ class StorageTests(unittest.TestCase):
         seller_dupe = seller_instances[0][3]
         buyer_dupe = buyer_instances[0][3]
 
-        success, message, gen, sold_dupe, received = storage.execute_trade(
+        success, message, gen, _sold_dupe, received = storage.execute_trade(
             guild_id=guild_id,
             seller_id=seller_id,
             buyer_id=buyer_id,

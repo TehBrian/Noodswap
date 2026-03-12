@@ -122,7 +122,7 @@ Acceptance checks:
 ```bash
 .venv/bin/python -m py_compile bot.py noodswap/*.py scripts/*.py tests/*.py
 .venv/bin/python scripts/migration_smoke.py
-.venv/bin/python -m unittest discover -s tests -p 'test_*.py'
+.venv/bin/python -m unittest discover -s tests -p 'test_*.py' -b
 ```
 
 ## Definition of done

@@ -123,7 +123,7 @@ Notes:
 ## Unit tests
 
 - Run tests:
-  - `.venv/bin/python -m unittest discover -s tests -p 'test_*.py'`
+  - `.venv/bin/python -m unittest discover -s tests -p 'test_*.py' -b`
 - VS Code task shortcut:
   - `check:tests`
 - SQLite guardrail:

@@ -175,39 +175,3 @@ class TradeView(InteractionView):
         for item in self.children:
             if isinstance(item, discord.ui.Button):
                 item.disabled = True
-
-    @discord.ui.button(label="Accept", style=discord.ButtonStyle.success)
-    async def accept_button(
-        self,
-        interaction: discord.Interaction,
-        _button: discord.ui.Button,
-    ):
-        await self._resolve(interaction, accepted=True)
-
-    @discord.ui.button(label="Deny", style=discord.ButtonStyle.danger)
-    async def deny_button(
-        self,
-        interaction: discord.Interaction,
-        _button: discord.ui.Button,
-    ):
-        await self._resolve(interaction, accepted=False)
-
-    async def on_timeout(self) -> None:
-        if self.finished or self.message is None:
-            return
-
-        self._disable_buttons()
-
-        try:
-            await self.message.edit(
-                content=None,
-                embed=italy_embed("Trade Expired", "Trade offer expired."),
-                view=self,
-            )
-        except discord.HTTPException:
-            logger.warning("Failed to edit trade message on timeout (message_id=%s)", self.message.id)
-
-    def _disable_buttons(self) -> None:
-        for item in self.children:
-            if isinstance(item, discord.ui.Button):
-                item.disabled = True
