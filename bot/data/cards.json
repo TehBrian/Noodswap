@@ -455,6 +455,12 @@
     "rarity": "common",
     "series": "noodle"
   },
+  "DTM": {
+    "image": "runtime/card_images/DTM.jpg",
+    "name": "Drive-Thru Monkey",
+    "rarity": "legendary",
+    "series": "snack"
+  },
   "DWF": {
     "image": "runtime/card_images/DWF.jpg",
     "name": "Dwight's Waffles",
@@ -675,6 +681,12 @@
     "image": "runtime/card_images/GRA.jpg",
     "name": "Golden Grain Loaf",
     "rarity": "legendary",
+    "series": "bread"
+  },
+  "GSD": {
+    "image": "runtime/card_images/GSD.jpg",
+    "name": "Grace's Sourdough",
+    "rarity": "celestial",
     "series": "bread"
   },
   "GRI": {
