@@ -3,7 +3,7 @@ import math
 import sqlite3
 import time
 
-TARGET_SCHEMA_VERSION = 32
+TARGET_SCHEMA_VERSION = 33
 _BASE36_ALPHABET = "0123456789abcdefghijklmnopqrstuvwxyz"
 
 
@@ -1080,6 +1080,62 @@ def _apply_migration_v32(conn: sqlite3.Connection) -> None:
         )
 
 
+def _apply_migration_v33(conn: sqlite3.Connection) -> None:
+    """Undo v32 (which incorrectly used ln instead of log10) then apply ln(old+1)^4.1.
+
+    v32 applied int(ln(old+1)^6.1), which produced excessive balance inflation.
+    This migration inverts that transform and re-scales with the intended formula.
+    The inverse of int(ln(b+1)^6.1) = c is: b ≈ exp(c^(1/6.1)) - 1.
+    Final formula: new_bal = int(log10(old + 1)^6.1).
+    """
+    players_table_exists = (
+        conn.execute(
+            """
+        SELECT 1
+        FROM sqlite_master
+        WHERE type = 'table' AND name = 'players'
+        LIMIT 1
+        """
+        ).fetchone()
+        is not None
+    )
+    if not players_table_exists:
+        return
+
+    if not _has_column(conn, "players", "dough") or not _has_column(conn, "players", "oven_dough"):
+        return
+
+    rows = conn.execute(
+        """
+        SELECT guild_id, user_id, dough, oven_dough
+        FROM players
+        """
+    ).fetchall()
+
+    for row in rows:
+        wallet_v32 = int(row["dough"])
+        oven_v32 = int(row["oven_dough"])
+
+        # Undo v32: inverse of int(ln(b+1)^6.1) = c  ->  b ≈ exp(c^(1/6.1)) - 1
+        wallet_restored = round(math.exp(math.pow(wallet_v32, 1.0 / 6.1)) - 1) if wallet_v32 > 0 else 0
+        oven_restored = round(math.exp(math.pow(oven_v32, 1.0 / 6.1)) - 1) if oven_v32 > 0 else 0
+
+        # Apply correct formula: new_bal = int(log10(old + 1)^6.1)
+        scaled_wallet = int(math.pow(math.log10(wallet_restored + 1), 6.1))
+        scaled_oven = int(math.pow(math.log10(oven_restored + 1), 6.1))
+
+        conn.execute(
+            """
+            UPDATE players
+            SET dough = ?,
+                oven_dough = ?
+            WHERE guild_id = ?
+              AND user_id = ?
+            """,
+            (scaled_wallet, scaled_oven, int(row["guild_id"]), int(row["user_id"])),
+        )
+
+
 def run_migrations(
     conn: sqlite3.Connection,
     *,
@@ -1248,6 +1304,11 @@ def run_migrations(
         _apply_migration_v32(conn)
         _set_schema_version(conn, 32)
         current_version = 32
+
+    if current_version < 33:
+        _apply_migration_v33(conn)
+        _set_schema_version(conn, 33)
+        current_version = 33
 
     if current_version > target_schema_version:
         raise RuntimeError(f"Database schema version {current_version} is newer than supported {target_schema_version}.")

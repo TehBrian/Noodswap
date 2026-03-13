@@ -300,7 +300,9 @@ Current migration set:
 	- Adds `players.pull_tickets` for pull-cooldown bypass purchases/consumption.
 	- Adds `gambling_pot.pull_tickets` for Monopoly pot parity.
 - `v32`:
-	- Rescales existing `players.dough` and `players.oven_dough` independently using `new_bal = log(old_bal + 1)^6.1`.
+	- Rescales existing `players.dough` and `players.oven_dough` independently using `new_bal = ln(old_bal + 1)^6.1`. **Note:** exponent of 6.1 on natural log caused excessive balance inflation; superseded by v33.
+- `v33`:
+	- Undoes v32 (inverse: `restored = exp(c^(1/6.1)) - 1`) then applies the intended formula: `new_bal = log10(old_bal + 1)^6.1` independently to wallet and oven dough.
 
 Notes:
 - Startup migration is in-code (`bot/migrations.py`) and invoked by `storage.init_db()` using incremental version checks.

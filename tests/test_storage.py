@@ -2043,14 +2043,100 @@ class StorageTests:
         assert version_row is not None
         assert int(version_row[0]) == storage.TARGET_SCHEMA_VERSION
 
+        # init_db() runs all migrations (v32 then v33), so final values reflect the
+        # full chain: v32 scales with ln^6.1, then v33 inverts and re-scales with log10^6.1.
+        def _v32_then_v33(original: int) -> int:
+            v32 = int(math.pow(math.log1p(original), 6.1))
+            restored = round(math.exp(math.pow(v32, 1.0 / 6.1)) - 1) if v32 > 0 else 0
+            return int(math.pow(math.log10(restored + 1), 6.1))
+
         expected = {
-            101: (int(math.pow(math.log1p(0), 6.1)), int(math.pow(math.log1p(0), 6.1))),
-            202: (int(math.pow(math.log1p(1), 6.1)), int(math.pow(math.log1p(10), 6.1))),
-            303: (int(math.pow(math.log1p(100), 6.1)), int(math.pow(math.log1p(1000), 6.1))),
+            101: (_v32_then_v33(0), _v32_then_v33(0)),
+            202: (_v32_then_v33(1), _v32_then_v33(10)),
+            303: (_v32_then_v33(100), _v32_then_v33(1000)),
         }
         assert len(rows) == 3
         for user_id, dough, oven_dough in rows:
             assert (int(dough), int(oven_dough)) == expected[int(user_id)]
+
+    def test_init_db_v33_undoes_v32_and_rescales_wallet_and_oven_dough(self) -> None:
+        # Build a v32-state DB: balances are already the outputs of int(ln(old+1)^6.1)
+        # for original values 0, 50, 500 so we can verify independence and round-trip.
+        original_pairs = [(0, 0), (50, 500), (100, 1000)]
+        pre_v33 = [
+            (int(math.pow(math.log1p(w), 6.1)), int(math.pow(math.log1p(o), 6.1)))
+            for w, o in original_pairs
+        ]
+
+        insert_rows = "\n".join(
+            f"INSERT INTO players (guild_id, user_id, dough, oven_dough, starter, oven_starter, drop_tickets, oven_drop_tickets, pull_tickets, oven_pull_tickets) VALUES (0, {uid}, {d}, {od}, 0, 0, 0, 0, 0, 0);"
+            for uid, (d, od) in enumerate(pre_v33, start=101)
+        )
+
+        with closing(sqlite3.connect(storage.DB_PATH)) as conn:
+            with conn:
+                conn.executescript(
+                    f"""
+                    CREATE TABLE schema_migrations (
+                        version INTEGER NOT NULL
+                    );
+                    INSERT INTO schema_migrations(version) VALUES (32);
+
+                    CREATE TABLE players (
+                        guild_id INTEGER NOT NULL,
+                        user_id INTEGER NOT NULL,
+                        dough INTEGER NOT NULL DEFAULT 0,
+                        oven_dough INTEGER NOT NULL DEFAULT 0,
+                        starter INTEGER NOT NULL DEFAULT 0,
+                        oven_starter INTEGER NOT NULL DEFAULT 0,
+                        drop_tickets INTEGER NOT NULL DEFAULT 0,
+                        oven_drop_tickets INTEGER NOT NULL DEFAULT 0,
+                        pull_tickets INTEGER NOT NULL DEFAULT 0,
+                        oven_pull_tickets INTEGER NOT NULL DEFAULT 0,
+                        PRIMARY KEY (guild_id, user_id)
+                    );
+
+                    CREATE TABLE card_instances (
+                        instance_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        guild_id INTEGER NOT NULL,
+                        user_id INTEGER NOT NULL,
+                        card_type_id TEXT NOT NULL,
+                        generation INTEGER NOT NULL,
+                        card_id TEXT,
+                        morph_key TEXT,
+                        frame_key TEXT,
+                        font_key TEXT,
+                        pulled_at REAL
+                    );
+
+                    {insert_rows}
+                    """
+                )
+
+        storage.init_db()
+
+        with closing(sqlite3.connect(storage.DB_PATH)) as conn:
+            rows = conn.execute(
+                """
+                SELECT user_id, dough, oven_dough
+                FROM players
+                ORDER BY user_id ASC
+                """
+            ).fetchall()
+            version_row = conn.execute("SELECT version FROM schema_migrations LIMIT 1").fetchone()
+
+        assert version_row is not None
+        assert int(version_row[0]) == storage.TARGET_SCHEMA_VERSION
+
+        def _v33_transform(c: int) -> int:
+            restored = round(math.exp(math.pow(c, 1.0 / 6.1)) - 1) if c > 0 else 0
+            return int(math.pow(math.log10(restored + 1), 6.1))
+
+        assert len(rows) == 3
+        for i, (user_id, dough, oven_dough) in enumerate(rows):
+            pre_wallet, pre_oven = pre_v33[i]
+            assert int(dough) == _v33_transform(pre_wallet)
+            assert int(oven_dough) == _v33_transform(pre_oven)
 
     def test_wishlist_add_remove_and_read(self) -> None:
         guild_id = 1
