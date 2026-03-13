@@ -2565,7 +2565,7 @@ class CommandsMonopolyTests:
                 "Dice: **2 + 3 = 5**",
                 "",
                 "Landed on **Sample Card** 🟫 (#abc123)",
-                "Rent paid to <@200>: **50/50 dough**",
+                "Rent paid to <@200>: **50 dough**",
             ),
             mpreg_card_id=None,
             mpreg_generation=None,
@@ -2595,7 +2595,7 @@ class CommandsMonopolyTests:
 
         message.edit.assert_awaited_once()
         final_embed = message.edit.await_args.kwargs["embed"]
-        assert "Rent paid to <@200>: **50/50 dough**" in final_embed.description
+        assert "Rent paid to <@200>: **50 dough**" in final_embed.description
 
 
 class CommandsMorphTests:
