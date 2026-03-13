@@ -386,6 +386,31 @@ class StorageTests:
         assert not (in_jail)
         assert doubles_count == 1
 
+    def test_monopoly_fine_adds_half_of_fine_to_pot(self) -> None:
+        guild_id = 1
+        user_id = 2249
+        storage.init_db()
+        storage.add_dough(guild_id, user_id, storage.MONOPOLY_JAIL_FINE_DOUGH)
+
+        with storage.get_db_connection() as conn:
+            players = storage.PlayerRepository(conn, storage.STARTING_DOUGH)
+            scoped_guild_id = storage._scope_guild_id(guild_id)
+            players.ensure_player(scoped_guild_id, user_id)
+            players.set_monopoly_in_jail(scoped_guild_id, user_id, True)
+
+        result = storage.execute_monopoly_fine(guild_id, user_id)
+        assert result.status == "released"
+        assert result.paid == storage.MONOPOLY_JAIL_FINE_DOUGH
+
+        expected_pot = (
+            storage.MONOPOLY_JAIL_FINE_DOUGH * storage.MONOPOLY_JAIL_FINE_POT_CONTRIBUTION_NUMERATOR
+        ) // storage.MONOPOLY_JAIL_FINE_POT_CONTRIBUTION_DENOMINATOR
+        pot_dough, pot_starter, pot_drop_tickets, pot_pull_tickets = storage.get_gambling_pot(guild_id)
+        assert pot_dough == expected_pot
+        assert pot_starter == 0
+        assert pot_drop_tickets == 0
+        assert pot_pull_tickets == 0
+
     def test_monopoly_property_rent_is_ninety_percent_of_card_value(self) -> None:
         guild_id = 1
         roller_id = 1250
@@ -406,6 +431,9 @@ class StorageTests:
         )
         expected_rent = int(full_value * 0.9)
         expected_fee = full_value - expected_rent
+        expected_fee_to_pot = (
+            expected_fee * storage.MONOPOLY_PROPERTY_TRANSACTION_FEE_POT_CONTRIBUTION_NUMERATOR
+        ) // storage.MONOPOLY_PROPERTY_TRANSACTION_FEE_POT_CONTRIBUTION_DENOMINATOR
 
         with patch("bot.storage.roll_dice", return_value=(1, 2, False)):
             result = storage.execute_monopoly_roll(
@@ -415,14 +443,14 @@ class StorageTests:
                 cooldown_seconds=660.0,
             )
         assert result.status == "ok"
-        assert any(line == f"(**+{expected_fee}** transaction fee)" for line in result.lines)
+        assert any(line == f"(**+{expected_fee_to_pot}** transaction fee to pot)" for line in result.lines)
 
         roller_dough, _, _ = storage.get_player_info(guild_id, roller_id)
         owner_dough, _, _ = storage.get_player_info(guild_id, owner_id)
         assert roller_dough == 10_000 - full_value
         assert owner_dough == expected_rent
         pot_dough, _pot_starter, _pot_drop_tickets, _pot_pull_tickets = storage.get_gambling_pot(guild_id)
-        assert pot_dough == expected_fee
+        assert pot_dough == expected_fee_to_pot
 
     def test_monopoly_property_landing_uses_card_name_and_thumbnail_metadata(
         self,
@@ -514,7 +542,50 @@ class StorageTests:
         assert player_dough == 9300
 
         pot_dough, pot_starter, pot_drop_tickets, pot_pull_tickets = storage.get_gambling_pot(guild_id)
-        assert pot_dough == 700
+        assert pot_dough == 140
+        assert pot_starter == 0
+        assert pot_drop_tickets == 0
+        assert pot_pull_tickets == 0
+
+    def test_monopoly_negative_chance_dough_contribution_rounds_up(self) -> None:
+        guild_id = 1
+        user_id = 2352
+        storage.init_db()
+        storage.add_dough(guild_id, user_id, 10)
+
+        with (
+            patch("bot.storage.roll_dice", return_value=(1, 2, False)),
+            patch(
+                "bot.storage.board_space",
+                return_value=SimpleNamespace(kind="chance", name="Cheese Chance", emoji="❓", rarity=None),
+            ),
+            patch(
+                "bot.storage.draw_cheese_chance",
+                return_value=SimpleNamespace(
+                    text="Pay 1 dough.",
+                    dough_delta=-1,
+                    starter_delta=0,
+                    drop_tickets_delta=0,
+                    pull_tickets_delta=0,
+                    move_to=None,
+                    go_to_jail=False,
+                    reset_random_cooldown=False,
+                ),
+            ),
+        ):
+            result = storage.execute_monopoly_roll(
+                guild_id,
+                user_id,
+                now=42_000.0,
+                cooldown_seconds=660.0,
+            )
+
+        assert result.status == "ok"
+        player_dough, _, _ = storage.get_player_info(guild_id, user_id)
+        assert player_dough == 9
+
+        pot_dough, pot_starter, pot_drop_tickets, pot_pull_tickets = storage.get_gambling_pot(guild_id)
+        assert pot_dough == 1
         assert pot_starter == 0
         assert pot_drop_tickets == 0
         assert pot_pull_tickets == 0

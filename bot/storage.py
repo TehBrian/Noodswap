@@ -50,6 +50,14 @@ from .settings import (
     MONOPOLY_CHEESE_TAX_PERCENT,
     MONOPOLY_GO_REWARD_DOUGH,
     MONOPOLY_JAIL_FINE_DOUGH,
+    MONOPOLY_JAIL_FINE_POT_CONTRIBUTION_DENOMINATOR,
+    MONOPOLY_JAIL_FINE_POT_CONTRIBUTION_NUMERATOR,
+    MONOPOLY_NEGATIVE_CHANCE_POT_CONTRIBUTION_DENOMINATOR,
+    MONOPOLY_NEGATIVE_CHANCE_POT_CONTRIBUTION_NUMERATOR,
+    MONOPOLY_PROPERTY_TRANSACTION_FEE_POT_CONTRIBUTION_DENOMINATOR,
+    MONOPOLY_PROPERTY_TRANSACTION_FEE_POT_CONTRIBUTION_NUMERATOR,
+    MONOPOLY_TAX_POT_CONTRIBUTION_DENOMINATOR,
+    MONOPOLY_TAX_POT_CONTRIBUTION_NUMERATOR,
     STARTING_DOUGH,
     TEAM_MAX_CARDS,
 )
@@ -92,6 +100,15 @@ class MonopolyFineResult:
 
 def _scope_guild_id(_guild_id: int) -> int:
     return GLOBAL_GUILD_ID
+
+
+def _scaled_value(amount: int, numerator: int, denominator: int, *, round_up: bool = False) -> int:
+    if amount <= 0 or numerator <= 0 or denominator <= 0:
+        return 0
+    scaled = amount * numerator
+    if round_up:
+        return (scaled + denominator - 1) // denominator
+    return scaled // denominator
 
 
 @contextmanager
@@ -1611,8 +1628,13 @@ def execute_monopoly_fine(
             )
 
         paid = _deduct_up_to(players, guild_id, user_id, MONOPOLY_JAIL_FINE_DOUGH)
-        if paid > 0:
-            pot.add(guild_id, dough=paid)
+        pot_contribution = _scaled_value(
+            paid,
+            MONOPOLY_JAIL_FINE_POT_CONTRIBUTION_NUMERATOR,
+            MONOPOLY_JAIL_FINE_POT_CONTRIBUTION_DENOMINATOR,
+        )
+        if pot_contribution > 0:
+            pot.add(guild_id, dough=pot_contribution)
 
         players.set_monopoly_in_jail(guild_id, user_id, False)
         players.set_monopoly_jail_roll_attempts(guild_id, user_id, 0)
@@ -1692,8 +1714,13 @@ def execute_monopoly_roll(
                 players.set_last_monopoly_roll_at(guild_id, user_id, now)
                 if jail_attempts >= 3:
                     paid = _deduct_up_to(players, guild_id, user_id, MONOPOLY_JAIL_FINE_DOUGH)
-                    if paid > 0:
-                        pot.add(guild_id, dough=paid)
+                    pot_contribution = _scaled_value(
+                        paid,
+                        MONOPOLY_JAIL_FINE_POT_CONTRIBUTION_NUMERATOR,
+                        MONOPOLY_JAIL_FINE_POT_CONTRIBUTION_DENOMINATOR,
+                    )
+                    if pot_contribution > 0:
+                        pot.add(guild_id, dough=pot_contribution)
                     players.set_monopoly_in_jail(guild_id, user_id, False)
                     players.set_monopoly_jail_roll_attempts(guild_id, user_id, 0)
                     lines.append("")
@@ -1754,8 +1781,13 @@ def execute_monopoly_roll(
             current_dough = players.get_dough(guild_id, user_id)
             tax_due = (current_dough * MONOPOLY_CHEESE_TAX_PERCENT) // 100
             paid = _deduct_up_to(players, guild_id, user_id, tax_due)
-            if paid > 0:
-                pot.add(guild_id, dough=paid)
+            pot_contribution = _scaled_value(
+                paid,
+                MONOPOLY_TAX_POT_CONTRIBUTION_NUMERATOR,
+                MONOPOLY_TAX_POT_CONTRIBUTION_DENOMINATOR,
+            )
+            if pot_contribution > 0:
+                pot.add(guild_id, dough=pot_contribution)
             lines.append(f"You had to pay **{paid} dough**. Ouch! {space.emoji}")
 
         elif space.kind == "free_parking":
@@ -1919,8 +1951,14 @@ def execute_monopoly_roll(
                     players.add_dough(guild_id, user_id, card.dough_delta)
                 else:
                     paid = _deduct_up_to(players, guild_id, user_id, -card.dough_delta)
-                    if paid > 0:
-                        pot.add(guild_id, dough=paid)
+                    pot_contribution = _scaled_value(
+                        paid,
+                        MONOPOLY_NEGATIVE_CHANCE_POT_CONTRIBUTION_NUMERATOR,
+                        MONOPOLY_NEGATIVE_CHANCE_POT_CONTRIBUTION_DENOMINATOR,
+                        round_up=True,
+                    )
+                    if pot_contribution > 0:
+                        pot.add(guild_id, dough=pot_contribution)
             if card.starter_delta != 0:
                 if card.starter_delta > 0:
                     players.add_starter(guild_id, user_id, card.starter_delta)
@@ -1929,7 +1967,14 @@ def execute_monopoly_roll(
                     lost = min(current_starter, -card.starter_delta)
                     if lost > 0:
                         players.add_starter(guild_id, user_id, -lost)
-                        pot.add(guild_id, starter=lost)
+                        pot_contribution = _scaled_value(
+                            lost,
+                            MONOPOLY_NEGATIVE_CHANCE_POT_CONTRIBUTION_NUMERATOR,
+                            MONOPOLY_NEGATIVE_CHANCE_POT_CONTRIBUTION_DENOMINATOR,
+                            round_up=True,
+                        )
+                        if pot_contribution > 0:
+                            pot.add(guild_id, starter=pot_contribution)
             if card.drop_tickets_delta != 0:
                 if card.drop_tickets_delta > 0:
                     players.add_drop_tickets(guild_id, user_id, card.drop_tickets_delta)
@@ -1938,7 +1983,14 @@ def execute_monopoly_roll(
                     lost = min(current_tickets, -card.drop_tickets_delta)
                     if lost > 0:
                         players.add_drop_tickets(guild_id, user_id, -lost)
-                        pot.add(guild_id, drop_tickets=lost)
+                        pot_contribution = _scaled_value(
+                            lost,
+                            MONOPOLY_NEGATIVE_CHANCE_POT_CONTRIBUTION_NUMERATOR,
+                            MONOPOLY_NEGATIVE_CHANCE_POT_CONTRIBUTION_DENOMINATOR,
+                            round_up=True,
+                        )
+                        if pot_contribution > 0:
+                            pot.add(guild_id, drop_tickets=pot_contribution)
             if card.pull_tickets_delta != 0:
                 if card.pull_tickets_delta > 0:
                     players.add_pull_tickets(guild_id, user_id, card.pull_tickets_delta)
@@ -1947,7 +1999,14 @@ def execute_monopoly_roll(
                     lost = min(current_tickets, -card.pull_tickets_delta)
                     if lost > 0:
                         players.add_pull_tickets(guild_id, user_id, -lost)
-                        pot.add(guild_id, pull_tickets=lost)
+                        pot_contribution = _scaled_value(
+                            lost,
+                            MONOPOLY_NEGATIVE_CHANCE_POT_CONTRIBUTION_NUMERATOR,
+                            MONOPOLY_NEGATIVE_CHANCE_POT_CONTRIBUTION_DENOMINATOR,
+                            round_up=True,
+                        )
+                        if pot_contribution > 0:
+                            pot.add(guild_id, pull_tickets=pot_contribution)
 
         elif space.kind == "property" and space.rarity is not None:
             candidates = [
@@ -1983,15 +2042,20 @@ def execute_monopoly_roll(
                 if rent_paid > 0:
                     players.ensure_player(guild_id, owner_id)
                     players.add_dough(guild_id, owner_id, rent_paid)
-                if transaction_fee_paid > 0:
-                    pot.add(guild_id, dough=transaction_fee_paid)
+                pot_transaction_fee = _scaled_value(
+                    transaction_fee_paid,
+                    MONOPOLY_PROPERTY_TRANSACTION_FEE_POT_CONTRIBUTION_NUMERATOR,
+                    MONOPOLY_PROPERTY_TRANSACTION_FEE_POT_CONTRIBUTION_DENOMINATOR,
+                )
+                if pot_transaction_fee > 0:
+                    pot.add(guild_id, dough=pot_transaction_fee)
                 thumbnail_card_id = card_type_id
                 thumbnail_generation = generation
                 thumbnail_morph_key = morph_key
                 thumbnail_frame_key = frame_key
                 thumbnail_font_key = font_key
                 lines.append(f"Rent paid to <@{owner_id}>: **{rent_paid} dough**")
-                lines.append(f"(**+{transaction_fee_paid}** transaction fee)")
+                lines.append(f"(**+{pot_transaction_fee}** transaction fee to pot)")
             else:
                 lines.append("")
                 lines.append(f"Landed on a **{space.rarity}** {space.emoji} property.")
