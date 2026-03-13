@@ -742,6 +742,53 @@ class StorageTests:
         assert pot_drop_tickets == 0
         assert pot_pull_tickets == 0
 
+    def test_monopoly_negative_chance_ticket_contribution_rounds_up(self) -> None:
+        guild_id = 1
+        user_id = 2353
+        storage.init_db()
+        storage.add_starter(guild_id, user_id, 6)
+        bought_drop, _, _, _ = storage.buy_drop_tickets_with_starter(guild_id, user_id, 3)
+        bought_pull, _, _, _ = storage.buy_pull_tickets_with_starter(guild_id, user_id, 3)
+        assert bought_drop
+        assert bought_pull
+
+        with (
+            patch("bot.storage.roll_dice", return_value=(1, 2, False)),
+            patch(
+                "bot.storage.board_space",
+                return_value=SimpleNamespace(kind="chance", name="Cheese Chance", emoji="❓", rarity=None),
+            ),
+            patch(
+                "bot.storage.draw_cheese_chance",
+                return_value=SimpleNamespace(
+                    text="Lose 3 drop tickets and 2 pull tickets.",
+                    dough_delta=0,
+                    starter_delta=0,
+                    drop_tickets_delta=-3,
+                    pull_tickets_delta=-2,
+                    move_to=None,
+                    go_to_jail=False,
+                    reset_random_cooldown=False,
+                ),
+            ),
+        ):
+            result = storage.execute_monopoly_roll(
+                guild_id,
+                user_id,
+                now=42_500.0,
+                cooldown_seconds=660.0,
+            )
+
+        assert result.status == "ok"
+        assert storage.get_player_drop_tickets(guild_id, user_id) == 0
+        assert storage.get_player_pull_tickets(guild_id, user_id) == 1
+
+        pot_dough, pot_starter, pot_drop_tickets, pot_pull_tickets = storage.get_gambling_pot(guild_id)
+        assert pot_dough == 0
+        assert pot_starter == 0
+        assert pot_drop_tickets == 2
+        assert pot_pull_tickets == 1
+
     def test_monopoly_card_move_to_free_parking_awards_pot(self) -> None:
         guild_id = 1
         user_id = 1253

@@ -129,6 +129,14 @@ COMMUNITY_CHARCUTERIE_CARDS: tuple[MonopolyCard, ...] = (
     MonopolyCard("Pantry insurance paid out generously. Collect 1000 dough.", dough_delta=1000),
     MonopolyCard("A golden ladle ceremony honored you. Gain 1 drop ticket and 1 pull ticket.", drop_tickets_delta=1, pull_tickets_delta=1),
     MonopolyCard("VIP pasta pass unlocked. Gain 1 drop ticket and 1 pull ticket.", drop_tickets_delta=1, pull_tickets_delta=1),
+    MonopolyCard("Neighborhood queue exploded. Gain 1 drop ticket.", drop_tickets_delta=1),
+    MonopolyCard("Raffle drums stayed hot all night. Gain 1 pull ticket.", pull_tickets_delta=1),
+    MonopolyCard("Street market permit upgraded. Gain 2 drop tickets.", drop_tickets_delta=2),
+    MonopolyCard("Your giveaway stream trended. Gain 2 pull tickets.", pull_tickets_delta=2),
+    MonopolyCard("Festival sponsors doubled your reach. Gain 2 drop tickets and 1 pull ticket.", drop_tickets_delta=2, pull_tickets_delta=1),
+    MonopolyCard("A pastry collab unlocked bonus draws. Gain 1 drop ticket and 2 pull tickets.", drop_tickets_delta=1, pull_tickets_delta=2),
+    MonopolyCard("You won the city promo cup. Gain 3 drop tickets.", drop_tickets_delta=3),
+    MonopolyCard("Prime-time feature unlocked mega draws. Gain 3 pull tickets.", pull_tickets_delta=3),
     MonopolyCard("You inherited a sacred sourdough starter. Gain 1 starter.", starter_delta=1),
 )
 
@@ -160,6 +168,70 @@ CHEESE_CHANCE_CARDS: tuple[MonopolyCard, ...] = (
     ),
     MonopolyCard("A sourdough mishap consumed your starter. Lose 1 starter.", starter_delta=-1),
     MonopolyCard("You misplaced your voucher stash. Lose 1 drop ticket and 1 pull ticket.", drop_tickets_delta=-1, pull_tickets_delta=-1),
+    MonopolyCard(
+        "Your promo poster typo voided entries. Lose 1 drop ticket.",
+        drop_tickets_delta=-1,
+    ),
+    MonopolyCard(
+        "The ticket scanner glitched at the gate. Lose 1 drop ticket.",
+        drop_tickets_delta=-1,
+    ),
+    MonopolyCard(
+        "A courier dropped your voucher envelope. Lose 1 drop ticket.",
+        drop_tickets_delta=-1,
+    ),
+    MonopolyCard(
+        "Your booth permit got smudged in rain. Lose 1 drop ticket.",
+        drop_tickets_delta=-1,
+    ),
+    MonopolyCard(
+        "The raffle wheel jammed mid-spin. Lose 1 pull ticket.",
+        pull_tickets_delta=-1,
+    ),
+    MonopolyCard(
+        "A typo in your QR code spoiled a draw. Lose 1 pull ticket.",
+        pull_tickets_delta=-1,
+    ),
+    MonopolyCard(
+        "Your giveaway box vanished backstage. Lose 1 pull ticket.",
+        pull_tickets_delta=-1,
+    ),
+    MonopolyCard(
+        "A vendor spilled sauce on your coupon stack. Lose 1 pull ticket.",
+        pull_tickets_delta=-1,
+    ),
+    MonopolyCard("Oven disaster cleanup. Lose 1 starter.", starter_delta=-1),
+    MonopolyCard("Your levain overproofed overnight. Lose 1 starter.", starter_delta=-1),
+    MonopolyCard("Yeast panic at dawn. Lose 2 starter.", starter_delta=-2),
+    MonopolyCard("Fermentation tunnel collapse. Lose 2 starter.", starter_delta=-2),
+    MonopolyCard("Culture contamination emergency. Lose 3 starter.", starter_delta=-3),
+    MonopolyCard("A sour storm wiped your reserve jars. Lose 3 starter.", starter_delta=-3),
+    MonopolyCard(
+        "Street fair permit expired. Lose 2 drop tickets.",
+        drop_tickets_delta=-2,
+    ),
+    MonopolyCard(
+        "Your queue system crashed. Lose 2 pull tickets.",
+        pull_tickets_delta=-2,
+    ),
+    MonopolyCard(
+        "Scalpers grabbed your event passes. Lose 3 drop tickets.",
+        drop_tickets_delta=-3,
+    ),
+    MonopolyCard(
+        "The raffle printer jammed for hours. Lose 3 pull tickets.",
+        pull_tickets_delta=-3,
+    ),
+    MonopolyCard(
+        "Double-booked promo slots. Lose 2 drop tickets and 1 pull ticket.",
+        drop_tickets_delta=-2,
+        pull_tickets_delta=-1,
+    ),
+    MonopolyCard(
+        "Spoiled batch refund frenzy. Lose 1 drop ticket and 2 pull tickets.",
+        drop_tickets_delta=-1,
+        pull_tickets_delta=-2,
+    ),
     MonopolyCard("Truffle futures crashed. Lose 900 dough.", dough_delta=-900),
     MonopolyCard("Advance to GO and collect 4000 dough.", move_to=0, dough_delta=4000),
     MonopolyCard("Advance to Free Parking.", move_to=20),
@@ -176,7 +248,24 @@ CHEESE_CHANCE_CARDS: tuple[MonopolyCard, ...] = (
     MonopolyCard("Mysterious benefactor mailed flour futures. Gain 1200 dough.", dough_delta=1200),
     MonopolyCard("A local angel investor funded you. Gain 1000 dough.", dough_delta=1000),
     MonopolyCard("You found bonus vouchers. Gain 1 drop ticket and 1 pull ticket.", drop_tickets_delta=1, pull_tickets_delta=1),
+    MonopolyCard("Pop-up buzz exploded. Gain 1 drop ticket.", drop_tickets_delta=1),
+    MonopolyCard("Lucky queue shortcut. Gain 1 pull ticket.", pull_tickets_delta=1),
+    MonopolyCard("Sponsor bundle arrived. Gain 2 drop tickets.", drop_tickets_delta=2),
+    MonopolyCard("VIP raffle unlock. Gain 2 pull tickets.", pull_tickets_delta=2),
+    MonopolyCard("Street festival grand pass. Gain 3 drop tickets.", drop_tickets_delta=3),
+    MonopolyCard("Midnight lottery windfall. Gain 3 pull tickets.", pull_tickets_delta=3),
+    MonopolyCard(
+        "Promo team overdelivered. Gain 2 drop tickets and 1 pull ticket.",
+        drop_tickets_delta=2,
+        pull_tickets_delta=1,
+    ),
     MonopolyCard("Legendary spoon blessing. Gain 1 starter.", starter_delta=1),
+    MonopolyCard("Your mother culture split perfectly. Gain 1 starter.", starter_delta=1),
+    MonopolyCard("Pantry rescue kit arrived. Gain 1 starter.", starter_delta=1),
+    MonopolyCard("Bakery neighbor shared an active batch. Gain 2 starter.", starter_delta=2),
+    MonopolyCard("Artisan swap success. Gain 2 starter.", starter_delta=2),
+    MonopolyCard("Ancient crock reawakened. Gain 3 starter.", starter_delta=3),
+    MonopolyCard("Chef guild grant delivered. Gain 3 starter.", starter_delta=3),
 )
 
 

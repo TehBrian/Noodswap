@@ -2020,23 +2020,9 @@ def execute_monopoly_roll(
                         players.add_starter(guild_id, user_id, -lost)
                         pot.add(guild_id, starter=lost)
             if card.drop_tickets_delta != 0:
-                if card.drop_tickets_delta > 0:
-                    players.add_drop_tickets(guild_id, user_id, card.drop_tickets_delta)
-                else:
-                    current_tickets = players.get_drop_tickets(guild_id, user_id)
-                    lost = min(current_tickets, -card.drop_tickets_delta)
-                    if lost > 0:
-                        players.add_drop_tickets(guild_id, user_id, -lost)
-                        pot.add(guild_id, drop_tickets=lost)
+                players.add_drop_tickets(guild_id, user_id, card.drop_tickets_delta)
             if card.pull_tickets_delta != 0:
-                if card.pull_tickets_delta > 0:
-                    players.add_pull_tickets(guild_id, user_id, card.pull_tickets_delta)
-                else:
-                    current_tickets = players.get_pull_tickets(guild_id, user_id)
-                    lost = min(current_tickets, -card.pull_tickets_delta)
-                    if lost > 0:
-                        players.add_pull_tickets(guild_id, user_id, -lost)
-                        pot.add(guild_id, pull_tickets=lost)
+                players.add_pull_tickets(guild_id, user_id, card.pull_tickets_delta)
 
         elif space.kind == "chance":
             card = draw_cheese_chance()
@@ -2328,9 +2314,7 @@ def execute_flip_wager(
             return "insufficient_dough", 0.0, current_dough
 
         win_payout = (stake * FLIP_WIN_PAYOUT_MULTIPLIER_NUMERATOR) // FLIP_WIN_PAYOUT_MULTIPLIER_DENOMINATOR
-        pot_contribution = (
-            stake * FLIP_LOSS_POT_CONTRIBUTION_NUMERATOR
-        ) // FLIP_LOSS_POT_CONTRIBUTION_DENOMINATOR
+        pot_contribution = (stake * FLIP_LOSS_POT_CONTRIBUTION_NUMERATOR) // FLIP_LOSS_POT_CONTRIBUTION_DENOMINATOR
         dough_delta = win_payout if did_win else -stake
         players.add_dough(guild_id, user_id, dough_delta)
         if not did_win:
