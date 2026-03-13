@@ -797,7 +797,8 @@ async def _wish_add(ctx: commands.Context, *card_ids: str) -> None:
 
     lines: list[str] = []
     if added:
-        lines.append(f"Added: {', '.join(added)}")
+        lines.append("Added cards to wishlist:")
+        lines.extend(added)
     if already:
         lines.append(f"Already listed: {', '.join(already)}")
     if ambiguous:
@@ -856,7 +857,8 @@ async def _wish_remove(ctx: commands.Context, *card_ids: str) -> None:
 
     lines: list[str] = []
     if removed:
-        lines.append(f"Removed: {', '.join(removed)}")
+        lines.append("Removed cards from wishlist:")
+        lines.extend(removed)
     if not_listed:
         lines.append(f"Not listed: {', '.join(not_listed)}")
     if ambiguous:
@@ -1025,7 +1027,8 @@ async def _tag_assign(ctx: commands.Context, tag_name: str, *card_codes: str) ->
 
     lines: list[str] = []
     if tagged:
-        lines.append(f"Tagged: {', '.join(tagged)}")
+        lines.append(f"Assigned cards to tag `{normalized}`:")
+        lines.extend(tagged)
     if already:
         lines.append(f"Already tagged: {', '.join(already)}")
     if not_owned:
@@ -1082,7 +1085,8 @@ async def _tag_unassign(ctx: commands.Context, tag_name: str, *card_codes: str) 
 
     lines: list[str] = []
     if removed:
-        lines.append(f"Untagged: {', '.join(removed)}")
+        lines.append(f"Removed cards from tag `{normalized}`:")
+        lines.extend(removed)
     if not_tagged:
         lines.append(f"Not tagged: {', '.join(not_tagged)}")
     if not_owned:
@@ -1264,7 +1268,8 @@ async def _folder_assign(ctx: commands.Context, folder_name: str, *card_codes: s
 
     lines: list[str] = []
     if assigned:
-        lines.append(f"Assigned: {', '.join(assigned)}")
+        lines.append(f"Assigned cards to folder `{normalized}`:")
+        lines.extend(assigned)
     if already:
         lines.append(f"Already assigned: {', '.join(already)}")
     if not_owned:
@@ -1321,7 +1326,8 @@ async def _folder_unassign(ctx: commands.Context, folder_name: str, *card_codes:
 
     lines: list[str] = []
     if removed_list:
-        lines.append(f"Removed: {', '.join(removed_list)}")
+        lines.append(f"Removed cards from folder `{normalized}`:")
+        lines.extend(removed_list)
     if not_assigned:
         lines.append(f"Not assigned: {', '.join(not_assigned)}")
     if not_owned:
@@ -1474,7 +1480,8 @@ async def _team_assign(ctx: commands.Context, team_name: str, *card_codes: str) 
 
     lines: list[str] = []
     if assigned:
-        lines.append(f"Assigned: {', '.join(assigned)}")
+        lines.append(f"Assigned cards to team `{normalized}`:")
+        lines.extend(assigned)
     if already:
         lines.append(f"Already on team: {', '.join(already)}")
     if not_owned:
@@ -1531,7 +1538,8 @@ async def _team_unassign(ctx: commands.Context, team_name: str, *card_codes: str
 
     lines: list[str] = []
     if removed_list:
-        lines.append(f"Removed: {', '.join(removed_list)}")
+        lines.append(f"Removed cards from team `{normalized}`:")
+        lines.extend(removed_list)
     if not_assigned:
         lines.append(f"Not assigned: {', '.join(not_assigned)}")
     if not_owned:

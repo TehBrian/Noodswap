@@ -276,6 +276,60 @@ class CommandsWishlistTests:
         assert "1. (`CHD`) [🧀] **Cheddar**" in sent_embed.description
         assert "2. (`CHJ`) [🧀] **Cheddar Jack**" in sent_embed.description
 
+    async def test_wish_add_batch_lists_added_cards_on_separate_lines(self) -> None:
+        wish_add_command = _get_group_command(self.bot, "wish", "add")
+
+        ctx = AsyncMock()
+        ctx.guild = _FakeGuild(1)
+        ctx.author = _FakeMember(100, "Caller")
+        ctx.send = AsyncMock()
+        ctx.reply = ctx.send
+
+        with (
+            patch("bot.command_utils.search_card_ids_by_name", side_effect=[[], []]),
+            patch(
+                "bot.command_utils.add_card_to_wishlist",
+                side_effect=[True, True],
+            ),
+            patch(
+                "bot.command_utils.card_base_display",
+                side_effect=["card zero", "card one"],
+            ),
+        ):
+            await wish_add_command.callback(ctx, "SPG", "BAR")
+
+        ctx.send.assert_awaited_once()
+        sent_embed = ctx.send.await_args.kwargs["embed"]
+        assert sent_embed.title == "Wishlist"
+        assert sent_embed.description == "Added cards to wishlist:\ncard zero\ncard one"
+
+    async def test_wish_remove_batch_lists_removed_cards_on_separate_lines(self) -> None:
+        wish_remove_command = _get_group_command(self.bot, "wish", "remove")
+
+        ctx = AsyncMock()
+        ctx.guild = _FakeGuild(1)
+        ctx.author = _FakeMember(100, "Caller")
+        ctx.send = AsyncMock()
+        ctx.reply = ctx.send
+
+        with (
+            patch("bot.command_utils.search_card_ids_by_name", side_effect=[[], []]),
+            patch(
+                "bot.command_utils.remove_card_from_wishlist",
+                side_effect=[True, True],
+            ),
+            patch(
+                "bot.command_utils.card_base_display",
+                side_effect=["card zero", "card one"],
+            ),
+        ):
+            await wish_remove_command.callback(ctx, "SPG", "BAR")
+
+        ctx.send.assert_awaited_once()
+        sent_embed = ctx.send.await_args.kwargs["embed"]
+        assert sent_embed.title == "Wishlist"
+        assert sent_embed.description == "Removed cards from wishlist:\ncard zero\ncard one"
+
 
 class CommandsTagTests:
     def setup_method(self) -> None:
@@ -361,6 +415,67 @@ class CommandsTagTests:
         sent_embed = ctx.send.await_args.kwargs["embed"]
         assert sent_embed.title == "Tags"
         assert sent_embed.description == "That card is already assigned to this tag."
+
+    async def test_tag_assign_batch_lists_assigned_cards_on_separate_lines(self) -> None:
+        tag_assign_command = _get_group_command(self.bot, "tag", "assign")
+
+        ctx = AsyncMock()
+        ctx.guild = _FakeGuild(1)
+        ctx.author = _FakeMember(100, "Caller")
+        ctx.send = AsyncMock()
+        ctx.reply = ctx.send
+
+        with (
+            patch(
+                "bot.command_utils.get_instance_by_code",
+                side_effect=[
+                    (5, "SPG", 1200, "0"),
+                    (6, "SPG", 1201, "1"),
+                ],
+            ),
+            patch("bot.command_utils.is_tag_assigned_to_instance", return_value=False),
+            patch("bot.command_utils.assign_tag_to_instance", return_value=True),
+            patch(
+                "bot.command_utils._instance_dupe_display",
+                side_effect=["card zero", "card one"],
+            ),
+        ):
+            await tag_assign_command.callback(ctx, "safe", "0", "1")
+
+        ctx.send.assert_awaited_once()
+        sent_embed = ctx.send.await_args.kwargs["embed"]
+        assert sent_embed.title == "Tags"
+        assert sent_embed.description == "Assigned cards to tag `safe`:\ncard zero\ncard one"
+
+    async def test_tag_unassign_batch_lists_removed_cards_on_separate_lines(self) -> None:
+        tag_unassign_command = _get_group_command(self.bot, "tag", "unassign")
+
+        ctx = AsyncMock()
+        ctx.guild = _FakeGuild(1)
+        ctx.author = _FakeMember(100, "Caller")
+        ctx.send = AsyncMock()
+        ctx.reply = ctx.send
+
+        with (
+            patch(
+                "bot.command_utils.get_instance_by_code",
+                side_effect=[
+                    (5, "SPG", 1200, "0"),
+                    (6, "SPG", 1201, "1"),
+                ],
+            ),
+            patch("bot.command_utils.unassign_tag_from_instance", return_value=True),
+            patch(
+                "bot.command_utils._instance_dupe_display",
+                side_effect=["card zero", "card one"],
+            ),
+        ):
+            await tag_unassign_command.callback(ctx, "safe", "0", "1")
+
+        ctx.send.assert_awaited_once()
+        sent_embed = ctx.send.await_args.kwargs["embed"]
+        assert sent_embed.title == "Tags"
+        assert sent_embed.description == "Removed cards from tag `safe`:\ncard zero\ncard one"
 
     async def test_tag_cards_shows_sortable_collection_view(self) -> None:
         tag_cards_command = _get_group_command(self.bot, "tag", "cards")
@@ -469,6 +584,70 @@ class CommandsFolderTests:
         sent_embed = ctx.send.await_args.kwargs["embed"]
         assert sent_embed.title == "Folders"
         assert sent_embed.description == "That card is already assigned to this folder."
+
+    async def test_folder_assign_batch_lists_assigned_cards_on_separate_lines(self) -> None:
+        folder_assign_command = _get_group_command(self.bot, "folder", "assign")
+
+        ctx = AsyncMock()
+        ctx.guild = _FakeGuild(1)
+        ctx.author = _FakeMember(100, "Caller")
+        ctx.send = AsyncMock()
+        ctx.reply = ctx.send
+
+        with (
+            patch(
+                "bot.command_utils.get_instance_by_code",
+                side_effect=[
+                    (5, "SPG", 1200, "0"),
+                    (6, "SPG", 1201, "1"),
+                ],
+            ),
+            patch(
+                "bot.command_utils.is_instance_assigned_to_folder",
+                return_value=False,
+            ),
+            patch("bot.command_utils.assign_instance_to_folder", return_value=(True, None)),
+            patch(
+                "bot.command_utils._instance_dupe_display",
+                side_effect=["card zero", "card one"],
+            ),
+        ):
+            await folder_assign_command.callback(ctx, "vault", "0", "1")
+
+        ctx.send.assert_awaited_once()
+        sent_embed = ctx.send.await_args.kwargs["embed"]
+        assert sent_embed.title == "Folders"
+        assert sent_embed.description == "Assigned cards to folder `vault`:\ncard zero\ncard one"
+
+    async def test_folder_unassign_batch_lists_removed_cards_on_separate_lines(self) -> None:
+        folder_unassign_command = _get_group_command(self.bot, "folder", "unassign")
+
+        ctx = AsyncMock()
+        ctx.guild = _FakeGuild(1)
+        ctx.author = _FakeMember(100, "Caller")
+        ctx.send = AsyncMock()
+        ctx.reply = ctx.send
+
+        with (
+            patch(
+                "bot.command_utils.get_instance_by_code",
+                side_effect=[
+                    (5, "SPG", 1200, "0"),
+                    (6, "SPG", 1201, "1"),
+                ],
+            ),
+            patch("bot.command_utils.unassign_instance_from_folder", return_value=True),
+            patch(
+                "bot.command_utils._instance_dupe_display",
+                side_effect=["card zero", "card one"],
+            ),
+        ):
+            await folder_unassign_command.callback(ctx, "vault", "0", "1")
+
+        ctx.send.assert_awaited_once()
+        sent_embed = ctx.send.await_args.kwargs["embed"]
+        assert sent_embed.title == "Folders"
+        assert sent_embed.description == "Removed cards from folder `vault`:\ncard zero\ncard one"
 
 
 class CommandsBurnSelectorTests:
@@ -612,6 +791,67 @@ class CommandsTeamTests:
         self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)
         register_commands(self.bot)
 
+    async def test_team_assign_batch_lists_assigned_cards_on_separate_lines(self) -> None:
+        team_assign_command = _get_group_command(self.bot, "team", "assign")
+
+        ctx = AsyncMock()
+        ctx.guild = _FakeGuild(1)
+        ctx.author = _FakeMember(100, "Caller")
+        ctx.send = AsyncMock()
+        ctx.reply = ctx.send
+
+        with (
+            patch(
+                "bot.command_utils.get_instance_by_code",
+                side_effect=[
+                    (5, "SPG", 1200, "0"),
+                    (6, "SPG", 1201, "1"),
+                ],
+            ),
+            patch("bot.command_utils.is_instance_assigned_to_team", return_value=False),
+            patch("bot.command_utils.assign_instance_to_team", return_value=(True, None)),
+            patch(
+                "bot.command_utils._instance_dupe_display",
+                side_effect=["card zero", "card one"],
+            ),
+        ):
+            await team_assign_command.callback(ctx, "alpha", "0", "1")
+
+        ctx.send.assert_awaited_once()
+        sent_embed = ctx.send.await_args.kwargs["embed"]
+        assert sent_embed.title == "Teams"
+        assert sent_embed.description == "Assigned cards to team `alpha`:\ncard zero\ncard one"
+
+    async def test_team_unassign_batch_lists_removed_cards_on_separate_lines(self) -> None:
+        team_unassign_command = _get_group_command(self.bot, "team", "unassign")
+
+        ctx = AsyncMock()
+        ctx.guild = _FakeGuild(1)
+        ctx.author = _FakeMember(100, "Caller")
+        ctx.send = AsyncMock()
+        ctx.reply = ctx.send
+
+        with (
+            patch(
+                "bot.command_utils.get_instance_by_code",
+                side_effect=[
+                    (5, "SPG", 1200, "0"),
+                    (6, "SPG", 1201, "1"),
+                ],
+            ),
+            patch("bot.command_utils.unassign_instance_from_team", return_value=True),
+            patch(
+                "bot.command_utils._instance_dupe_display",
+                side_effect=["card zero", "card one"],
+            ),
+        ):
+            await team_unassign_command.callback(ctx, "alpha", "0", "1")
+
+        ctx.send.assert_awaited_once()
+        sent_embed = ctx.send.await_args.kwargs["embed"]
+        assert sent_embed.title == "Teams"
+        assert sent_embed.description == "Removed cards from team `alpha`:\ncard zero\ncard one"
+
     async def test_team_cards_shows_hp_atk_def_stats(self) -> None:
         team_cards_command = _get_group_command(self.bot, "team", "cards")
 
@@ -682,6 +922,9 @@ class CommandsAliasRegistrationTests:
         assert "g" in _get_command(self.bot, "gift").aliases
         assert "tg" in _get_command(self.bot, "tag").aliases
         assert "fd" in _get_command(self.bot, "folder").aliases
+        assert "as" in _get_group_command(self.bot, "tag", "assign").aliases
+        assert "as" in _get_group_command(self.bot, "folder", "assign").aliases
+        assert "as" in _get_group_command(self.bot, "team", "assign").aliases
 
 
 class CommandsLeaderboardTests:
