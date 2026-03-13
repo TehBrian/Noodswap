@@ -2307,14 +2307,22 @@ class CommandsInfoTests:
         sent_embed = ctx.send.await_args.kwargs["embed"]
         field_values = {field.name: field.value for field in sent_embed.fields}
         assert field_values.get("Cards") == "7"
-        assert field_values.get("Dough") == "123"
-        assert field_values.get("Oven Balance") == "21"
-        assert field_values.get("Starter") == "9"
-        assert field_values.get("Oven Starter") == "3"
-        assert field_values.get("Drop Tickets") == "4"
-        assert field_values.get("Oven Drop Tickets") == "2"
-        assert field_values.get("Pull Tickets") == "6"
-        assert field_values.get("Oven Pull Tickets") == "1"
+        assert field_values.get("**Items**") == "\n".join(
+            [
+                "Dough: 123",
+                "Starter: 9",
+                "Drop Tickets: 4",
+                "Pull Tickets: 6",
+            ]
+        )
+        assert field_values.get("**Oven**") == "\n".join(
+            [
+                "Dough: 21",
+                "Starter: 3",
+                "Drop Tickets: 2",
+                "Pull Tickets: 1",
+            ]
+        )
         assert field_values.get("Wishes") == "3"
 
     async def test_info_uses_replied_player_when_argument_omitted(self) -> None:
