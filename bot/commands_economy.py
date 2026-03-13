@@ -880,7 +880,7 @@ def register_economy_commands(bot: commands.Bot) -> None:
             ctx,
             embed=italy_embed(
                 "Oven",
-                "Usage: `ns deposit <amount> [dough|starter|drop|pull]`, `ns withdraw <amount> [dough|starter|drop|pull]`, or `ns oven balance`.",
+                "Usage: `ns oven deposit <amount> [dough|starter|drop|pull]`, `ns oven withdraw <amount> [dough|starter|drop|pull]`, or `ns oven balance`. Aliases: `ns deposit`, `ns withdraw`.",
             ),
         )
 
@@ -1010,14 +1010,6 @@ def register_economy_commands(bot: commands.Bot) -> None:
             ),
         )
 
-    @bot.command(name="deposit")
-    async def deposit(ctx: commands.Context, amount: int, item: str | None = None):
-        await _run_oven_deposit(ctx, amount, item)
-
-    @bot.command(name="withdraw")
-    async def withdraw(ctx: commands.Context, amount: int, item: str | None = None):
-        await _run_oven_withdraw(ctx, amount, item)
-
     @oven.command(name="deposit")
     async def oven_deposit(ctx: commands.Context, amount: int, item: str | None = None):
         await _run_oven_deposit(ctx, amount, item)
@@ -1025,6 +1017,14 @@ def register_economy_commands(bot: commands.Bot) -> None:
     @oven.command(name="withdraw")
     async def oven_withdraw(ctx: commands.Context, amount: int, item: str | None = None):
         await _run_oven_withdraw(ctx, amount, item)
+
+    @bot.command(name="deposit")
+    async def deposit(ctx: commands.Context, amount: int, item: str | None = None):
+        await ctx.invoke(oven_deposit, amount=amount, item=item)
+
+    @bot.command(name="withdraw")
+    async def withdraw(ctx: commands.Context, amount: int, item: str | None = None):
+        await ctx.invoke(oven_withdraw, amount=amount, item=item)
 
     @gift.command(name="dough", aliases=["d"])
     async def gift_dough(ctx: commands.Context, player: str, amount: int):

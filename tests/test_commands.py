@@ -2392,7 +2392,7 @@ class CommandsOvenTests:
         assert "Oven Pull Tickets: **2**" in sent_embed.description
 
     async def test_oven_deposit_success_shows_fee_breakdown(self) -> None:
-        oven_deposit_command = _get_command(self.bot, "deposit")
+        oven_deposit_command = _get_group_command(self.bot, "oven", "deposit")
 
         ctx = AsyncMock()
         ctx.guild = _FakeGuild(1)
@@ -2423,7 +2423,7 @@ class CommandsOvenTests:
         assert "Moved to Oven: **97**" in sent_embed.description
 
     async def test_oven_withdraw_rejects_insufficient_oven_balance(self) -> None:
-        oven_withdraw_command = _get_command(self.bot, "withdraw")
+        oven_withdraw_command = _get_group_command(self.bot, "oven", "withdraw")
 
         ctx = AsyncMock()
         ctx.guild = _FakeGuild(1)
