@@ -52,6 +52,14 @@ class CardCatalogView(InteractionView):
     def _default_sort_descending(self, mode: str) -> bool:
         return mode in {"wishes", "base_value"}
 
+    def _card_type_id_sort_width(self) -> int:
+        if not self.entries:
+            return 1
+        return max(len(str(entry[0]).casefold()) for entry in self.entries)
+
+    def _normalized_card_type_id_for_sort(self, card_type_id: str, width: int) -> str:
+        return str(card_type_id).casefold().zfill(width)
+
     def _rarity_rank(self, rarity: str) -> int:
         order = {
             "celestial": 0,
@@ -66,13 +74,15 @@ class CardCatalogView(InteractionView):
         return order.get(rarity, len(order))
 
     def _sorted_entries_for_mode(self, mode: str, *, descending: bool) -> list[tuple[str, int]]:
+        card_type_id_width = self._card_type_id_sort_width()
+
         if mode == "wishes":
             return sorted(
                 self.entries,
                 key=lambda entry: (
                     -entry[1] if descending else entry[1],
                     str(CARD_CATALOG[entry[0]]["name"]),
-                    entry[0],
+                    self._normalized_card_type_id_for_sort(entry[0], card_type_id_width),
                 ),
             )
 
@@ -82,7 +92,7 @@ class CardCatalogView(InteractionView):
                 key=lambda entry: (
                     str(CARD_CATALOG[entry[0]]["series"]),
                     str(CARD_CATALOG[entry[0]]["name"]),
-                    entry[0],
+                    self._normalized_card_type_id_for_sort(entry[0], card_type_id_width),
                 ),
                 reverse=descending,
             )
@@ -93,7 +103,7 @@ class CardCatalogView(InteractionView):
                 key=lambda entry: (
                     (-int(CARD_CATALOG[entry[0]]["base_value"]) if descending else int(CARD_CATALOG[entry[0]]["base_value"])),
                     str(CARD_CATALOG[entry[0]]["name"]),
-                    entry[0],
+                    self._normalized_card_type_id_for_sort(entry[0], card_type_id_width),
                 ),
             )
 
@@ -102,7 +112,7 @@ class CardCatalogView(InteractionView):
                 self.entries,
                 key=lambda entry: (
                     str(CARD_CATALOG[entry[0]]["name"]),
-                    entry[0],
+                    self._normalized_card_type_id_for_sort(entry[0], card_type_id_width),
                 ),
                 reverse=descending,
             )
@@ -112,7 +122,7 @@ class CardCatalogView(InteractionView):
             key=lambda entry: (
                 self._rarity_rank(str(CARD_CATALOG[entry[0]]["rarity"])),
                 str(CARD_CATALOG[entry[0]]["name"]),
-                entry[0],
+                self._normalized_card_type_id_for_sort(entry[0], card_type_id_width),
             ),
             reverse=descending,
         )

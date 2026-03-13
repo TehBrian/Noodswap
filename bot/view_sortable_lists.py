@@ -64,6 +64,14 @@ class SortableCardListView(discord.ui.View):
     def _default_sort_descending(self, mode: str) -> bool:
         return mode in {"wishes", "base_value"}
 
+    def _card_type_id_sort_width(self) -> int:
+        if not self.card_ids:
+            return 1
+        return max(len(str(card_type_id).casefold()) for card_type_id in self.card_ids)
+
+    def _normalized_card_type_id_for_sort(self, card_type_id: str, width: int) -> str:
+        return str(card_type_id).casefold().zfill(width)
+
     def _rarity_rank(self, rarity: str) -> int:
         order = {
             "celestial": 0,
@@ -78,13 +86,15 @@ class SortableCardListView(discord.ui.View):
         return order.get(rarity, len(order))
 
     def _sorted_entries_for_mode(self, mode: str, *, descending: bool) -> list[str]:
+        card_type_id_width = self._card_type_id_sort_width()
+
         if mode == "wishes":
             return sorted(
                 self.card_ids,
                 key=lambda card_type_id: (
                     (-self.wish_counts.get(card_type_id, 0) if descending else self.wish_counts.get(card_type_id, 0)),
                     str(CARD_CATALOG[card_type_id]["name"]),
-                    card_type_id,
+                    self._normalized_card_type_id_for_sort(card_type_id, card_type_id_width),
                 ),
             )
 
@@ -94,7 +104,7 @@ class SortableCardListView(discord.ui.View):
                 key=lambda card_type_id: (
                     str(CARD_CATALOG[card_type_id]["series"]),
                     str(CARD_CATALOG[card_type_id]["name"]),
-                    card_type_id,
+                    self._normalized_card_type_id_for_sort(card_type_id, card_type_id_width),
                 ),
                 reverse=descending,
             )
@@ -105,7 +115,7 @@ class SortableCardListView(discord.ui.View):
                 key=lambda card_type_id: (
                     (-int(CARD_CATALOG[card_type_id]["base_value"]) if descending else int(CARD_CATALOG[card_type_id]["base_value"])),
                     str(CARD_CATALOG[card_type_id]["name"]),
-                    card_type_id,
+                    self._normalized_card_type_id_for_sort(card_type_id, card_type_id_width),
                 ),
             )
 
@@ -114,7 +124,7 @@ class SortableCardListView(discord.ui.View):
                 self.card_ids,
                 key=lambda card_type_id: (
                     str(CARD_CATALOG[card_type_id]["name"]),
-                    card_type_id,
+                    self._normalized_card_type_id_for_sort(card_type_id, card_type_id_width),
                 ),
                 reverse=descending,
             )
@@ -124,7 +134,7 @@ class SortableCardListView(discord.ui.View):
             key=lambda card_type_id: (
                 self._rarity_rank(str(CARD_CATALOG[card_type_id]["rarity"])),
                 str(CARD_CATALOG[card_type_id]["name"]),
-                card_type_id,
+                self._normalized_card_type_id_for_sort(card_type_id, card_type_id_width),
             ),
             reverse=descending,
         )
@@ -401,6 +411,22 @@ class SortableCollectionView(discord.ui.View):
         }
         return order.get(rarity, len(order))
 
+    def _card_id_sort_width(self) -> int:
+        if not self.instances:
+            return 1
+        return max(len(str(item[3] or "").casefold()) for item in self.instances)
+
+    def _normalized_card_id_for_sort(self, card_id: str | None, width: int) -> str:
+        return str(card_id or "").casefold().zfill(width)
+
+    def _card_type_id_sort_width(self) -> int:
+        if not self.instances:
+            return 1
+        return max(len(str(item[1] or "").casefold()) for item in self.instances)
+
+    def _normalized_card_type_id_for_sort(self, card_type_id: str | None, width: int) -> str:
+        return str(card_type_id or "").casefold().zfill(width)
+
     def _sorted_entries_for_mode(self, mode: str, *, descending: bool) -> list[tuple[int, str, int, str]]:
         if mode == "time_pulled":
             return sorted(
@@ -425,10 +451,13 @@ class SortableCollectionView(discord.ui.View):
             )
 
         if mode == "id":
+            sort_width = self._card_id_sort_width()
+            card_type_id_width = self._card_type_id_sort_width()
             return sorted(
                 self.instances,
                 key=lambda item: (
-                    str(item[3] or ""),
+                    self._normalized_card_id_for_sort(item[3], sort_width),
+                    self._normalized_card_type_id_for_sort(item[1], card_type_id_width),
                     str(CARD_CATALOG[item[1]]["name"]),
                     item[2],
                     item[0],

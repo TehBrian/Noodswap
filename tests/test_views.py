@@ -1052,6 +1052,29 @@ class ViewTests:
         assert "Wishes: **3**" in edited_embed.description
         assert "Sort: Wishes" in edited_embed.footer.text
 
+    def test_card_catalog_uses_zero_padded_card_type_id_tie_break(self) -> None:
+        entries = [("2Y", 1), ("2", 1), ("10", 1), ("1", 1)]
+        custom_catalog = {
+            "2Y": {"name": "Same", "series": "S", "rarity": "common", "base_value": 1},
+            "2": {"name": "Same", "series": "S", "rarity": "common", "base_value": 1},
+            "10": {"name": "Same", "series": "S", "rarity": "common", "base_value": 1},
+            "1": {"name": "Same", "series": "S", "rarity": "common", "base_value": 1},
+        }
+        with patch("bot.view_catalog.CARD_CATALOG", custom_catalog):
+            view = CardCatalogView(user_id=10, entries=entries, page_size=10)
+            assert [entry[0] for entry in view._sorted_entries_for_mode("alphabetical", descending=False)] == [
+                "1",
+                "2",
+                "10",
+                "2Y",
+            ]
+            assert [entry[0] for entry in view._sorted_entries_for_mode("alphabetical", descending=True)] == [
+                "2Y",
+                "10",
+                "2",
+                "1",
+            ]
+
     async def test_card_catalog_sort_direction_toggle_flips_order_and_resets_page(
         self,
     ) -> None:
@@ -1276,6 +1299,25 @@ class ViewTests:
         edited_embed = interaction.response.edited_messages[0]["embed"]
         assert "Black Truffle Ravioli" in edited_embed.description
         assert "Sort: Wishes" in edited_embed.footer.text
+
+    async def test_sortable_card_list_uses_zero_padded_card_type_id_tie_break(self) -> None:
+        card_ids = ["2Y", "2", "10", "1"]
+        custom_catalog = {
+            "2Y": {"name": "Same", "series": "S", "rarity": "common", "base_value": 1},
+            "2": {"name": "Same", "series": "S", "rarity": "common", "base_value": 1},
+            "10": {"name": "Same", "series": "S", "rarity": "common", "base_value": 1},
+            "1": {"name": "Same", "series": "S", "rarity": "common", "base_value": 1},
+        }
+        with patch("bot.view_sortable_lists.CARD_CATALOG", custom_catalog):
+            view = SortableCardListView(
+                user_id=10,
+                title="Lookup Matches",
+                card_ids=card_ids,
+                guard_title="Lookup",
+                page_size=10,
+            )
+            assert view._sorted_entries_for_mode("alphabetical", descending=False) == ["1", "2", "10", "2Y"]
+            assert view._sorted_entries_for_mode("alphabetical", descending=True) == ["2Y", "10", "2", "1"]
 
     async def test_sortable_card_list_sort_direction_toggle_flips_order_and_resets_page(
         self,
@@ -1527,10 +1569,10 @@ class ViewTests:
 
     async def test_sortable_collection_view_id_sort_orders_by_card_id(self) -> None:
         instances = [
-            (1, "SPG", 500, "Q9"),
-            (2, "BAR", 20, "A1"),
-            (3, "BLA", 20, "M4"),
-            (4, "SPG", 10, "B2"),
+            (1, "SPG", 500, "2y"),
+            (2, "BAR", 20, "2"),
+            (3, "BLA", 20, "10"),
+            (4, "SPG", 10, "1"),
         ]
         view = SortableCollectionView(
             user_id=10,
@@ -1547,7 +1589,7 @@ class ViewTests:
         await view.sort_select.callback(interaction)
         assert view.sort_mode == "id"
         assert not view.sort_descending
-        assert [row[0] for row in view._sorted_instances] == [2, 4, 3, 1]
+        assert [row[0] for row in view._sorted_instances] == [4, 2, 3, 1]
         edited_embed = interaction.response.edited_messages[0]["embed"]
         assert "Sort: ID (Asc)" in edited_embed.footer.text
 
@@ -1555,10 +1597,10 @@ class ViewTests:
         self,
     ) -> None:
         instances = [
-            (1, "SPG", 500, "Q9"),
-            (2, "BAR", 20, "A1"),
-            (3, "BLA", 20, "M4"),
-            (4, "SPG", 10, "B2"),
+            (1, "SPG", 500, "2y"),
+            (2, "BAR", 20, "2"),
+            (3, "BLA", 20, "10"),
+            (4, "SPG", 10, "1"),
         ]
         view = SortableCollectionView(
             user_id=10,
@@ -1577,9 +1619,43 @@ class ViewTests:
         await view.sort_direction_button.callback(toggle_interaction)
 
         assert view.sort_descending
-        assert [row[0] for row in view._sorted_instances] == [1, 3, 4, 2]
+        assert [row[0] for row in view._sorted_instances] == [1, 3, 2, 4]
         edited_embed = toggle_interaction.response.edited_messages[0]["embed"]
         assert "Sort: ID (Desc)" in edited_embed.footer.text
+
+    async def test_sortable_collection_view_id_sort_breaks_ties_with_card_type_id(self) -> None:
+        instances = [
+            (1, "2Y", 500, "2"),
+            (2, "2", 20, "2"),
+            (3, "10", 20, "2"),
+            (4, "1", 10, "2"),
+        ]
+        custom_catalog = {
+            "2Y": {"name": "Same", "series": "S", "rarity": "common", "base_value": 1},
+            "2": {"name": "Same", "series": "S", "rarity": "common", "base_value": 1},
+            "10": {"name": "Same", "series": "S", "rarity": "common", "base_value": 1},
+            "1": {"name": "Same", "series": "S", "rarity": "common", "base_value": 1},
+        }
+        with patch("bot.view_sortable_lists.CARD_CATALOG", custom_catalog):
+            view = SortableCollectionView(
+                user_id=10,
+                title="Caller's Collection",
+                instances=instances,
+                wish_counts={},
+                instance_styles={},
+                guard_title="Collection",
+                card_line_formatter=lambda *_, **__: "test",
+                page_size=10,
+            )
+
+            interaction = _FakeInteraction(user_id=10)
+            view.sort_select._values = ["id"]
+            await view.sort_select.callback(interaction)
+            assert [row[0] for row in view._sorted_instances] == [4, 2, 3, 1]
+
+            toggle_interaction = _FakeInteraction(user_id=10)
+            await view.sort_direction_button.callback(toggle_interaction)
+            assert [row[0] for row in view._sorted_instances] == [1, 3, 2, 4]
 
     async def test_sortable_collection_view_time_pulled_sort_defaults_to_newest_first(
         self,

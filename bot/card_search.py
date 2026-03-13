@@ -32,6 +32,8 @@ def search_card_ids(
     prefix_series_matches: list[str] = []
     contains_series_matches: list[str] = []
 
+    card_type_id_sort_width = max((len(card_type_id.casefold()) for card_type_id in card_catalog), default=1)
+
     search_names: dict[str, list[str]] = {}
     search_series: dict[str, list[str]] = {}
 
@@ -59,7 +61,7 @@ def search_card_ids(
                 contains_series_matches.append(card_type_id)
 
     def sort_key(cid: str) -> tuple[str, str]:
-        return card_catalog[cid]["name"].casefold(), cid
+        return card_catalog[cid]["name"].casefold(), cid.casefold().zfill(card_type_id_sort_width)
 
     ordered_groups = [
         sorted(exact_name_matches, key=sort_key),

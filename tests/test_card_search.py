@@ -23,3 +23,13 @@ def test_fuzzy_fallback_returns_name_matches_when_exact_not_found(catalog: dict[
 
 def test_fuzzy_fallback_includes_series_matching_when_enabled(catalog: dict[str, dict[str, str]]) -> None:
     assert search_card_ids("one pece", card_catalog=catalog, include_series=True) == ["LUF"]
+
+
+def test_search_uses_zero_padded_card_type_id_tie_break() -> None:
+    catalog = {
+        "2Y": {"name": "Alpha", "series": "S"},
+        "2": {"name": "Alpha", "series": "S"},
+        "10": {"name": "Alpha", "series": "S"},
+        "1": {"name": "Alpha", "series": "S"},
+    }
+    assert search_card_ids("alpha", card_catalog=catalog) == ["1", "2", "10", "2Y"]
