@@ -464,12 +464,7 @@ class MorphConfirmView(InteractionView):
                 ephemeral=True,
             )
             return
-        if (
-            self.pending_morph_key is None
-            or self.pending_morph_name is None
-            or self.pending_rarity is None
-            or self.pending_multiplier is None
-        ):
+        if self.pending_morph_key is None or self.pending_morph_name is None or self.pending_rarity is None or self.pending_multiplier is None:
             await interaction.response.send_message(
                 embed=italy_embed("Morph", "Roll at least once before applying."),
                 ephemeral=True,
@@ -736,12 +731,7 @@ class FrameConfirmView(InteractionView):
                 ephemeral=True,
             )
             return
-        if (
-            self.pending_frame_key is None
-            or self.pending_frame_name is None
-            or self.pending_rarity is None
-            or self.pending_multiplier is None
-        ):
+        if self.pending_frame_key is None or self.pending_frame_name is None or self.pending_rarity is None or self.pending_multiplier is None:
             await interaction.response.send_message(
                 embed=italy_embed("Frame", "Roll at least once before applying."),
                 ephemeral=True,
@@ -1008,12 +998,7 @@ class FontConfirmView(InteractionView):
                 ephemeral=True,
             )
             return
-        if (
-            self.pending_font_key is None
-            or self.pending_font_name is None
-            or self.pending_rarity is None
-            or self.pending_multiplier is None
-        ):
+        if self.pending_font_key is None or self.pending_font_name is None or self.pending_rarity is None or self.pending_multiplier is None:
             await interaction.response.send_message(
                 embed=italy_embed("Font", "Roll at least once before applying."),
                 ephemeral=True,

@@ -22,6 +22,5 @@ def test_no_raw_sqlite_connection_contexts() -> None:
             violations.append(str(relative_path))
 
     assert violations == [], (
-        "Avoid `with sqlite3.connect(...) as conn:`. Use explicit close patterns "
-        "(e.g. contextlib.closing) so handles are always closed."
+        "Avoid `with sqlite3.connect(...) as conn:`. Use explicit close patterns (e.g. contextlib.closing) so handles are always closed."
     )

@@ -6,7 +6,7 @@ def format_cooldown(seconds_remaining: float) -> str:
 
     if mins == 0:
         return f"{secs}s"
-    
+
     if secs == 0:
         return f"{mins}m"
 

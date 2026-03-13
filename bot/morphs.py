@@ -474,9 +474,7 @@ _MORPH_EXPANSION_KEYS: Final[tuple[str, ...]] = (
     "lagging_echo",
 )
 
-_EXPANSION_KEYS: Final[tuple[str, ...]] = tuple(
-    key for key in _MORPH_EXPANSION_KEYS if key not in AVAILABLE_MORPHS
-)
+_EXPANSION_KEYS: Final[tuple[str, ...]] = tuple(key for key in _MORPH_EXPANSION_KEYS if key not in AVAILABLE_MORPHS)
 
 if _EXPANSION_KEYS:
     AVAILABLE_MORPHS = (*AVAILABLE_MORPHS, *_EXPANSION_KEYS)

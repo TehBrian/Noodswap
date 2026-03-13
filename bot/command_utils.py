@@ -198,7 +198,7 @@ def _lookup_trait_breakdown_description(
             return "Unknown"
         try:
             unix_seconds = int(datetime.fromtimestamp(value, tz=timezone.utc).timestamp())
-        except (OverflowError, OSError, ValueError):
+        except OverflowError, OSError, ValueError:
             return "Unknown"
         return f"<t:{unix_seconds}:F>"
 
@@ -675,8 +675,7 @@ def _resolve_burn_selector_instances(
         normalized_card_id = normalize_card_id(selector_value)
         if normalized_card_id in CARD_CATALOG:
             return [], (
-                "Direct burn targets must be card codes, not card type IDs. "
-                "Use codes like `0` or `#0`, or use `t:<tag_name>` / `f:<folder_name>`."
+                "Direct burn targets must be card codes, not card type IDs. Use codes like `0` or `#0`, or use `t:<tag_name>` / `f:<folder_name>`."
             )
 
         selected = get_instance_by_code(guild_id, user_id, selector_value)
@@ -1495,11 +1494,7 @@ async def _team_assign(ctx: commands.Context, team_name: str, *card_codes: str) 
         if success:
             assigned.append(_instance_dupe_display(_guild_id(ctx), instance_id, card_id, generation, card_code))
         else:
-            failed.append(
-                f"{_instance_dupe_display(_guild_id(ctx), instance_id, card_id, generation, card_code)} ({err})"
-                if err
-                else card_code
-            )
+            failed.append(f"{_instance_dupe_display(_guild_id(ctx), instance_id, card_id, generation, card_code)} ({err})" if err else card_code)
 
     lines: list[str] = []
     if assigned:

@@ -168,8 +168,7 @@ class CommandHelpAliasConsistencyTests:
             if alias_command_path in _HELP_ALIAS_SHORTCUT_TARGETS:
                 allowed_targets.add(alias_command_path)
             assert resolved.qualified_name in allowed_targets, (
-                f"Help alias `{alias_command_path}` resolves to `{resolved.qualified_name}` "
-                f"instead of one of {sorted(allowed_targets)}."
+                f"Help alias `{alias_command_path}` resolves to `{resolved.qualified_name}` instead of one of {sorted(allowed_targets)}."
             )
 
 

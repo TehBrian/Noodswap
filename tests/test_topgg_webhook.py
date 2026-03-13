@@ -37,6 +37,7 @@ def test_is_authorized_compares_header_to_secret() -> None:
 def test_is_request_ip_allowed_allows_when_no_allowlist() -> None:
     assert _is_request_ip_allowed("203.0.113.5", ())
 
+
 def test_is_request_ip_allowed_rejects_invalid_or_missing_remote() -> None:
     allowlist = ("203.0.113.0/24",)
     server = TopggWebhookServer(

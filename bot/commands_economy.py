@@ -316,14 +316,8 @@ def register_economy_commands(bot: commands.Bot) -> None:
         target_member = resolved_member
 
         pulled_instances = get_player_card_instances_with_pulled_at(_guild_id(ctx), target_member.id)
-        instances = [
-            (instance_id, card_id, generation, card_code)
-            for instance_id, card_id, generation, card_code, _pulled_at in pulled_instances
-        ]
-        pulled_at_by_instance = {
-            instance_id: pulled_at
-            for instance_id, _card_id, _generation, _card_code, pulled_at in pulled_instances
-        }
+        instances = [(instance_id, card_id, generation, card_code) for instance_id, card_id, generation, card_code, _pulled_at in pulled_instances]
+        pulled_at_by_instance = {instance_id: pulled_at for instance_id, _card_id, _generation, _card_code, pulled_at in pulled_instances}
         title = f"{target_member.display_name}'s Collection"
         if not instances:
             if target_member.id == ctx.author.id:

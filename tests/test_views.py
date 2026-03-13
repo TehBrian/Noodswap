@@ -718,31 +718,34 @@ class ViewTests:
         )
         interaction = _FakeInteraction(user_id=10)
 
-        with patch(
-            "bot.view_confirmations.roll_morph_preview_paid",
-            return_value=type(
-                "MorphResult",
-                (),
-                {
-                    "is_error": False,
-                    "morph_key": "black_and_white",
-                    "morph_name": "Black and White",
-                    "rolled_rarity": "common",
-                    "rolled_multiplier": 1.0,
-                    "remaining_dough": 41,
-                },
-            )(),
-        ) as roll_morph, patch(
-            "bot.view_confirmations.apply_pending_morph_no_charge",
-            return_value=type(
-                "MorphApplyResult",
-                (),
-                {
-                    "is_error": False,
-                    "remaining_dough": 41,
-                },
-            )(),
-        ) as apply_morph:
+        with (
+            patch(
+                "bot.view_confirmations.roll_morph_preview_paid",
+                return_value=type(
+                    "MorphResult",
+                    (),
+                    {
+                        "is_error": False,
+                        "morph_key": "black_and_white",
+                        "morph_name": "Black and White",
+                        "rolled_rarity": "common",
+                        "rolled_multiplier": 1.0,
+                        "remaining_dough": 41,
+                    },
+                )(),
+            ) as roll_morph,
+            patch(
+                "bot.view_confirmations.apply_pending_morph_no_charge",
+                return_value=type(
+                    "MorphApplyResult",
+                    (),
+                    {
+                        "is_error": False,
+                        "remaining_dough": 41,
+                    },
+                )(),
+            ) as apply_morph,
+        ):
             await view.roll_button.callback(interaction)
             await view.apply_button.callback(interaction)
 
@@ -822,31 +825,34 @@ class ViewTests:
         )
         interaction = _FakeInteraction(user_id=10)
 
-        with patch(
-            "bot.view_confirmations.roll_frame_preview_paid",
-            return_value=type(
-                "FrameResult",
-                (),
-                {
-                    "is_error": False,
-                    "frame_key": "buttery",
-                    "frame_name": "Buttery",
-                    "rolled_rarity": "common",
-                    "rolled_multiplier": 1.0,
-                    "remaining_dough": 41,
-                },
-            )(),
-        ) as roll_frame, patch(
-            "bot.view_confirmations.apply_pending_frame_no_charge",
-            return_value=type(
-                "FrameApplyResult",
-                (),
-                {
-                    "is_error": False,
-                    "remaining_dough": 41,
-                },
-            )(),
-        ) as apply_frame:
+        with (
+            patch(
+                "bot.view_confirmations.roll_frame_preview_paid",
+                return_value=type(
+                    "FrameResult",
+                    (),
+                    {
+                        "is_error": False,
+                        "frame_key": "buttery",
+                        "frame_name": "Buttery",
+                        "rolled_rarity": "common",
+                        "rolled_multiplier": 1.0,
+                        "remaining_dough": 41,
+                    },
+                )(),
+            ) as roll_frame,
+            patch(
+                "bot.view_confirmations.apply_pending_frame_no_charge",
+                return_value=type(
+                    "FrameApplyResult",
+                    (),
+                    {
+                        "is_error": False,
+                        "remaining_dough": 41,
+                    },
+                )(),
+            ) as apply_frame,
+        ):
             await view.roll_button.callback(interaction)
             await view.apply_button.callback(interaction)
 
@@ -903,31 +909,34 @@ class ViewTests:
         )
         interaction = _FakeInteraction(user_id=10)
 
-        with patch(
-            "bot.view_confirmations.roll_font_preview_paid",
-            return_value=type(
-                "FontResult",
-                (),
-                {
-                    "is_error": False,
-                    "font_key": "serif",
-                    "font_name": "Serif",
-                    "rolled_rarity": "uncommon",
-                    "rolled_multiplier": 1.02,
-                    "remaining_dough": 41,
-                },
-            )(),
-        ) as roll_font, patch(
-            "bot.view_confirmations.apply_pending_font_no_charge",
-            return_value=type(
-                "FontApplyResult",
-                (),
-                {
-                    "is_error": False,
-                    "remaining_dough": 41,
-                },
-            )(),
-        ) as apply_font:
+        with (
+            patch(
+                "bot.view_confirmations.roll_font_preview_paid",
+                return_value=type(
+                    "FontResult",
+                    (),
+                    {
+                        "is_error": False,
+                        "font_key": "serif",
+                        "font_name": "Serif",
+                        "rolled_rarity": "uncommon",
+                        "rolled_multiplier": 1.02,
+                        "remaining_dough": 41,
+                    },
+                )(),
+            ) as roll_font,
+            patch(
+                "bot.view_confirmations.apply_pending_font_no_charge",
+                return_value=type(
+                    "FontApplyResult",
+                    (),
+                    {
+                        "is_error": False,
+                        "remaining_dough": 41,
+                    },
+                )(),
+            ) as apply_font,
+        ):
             await view.roll_button.callback(interaction)
             await view.apply_button.callback(interaction)
 

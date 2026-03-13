@@ -1818,7 +1818,7 @@ def execute_monopoly_roll(
 
         elif space.kind == "community":
             card = draw_community_charcuterie()
-            lines.append(f"\"{card.text}\"")
+            lines.append(f'"{card.text}"')
             if card.dough_delta != 0:
                 if card.dough_delta > 0:
                     players.add_dough(guild_id, user_id, card.dough_delta)
@@ -1856,7 +1856,7 @@ def execute_monopoly_roll(
 
         elif space.kind == "chance":
             card = draw_cheese_chance()
-            lines.append(f"\"{card.text}\"")
+            lines.append(f'"{card.text}"')
             if card.reset_random_cooldown:
                 key = _apply_random_cooldown_reset(players, guild_id, user_id, now)
                 lines.append(f"{key.capitalize()} cooldown was reset.")

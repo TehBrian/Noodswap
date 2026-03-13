@@ -161,9 +161,6 @@ from .command_utils import (
 )  # noqa: F403
 
 
-
-
-
 def register_catalog_commands(bot: commands.Bot) -> None:
     @bot.group(name="buy", invoke_without_command=True)
     async def buy(ctx: commands.Context):
