@@ -483,19 +483,25 @@ def register_social_commands(bot: commands.Bot) -> None:
                 )
 
         embed = italy_embed(f"{target_member.display_name}'s Info")
+        items_lines = [
+            f"Dough: {dough}",
+            f"Starter: {starter}",
+            f"Drop Tickets: {drop_tickets}",
+            f"Pull Tickets: {pull_tickets}",
+        ]
+        oven_lines = [
+            f"Dough: {oven_dough}",
+            f"Starter: {oven_starter}",
+            f"Drop Tickets: {oven_drop_tickets}",
+            f"Pull Tickets: {oven_pull_tickets}",
+        ]
         embed.add_field(
             name="Cards",
             value=str(get_total_cards(_guild_id(ctx), target_member.id)),
             inline=True,
         )
-        embed.add_field(name="Dough", value=str(dough), inline=True)
-        embed.add_field(name="Oven Balance", value=str(oven_dough), inline=True)
-        embed.add_field(name="Starter", value=str(starter), inline=True)
-        embed.add_field(name="Oven Starter", value=str(oven_starter), inline=True)
-        embed.add_field(name="Drop Tickets", value=str(drop_tickets), inline=True)
-        embed.add_field(name="Oven Drop Tickets", value=str(oven_drop_tickets), inline=True)
-        embed.add_field(name="Pull Tickets", value=str(pull_tickets), inline=True)
-        embed.add_field(name="Oven Pull Tickets", value=str(oven_pull_tickets), inline=True)
+        embed.add_field(name="**Items**", value="\n".join(items_lines), inline=True)
+        embed.add_field(name="**Oven**", value="\n".join(oven_lines), inline=True)
         embed.add_field(name="Wishes", value=str(wishes_count), inline=True)
         embed.add_field(name="Married Card", value=married, inline=False)
         if married_image_url is not None:
