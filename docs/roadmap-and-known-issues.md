@@ -79,6 +79,7 @@ Stage 3 implementation guide: `docs/refactor-phase-3.md`.
 
 ## Decision log (recent)
 
+- Added an oven bank economy path (`ns oven deposit|withdraw|balance`) backed by `players.oven_dough`; oven transactions charge an 8% fee (rounded up), route 20% of that fee (rounded up) to the Monopoly pot, and oven funds are excluded from normal spend/tax/rent flows until withdrawn.
 - Hardened cooldown command paths with per-player in-flight command gating for `drop`, `pull`, `slots`, `flip`, and `monopoly roll` to prevent duplicate concurrent executions while preserving storage-level cooldown enforcement as source of truth; Monopoly doubles behavior remains unchanged (immediate reroll allowed after the active roll resolves).
 - Changed `cards` / `ca` from a player-scoped duplicate view into a global owned-instance index that lists every claimed card across all players and annotates each line with its owner; `collection` remains the per-player inventory view.
 - Expanded `trade` mode beyond dough-only: `trade <player> <card_id> <mode> <amount|req_card_id>` now supports `dough`, `starter`, `drop` (aliases: `tickets`/`ticket`/`drop_tickets`), and `card` (card-for-card swap where both sides exchange a specific owned dupe). Card mode clears marriage and last-pulled pointers for both transferred instances. Either side losing their card between offer and accept causes a deterministic failure (no partial-fill).

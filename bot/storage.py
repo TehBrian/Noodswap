@@ -58,6 +58,10 @@ from .settings import (
     MONOPOLY_PROPERTY_TRANSACTION_FEE_POT_CONTRIBUTION_NUMERATOR,
     MONOPOLY_TAX_POT_CONTRIBUTION_DENOMINATOR,
     MONOPOLY_TAX_POT_CONTRIBUTION_NUMERATOR,
+    OVEN_TRANSACTION_FEE_DENOMINATOR,
+    OVEN_TRANSACTION_FEE_NUMERATOR,
+    OVEN_TRANSACTION_FEE_POT_CONTRIBUTION_DENOMINATOR,
+    OVEN_TRANSACTION_FEE_POT_CONTRIBUTION_NUMERATOR,
     STARTING_DOUGH,
     TEAM_MAX_CARDS,
 )
@@ -98,6 +102,17 @@ class MonopolyFineResult:
     lines: tuple[str, ...]
 
 
+@dataclass(frozen=True)
+class OvenTransferResult:
+    status: str
+    amount: int
+    fee: int
+    net_amount: int
+    pot_contribution: int
+    dough_balance: int
+    oven_balance: int
+
+
 def _scope_guild_id(_guild_id: int) -> int:
     return GLOBAL_GUILD_ID
 
@@ -109,6 +124,24 @@ def _scaled_value(amount: int, numerator: int, denominator: int, *, round_up: bo
     if round_up:
         return (scaled + denominator - 1) // denominator
     return scaled // denominator
+
+
+def _oven_transfer_fee(amount: int) -> int:
+    return _scaled_value(
+        amount,
+        OVEN_TRANSACTION_FEE_NUMERATOR,
+        OVEN_TRANSACTION_FEE_DENOMINATOR,
+        round_up=True,
+    )
+
+
+def _oven_fee_pot_contribution(fee: int) -> int:
+    return _scaled_value(
+        fee,
+        OVEN_TRANSACTION_FEE_POT_CONTRIBUTION_NUMERATOR,
+        OVEN_TRANSACTION_FEE_POT_CONTRIBUTION_DENOMINATOR,
+        round_up=True,
+    )
 
 
 @contextmanager
@@ -1251,6 +1284,14 @@ def get_player_starter(guild_id: int, user_id: int) -> int:
         players = PlayerRepository(conn, STARTING_DOUGH)
         players.ensure_player(guild_id, user_id)
         return players.get_starter(guild_id, user_id)
+
+
+def get_player_oven_balance(guild_id: int, user_id: int) -> int:
+    guild_id = _scope_guild_id(guild_id)
+    with get_db_connection() as conn:
+        players = PlayerRepository(conn, STARTING_DOUGH)
+        players.ensure_player(guild_id, user_id)
+        return players.get_oven_dough(guild_id, user_id)
 
 
 def get_player_drop_tickets(guild_id: int, user_id: int) -> int:
@@ -2504,6 +2545,142 @@ def add_dough(guild_id: int, user_id: int, amount: int) -> None:
         players = PlayerRepository(conn, STARTING_DOUGH)
         players.ensure_player(guild_id, user_id)
         players.add_dough(guild_id, user_id, amount)
+
+
+def execute_oven_deposit(
+    guild_id: int,
+    user_id: int,
+    amount: int,
+) -> OvenTransferResult:
+    guild_id = _scope_guild_id(guild_id)
+    with get_db_connection() as conn:
+        _begin_immediate(conn)
+        players = PlayerRepository(conn, STARTING_DOUGH)
+        pot = GamblingPotRepository(conn)
+        players.ensure_player(guild_id, user_id)
+        pot.ensure_row(guild_id)
+
+        dough_balance = players.get_dough(guild_id, user_id)
+        oven_balance = players.get_oven_dough(guild_id, user_id)
+
+        if amount < 1:
+            return OvenTransferResult(
+                status="invalid_amount",
+                amount=amount,
+                fee=0,
+                net_amount=0,
+                pot_contribution=0,
+                dough_balance=dough_balance,
+                oven_balance=oven_balance,
+            )
+
+        fee = _oven_transfer_fee(amount)
+        net_amount = amount - fee
+        if net_amount <= 0:
+            return OvenTransferResult(
+                status="net_too_small",
+                amount=amount,
+                fee=fee,
+                net_amount=0,
+                pot_contribution=0,
+                dough_balance=dough_balance,
+                oven_balance=oven_balance,
+            )
+
+        if dough_balance < amount:
+            return OvenTransferResult(
+                status="insufficient_dough",
+                amount=amount,
+                fee=fee,
+                net_amount=net_amount,
+                pot_contribution=0,
+                dough_balance=dough_balance,
+                oven_balance=oven_balance,
+            )
+
+        players.add_dough(guild_id, user_id, -amount)
+        players.add_oven_dough(guild_id, user_id, net_amount)
+        pot_contribution = _oven_fee_pot_contribution(fee)
+        if pot_contribution > 0:
+            pot.add(guild_id, dough=pot_contribution)
+
+        return OvenTransferResult(
+            status="ok",
+            amount=amount,
+            fee=fee,
+            net_amount=net_amount,
+            pot_contribution=pot_contribution,
+            dough_balance=players.get_dough(guild_id, user_id),
+            oven_balance=players.get_oven_dough(guild_id, user_id),
+        )
+
+
+def execute_oven_withdraw(
+    guild_id: int,
+    user_id: int,
+    amount: int,
+) -> OvenTransferResult:
+    guild_id = _scope_guild_id(guild_id)
+    with get_db_connection() as conn:
+        _begin_immediate(conn)
+        players = PlayerRepository(conn, STARTING_DOUGH)
+        pot = GamblingPotRepository(conn)
+        players.ensure_player(guild_id, user_id)
+        pot.ensure_row(guild_id)
+
+        dough_balance = players.get_dough(guild_id, user_id)
+        oven_balance = players.get_oven_dough(guild_id, user_id)
+
+        if amount < 1:
+            return OvenTransferResult(
+                status="invalid_amount",
+                amount=amount,
+                fee=0,
+                net_amount=0,
+                pot_contribution=0,
+                dough_balance=dough_balance,
+                oven_balance=oven_balance,
+            )
+
+        fee = _oven_transfer_fee(amount)
+        net_amount = amount - fee
+        if net_amount <= 0:
+            return OvenTransferResult(
+                status="net_too_small",
+                amount=amount,
+                fee=fee,
+                net_amount=0,
+                pot_contribution=0,
+                dough_balance=dough_balance,
+                oven_balance=oven_balance,
+            )
+
+        if oven_balance < amount:
+            return OvenTransferResult(
+                status="insufficient_oven",
+                amount=amount,
+                fee=fee,
+                net_amount=net_amount,
+                pot_contribution=0,
+                dough_balance=dough_balance,
+                oven_balance=oven_balance,
+            )
+
+        players.add_oven_dough(guild_id, user_id, -amount)
+        players.add_dough(guild_id, user_id, net_amount)
+        pot_contribution = _oven_fee_pot_contribution(fee)
+        if pot_contribution > 0:
+            pot.add(guild_id, dough=pot_contribution)
+
+        return OvenTransferResult(
+            status="ok",
+            amount=amount,
+            fee=fee,
+            net_amount=net_amount,
+            pot_contribution=pot_contribution,
+            dough_balance=players.get_dough(guild_id, user_id),
+            oven_balance=players.get_oven_dough(guild_id, user_id),
+        )
 
 
 def execute_gift_dough(

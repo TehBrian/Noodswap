@@ -306,6 +306,27 @@ class PlayerRepository:
         ).fetchone()
         return int(row["dough"]) if row is not None else self.starting_dough
 
+    def get_oven_dough(self, guild_id: int, user_id: int) -> int:
+        row = self.conn.execute(
+            """
+            SELECT oven_dough
+            FROM players
+            WHERE guild_id = ? AND user_id = ?
+            """,
+            (guild_id, user_id),
+        ).fetchone()
+        return int(row["oven_dough"]) if row is not None else 0
+
+    def add_oven_dough(self, guild_id: int, user_id: int, amount: int) -> None:
+        self.conn.execute(
+            """
+            UPDATE players
+            SET oven_dough = oven_dough + ?
+            WHERE guild_id = ? AND user_id = ?
+            """,
+            (amount, guild_id, user_id),
+        )
+
     def get_starter(self, guild_id: int, user_id: int) -> int:
         row = self.conn.execute(
             """

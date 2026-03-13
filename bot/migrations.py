@@ -2,7 +2,7 @@ from collections.abc import Callable
 import sqlite3
 import time
 
-TARGET_SCHEMA_VERSION = 29
+TARGET_SCHEMA_VERSION = 30
 _BASE36_ALPHABET = "0123456789abcdefghijklmnopqrstuvwxyz"
 
 
@@ -966,6 +966,35 @@ def _apply_migration_v29(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE battle_combatants RENAME COLUMN card_code TO card_id")
 
 
+def _apply_migration_v30(conn: sqlite3.Connection) -> None:
+    players_table_exists = (
+        conn.execute(
+            """
+        SELECT 1
+        FROM sqlite_master
+        WHERE type = 'table' AND name = 'players'
+        LIMIT 1
+        """
+        ).fetchone()
+        is not None
+    )
+    if not players_table_exists:
+        return
+
+    if not _has_column(conn, "players", "oven_dough"):
+        conn.execute("ALTER TABLE players ADD COLUMN oven_dough INTEGER NOT NULL DEFAULT 0")
+
+    conn.executescript("""
+        DROP TRIGGER IF EXISTS prevent_negative_dough;
+        CREATE TRIGGER prevent_negative_dough
+        BEFORE UPDATE OF dough, oven_dough ON players
+        WHEN NEW.dough < 0 OR NEW.oven_dough < 0
+        BEGIN
+            SELECT RAISE(ABORT, 'balances cannot go negative');
+        END;
+        """)
+
+
 def run_migrations(
     conn: sqlite3.Connection,
     *,
@@ -1119,6 +1148,11 @@ def run_migrations(
         _apply_migration_v29(conn)
         _set_schema_version(conn, 29)
         current_version = 29
+
+    if current_version < 30:
+        _apply_migration_v30(conn)
+        _set_schema_version(conn, 30)
+        current_version = 30
 
     if current_version > target_schema_version:
         raise RuntimeError(f"Database schema version {current_version} is newer than supported {target_schema_version}.")

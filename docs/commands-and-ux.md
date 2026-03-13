@@ -30,6 +30,10 @@ This document defines behavior and presentation for commands and interaction flo
 - `gift drop <player> <tickets>`
 - `gift pull <player> <tickets>`
 - `gift card <player> <card_id>` / `gift c <player> <card_id>`
+- `oven`
+- `oven deposit <amount>`
+- `oven withdraw <amount>`
+- `oven balance`
 - `morph [card_id]` / `mo [card_id]`
 - `frame [card_id]` / `fr [card_id]`
 - `font [card_id]` / `fo [card_id]`

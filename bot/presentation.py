@@ -220,6 +220,10 @@ COMMAND_SYNTAX_BY_KEY: dict[str, str] = {
     "monopoly fine": "ns monopoly fine",
     "monopoly pot": "ns monopoly pot",
     "monopoly roll": "ns monopoly roll",
+    "oven": "ns oven <deposit|withdraw|balance> [amount]",
+    "oven balance": "ns oven balance",
+    "oven deposit": "ns oven deposit <amount>",
+    "oven withdraw": "ns oven withdraw <amount>",
     "morph": "ns morph [card_id]",
     "slots": "ns slots",
     "tag": (
@@ -293,6 +297,9 @@ HELP_CATEGORY_PAGES: tuple[tuple[str, str, str], ...] = (
 - `gift drop <player> <tickets>` — Send drop tickets to a player.
 - `gift pull <player> <tickets>` — Send pull tickets to a player.
 - `gift card <player> <card_id>` (`gift c`) — Send a card to a player.
+- `oven balance` — Show your oven balance and spendable dough.
+- `oven deposit <amount>` — Move dough into the oven (8% fee, rounded up).
+- `oven withdraw <amount>` — Move dough out of the oven (8% fee, rounded up).
 - `trade <player> <card_id> <mode> <amount|req_code>` (`t`) — Offer a trade. Mode: `dough`, `starter`, `drop`, `pull`, or `card`.""",
     ),
     (

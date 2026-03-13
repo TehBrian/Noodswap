@@ -42,6 +42,7 @@ class StorageTests:
             assert "monopoly_in_jail" in column_names
             assert "monopoly_jail_roll_attempts" in column_names
             assert "monopoly_consecutive_doubles" in column_names
+            assert "oven_dough" in column_names
 
             pot_row = conn.execute("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'gambling_pot'").fetchone()
             assert pot_row is not None
@@ -220,6 +221,87 @@ class StorageTests:
         assert starter_balance == 1
         assert pull_tickets == 2
         assert spent == 2
+
+    def test_oven_deposit_applies_fee_and_contributes_to_pot(self) -> None:
+        guild_id = 1
+        user_id = 3344
+
+        storage.init_db()
+        storage.add_dough(guild_id, user_id, 500)
+
+        result = storage.execute_oven_deposit(guild_id, user_id, 100)
+        assert result.status == "ok"
+        assert result.amount == 100
+        assert result.fee == 8
+        assert result.net_amount == 92
+        assert result.pot_contribution == 2
+        assert result.dough_balance == 400
+        assert result.oven_balance == 92
+
+        pot_dough, _, _, _ = storage.get_gambling_pot(guild_id)
+        assert pot_dough == 2
+
+    def test_oven_withdraw_applies_fee_and_contributes_to_pot(self) -> None:
+        guild_id = 1
+        user_id = 3345
+
+        storage.init_db()
+        storage.add_dough(guild_id, user_id, 500)
+        storage.execute_oven_deposit(guild_id, user_id, 200)
+
+        result = storage.execute_oven_withdraw(guild_id, user_id, 100)
+        assert result.status == "ok"
+        assert result.amount == 100
+        assert result.fee == 8
+        assert result.net_amount == 92
+        assert result.pot_contribution == 2
+        assert result.dough_balance == 392
+        assert result.oven_balance == 84
+
+        pot_dough, _, _, _ = storage.get_gambling_pot(guild_id)
+        assert pot_dough == 6
+
+    def test_oven_deposit_rejects_zero_net_transfer(self) -> None:
+        guild_id = 1
+        user_id = 3346
+
+        storage.init_db()
+        storage.add_dough(guild_id, user_id, 10)
+
+        result = storage.execute_oven_deposit(guild_id, user_id, 1)
+        assert result.status == "net_too_small"
+        assert result.dough_balance == 10
+        assert result.oven_balance == 0
+
+    def test_oven_withdraw_rejects_when_oven_is_insufficient(self) -> None:
+        guild_id = 1
+        user_id = 3347
+
+        storage.init_db()
+        storage.add_dough(guild_id, user_id, 50)
+        storage.execute_oven_deposit(guild_id, user_id, 20)
+
+        result = storage.execute_oven_withdraw(guild_id, user_id, 50)
+        assert result.status == "insufficient_oven"
+        assert result.oven_balance == 18
+
+    def test_monopoly_fine_ignores_oven_balance(self) -> None:
+        guild_id = 1
+        user_id = 3348
+
+        storage.init_db()
+        storage.add_dough(guild_id, user_id, 200)
+        storage.execute_oven_deposit(guild_id, user_id, 100)
+
+        with storage.get_db_connection() as conn:
+            players = storage.PlayerRepository(conn, storage.STARTING_DOUGH)
+            players.ensure_player(storage._scope_guild_id(guild_id), user_id)
+            players.set_monopoly_in_jail(storage._scope_guild_id(guild_id), user_id, True)
+
+        fine_result = storage.execute_monopoly_fine(guild_id, user_id)
+        assert fine_result.status == "released"
+        assert fine_result.paid == 100
+        assert storage.get_player_oven_balance(guild_id, user_id) == 92
 
     def test_consume_pull_cooldown_or_ticket_bypasses_without_changing_timestamp(self) -> None:
         guild_id = 1

@@ -77,6 +77,8 @@ from .command_utils import (
     execute_marry as execute_marry,
     execute_monopoly_fine as execute_monopoly_fine,
     execute_monopoly_roll as execute_monopoly_roll,
+    execute_oven_deposit as execute_oven_deposit,
+    execute_oven_withdraw as execute_oven_withdraw,
     font_label as font_label,
     font_rarity as font_rarity,
     format_cooldown as format_cooldown,
@@ -107,6 +109,7 @@ from .command_utils import (
     get_player_flip_timestamp as get_player_flip_timestamp,
     get_player_info as get_player_info,
     get_player_leaderboard_info as get_player_leaderboard_info,
+    get_player_oven_balance as get_player_oven_balance,
     get_player_slots_timestamp as get_player_slots_timestamp,
     get_player_starter as get_player_starter,
     get_total_cards as get_total_cards,
@@ -857,6 +860,120 @@ def register_economy_commands(bot: commands.Bot) -> None:
                     "`ns gift drop <player> <tickets>`, "
                     "`ns gift pull <player> <tickets>`, "
                     "or `ns gift card <player> <card_id>`."
+                ),
+            ),
+        )
+
+    @bot.group(name="oven", invoke_without_command=True)
+    async def oven(ctx: commands.Context):
+        await _reply(
+            ctx,
+            embed=italy_embed(
+                "Oven",
+                "Usage: `ns oven deposit <amount>`, `ns oven withdraw <amount>`, or `ns oven balance`.",
+            ),
+        )
+
+    @oven.command(name="balance")
+    async def oven_balance(ctx: commands.Context):
+        if not await _require_guild(ctx, "Oven"):
+            return
+
+        dough, _, _ = get_player_info(_guild_id(ctx), ctx.author.id)
+        oven_dough = get_player_oven_balance(_guild_id(ctx), ctx.author.id)
+        await _reply(
+            ctx,
+            embed=italy_embed(
+                "Oven",
+                multiline_text(
+                    [
+                        f"Oven Balance: **{oven_dough}** dough",
+                        f"Spendable Dough: **{dough}**",
+                    ]
+                ),
+            ),
+        )
+
+    @oven.command(name="deposit")
+    async def oven_deposit(ctx: commands.Context, amount: int):
+        if not await _require_guild(ctx, "Oven"):
+            return
+
+        result = execute_oven_deposit(_guild_id(ctx), ctx.author.id, amount)
+        if result.status == "invalid_amount":
+            await _reply(ctx, embed=italy_embed("Oven", "Amount must be at least 1 dough."))
+            return
+        if result.status == "net_too_small":
+            await _reply(
+                ctx,
+                embed=italy_embed("Oven", "Amount is too small after the 8% oven fee. Try a larger amount."),
+            )
+            return
+        if result.status == "insufficient_dough":
+            await _reply(
+                ctx,
+                embed=italy_embed(
+                    "Oven",
+                    f"You do not have enough dough. Current balance: **{result.dough_balance}** dough.",
+                ),
+            )
+            return
+
+        await _reply(
+            ctx,
+            embed=italy_embed(
+                "Oven Deposit",
+                multiline_text(
+                    [
+                        f"Requested: **{result.amount}** dough",
+                        f"Fee (8%): **{result.fee}** dough",
+                        f"Moved to Oven: **{result.net_amount}** dough",
+                        f"Monopoly Pot from Fee: **+{result.pot_contribution}** dough",
+                        f"Spendable Dough: **{result.dough_balance}**",
+                        f"Oven Balance: **{result.oven_balance}**",
+                    ]
+                ),
+            ),
+        )
+
+    @oven.command(name="withdraw")
+    async def oven_withdraw(ctx: commands.Context, amount: int):
+        if not await _require_guild(ctx, "Oven"):
+            return
+
+        result = execute_oven_withdraw(_guild_id(ctx), ctx.author.id, amount)
+        if result.status == "invalid_amount":
+            await _reply(ctx, embed=italy_embed("Oven", "Amount must be at least 1 dough."))
+            return
+        if result.status == "net_too_small":
+            await _reply(
+                ctx,
+                embed=italy_embed("Oven", "Amount is too small after the 8% oven fee. Try a larger amount."),
+            )
+            return
+        if result.status == "insufficient_oven":
+            await _reply(
+                ctx,
+                embed=italy_embed(
+                    "Oven",
+                    f"You do not have enough dough in the oven. Current oven balance: **{result.oven_balance}** dough.",
+                ),
+            )
+            return
+
+        await _reply(
+            ctx,
+            embed=italy_embed(
+                "Oven Withdraw",
+                multiline_text(
+                    [
+                        f"Requested: **{result.amount}** dough",
+                        f"Fee (8%): **{result.fee}** dough",
+                        f"Moved to Wallet: **{result.net_amount}** dough",
+                        f"Monopoly Pot from Fee: **+{result.pot_contribution}** dough",
+                        f"Spendable Dough: **{result.dough_balance}**",
+                        f"Oven Balance: **{result.oven_balance}**",
+                    ]
                 ),
             ),
         )

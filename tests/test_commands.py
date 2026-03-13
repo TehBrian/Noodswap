@@ -951,6 +951,7 @@ class CommandsAliasRegistrationTests:
         assert "sl" in _get_command(self.bot, "slots").aliases
         assert "f" in _get_command(self.bot, "flip").aliases
         assert "g" in _get_command(self.bot, "gift").aliases
+        assert _get_command(self.bot, "oven") is not None
         assert "tg" in _get_command(self.bot, "tag").aliases
         assert "fd" in _get_command(self.bot, "folder").aliases
         assert "as" in _get_group_command(self.bot, "tag", "assign").aliases
@@ -2291,6 +2292,7 @@ class CommandsInfoTests:
             patch("bot.commands_social.get_player_starter", return_value=9),
             patch("bot.commands_social.get_player_drop_tickets", return_value=4),
             patch("bot.commands_social.get_player_pull_tickets", return_value=6),
+            patch("bot.commands_social.get_player_oven_balance", return_value=21),
             patch("bot.commands_social.get_total_cards", return_value=7),
             patch(
                 "bot.commands_social.get_wishlist_cards",
@@ -2304,6 +2306,7 @@ class CommandsInfoTests:
         field_values = {field.name: field.value for field in sent_embed.fields}
         assert field_values.get("Cards") == "7"
         assert field_values.get("Dough") == "123"
+        assert field_values.get("Oven Balance") == "21"
         assert field_values.get("Starter") == "9"
         assert field_values.get("Drop Tickets") == "4"
         assert field_values.get("Pull Tickets") == "6"
@@ -2333,6 +2336,7 @@ class CommandsInfoTests:
             patch("bot.commands_social.get_player_starter", return_value=2),
             patch("bot.commands_social.get_player_drop_tickets", return_value=0),
             patch("bot.commands_social.get_player_pull_tickets", return_value=0),
+            patch("bot.commands_social.get_player_oven_balance", return_value=0),
             patch("bot.commands_social.get_total_cards", return_value=4),
             patch("bot.commands_social.get_wishlist_cards", return_value=["SPG"]),
         ):
@@ -2341,6 +2345,90 @@ class CommandsInfoTests:
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
         assert sent_embed.title == "Target's Info"
+
+
+class CommandsOvenTests:
+    def setup_method(self) -> None:
+        self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)
+        register_commands(self.bot)
+
+    async def test_oven_balance_displays_oven_and_wallet(self) -> None:
+        oven_balance_command = _get_group_command(self.bot, "oven", "balance")
+
+        ctx = AsyncMock()
+        ctx.guild = _FakeGuild(1)
+        ctx.author = _FakeMember(100, "Caller")
+        ctx.send = AsyncMock()
+        ctx.reply = ctx.send
+
+        with (
+            patch("bot.commands_economy.get_player_info", return_value=(300, 0.0, None)),
+            patch("bot.commands_economy.get_player_oven_balance", return_value=125),
+        ):
+            await oven_balance_command.callback(ctx)
+
+        ctx.send.assert_awaited_once()
+        sent_embed = ctx.send.await_args.kwargs["embed"]
+        assert sent_embed.title == "Oven"
+        assert "Oven Balance: **125** dough" in sent_embed.description
+        assert "Spendable Dough: **300**" in sent_embed.description
+
+    async def test_oven_deposit_success_shows_fee_breakdown(self) -> None:
+        oven_deposit_command = _get_group_command(self.bot, "oven", "deposit")
+
+        ctx = AsyncMock()
+        ctx.guild = _FakeGuild(1)
+        ctx.author = _FakeMember(100, "Caller")
+        ctx.send = AsyncMock()
+        ctx.reply = ctx.send
+
+        with patch(
+            "bot.commands_economy.execute_oven_deposit",
+            return_value=storage.OvenTransferResult(
+                status="ok",
+                amount=100,
+                fee=8,
+                net_amount=92,
+                pot_contribution=2,
+                dough_balance=900,
+                oven_balance=92,
+            ),
+        ):
+            await oven_deposit_command.callback(ctx, amount=100)
+
+        ctx.send.assert_awaited_once()
+        sent_embed = ctx.send.await_args.kwargs["embed"]
+        assert sent_embed.title == "Oven Deposit"
+        assert "Fee (8%): **8** dough" in sent_embed.description
+        assert "Moved to Oven: **92** dough" in sent_embed.description
+
+    async def test_oven_withdraw_rejects_insufficient_oven_balance(self) -> None:
+        oven_withdraw_command = _get_group_command(self.bot, "oven", "withdraw")
+
+        ctx = AsyncMock()
+        ctx.guild = _FakeGuild(1)
+        ctx.author = _FakeMember(100, "Caller")
+        ctx.send = AsyncMock()
+        ctx.reply = ctx.send
+
+        with patch(
+            "bot.commands_economy.execute_oven_withdraw",
+            return_value=storage.OvenTransferResult(
+                status="insufficient_oven",
+                amount=100,
+                fee=8,
+                net_amount=92,
+                pot_contribution=0,
+                dough_balance=5,
+                oven_balance=40,
+            ),
+        ):
+            await oven_withdraw_command.callback(ctx, amount=100)
+
+        ctx.send.assert_awaited_once()
+        sent_embed = ctx.send.await_args.kwargs["embed"]
+        assert sent_embed.title == "Oven"
+        assert "Current oven balance: **40** dough" in sent_embed.description
 
 
 class CommandsGiftTests:
