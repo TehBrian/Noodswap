@@ -303,6 +303,8 @@ Current migration set:
 	- Rescales existing `players.dough` and `players.oven_dough` independently using `new_bal = ln(old_bal + 1)^6.1`. **Note:** exponent of 6.1 on natural log caused excessive balance inflation; superseded by v33.
 - `v33`:
 	- Undoes v32 (inverse: `restored = exp(c^(1/6.1)) - 1`) then applies the intended formula: `new_bal = log10(old_bal + 1)^6.1` independently to wallet and oven dough.
+- `v34`:
+	- Rescales `gambling_pot.dough` (global pot, `guild_id = 0`) using `new_bal = log10(old_bal + 1)^6.1`.
 
 Notes:
 - Startup migration is in-code (`bot/migrations.py`) and invoked by `storage.init_db()` using incremental version checks.

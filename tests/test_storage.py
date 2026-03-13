@@ -2138,6 +2138,75 @@ class StorageTests:
             assert int(dough) == _v33_transform(pre_wallet)
             assert int(oven_dough) == _v33_transform(pre_oven)
 
+    def test_init_db_v34_rescales_gambling_pot_dough(self) -> None:
+        with closing(sqlite3.connect(storage.DB_PATH)) as conn:
+            with conn:
+                conn.executescript(
+                    """
+                    CREATE TABLE schema_migrations (
+                        version INTEGER NOT NULL
+                    );
+                    INSERT INTO schema_migrations(version) VALUES (33);
+
+                    CREATE TABLE players (
+                        guild_id INTEGER NOT NULL,
+                        user_id INTEGER NOT NULL,
+                        dough INTEGER NOT NULL DEFAULT 0,
+                        oven_dough INTEGER NOT NULL DEFAULT 0,
+                        starter INTEGER NOT NULL DEFAULT 0,
+                        oven_starter INTEGER NOT NULL DEFAULT 0,
+                        drop_tickets INTEGER NOT NULL DEFAULT 0,
+                        oven_drop_tickets INTEGER NOT NULL DEFAULT 0,
+                        pull_tickets INTEGER NOT NULL DEFAULT 0,
+                        oven_pull_tickets INTEGER NOT NULL DEFAULT 0,
+                        PRIMARY KEY (guild_id, user_id)
+                    );
+
+                    CREATE TABLE card_instances (
+                        instance_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        guild_id INTEGER NOT NULL,
+                        user_id INTEGER NOT NULL,
+                        card_type_id TEXT NOT NULL,
+                        generation INTEGER NOT NULL,
+                        card_id TEXT,
+                        morph_key TEXT,
+                        frame_key TEXT,
+                        font_key TEXT,
+                        pulled_at REAL
+                    );
+
+                    CREATE TABLE gambling_pot (
+                        guild_id INTEGER NOT NULL PRIMARY KEY,
+                        dough INTEGER NOT NULL DEFAULT 0,
+                        starter INTEGER NOT NULL DEFAULT 0,
+                        drop_tickets INTEGER NOT NULL DEFAULT 0,
+                        pull_tickets INTEGER NOT NULL DEFAULT 0
+                    );
+
+                    INSERT INTO gambling_pot (guild_id, dough, starter, drop_tickets, pull_tickets)
+                    VALUES (0, 5000, 10, 5, 3);
+                    """
+                )
+
+        storage.init_db()
+
+        with closing(sqlite3.connect(storage.DB_PATH)) as conn:
+            pot_row = conn.execute(
+                "SELECT dough, starter, drop_tickets, pull_tickets FROM gambling_pot WHERE guild_id = 0"
+            ).fetchone()
+            version_row = conn.execute("SELECT version FROM schema_migrations LIMIT 1").fetchone()
+
+        assert version_row is not None
+        assert int(version_row[0]) == storage.TARGET_SCHEMA_VERSION
+
+        assert pot_row is not None
+        expected_dough = int(math.pow(math.log10(5000 + 1), 6.1))
+        assert int(pot_row[0]) == expected_dough
+        # non-dough columns must be unchanged
+        assert int(pot_row[1]) == 10
+        assert int(pot_row[2]) == 5
+        assert int(pot_row[3]) == 3
+
     def test_wishlist_add_remove_and_read(self) -> None:
         guild_id = 1
         user_id = 920

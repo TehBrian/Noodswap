@@ -3,7 +3,7 @@ import math
 import sqlite3
 import time
 
-TARGET_SCHEMA_VERSION = 33
+TARGET_SCHEMA_VERSION = 34
 _BASE36_ALPHABET = "0123456789abcdefghijklmnopqrstuvwxyz"
 
 
@@ -1136,6 +1136,44 @@ def _apply_migration_v33(conn: sqlite3.Connection) -> None:
         )
 
 
+def _apply_migration_v34(conn: sqlite3.Connection) -> None:
+    pot_table_exists = (
+        conn.execute(
+            """
+        SELECT 1
+        FROM sqlite_master
+        WHERE type = 'table' AND name = 'gambling_pot'
+        LIMIT 1
+        """
+        ).fetchone()
+        is not None
+    )
+    if not pot_table_exists or not _has_column(conn, "gambling_pot", "dough"):
+        return
+
+    row = conn.execute(
+        """
+        SELECT guild_id, dough
+        FROM gambling_pot
+        WHERE guild_id = 0
+        LIMIT 1
+        """
+    ).fetchone()
+    if row is None:
+        return
+
+    old_dough = int(row["dough"])
+    new_dough = int(math.pow(math.log10(old_dough + 1), 6.1))
+    conn.execute(
+        """
+        UPDATE gambling_pot
+        SET dough = ?
+        WHERE guild_id = 0
+        """,
+        (new_dough,),
+    )
+
+
 def run_migrations(
     conn: sqlite3.Connection,
     *,
@@ -1309,6 +1347,11 @@ def run_migrations(
         _apply_migration_v33(conn)
         _set_schema_version(conn, 33)
         current_version = 33
+
+    if current_version < 34:
+        _apply_migration_v34(conn)
+        _set_schema_version(conn, 34)
+        current_version = 34
 
     if current_version > target_schema_version:
         raise RuntimeError(f"Database schema version {current_version} is newer than supported {target_schema_version}.")
