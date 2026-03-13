@@ -653,28 +653,37 @@ def _resolve_burn_selector_instances(
     *,
     selector_type: str,
     selector_value: str,
+    exclude_instance_ids: set[int] | None = None,
 ) -> tuple[list[tuple[int, str, int, str]], str | None]:
+    excluded = exclude_instance_ids or set()
+
     if selector_type == "card":
         normalized_card_id = normalize_card_id(selector_value)
         if normalized_card_id in CARD_CATALOG:
-            selected = get_burn_candidate_by_card_id(guild_id, user_id, normalized_card_id)
-            if selected is None:
-                return [], f"You do not own any copies of `{normalized_card_id}`."
-            return [selected], None
+            return [], (
+                "Direct burn targets must be card codes, not card type IDs. "
+                "Use codes like `0` or `#0`, or use `t:<tag_name>` / `f:<folder_name>`."
+            )
 
         selected = get_instance_by_code(guild_id, user_id, selector_value)
         if selected is None:
             return [], f"You do not own the card code `{selector_value}`."
+        if selected[0] in excluded:
+            return [], f"Card code `{selector_value}` is already selected."
         return [selected], None
 
     if selector_type == "tag":
         selected = get_instances_by_tag(guild_id, user_id, selector_value)
+        if excluded:
+            selected = [row for row in selected if row[0] not in excluded]
         if not selected:
             return [], f"Tag `{selector_value}` has no cards to burn."
         return selected, None
 
     if selector_type == "folder":
         selected = get_instances_by_folder(guild_id, user_id, selector_value)
+        if excluded:
+            selected = [row for row in selected if row[0] not in excluded]
         if not selected:
             return [], f"Folder `{selector_value}` has no cards to burn."
         return selected, None

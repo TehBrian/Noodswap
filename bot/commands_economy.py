@@ -448,17 +448,20 @@ def register_economy_commands(bot: commands.Bot) -> None:
                 )
             )
         else:
+            selected_instance_ids: set[int] = set()
             for selector_type, selector_value in parsed_selectors:
                 selected_instances, selection_error = _resolve_burn_selector_instances(
                     _guild_id(ctx),
                     ctx.author.id,
                     selector_type=selector_type,
                     selector_value=selector_value,
+                    exclude_instance_ids=selected_instance_ids,
                 )
                 if selection_error is not None:
                     await _reply(ctx, embed=italy_embed("Burn", selection_error))
                     return
                 resolved_targets.extend(selected_instances)
+                selected_instance_ids.update(instance_id for instance_id, _card_id, _generation, _card_code in selected_instances)
 
         deduped_targets: list[tuple[int, str, int, str]] = []
         seen_instance_ids: set[int] = set()
@@ -474,6 +477,16 @@ def register_economy_commands(bot: commands.Bot) -> None:
             return
 
         if not prepared.items or prepared.total_value is None or prepared.total_delta_range is None:
+            skipped_items = tuple(getattr(prepared, "skipped_items", ()))
+            if skipped_items:
+                await _reply(
+                    ctx,
+                    embed=italy_embed(
+                        "Burn Blocked",
+                        "No selected cards can be burned.\n\nSkipped:\n" + "\n".join(skipped_items),
+                    ),
+                )
+                return
             await _reply(ctx, embed=italy_embed("Burn", "Burn failed."))
             return
 

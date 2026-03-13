@@ -785,6 +785,38 @@ class CommandsBurnSelectorTests:
         assert "Cards: **2**" in sent_embed.description
         assert sent_view.kwargs["burn_items"] == [(10, 2), (11, 3)]
 
+    async def test_burn_rejects_card_type_id_targets(self) -> None:
+        burn_command = _get_command(self.bot, "burn")
+
+        ctx = AsyncMock()
+        ctx.guild = _FakeGuild(1)
+        ctx.author = _FakeMember(100, "Caller")
+        ctx.send = AsyncMock()
+        ctx.reply = ctx.send
+
+        await burn_command.callback(ctx, "SPG")
+
+        ctx.send.assert_awaited_once()
+        sent_embed = ctx.send.await_args.kwargs["embed"]
+        assert sent_embed.title == "Burn"
+        assert "Direct burn targets must be card codes" in sent_embed.description
+
+    async def test_burn_rejects_card_selector_with_card_type_id(self) -> None:
+        burn_command = _get_command(self.bot, "burn")
+
+        ctx = AsyncMock()
+        ctx.guild = _FakeGuild(1)
+        ctx.author = _FakeMember(100, "Caller")
+        ctx.send = AsyncMock()
+        ctx.reply = ctx.send
+
+        await burn_command.callback(ctx, "card", "SPG")
+
+        ctx.send.assert_awaited_once()
+        sent_embed = ctx.send.await_args.kwargs["embed"]
+        assert sent_embed.title == "Burn"
+        assert "Direct burn targets must be card codes" in sent_embed.description
+
 
 class CommandsTeamTests:
     def setup_method(self) -> None:
@@ -2632,6 +2664,39 @@ class CommandsBurnTests:
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
         assert sent_embed.title == "Burn Confirmation"
+
+    async def test_burn_reports_when_all_selected_targets_are_skipped(self) -> None:
+        burn_command = _get_command(self.bot, "burn")
+
+        ctx = AsyncMock()
+        ctx.guild = _FakeGuild(1)
+        ctx.author = _FakeMember(100, "Caller")
+        ctx.send = AsyncMock()
+        ctx.reply = ctx.send
+
+        prepared = SimpleNamespace(
+            is_error=False,
+            error_message=None,
+            items=(),
+            skipped_items=("`0` (locked tag(s): `safe`)",),
+            total_value=0,
+            total_delta_range=0,
+        )
+
+        with (
+            patch(
+                "bot.command_utils.get_instances_by_tag",
+                return_value=[(10, "SPG", 100, "0")],
+            ),
+            patch("bot.commands_economy.prepare_burn_batch", return_value=prepared),
+        ):
+            await burn_command.callback(ctx, "t:safe")
+
+        ctx.send.assert_awaited_once()
+        sent_embed = ctx.send.await_args.kwargs["embed"]
+        assert sent_embed.title == "Burn Blocked"
+        assert "No selected cards can be burned." in sent_embed.description
+        assert "locked tag(s)" in sent_embed.description
 
 
 class CommandsMonopolyTests:
