@@ -1345,7 +1345,7 @@ def render_morph_transition_image_bytes(
         question_w = max(1, question_bbox[2] - question_bbox[0])
         question_h = max(1, question_bbox[3] - question_bbox[1])
         question_x = (before_surface.size[0] - question_w) // 2
-        question_y = (before_surface.size[1] - question_h) // 2
+        question_y = max(0, (before_surface.size[1] - question_h) // 2 - max(2, before_surface.size[1] // 80))
         draw_after.text(
             (question_x, question_y),
             question,
