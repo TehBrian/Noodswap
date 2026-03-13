@@ -405,6 +405,7 @@ class StorageTests:
             font_key=None,
         )
         expected_rent = int(full_value * 0.9)
+        expected_fee = full_value - expected_rent
 
         with patch("bot.storage.roll_dice", return_value=(1, 2, False)):
             result = storage.execute_monopoly_roll(
@@ -414,11 +415,14 @@ class StorageTests:
                 cooldown_seconds=660.0,
             )
         assert result.status == "ok"
+        assert any(line == f"(**+{expected_fee}** transaction fee)" for line in result.lines)
 
         roller_dough, _, _ = storage.get_player_info(guild_id, roller_id)
         owner_dough, _, _ = storage.get_player_info(guild_id, owner_id)
-        assert roller_dough == 10_000 - expected_rent
+        assert roller_dough == 10_000 - full_value
         assert owner_dough == expected_rent
+        pot_dough, _pot_starter, _pot_drop_tickets, _pot_pull_tickets = storage.get_gambling_pot(guild_id)
+        assert pot_dough == expected_fee
 
     def test_monopoly_property_landing_uses_card_name_and_thumbnail_metadata(
         self,

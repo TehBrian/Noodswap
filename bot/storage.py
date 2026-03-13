@@ -1966,28 +1966,32 @@ def execute_monopoly_roll(
                 card_name = str(CARD_CATALOG[str(card_type_id)]["name"])
                 lines.append("")
                 lines.append(f"Landed on **{card_name}** {space.emoji} (#{card_id})")
-                rent_due = (
-                    int(
-                        card_value(
-                            card_type_id,
-                            generation,
-                            morph_key=morph_key,
-                            frame_key=frame_key,
-                            font_key=font_key,
-                        )
-                        * 0.9
-                    )
+                full_value = card_value(
+                    card_type_id,
+                    generation,
+                    morph_key=morph_key,
+                    frame_key=frame_key,
+                    font_key=font_key,
                 )
-                paid = _deduct_up_to(players, guild_id, user_id, rent_due)
-                if paid > 0:
+                rent_due = int(full_value * 0.9)
+                transaction_fee_due = full_value - rent_due
+
+                total_paid = _deduct_up_to(players, guild_id, user_id, full_value)
+                rent_paid = min(total_paid, rent_due)
+                transaction_fee_paid = min(max(0, total_paid - rent_paid), transaction_fee_due)
+
+                if rent_paid > 0:
                     players.ensure_player(guild_id, owner_id)
-                    players.add_dough(guild_id, owner_id, paid)
+                    players.add_dough(guild_id, owner_id, rent_paid)
+                if transaction_fee_paid > 0:
+                    pot.add(guild_id, dough=transaction_fee_paid)
                 thumbnail_card_id = card_type_id
                 thumbnail_generation = generation
                 thumbnail_morph_key = morph_key
                 thumbnail_frame_key = frame_key
                 thumbnail_font_key = font_key
-                lines.append(f"Rent paid to <@{owner_id}>: **{paid} dough**")
+                lines.append(f"Rent paid to <@{owner_id}>: **{rent_paid} dough**")
+                lines.append(f"(**+{transaction_fee_paid}** transaction fee)")
             else:
                 lines.append("")
                 lines.append(f"Landed on a **{space.rarity}** {space.emoji} property.")
