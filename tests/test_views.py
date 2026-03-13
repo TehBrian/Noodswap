@@ -1525,6 +1525,62 @@ class ViewTests:
         edited_embed = interaction.response.edited_messages[0]["embed"]
         assert "Sort: Generation" in edited_embed.footer.text
 
+    async def test_sortable_collection_view_code_sort_orders_by_card_code(self) -> None:
+        instances = [
+            (1, "SPG", 500, "Q9"),
+            (2, "BAR", 20, "A1"),
+            (3, "BLA", 20, "M4"),
+            (4, "SPG", 10, "B2"),
+        ]
+        view = SortableCollectionView(
+            user_id=10,
+            title="Caller's Collection",
+            instances=instances,
+            wish_counts={},
+            instance_styles={},
+            guard_title="Collection",
+            page_size=10,
+        )
+
+        interaction = _FakeInteraction(user_id=10)
+        view.sort_select._values = ["code"]
+        await view.sort_select.callback(interaction)
+        assert view.sort_mode == "code"
+        assert not view.sort_descending
+        assert [row[0] for row in view._sorted_instances] == [2, 4, 3, 1]
+        edited_embed = interaction.response.edited_messages[0]["embed"]
+        assert "Sort: Code (Asc)" in edited_embed.footer.text
+
+    async def test_sortable_collection_view_code_sort_toggle_shows_descending(
+        self,
+    ) -> None:
+        instances = [
+            (1, "SPG", 500, "Q9"),
+            (2, "BAR", 20, "A1"),
+            (3, "BLA", 20, "M4"),
+            (4, "SPG", 10, "B2"),
+        ]
+        view = SortableCollectionView(
+            user_id=10,
+            title="Caller's Collection",
+            instances=instances,
+            wish_counts={},
+            instance_styles={},
+            guard_title="Collection",
+            page_size=10,
+        )
+
+        interaction = _FakeInteraction(user_id=10)
+        view.sort_select._values = ["code"]
+        await view.sort_select.callback(interaction)
+        toggle_interaction = _FakeInteraction(user_id=10)
+        await view.sort_direction_button.callback(toggle_interaction)
+
+        assert view.sort_descending
+        assert [row[0] for row in view._sorted_instances] == [1, 3, 4, 2]
+        edited_embed = toggle_interaction.response.edited_messages[0]["embed"]
+        assert "Sort: Code (Desc)" in edited_embed.footer.text
+
     async def test_sortable_collection_view_time_pulled_sort_defaults_to_newest_first(
         self,
     ) -> None:

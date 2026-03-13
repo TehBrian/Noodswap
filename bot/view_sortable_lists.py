@@ -344,6 +344,7 @@ class SortableCollectionView(discord.ui.View):
         self.page_index = 0
         valid_sort_modes = {
             "generation",
+            "code",
             "wishes",
             "rarity",
             "series",
@@ -421,6 +422,18 @@ class SortableCollectionView(discord.ui.View):
                     str(CARD_CATALOG[item[1]]["name"]),
                     item[0],
                 ),
+            )
+
+        if mode == "code":
+            return sorted(
+                self.instances,
+                key=lambda item: (
+                    str(item[3] or ""),
+                    str(CARD_CATALOG[item[1]]["name"]),
+                    item[2],
+                    item[0],
+                ),
+                reverse=descending,
             )
 
         if mode == "wishes":
@@ -569,6 +582,7 @@ class SortableCollectionView(discord.ui.View):
         sort_label_map = {
             "time_pulled": "Time Pulled",
             "generation": "Generation",
+            "code": "Code",
             "wishes": "Wishes",
             "rarity": "Rarity",
             "series": "Series",
@@ -656,6 +670,11 @@ class SortableCollectionView(discord.ui.View):
                 label="Generation",
                 value="generation",
                 description="Lowest generation first",
+            ),
+            discord.SelectOption(
+                label="Code",
+                value="code",
+                description="Sort by card code",
             ),
             discord.SelectOption(label="Wishes", value="wishes", description="Highest wish count first"),
             discord.SelectOption(label="Rarity", value="rarity", description="Rarest cards first"),
