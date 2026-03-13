@@ -1,8 +1,9 @@
 from collections.abc import Callable
+import math
 import sqlite3
 import time
 
-TARGET_SCHEMA_VERSION = 31
+TARGET_SCHEMA_VERSION = 32
 _BASE36_ALPHABET = "0123456789abcdefghijklmnopqrstuvwxyz"
 
 
@@ -1035,6 +1036,50 @@ def _apply_migration_v31(conn: sqlite3.Connection) -> None:
         """)
 
 
+def _apply_migration_v32(conn: sqlite3.Connection) -> None:
+    players_table_exists = (
+        conn.execute(
+            """
+        SELECT 1
+        FROM sqlite_master
+        WHERE type = 'table' AND name = 'players'
+        LIMIT 1
+        """
+        ).fetchone()
+        is not None
+    )
+    if not players_table_exists:
+        return
+
+    if not _has_column(conn, "players", "dough") or not _has_column(conn, "players", "oven_dough"):
+        return
+
+    rows = conn.execute(
+        """
+        SELECT guild_id, user_id, dough, oven_dough
+        FROM players
+        """
+    ).fetchall()
+
+    for row in rows:
+        wallet_balance = int(row["dough"])
+        oven_balance = int(row["oven_dough"])
+
+        scaled_wallet = int(math.pow(math.log1p(wallet_balance), 6.1))
+        scaled_oven = int(math.pow(math.log1p(oven_balance), 6.1))
+
+        conn.execute(
+            """
+            UPDATE players
+            SET dough = ?,
+                oven_dough = ?
+            WHERE guild_id = ?
+              AND user_id = ?
+            """,
+            (scaled_wallet, scaled_oven, int(row["guild_id"]), int(row["user_id"])),
+        )
+
+
 def run_migrations(
     conn: sqlite3.Connection,
     *,
@@ -1198,6 +1243,11 @@ def run_migrations(
         _apply_migration_v31(conn)
         _set_schema_version(conn, 31)
         current_version = 31
+
+    if current_version < 32:
+        _apply_migration_v32(conn)
+        _set_schema_version(conn, 32)
+        current_version = 32
 
     if current_version > target_schema_version:
         raise RuntimeError(f"Database schema version {current_version} is newer than supported {target_schema_version}.")

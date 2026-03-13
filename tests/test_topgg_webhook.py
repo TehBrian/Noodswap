@@ -247,9 +247,7 @@ async def test_duplicate_vote_claims_reward_each_time(webhook_server: TopggWebho
 
 async def test_rejects_non_json_content_type_when_enforced(webhook_server: TopggWebhookServer) -> None:
     body = _vote_body("123")
-    response = await webhook_server._handle_vote(
-        _mocked_post("/noodswap/topgg-vote-webhook", body, content_type="text/plain")
-    )
+    response = await webhook_server._handle_vote(_mocked_post("/noodswap/topgg-vote-webhook", body, content_type="text/plain"))
 
     assert response.status == 415
 
@@ -277,9 +275,7 @@ async def test_acknowledges_webhook_test_type_without_claiming_reward(webhook_se
 
 
 async def test_rejects_unknown_vote_type(webhook_server: TopggWebhookServer) -> None:
-    raw = json_module.dumps(
-        {"type": "mystery", "data": {"user": {"platform_id": "123"}}}
-    ).encode()
+    raw = json_module.dumps({"type": "mystery", "data": {"user": {"platform_id": "123"}}}).encode()
     response = await webhook_server._handle_vote(_mocked_post("/noodswap/topgg-vote-webhook", raw))
 
     assert response.status == 400

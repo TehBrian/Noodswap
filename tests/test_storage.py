@@ -1,3 +1,4 @@
+import math
 import sqlite3
 import tempfile
 from contextlib import closing
@@ -1938,6 +1939,86 @@ class StorageTests:
 
         assert row is not None
         assert tuple(row) == (987, 987, 987)
+
+    def test_init_db_v32_rescales_wallet_and_oven_dough_independently(self) -> None:
+        with closing(sqlite3.connect(storage.DB_PATH)) as conn:
+            with conn:
+                conn.executescript(
+                    """
+                    CREATE TABLE schema_migrations (
+                        version INTEGER NOT NULL
+                    );
+                    INSERT INTO schema_migrations(version) VALUES (31);
+
+                    CREATE TABLE players (
+                        guild_id INTEGER NOT NULL,
+                        user_id INTEGER NOT NULL,
+                        dough INTEGER NOT NULL DEFAULT 0,
+                        oven_dough INTEGER NOT NULL DEFAULT 0,
+                        starter INTEGER NOT NULL DEFAULT 0,
+                        oven_starter INTEGER NOT NULL DEFAULT 0,
+                        drop_tickets INTEGER NOT NULL DEFAULT 0,
+                        oven_drop_tickets INTEGER NOT NULL DEFAULT 0,
+                        pull_tickets INTEGER NOT NULL DEFAULT 0,
+                        oven_pull_tickets INTEGER NOT NULL DEFAULT 0,
+                        PRIMARY KEY (guild_id, user_id)
+                    );
+
+                    CREATE TABLE card_instances (
+                        instance_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        guild_id INTEGER NOT NULL,
+                        user_id INTEGER NOT NULL,
+                        card_type_id TEXT NOT NULL,
+                        generation INTEGER NOT NULL,
+                        card_id TEXT,
+                        morph_key TEXT,
+                        frame_key TEXT,
+                        font_key TEXT,
+                        pulled_at REAL
+                    );
+
+                    INSERT INTO players (
+                        guild_id,
+                        user_id,
+                        dough,
+                        oven_dough,
+                        starter,
+                        oven_starter,
+                        drop_tickets,
+                        oven_drop_tickets,
+                        pull_tickets,
+                        oven_pull_tickets
+                    )
+                    VALUES
+                        (0, 101, 0, 0, 0, 0, 0, 0, 0, 0),
+                        (0, 202, 1, 10, 0, 0, 0, 0, 0, 0),
+                        (0, 303, 100, 1000, 0, 0, 0, 0, 0, 0);
+                    """
+                )
+
+        storage.init_db()
+
+        with closing(sqlite3.connect(storage.DB_PATH)) as conn:
+            rows = conn.execute(
+                """
+                SELECT user_id, dough, oven_dough
+                FROM players
+                ORDER BY user_id ASC
+                """
+            ).fetchall()
+            version_row = conn.execute("SELECT version FROM schema_migrations LIMIT 1").fetchone()
+
+        assert version_row is not None
+        assert int(version_row[0]) == storage.TARGET_SCHEMA_VERSION
+
+        expected = {
+            101: (int(math.pow(math.log1p(0), 6.1)), int(math.pow(math.log1p(0), 6.1))),
+            202: (int(math.pow(math.log1p(1), 6.1)), int(math.pow(math.log1p(10), 6.1))),
+            303: (int(math.pow(math.log1p(100), 6.1)), int(math.pow(math.log1p(1000), 6.1))),
+        }
+        assert len(rows) == 3
+        for user_id, dough, oven_dough in rows:
+            assert (int(dough), int(oven_dough)) == expected[int(user_id)]
 
     def test_wishlist_add_remove_and_read(self) -> None:
         guild_id = 1

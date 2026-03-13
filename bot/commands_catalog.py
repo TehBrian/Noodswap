@@ -204,7 +204,7 @@ def register_catalog_commands(bot: commands.Bot) -> None:
                 "Buy",
                 multiline_text(
                     [
-                        f"Purchased: **{spent} drop ticket{"s" if spent != 1 else ''}**",
+                        f"Purchased: **{spent} drop ticket{'s' if spent != 1 else ''}**",
                         f"Cost: **{spent} starter**",
                         "",
                         f"Starter: **{starter_balance}**",
@@ -246,7 +246,7 @@ def register_catalog_commands(bot: commands.Bot) -> None:
                 "Buy",
                 multiline_text(
                     [
-                        f"Purchased: **{spent} pull ticket{"s" if spent != 1 else ''}**",
+                        f"Purchased: **{spent} pull ticket{'s' if spent != 1 else ''}**",
                         f"Spent: **{spent} starter**",
                         "",
                         f"Starter: **{starter_balance}**",
