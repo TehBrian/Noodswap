@@ -348,6 +348,27 @@ class PlayerRepository:
             (amount, guild_id, user_id),
         )
 
+    def get_oven_starter(self, guild_id: int, user_id: int) -> int:
+        row = self.conn.execute(
+            """
+            SELECT oven_starter
+            FROM players
+            WHERE guild_id = ? AND user_id = ?
+            """,
+            (guild_id, user_id),
+        ).fetchone()
+        return int(row["oven_starter"]) if row is not None else 0
+
+    def add_oven_starter(self, guild_id: int, user_id: int, amount: int) -> None:
+        self.conn.execute(
+            """
+            UPDATE players
+            SET oven_starter = oven_starter + ?
+            WHERE guild_id = ? AND user_id = ?
+            """,
+            (amount, guild_id, user_id),
+        )
+
     def get_drop_tickets(self, guild_id: int, user_id: int) -> int:
         row = self.conn.execute(
             """
@@ -369,6 +390,27 @@ class PlayerRepository:
             (amount, guild_id, user_id),
         )
 
+    def get_oven_drop_tickets(self, guild_id: int, user_id: int) -> int:
+        row = self.conn.execute(
+            """
+            SELECT oven_drop_tickets
+            FROM players
+            WHERE guild_id = ? AND user_id = ?
+            """,
+            (guild_id, user_id),
+        ).fetchone()
+        return int(row["oven_drop_tickets"]) if row is not None else 0
+
+    def add_oven_drop_tickets(self, guild_id: int, user_id: int, amount: int) -> None:
+        self.conn.execute(
+            """
+            UPDATE players
+            SET oven_drop_tickets = oven_drop_tickets + ?
+            WHERE guild_id = ? AND user_id = ?
+            """,
+            (amount, guild_id, user_id),
+        )
+
     def get_pull_tickets(self, guild_id: int, user_id: int) -> int:
         row = self.conn.execute(
             """
@@ -385,6 +427,27 @@ class PlayerRepository:
             """
             UPDATE players
             SET pull_tickets = pull_tickets + ?
+            WHERE guild_id = ? AND user_id = ?
+            """,
+            (amount, guild_id, user_id),
+        )
+
+    def get_oven_pull_tickets(self, guild_id: int, user_id: int) -> int:
+        row = self.conn.execute(
+            """
+            SELECT oven_pull_tickets
+            FROM players
+            WHERE guild_id = ? AND user_id = ?
+            """,
+            (guild_id, user_id),
+        ).fetchone()
+        return int(row["oven_pull_tickets"]) if row is not None else 0
+
+    def add_oven_pull_tickets(self, guild_id: int, user_id: int, amount: int) -> None:
+        self.conn.execute(
+            """
+            UPDATE players
+            SET oven_pull_tickets = oven_pull_tickets + ?
             WHERE guild_id = ? AND user_id = ?
             """,
             (amount, guild_id, user_id),

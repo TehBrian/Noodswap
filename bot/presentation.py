@@ -184,6 +184,7 @@ COMMAND_SYNTAX_BY_KEY: dict[str, str] = {
     "dbexport": "ns dbexport",
     "dbreset": "ns dbreset",
     "divorce": "ns divorce",
+    "deposit": "ns deposit <amount> [dough|starter|drop|pull]",
     "drop": "ns drop",
     "flip": "ns flip <stake> [heads|tails]",
     "folder": (
@@ -253,6 +254,7 @@ COMMAND_SYNTAX_BY_KEY: dict[str, str] = {
     "team remove": "ns team remove <team_name>",
     "team unassign": "ns team unassign <team_name> <card_id>",
     "trade": "ns trade <player> <card_id> <mode> <amount|card_id>",
+    "withdraw": "ns withdraw <amount> [dough|starter|drop|pull]",
     "vote": "ns vote",
     "wa": "ns wish add <card_type_id>",
     "wish": "ns wish add <card_type_id>, ns wish remove <card_type_id>, ns wish list [player]",
@@ -297,9 +299,11 @@ HELP_CATEGORY_PAGES: tuple[tuple[str, str, str], ...] = (
 - `gift drop <player> <tickets>` — Send drop tickets to a player.
 - `gift pull <player> <tickets>` — Send pull tickets to a player.
 - `gift card <player> <card_id>` (`gift c`) — Send a card to a player.
-- `oven balance` — Show your oven balance and spendable dough.
-- `oven deposit <amount>` — Move dough into the oven (8% fee, rounded up).
-- `oven withdraw <amount>` — Move dough out of the oven (8% fee, rounded up).
+- `deposit <amount> [dough|starter|drop|pull]` — Move an item into the oven (default: dough).
+- `withdraw <amount> [dough|starter|drop|pull]` — Move an item out of the oven (default: dough).
+- `oven balance` — Show all oven balances and spendable balances.
+- `oven deposit <amount> [item]` — Oven-group alias for `deposit`.
+- `oven withdraw <amount> [item]` — Oven-group alias for `withdraw`.
 - `trade <player> <card_id> <mode> <amount|req_code>` (`t`) — Offer a trade. Mode: `dough`, `starter`, `drop`, `pull`, or `card`.""",
     ),
     (

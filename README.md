@@ -134,7 +134,7 @@ This bot uses privileged intents. Enable these for your application in Discord D
 
 ## Commands (prefixes: `ns ` and short `n`, both case-insensitive)
 
-- `ns info [player]` / `ns i [player]` — show your info or another player's info (mention/username), including Oven Balance.
+- `ns info [player]` / `ns i [player]` — show your info or another player's info (mention/username), including oven balances.
 - `ns leaderboard` / `ns le` — show a paginated player leaderboard with criteria dropdown (`cards`, `wishes`, `dough`, `starter`, `collection value`).
 - `ns collection [player]` / `ns c [player]` — show your collection or another player's collection with interactive sorting and gallery toggle (defaults to yourself).
 - `ns cards` / `ns ca` — show all owned card instances across all players, with owner labels plus the same sorting and gallery controls as collection.
@@ -153,9 +153,11 @@ This bot uses privileged intents. Enable these for your application in Discord D
 - `ns gift starter <player> <starter>` / `ns gift s <player> <starter>` — send starter directly to another player.
 - `ns gift drop <player> <tickets>` — send drop tickets directly to another player.
 - `ns gift card <player> <card_id>` / `ns gift c <player> <card_id>` — send one owned card copy directly to another player.
-- `ns oven balance` — show your oven balance and spendable dough.
-- `ns oven deposit <amount>` — move dough into oven with 8% fee (rounded up).
-- `ns oven withdraw <amount>` — move dough out of oven with 8% fee (rounded up).
+- `ns deposit <amount> [dough|starter|drop|pull]` — move an item into the oven (default item: `dough`) with 8% fee (rounded up).
+- `ns withdraw <amount> [dough|starter|drop|pull]` — move an item out of the oven (default item: `dough`) with 8% fee (rounded up).
+- `ns oven balance` — show all oven balances and spendable balances.
+- `ns oven deposit <amount> [item]` — group alias for `ns deposit`.
+- `ns oven withdraw <amount> [item]` — group alias for `ns withdraw`.
 - `ns morph [card_id]` / `ns mo [card_id]` — pay 20% of card value (rounded up) to apply a random morph; currently supports `black_and_white`.
 - `ns frame [card_id]` / `ns fr [card_id]` — pay 20% of card value (rounded up) to apply a random frame from available frames (`buttery`, `gilded`, `drizzled`) in `assets/frames/`.
 - `ns font [card_id]` / `ns fo [card_id]` — pay 20% of card value (rounded up) to apply a random font (`serif`, `mono`, `storybook`, `spooky`, `pixel`, `playful`). `Classic` is now the default baseline style (not a trait modifier).

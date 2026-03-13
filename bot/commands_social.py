@@ -104,7 +104,7 @@ from .command_utils import (
     get_player_flip_timestamp as get_player_flip_timestamp,
     get_player_info as get_player_info,
     get_player_leaderboard_info as get_player_leaderboard_info,
-    get_player_oven_balance as get_player_oven_balance,
+    get_player_oven_balances as get_player_oven_balances,
     get_player_slots_timestamp as get_player_slots_timestamp,
     get_player_starter as get_player_starter,
     get_total_cards as get_total_cards,
@@ -457,7 +457,10 @@ def register_social_commands(bot: commands.Bot) -> None:
         target_member = resolved_member
 
         dough, _, married_instance_id = get_player_info(_guild_id(ctx), target_member.id)
-        oven_dough = get_player_oven_balance(_guild_id(ctx), target_member.id)
+        oven_dough, oven_starter, oven_drop_tickets, oven_pull_tickets = get_player_oven_balances(
+            _guild_id(ctx),
+            target_member.id,
+        )
         starter = get_player_starter(_guild_id(ctx), target_member.id)
         drop_tickets = get_player_drop_tickets(_guild_id(ctx), target_member.id)
         pull_tickets = get_player_pull_tickets(_guild_id(ctx), target_member.id)
@@ -488,8 +491,11 @@ def register_social_commands(bot: commands.Bot) -> None:
         embed.add_field(name="Dough", value=str(dough), inline=True)
         embed.add_field(name="Oven Balance", value=str(oven_dough), inline=True)
         embed.add_field(name="Starter", value=str(starter), inline=True)
+        embed.add_field(name="Oven Starter", value=str(oven_starter), inline=True)
         embed.add_field(name="Drop Tickets", value=str(drop_tickets), inline=True)
+        embed.add_field(name="Oven Drop Tickets", value=str(oven_drop_tickets), inline=True)
         embed.add_field(name="Pull Tickets", value=str(pull_tickets), inline=True)
+        embed.add_field(name="Oven Pull Tickets", value=str(oven_pull_tickets), inline=True)
         embed.add_field(name="Wishes", value=str(wishes_count), inline=True)
         embed.add_field(name="Married Card", value=married, inline=False)
         if married_image_url is not None:

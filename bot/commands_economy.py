@@ -109,7 +109,8 @@ from .command_utils import (
     get_player_flip_timestamp as get_player_flip_timestamp,
     get_player_info as get_player_info,
     get_player_leaderboard_info as get_player_leaderboard_info,
-    get_player_oven_balance as get_player_oven_balance,
+    get_player_oven_balances as get_player_oven_balances,
+    get_player_pull_tickets as get_player_pull_tickets,
     get_player_slots_timestamp as get_player_slots_timestamp,
     get_player_starter as get_player_starter,
     get_total_cards as get_total_cards,
@@ -864,13 +865,22 @@ def register_economy_commands(bot: commands.Bot) -> None:
             ),
         )
 
+    def _oven_item_label(item_key: str) -> str:
+        if item_key == "starter":
+            return "starter"
+        if item_key == "drop":
+            return "drop tickets"
+        if item_key == "pull":
+            return "pull tickets"
+        return "dough"
+
     @bot.group(name="oven", invoke_without_command=True)
     async def oven(ctx: commands.Context):
         await _reply(
             ctx,
             embed=italy_embed(
                 "Oven",
-                "Usage: `ns oven deposit <amount>`, `ns oven withdraw <amount>`, or `ns oven balance`.",
+                "Usage: `ns deposit <amount> [dough|starter|drop|pull]`, `ns withdraw <amount> [dough|starter|drop|pull]`, or `ns oven balance`.",
             ),
         )
 
@@ -880,28 +890,42 @@ def register_economy_commands(bot: commands.Bot) -> None:
             return
 
         dough, _, _ = get_player_info(_guild_id(ctx), ctx.author.id)
-        oven_dough = get_player_oven_balance(_guild_id(ctx), ctx.author.id)
+        starter = get_player_starter(_guild_id(ctx), ctx.author.id)
+        drop_tickets = get_player_drop_tickets(_guild_id(ctx), ctx.author.id)
+        pull_tickets = get_player_pull_tickets(_guild_id(ctx), ctx.author.id)
+        oven_dough, oven_starter, oven_drop_tickets, oven_pull_tickets = get_player_oven_balances(
+            _guild_id(ctx),
+            ctx.author.id,
+        )
         await _reply(
             ctx,
             embed=italy_embed(
                 "Oven",
                 multiline_text(
                     [
-                        f"Oven Balance: **{oven_dough}** dough",
-                        f"Spendable Dough: **{dough}**",
+                        f"Oven Dough: **{oven_dough}** | Spendable Dough: **{dough}**",
+                        f"Oven Starter: **{oven_starter}** | Spendable Starter: **{starter}**",
+                        f"Oven Drop Tickets: **{oven_drop_tickets}** | Spendable Drop Tickets: **{drop_tickets}**",
+                        f"Oven Pull Tickets: **{oven_pull_tickets}** | Spendable Pull Tickets: **{pull_tickets}**",
                     ]
                 ),
             ),
         )
 
-    @oven.command(name="deposit")
-    async def oven_deposit(ctx: commands.Context, amount: int):
+    async def _run_oven_deposit(ctx: commands.Context, amount: int, item: str | None = None):
         if not await _require_guild(ctx, "Oven"):
             return
 
-        result = execute_oven_deposit(_guild_id(ctx), ctx.author.id, amount)
+        requested_item = item or "dough"
+        result = execute_oven_deposit(_guild_id(ctx), ctx.author.id, amount, requested_item)
+        if result.status == "invalid_item":
+            await _reply(
+                ctx,
+                embed=italy_embed("Oven", "Item must be one of: `dough`, `starter`, `drop`, `pull`."),
+            )
+            return
         if result.status == "invalid_amount":
-            await _reply(ctx, embed=italy_embed("Oven", "Amount must be at least 1 dough."))
+            await _reply(ctx, embed=italy_embed("Oven", "Amount must be at least 1."))
             return
         if result.status == "net_too_small":
             await _reply(
@@ -909,41 +933,49 @@ def register_economy_commands(bot: commands.Bot) -> None:
                 embed=italy_embed("Oven", "Amount is too small after the 8% oven fee. Try a larger amount."),
             )
             return
-        if result.status == "insufficient_dough":
+        if result.status == "insufficient_spendable":
             await _reply(
                 ctx,
                 embed=italy_embed(
                     "Oven",
-                    f"You do not have enough dough. Current balance: **{result.dough_balance}** dough.",
+                    f"You do not have enough {_oven_item_label(result.item)}. Current balance: **{result.spendable_balance}**.",
                 ),
             )
             return
 
+        item_label = _oven_item_label(result.item)
         await _reply(
             ctx,
             embed=italy_embed(
-                "Oven Deposit",
+                "Deposit",
                 multiline_text(
                     [
-                        f"Requested: **{result.amount}** dough",
-                        f"Fee (8%): **{result.fee}** dough",
-                        f"Moved to Oven: **{result.net_amount}** dough",
-                        f"Monopoly Pot from Fee: **+{result.pot_contribution}** dough",
-                        f"Spendable Dough: **{result.dough_balance}**",
-                        f"Oven Balance: **{result.oven_balance}**",
+                        f"Item: **{item_label}**",
+                        f"Requested: **{result.amount}**",
+                        f"Fee (8%): **{result.fee}**",
+                        f"Moved to Oven: **{result.net_amount}**",
+                        f"Monopoly Pot from Fee: **+{result.pot_contribution}**",
+                        f"Spendable {item_label.title()}: **{result.spendable_balance}**",
+                        f"Oven {item_label.title()}: **{result.oven_balance}**",
                     ]
                 ),
             ),
         )
 
-    @oven.command(name="withdraw")
-    async def oven_withdraw(ctx: commands.Context, amount: int):
+    async def _run_oven_withdraw(ctx: commands.Context, amount: int, item: str | None = None):
         if not await _require_guild(ctx, "Oven"):
             return
 
-        result = execute_oven_withdraw(_guild_id(ctx), ctx.author.id, amount)
+        requested_item = item or "dough"
+        result = execute_oven_withdraw(_guild_id(ctx), ctx.author.id, amount, requested_item)
+        if result.status == "invalid_item":
+            await _reply(
+                ctx,
+                embed=italy_embed("Oven", "Item must be one of: `dough`, `starter`, `drop`, `pull`."),
+            )
+            return
         if result.status == "invalid_amount":
-            await _reply(ctx, embed=italy_embed("Oven", "Amount must be at least 1 dough."))
+            await _reply(ctx, embed=italy_embed("Oven", "Amount must be at least 1."))
             return
         if result.status == "net_too_small":
             await _reply(
@@ -956,27 +988,45 @@ def register_economy_commands(bot: commands.Bot) -> None:
                 ctx,
                 embed=italy_embed(
                     "Oven",
-                    f"You do not have enough dough in the oven. Current oven balance: **{result.oven_balance}** dough.",
+                    f"You do not have enough {_oven_item_label(result.item)} in the oven. Current oven balance: **{result.oven_balance}**.",
                 ),
             )
             return
 
+        item_label = _oven_item_label(result.item)
         await _reply(
             ctx,
             embed=italy_embed(
-                "Oven Withdraw",
+                "Withdraw",
                 multiline_text(
                     [
-                        f"Requested: **{result.amount}** dough",
-                        f"Fee (8%): **{result.fee}** dough",
-                        f"Moved to Wallet: **{result.net_amount}** dough",
-                        f"Monopoly Pot from Fee: **+{result.pot_contribution}** dough",
-                        f"Spendable Dough: **{result.dough_balance}**",
-                        f"Oven Balance: **{result.oven_balance}**",
+                        f"Item: **{item_label}**",
+                        f"Requested: **{result.amount}**",
+                        f"Fee (8%): **{result.fee}**",
+                        f"Moved to Wallet: **{result.net_amount}**",
+                        f"Monopoly Pot from Fee: **+{result.pot_contribution}**",
+                        f"Spendable {item_label.title()}: **{result.spendable_balance}**",
+                        f"Oven {item_label.title()}: **{result.oven_balance}**",
                     ]
                 ),
             ),
         )
+
+    @bot.command(name="deposit")
+    async def deposit(ctx: commands.Context, amount: int, item: str | None = None):
+        await _run_oven_deposit(ctx, amount, item)
+
+    @bot.command(name="withdraw")
+    async def withdraw(ctx: commands.Context, amount: int, item: str | None = None):
+        await _run_oven_withdraw(ctx, amount, item)
+
+    @oven.command(name="deposit")
+    async def oven_deposit(ctx: commands.Context, amount: int, item: str | None = None):
+        await _run_oven_deposit(ctx, amount, item)
+
+    @oven.command(name="withdraw")
+    async def oven_withdraw(ctx: commands.Context, amount: int, item: str | None = None):
+        await _run_oven_withdraw(ctx, amount, item)
 
     @gift.command(name="dough", aliases=["d"])
     async def gift_dough(ctx: commands.Context, player: str, amount: int):

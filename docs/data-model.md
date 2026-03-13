@@ -21,8 +21,11 @@ Columns:
 - `dough INTEGER NOT NULL DEFAULT 0`
 - `oven_dough INTEGER NOT NULL DEFAULT 0`
 - `starter INTEGER NOT NULL DEFAULT 0`
+- `oven_starter INTEGER NOT NULL DEFAULT 0`
 - `drop_tickets INTEGER NOT NULL DEFAULT 0`
+- `oven_drop_tickets INTEGER NOT NULL DEFAULT 0`
 - `pull_tickets INTEGER NOT NULL DEFAULT 0`
+- `oven_pull_tickets INTEGER NOT NULL DEFAULT 0`
 - `votes INTEGER NOT NULL DEFAULT 0`
 - `last_drop_at REAL NOT NULL DEFAULT 0` (tracks last `drop` command usage timestamp)
 - `last_pull_at REAL NOT NULL DEFAULT 0` (tracks last successful drop-card claim timestamp)
@@ -34,8 +37,8 @@ Columns:
 
 Purpose:
 - Player economy and cooldown state in the global Noodswap scope
-- Includes standard spendable currency (`dough`), segregated oven savings (`oven_dough`), and higher-tier currencies (`starter`, `drop_tickets`, `pull_tickets`)
-- `oven_dough` is excluded from spend/tax/rent flows until explicitly withdrawn
+- Includes standard spendable currencies (`dough`, `starter`, `drop_tickets`, `pull_tickets`) plus segregated oven balances (`oven_dough`, `oven_starter`, `oven_drop_tickets`, `oven_pull_tickets`)
+- Oven balances are excluded from spend/tax/rent flows until explicitly withdrawn
 - Tracks cumulative successful top.gg vote rewards (`votes`)
 - Marriage linkage to a specific owned card instance
 

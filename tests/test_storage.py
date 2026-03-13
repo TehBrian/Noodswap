@@ -43,6 +43,9 @@ class StorageTests:
             assert "monopoly_jail_roll_attempts" in column_names
             assert "monopoly_consecutive_doubles" in column_names
             assert "oven_dough" in column_names
+            assert "oven_starter" in column_names
+            assert "oven_drop_tickets" in column_names
+            assert "oven_pull_tickets" in column_names
 
             pot_row = conn.execute("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'gambling_pot'").fetchone()
             assert pot_row is not None
@@ -284,6 +287,73 @@ class StorageTests:
         result = storage.execute_oven_withdraw(guild_id, user_id, 50)
         assert result.status == "insufficient_oven"
         assert result.oven_balance == 18
+
+    def test_oven_deposit_starter_applies_fee_and_pot_contribution(self) -> None:
+        guild_id = 1
+        user_id = 3350
+
+        storage.init_db()
+        storage.add_starter(guild_id, user_id, 10)
+
+        result = storage.execute_oven_deposit(guild_id, user_id, 5, "starter")
+        assert result.status == "ok"
+        assert result.item == "starter"
+        assert result.fee == 1
+        assert result.net_amount == 4
+        assert result.spendable_balance == 5
+        assert result.oven_balance == 4
+
+        _pot_dough, pot_starter, _pot_drop, _pot_pull = storage.get_gambling_pot(guild_id)
+        assert pot_starter == 1
+
+    def test_oven_withdraw_drop_tickets_applies_fee_and_pot_contribution(self) -> None:
+        guild_id = 1
+        user_id = 3351
+
+        storage.init_db()
+        with storage.get_db_connection() as conn:
+            players = storage.PlayerRepository(conn, storage.STARTING_DOUGH)
+            players.ensure_player(storage._scope_guild_id(guild_id), user_id)
+            players.add_drop_tickets(storage._scope_guild_id(guild_id), user_id, 10)
+
+        storage.execute_oven_deposit(guild_id, user_id, 5, "drop")
+        result = storage.execute_oven_withdraw(guild_id, user_id, 4, "drop")
+        assert result.status == "ok"
+        assert result.item == "drop"
+        assert result.fee == 1
+        assert result.net_amount == 3
+
+        _pot_dough, _pot_starter, pot_drop, _pot_pull = storage.get_gambling_pot(guild_id)
+        assert pot_drop == 2
+
+    def test_oven_transfer_rejects_invalid_item(self) -> None:
+        guild_id = 1
+        user_id = 3352
+
+        storage.init_db()
+        result = storage.execute_oven_deposit(guild_id, user_id, 10, "coins")
+        assert result.status == "invalid_item"
+
+    def test_get_player_oven_balances_returns_all_item_balances(self) -> None:
+        guild_id = 1
+        user_id = 3353
+
+        storage.init_db()
+        storage.add_dough(guild_id, user_id, 100)
+        storage.add_starter(guild_id, user_id, 20)
+        with storage.get_db_connection() as conn:
+            players = storage.PlayerRepository(conn, storage.STARTING_DOUGH)
+            players.ensure_player(storage._scope_guild_id(guild_id), user_id)
+            players.add_drop_tickets(storage._scope_guild_id(guild_id), user_id, 6)
+            players.add_pull_tickets(storage._scope_guild_id(guild_id), user_id, 7)
+
+        storage.execute_oven_deposit(guild_id, user_id, 25)
+        storage.execute_oven_deposit(guild_id, user_id, 10, "starter")
+        storage.execute_oven_deposit(guild_id, user_id, 5, "drop")
+        storage.execute_oven_deposit(guild_id, user_id, 5, "pull")
+
+        oven_balances = storage.get_player_oven_balances(guild_id, user_id)
+        assert oven_balances == (23, 9, 4, 4)
 
     def test_monopoly_fine_ignores_oven_balance(self) -> None:
         guild_id = 1

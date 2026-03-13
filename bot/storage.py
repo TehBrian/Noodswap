@@ -105,12 +105,17 @@ class MonopolyFineResult:
 @dataclass(frozen=True)
 class OvenTransferResult:
     status: str
+    item: str
     amount: int
     fee: int
     net_amount: int
     pot_contribution: int
-    dough_balance: int
+    spendable_balance: int
     oven_balance: int
+
+    @property
+    def dough_balance(self) -> int:
+        return self.spendable_balance
 
 
 def _scope_guild_id(_guild_id: int) -> int:
@@ -142,6 +147,93 @@ def _oven_fee_pot_contribution(fee: int) -> int:
         OVEN_TRANSACTION_FEE_POT_CONTRIBUTION_DENOMINATOR,
         round_up=True,
     )
+
+
+_OVEN_ITEM_KEYS = {"dough", "starter", "drop", "pull"}
+
+
+def _normalize_oven_item(item: str | None) -> str:
+    if item is None:
+        return "dough"
+    normalized = item.strip().lower()
+    if normalized in {"", "d", "dough"}:
+        return "dough"
+    if normalized in {"s", "starter"}:
+        return "starter"
+    if normalized in {"drop", "drops", "drop_ticket", "drop_tickets", "ticket", "tickets"}:
+        return "drop"
+    if normalized in {"pull", "pulls", "pull_ticket", "pull_tickets"}:
+        return "pull"
+    return ""
+
+
+def _get_spendable_balance(players: PlayerRepository, guild_id: int, user_id: int, item: str) -> int:
+    if item == "dough":
+        return players.get_dough(guild_id, user_id)
+    if item == "starter":
+        return players.get_starter(guild_id, user_id)
+    if item == "drop":
+        return players.get_drop_tickets(guild_id, user_id)
+    if item == "pull":
+        return players.get_pull_tickets(guild_id, user_id)
+    raise ValueError(f"unsupported oven item: {item}")
+
+
+def _get_oven_balance(players: PlayerRepository, guild_id: int, user_id: int, item: str) -> int:
+    if item == "dough":
+        return players.get_oven_dough(guild_id, user_id)
+    if item == "starter":
+        return players.get_oven_starter(guild_id, user_id)
+    if item == "drop":
+        return players.get_oven_drop_tickets(guild_id, user_id)
+    if item == "pull":
+        return players.get_oven_pull_tickets(guild_id, user_id)
+    raise ValueError(f"unsupported oven item: {item}")
+
+
+def _add_spendable(players: PlayerRepository, guild_id: int, user_id: int, item: str, amount: int) -> None:
+    if item == "dough":
+        players.add_dough(guild_id, user_id, amount)
+        return
+    if item == "starter":
+        players.add_starter(guild_id, user_id, amount)
+        return
+    if item == "drop":
+        players.add_drop_tickets(guild_id, user_id, amount)
+        return
+    if item == "pull":
+        players.add_pull_tickets(guild_id, user_id, amount)
+        return
+    raise ValueError(f"unsupported oven item: {item}")
+
+
+def _add_oven(players: PlayerRepository, guild_id: int, user_id: int, item: str, amount: int) -> None:
+    if item == "dough":
+        players.add_oven_dough(guild_id, user_id, amount)
+        return
+    if item == "starter":
+        players.add_oven_starter(guild_id, user_id, amount)
+        return
+    if item == "drop":
+        players.add_oven_drop_tickets(guild_id, user_id, amount)
+        return
+    if item == "pull":
+        players.add_oven_pull_tickets(guild_id, user_id, amount)
+        return
+    raise ValueError(f"unsupported oven item: {item}")
+
+
+def _pot_add_for_item(pot: GamblingPotRepository, guild_id: int, item: str, amount: int) -> None:
+    if amount <= 0:
+        return
+    if item == "dough":
+        pot.add(guild_id, dough=amount)
+    elif item == "starter":
+        pot.add(guild_id, starter=amount)
+    elif item == "drop":
+        pot.add(guild_id, drop_tickets=amount)
+    elif item == "pull":
+        pot.add(guild_id, pull_tickets=amount)
 
 
 @contextmanager
@@ -1292,6 +1384,19 @@ def get_player_oven_balance(guild_id: int, user_id: int) -> int:
         players = PlayerRepository(conn, STARTING_DOUGH)
         players.ensure_player(guild_id, user_id)
         return players.get_oven_dough(guild_id, user_id)
+
+
+def get_player_oven_balances(guild_id: int, user_id: int) -> tuple[int, int, int, int]:
+    guild_id = _scope_guild_id(guild_id)
+    with get_db_connection() as conn:
+        players = PlayerRepository(conn, STARTING_DOUGH)
+        players.ensure_player(guild_id, user_id)
+        return (
+            players.get_oven_dough(guild_id, user_id),
+            players.get_oven_starter(guild_id, user_id),
+            players.get_oven_drop_tickets(guild_id, user_id),
+            players.get_oven_pull_tickets(guild_id, user_id),
+        )
 
 
 def get_player_drop_tickets(guild_id: int, user_id: int) -> int:
@@ -2551,8 +2656,10 @@ def execute_oven_deposit(
     guild_id: int,
     user_id: int,
     amount: int,
+    item: str = "dough",
 ) -> OvenTransferResult:
     guild_id = _scope_guild_id(guild_id)
+    item_key = _normalize_oven_item(item)
     with get_db_connection() as conn:
         _begin_immediate(conn)
         players = PlayerRepository(conn, STARTING_DOUGH)
@@ -2560,17 +2667,30 @@ def execute_oven_deposit(
         players.ensure_player(guild_id, user_id)
         pot.ensure_row(guild_id)
 
-        dough_balance = players.get_dough(guild_id, user_id)
-        oven_balance = players.get_oven_dough(guild_id, user_id)
-
-        if amount < 1:
+        if item_key not in _OVEN_ITEM_KEYS:
             return OvenTransferResult(
-                status="invalid_amount",
+                status="invalid_item",
+                item="",
                 amount=amount,
                 fee=0,
                 net_amount=0,
                 pot_contribution=0,
-                dough_balance=dough_balance,
+                spendable_balance=0,
+                oven_balance=0,
+            )
+
+        spendable_balance = _get_spendable_balance(players, guild_id, user_id, item_key)
+        oven_balance = _get_oven_balance(players, guild_id, user_id, item_key)
+
+        if amount < 1:
+            return OvenTransferResult(
+                status="invalid_amount",
+                item=item_key,
+                amount=amount,
+                fee=0,
+                net_amount=0,
+                pot_contribution=0,
+                spendable_balance=spendable_balance,
                 oven_balance=oven_balance,
             )
 
@@ -2579,39 +2699,41 @@ def execute_oven_deposit(
         if net_amount <= 0:
             return OvenTransferResult(
                 status="net_too_small",
+                item=item_key,
                 amount=amount,
                 fee=fee,
                 net_amount=0,
                 pot_contribution=0,
-                dough_balance=dough_balance,
+                spendable_balance=spendable_balance,
                 oven_balance=oven_balance,
             )
 
-        if dough_balance < amount:
+        if spendable_balance < amount:
             return OvenTransferResult(
-                status="insufficient_dough",
+                status="insufficient_spendable",
+                item=item_key,
                 amount=amount,
                 fee=fee,
                 net_amount=net_amount,
                 pot_contribution=0,
-                dough_balance=dough_balance,
+                spendable_balance=spendable_balance,
                 oven_balance=oven_balance,
             )
 
-        players.add_dough(guild_id, user_id, -amount)
-        players.add_oven_dough(guild_id, user_id, net_amount)
+        _add_spendable(players, guild_id, user_id, item_key, -amount)
+        _add_oven(players, guild_id, user_id, item_key, net_amount)
         pot_contribution = _oven_fee_pot_contribution(fee)
-        if pot_contribution > 0:
-            pot.add(guild_id, dough=pot_contribution)
+        _pot_add_for_item(pot, guild_id, item_key, pot_contribution)
 
         return OvenTransferResult(
             status="ok",
+            item=item_key,
             amount=amount,
             fee=fee,
             net_amount=net_amount,
             pot_contribution=pot_contribution,
-            dough_balance=players.get_dough(guild_id, user_id),
-            oven_balance=players.get_oven_dough(guild_id, user_id),
+            spendable_balance=_get_spendable_balance(players, guild_id, user_id, item_key),
+            oven_balance=_get_oven_balance(players, guild_id, user_id, item_key),
         )
 
 
@@ -2619,8 +2741,10 @@ def execute_oven_withdraw(
     guild_id: int,
     user_id: int,
     amount: int,
+    item: str = "dough",
 ) -> OvenTransferResult:
     guild_id = _scope_guild_id(guild_id)
+    item_key = _normalize_oven_item(item)
     with get_db_connection() as conn:
         _begin_immediate(conn)
         players = PlayerRepository(conn, STARTING_DOUGH)
@@ -2628,17 +2752,30 @@ def execute_oven_withdraw(
         players.ensure_player(guild_id, user_id)
         pot.ensure_row(guild_id)
 
-        dough_balance = players.get_dough(guild_id, user_id)
-        oven_balance = players.get_oven_dough(guild_id, user_id)
-
-        if amount < 1:
+        if item_key not in _OVEN_ITEM_KEYS:
             return OvenTransferResult(
-                status="invalid_amount",
+                status="invalid_item",
+                item="",
                 amount=amount,
                 fee=0,
                 net_amount=0,
                 pot_contribution=0,
-                dough_balance=dough_balance,
+                spendable_balance=0,
+                oven_balance=0,
+            )
+
+        spendable_balance = _get_spendable_balance(players, guild_id, user_id, item_key)
+        oven_balance = _get_oven_balance(players, guild_id, user_id, item_key)
+
+        if amount < 1:
+            return OvenTransferResult(
+                status="invalid_amount",
+                item=item_key,
+                amount=amount,
+                fee=0,
+                net_amount=0,
+                pot_contribution=0,
+                spendable_balance=spendable_balance,
                 oven_balance=oven_balance,
             )
 
@@ -2647,39 +2784,41 @@ def execute_oven_withdraw(
         if net_amount <= 0:
             return OvenTransferResult(
                 status="net_too_small",
+                item=item_key,
                 amount=amount,
                 fee=fee,
                 net_amount=0,
                 pot_contribution=0,
-                dough_balance=dough_balance,
+                spendable_balance=spendable_balance,
                 oven_balance=oven_balance,
             )
 
         if oven_balance < amount:
             return OvenTransferResult(
                 status="insufficient_oven",
+                item=item_key,
                 amount=amount,
                 fee=fee,
                 net_amount=net_amount,
                 pot_contribution=0,
-                dough_balance=dough_balance,
+                spendable_balance=spendable_balance,
                 oven_balance=oven_balance,
             )
 
-        players.add_oven_dough(guild_id, user_id, -amount)
-        players.add_dough(guild_id, user_id, net_amount)
+        _add_oven(players, guild_id, user_id, item_key, -amount)
+        _add_spendable(players, guild_id, user_id, item_key, net_amount)
         pot_contribution = _oven_fee_pot_contribution(fee)
-        if pot_contribution > 0:
-            pot.add(guild_id, dough=pot_contribution)
+        _pot_add_for_item(pot, guild_id, item_key, pot_contribution)
 
         return OvenTransferResult(
             status="ok",
+            item=item_key,
             amount=amount,
             fee=fee,
             net_amount=net_amount,
             pot_contribution=pot_contribution,
-            dough_balance=players.get_dough(guild_id, user_id),
-            oven_balance=players.get_oven_dough(guild_id, user_id),
+            spendable_balance=_get_spendable_balance(players, guild_id, user_id, item_key),
+            oven_balance=_get_oven_balance(players, guild_id, user_id, item_key),
         )
 
 

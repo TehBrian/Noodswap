@@ -126,6 +126,7 @@ from .storage import (
     get_player_info,
     get_player_leaderboard_info,
     get_player_oven_balance,
+    get_player_oven_balances,
     get_player_slots_timestamp,
     get_player_starter,
     get_total_cards,
