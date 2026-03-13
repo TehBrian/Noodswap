@@ -285,3 +285,28 @@ async def test_rejects_unknown_vote_type(webhook_server: TopggWebhookServer) -> 
     assert response.status == 400
     assert storage.get_player_starter(0, 123) == 0
     assert storage.get_player_votes(0, 123) == 0
+
+
+async def test_rejects_unexpected_project_platform_id() -> None:
+    tmp_dir = tempfile.TemporaryDirectory()
+    original_db_path = storage.DB_PATH
+    storage.DB_PATH = Path(tmp_dir.name) / "test.db"
+    storage.init_db()
+    server = TopggWebhookServer(
+        TopggWebhookConfig(
+            secret=_SECRET,
+            host="127.0.0.1",
+            port=8080,
+            path="/noodswap/topgg-vote-webhook",
+            expected_bot_id="EXPECTED_BOT",
+        )
+    )
+    try:
+        body = _vote_body("123", bot_platform_id="OTHER_BOT")
+        response = await server._handle_vote(_mocked_post("/noodswap/topgg-vote-webhook", body))
+        assert response.status == 400
+        assert storage.get_player_starter(0, 123) == 0
+        assert storage.get_player_votes(0, 123) == 0
+    finally:
+        storage.DB_PATH = original_db_path
+        tmp_dir.cleanup()

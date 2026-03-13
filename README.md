@@ -68,20 +68,23 @@ If startup fails with `401 Unauthorized` / `Improper token has been passed`, ver
 
 Optional runtime values for top.gg webhook integration:
 
-- `TOPGG_WEBHOOK_SECRET` - required for vote detection; must exactly match the `Authorization` value configured in top.gg
+- `TOPGG_WEBHOOK_SECRET` - required for vote detection; this is the webhook secret from top.gg Integrations (`whs_...`) used to verify `x-topgg-signature`
 - `TOPGG_BOT_ID` - optional fallback used to build the vote URL and to validate incoming webhook payload bot ids
 - `TOPGG_WEBHOOK_HOST` - listener bind host inside the app or container; default `0.0.0.0`
 - `TOPGG_WEBHOOK_PORT` - listener port inside the app or container; default `8080`
 - `TOPGG_WEBHOOK_PATH` - POST route top.gg should call; default `/noodswap/topgg-vote-webhook`
+- `TOPGG_WEBHOOK_MAX_BODY_BYTES` - maximum accepted request size in bytes; default `16384`
+- `TOPGG_WEBHOOK_REQUIRE_JSON_CONTENT_TYPE` - when `true`, enforce `application/json`; default `true`
 - `TOPGG_WEBHOOK_ALLOWED_IPS` - optional source IP allowlist; leave empty unless the app receives the real client IP directly
 
 Top.gg webhook checklist:
 
 - In top.gg, set the webhook URL to your public bot endpoint, for example `https://your-domain.example/noodswap/topgg-vote-webhook`.
 - If you use the included production compose file directly, the container listens on `8080` and is published as host port `14151`, so your external route must forward to that port.
-- In top.gg, set `Authorization` to the exact same value as `TOPGG_WEBHOOK_SECRET`.
+- In top.gg Integrations, use the same webhook secret value as `TOPGG_WEBHOOK_SECRET` in `deploy/runtime.env`.
 - Rewards are webhook-driven only. `ns vote` opens the vote page, but it does not poll top.gg or claim rewards by itself.
-- Top.gg test webhooks should return `200` without granting a reward; real votes arrive with `type=upvote` and grant `starter` automatically.
+- Top.gg test webhooks should return `200` without granting a reward (`type=webhook.test`); real votes arrive as `type=vote.create` and grant `starter` automatically.
+- Signature verification uses the `x-topgg-signature` header (`t=...,v1=...`) over the exact raw request body; avoid proxy/body middleware that rewrites payload bytes.
 - If you are behind a reverse proxy, keep `TOPGG_WEBHOOK_ALLOWED_IPS` empty unless you have explicitly arranged real client IP forwarding all the way to the app.
 
 ### Manual deploy/update

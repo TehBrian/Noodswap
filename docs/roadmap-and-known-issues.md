@@ -111,6 +111,7 @@ Stage 3 implementation guide: `docs/refactor-phase-3.md`.
 - Added follow-up roadmap item to automate deploy-state bootstrap (SQLite backup/restore and card-image cache artifact import) so host migrations do not require manual DB/image copy steps.
 - Added `leaderboard` / `le` with invoker-scoped pagination + criterion dropdown (`Cards`, `Wishes`, `Dough`, `Starter`, `Collection Value`) to rank players by global player metrics.
 - Added webhook-only top.gg vote registration with signed event intake and automatic `starter` reward claiming.
+- Aligned top.gg webhook handling/docs/tests to Webhooks V2 semantics (`x-topgg-signature` HMAC over raw body, `vote.create` and `webhook.test` event types, nested `data.user.platform_id` user resolution).
 - Hardened top.gg webhook intake with optional source IP allowlisting (`TOPGG_WEBHOOK_ALLOWED_IPS`), strict JSON content-type enforcement, and bounded request size controls (`TOPGG_WEBHOOK_MAX_BODY_BYTES`) to reduce spoofing/DoS surface.
 - Updated `vote` / `v` command copy to reflect automatic webhook registration and removed pull-based top.gg polling from the command path.
 - Removed vote reward gating and removed vote status from `cooldown` UX so vote rewards now claim whenever a vote is detected.
