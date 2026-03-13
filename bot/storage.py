@@ -1965,14 +1965,16 @@ def execute_monopoly_roll(
                 lines.append("")
                 lines.append(f"Landed on **{card_name}** {space.emoji} (#{card_id})")
                 rent_due = (
-                    card_value(
-                        card_type_id,
-                        generation,
-                        morph_key=morph_key,
-                        frame_key=frame_key,
-                        font_key=font_key,
+                    int(
+                        card_value(
+                            card_type_id,
+                            generation,
+                            morph_key=morph_key,
+                            frame_key=frame_key,
+                            font_key=font_key,
+                        )
+                        * 0.9
                     )
-                    // 4
                 )
                 paid = _deduct_up_to(players, guild_id, user_id, rent_due)
                 if paid > 0:

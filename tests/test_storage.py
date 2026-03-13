@@ -386,7 +386,7 @@ class StorageTests:
         assert not (in_jail)
         assert doubles_count == 1
 
-    def test_monopoly_property_rent_is_one_fourth_of_card_value(self) -> None:
+    def test_monopoly_property_rent_is_ninety_percent_of_card_value(self) -> None:
         guild_id = 1
         roller_id = 1250
         owner_id = 1251
@@ -404,7 +404,7 @@ class StorageTests:
             frame_key=None,
             font_key=None,
         )
-        expected_rent = full_value // 4
+        expected_rent = int(full_value * 0.9)
 
         with patch("bot.storage.roll_dice", return_value=(1, 2, False)):
             result = storage.execute_monopoly_roll(
