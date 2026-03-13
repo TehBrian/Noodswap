@@ -2189,7 +2189,7 @@ def execute_monopoly_roll(
                 thumbnail_frame_key = frame_key
                 thumbnail_font_key = font_key
                 lines.append(f"Rent paid to <@{owner_id}>: **{rent_paid} dough**")
-                lines.append(f"(**+{pot_transaction_fee}** transaction fee to pot)")
+                lines.append(f"(**+{transaction_fee_paid}** transaction fee)")
             else:
                 lines.append("")
                 lines.append(f"Landed on a **{space.rarity}** {space.emoji} property.")

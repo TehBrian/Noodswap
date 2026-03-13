@@ -595,7 +595,7 @@ class StorageTests:
                 cooldown_seconds=660.0,
             )
         assert result.status == "ok"
-        assert any(line == f"(**+{expected_fee_to_pot}** transaction fee to pot)" for line in result.lines)
+        assert any(line == f"(**+{expected_fee}** transaction fee)" for line in result.lines)
 
         roller_dough, _, _ = storage.get_player_info(guild_id, roller_id)
         owner_dough, _, _ = storage.get_player_info(guild_id, owner_id)
