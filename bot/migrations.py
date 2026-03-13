@@ -2,7 +2,7 @@ from collections.abc import Callable
 import sqlite3
 import time
 
-TARGET_SCHEMA_VERSION = 27
+TARGET_SCHEMA_VERSION = 28
 _BASE36_ALPHABET = "0123456789abcdefghijklmnopqrstuvwxyz"
 
 
@@ -887,6 +887,40 @@ def _apply_migration_v27(conn: sqlite3.Connection) -> None:
     )
 
 
+def _apply_migration_v28(conn: sqlite3.Connection) -> None:
+    card_instances_table_exists = (
+        conn.execute(
+            """
+        SELECT 1
+        FROM sqlite_master
+        WHERE type = 'table' AND name = 'card_instances'
+        LIMIT 1
+        """
+        ).fetchone()
+        is not None
+    )
+    if not card_instances_table_exists:
+        return
+
+    if _has_column(conn, "card_instances", "dropped_by_user_id"):
+        conn.execute(
+            """
+            UPDATE card_instances
+            SET dropped_by_user_id = user_id
+            WHERE dropped_by_user_id IS NULL
+            """
+        )
+
+    if _has_column(conn, "card_instances", "pulled_by_user_id"):
+        conn.execute(
+            """
+            UPDATE card_instances
+            SET pulled_by_user_id = user_id
+            WHERE pulled_by_user_id IS NULL
+            """
+        )
+
+
 def run_migrations(
     conn: sqlite3.Connection,
     *,
@@ -1030,6 +1064,11 @@ def run_migrations(
         _apply_migration_v27(conn)
         _set_schema_version(conn, 27)
         current_version = 27
+
+    if current_version < 28:
+        _apply_migration_v28(conn)
+        _set_schema_version(conn, 28)
+        current_version = 28
 
     if current_version > target_schema_version:
         raise RuntimeError(f"Database schema version {current_version} is newer than supported {target_schema_version}.")

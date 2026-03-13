@@ -1508,6 +1508,94 @@ class StorageTests:
             assert row is not None
             assert row[0] is not None
 
+    def test_init_db_v28_backfills_missing_instance_attribution_from_owner(self) -> None:
+        with closing(sqlite3.connect(storage.DB_PATH)) as conn:
+            with conn:
+                conn.executescript(
+                    """
+                    CREATE TABLE schema_migrations (
+                        version INTEGER NOT NULL
+                    );
+                    INSERT INTO schema_migrations(version) VALUES (27);
+
+                    CREATE TABLE card_instances (
+                        instance_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        guild_id INTEGER NOT NULL,
+                        user_id INTEGER NOT NULL,
+                        card_type_id TEXT NOT NULL,
+                        generation INTEGER NOT NULL,
+                        card_code TEXT,
+                        dropped_by_user_id INTEGER,
+                        pulled_by_user_id INTEGER,
+                        pulled_at REAL
+                    );
+
+                    INSERT INTO card_instances (
+                        guild_id,
+                        user_id,
+                        card_type_id,
+                        generation,
+                        dropped_by_user_id,
+                        pulled_by_user_id
+                    )
+                    VALUES
+                        (0, 101, 'SPG', 100, NULL, NULL),
+                        (0, 202, 'PEN', 200, 303, 404);
+                    """
+                )
+
+        storage.init_db()
+
+        with closing(sqlite3.connect(storage.DB_PATH)) as conn:
+            rows = conn.execute(
+                """
+                SELECT user_id, dropped_by_user_id, pulled_by_user_id
+                FROM card_instances
+                ORDER BY instance_id ASC
+                """
+            ).fetchall()
+
+        assert len(rows) == 2
+        assert tuple(rows[0]) == (101, 101, 101)
+        assert tuple(rows[1]) == (202, 303, 404)
+
+    def test_init_db_from_v23_adds_and_backfills_instance_attribution(self) -> None:
+        with closing(sqlite3.connect(storage.DB_PATH)) as conn:
+            with conn:
+                conn.executescript(
+                    """
+                    CREATE TABLE schema_migrations (
+                        version INTEGER NOT NULL
+                    );
+                    INSERT INTO schema_migrations(version) VALUES (23);
+
+                    CREATE TABLE card_instances (
+                        instance_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        guild_id INTEGER NOT NULL,
+                        user_id INTEGER NOT NULL,
+                        card_type_id TEXT NOT NULL,
+                        generation INTEGER NOT NULL
+                    );
+
+                    INSERT INTO card_instances (guild_id, user_id, card_type_id, generation)
+                    VALUES (0, 987, 'SPG', 777);
+                    """
+                )
+
+        storage.init_db()
+
+        with closing(sqlite3.connect(storage.DB_PATH)) as conn:
+            row = conn.execute(
+                """
+                SELECT user_id, dropped_by_user_id, pulled_by_user_id
+                FROM card_instances
+                LIMIT 1
+                """
+            ).fetchone()
+
+        assert row is not None
+        assert tuple(row) == (987, 987, 987)
+
     def test_wishlist_add_remove_and_read(self) -> None:
         guild_id = 1
         user_id = 920

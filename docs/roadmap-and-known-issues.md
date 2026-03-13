@@ -117,6 +117,7 @@ Stage 3 implementation guide: `docs/refactor-phase-3.md`.
 - Updated `scripts/init_runtime.py` to use replacement semantics for seeded runtime assets, refreshing `runtime/card_images/`, `runtime/fonts/`, and `runtime/frames/` from `assets/` on each run.
 - Added `frame` / `fr` confirmation flow with before/after transition previews and per-instance frame persistence (`card_instances.frame_key`), initially shipping a `buttery` golden dripping-border frame.
 - Expanded frame traits to support multiple overlay-backed frame keys (`buttery`, `gilded`, `drizzled`) and added a parallel `font` / `fo` confirmation flow with per-instance font persistence (`card_instances.font_key`).
+- Added schema migration v28 to backfill missing `card_instances.dropped_by_user_id` and `card_instances.pulled_by_user_id` from current owner `user_id` for legacy rows, while preserving any existing non-null attribution values.
 - Added per-player tag collections (`player_tags` + `card_instance_tags`) with commands for create/delete/list/lock/unlock/assign/unassign/cards, and enforced burn protection for instances attached to any locked tag.
 - Added `morph` / `mo` confirmation flow with before/after transition previews (`before -> after`), and ensured morph persistence + dough charge happen only on explicit confirmation.
 - Expanded morph traits with additional visual variants (`inverse`, `tint_rose`, `tint_aqua`, `tint_lime`, `upside_down`) while keeping the same random-roll + confirmation UX.
