@@ -1,5 +1,7 @@
+import hashlib
 import hmac
 import ipaddress
+import json
 import logging
 from dataclasses import dataclass
 from typing import Any
@@ -22,19 +24,41 @@ def _normalize_route_path(path: str) -> str:
 
 
 def _extract_user_id(payload: dict[str, Any]) -> int | None:
-    raw_user = payload.get("user")
+    """Extract the Discord platform user ID from a webhooks v2 payload."""
+    data = payload.get("data")
+    if not isinstance(data, dict):
+        return None
+    user = data.get("user")
+    if not isinstance(user, dict):
+        return None
+    raw_user = user.get("platform_id")
     if isinstance(raw_user, str) and raw_user.isdigit():
         return int(raw_user)
     if isinstance(raw_user, int) and raw_user >= 0:
-        return raw_user
+        return int(raw_user)
     return None
 
 
-def _is_authorized(header_value: str | None, secret: str) -> bool:
-    if not secret:
+def _verify_signature(raw_body: bytes, header_value: str | None, secret: str) -> bool:
+    """Verify the x-topgg-signature header using the webhooks v2 HMAC-SHA256 scheme.
+
+    The header format is: t={unix_timestamp},v1={hmac_sha256_hex}
+    The HMAC message is: {timestamp}.{raw_body_bytes}
+    """
+    if not secret or not header_value:
         return False
-    provided = (header_value or "").strip()
-    return hmac.compare_digest(provided, secret)
+    parts: dict[str, str] = {}
+    for part in header_value.split(","):
+        if "=" in part:
+            k, _, v = part.partition("=")
+            parts[k.strip()] = v.strip()
+    timestamp = parts.get("t")
+    signature = parts.get("v1")
+    if not timestamp or not signature:
+        return False
+    message = f"{timestamp}.".encode() + raw_body
+    expected = hmac.new(secret.encode(), message, hashlib.sha256).hexdigest()
+    return hmac.compare_digest(signature, expected)
 
 
 def _parse_networks(raw_networks: tuple[str, ...]) -> tuple[IpNetwork, ...]:
@@ -119,10 +143,6 @@ class TopggWebhookServer:
             )
             return web.json_response({"ok": False, "error": "forbidden"}, status=403)
 
-        if not _is_authorized(request.headers.get("Authorization"), self._config.secret):
-            logger.warning("Rejected top.gg webhook request due to invalid authorization header.")
-            return web.json_response({"ok": False, "error": "unauthorized"}, status=401)
-
         if self._config.require_json_content_type and request.content_type != "application/json":
             return web.json_response({"ok": False, "error": "unsupported_media_type"}, status=415)
 
@@ -130,17 +150,26 @@ class TopggWebhookServer:
             return web.json_response({"ok": False, "error": "payload_too_large"}, status=413)
 
         try:
-            payload = await request.json()
+            raw_body = await request.read()
         except web.HTTPRequestEntityTooLarge:
             return web.json_response({"ok": False, "error": "payload_too_large"}, status=413)
-        except Exception:  # pragma: no cover - aiohttp raises different decode errors
+
+        if not _verify_signature(raw_body, request.headers.get("x-topgg-signature"), self._config.secret):
+            logger.warning("Rejected top.gg webhook request due to invalid signature.")
+            return web.json_response({"ok": False, "error": "unauthorized"}, status=401)
+
+        try:
+            payload = json.loads(raw_body)
+        except Exception:
             return web.json_response({"ok": False, "error": "invalid_json"}, status=400)
 
         if not isinstance(payload, dict):
             return web.json_response({"ok": False, "error": "invalid_payload"}, status=400)
 
         if self._config.expected_bot_id:
-            payload_bot_id = str(payload.get("bot", "")).strip()
+            data = payload.get("data")
+            project = data.get("project") if isinstance(data, dict) else None
+            payload_bot_id = str(project.get("platform_id", "")).strip() if isinstance(project, dict) else ""
             if payload_bot_id and payload_bot_id != self._config.expected_bot_id:
                 logger.warning(
                     "Rejected top.gg webhook vote for unexpected bot id %s.",
@@ -153,17 +182,17 @@ class TopggWebhookServer:
             return web.json_response({"ok": False, "error": "missing_user"}, status=400)
 
         payload_type = str(payload.get("type", "")).strip().lower()
-        if payload_type not in {"upvote", "test"}:
+        if payload_type not in {"vote.create", "webhook.test"}:
             return web.json_response({"ok": False, "error": "invalid_type"}, status=400)
 
-        if payload_type == "test":
+        if payload_type == "webhook.test":
             logger.info("top.gg test webhook acknowledged for user_id=%s", user_id)
             return web.json_response(
                 {
                     "ok": True,
                     "claimed": False,
                     "starter_total": None,
-                    "event_type": "test",
+                    "event_type": "webhook.test",
                 },
                 status=200,
             )
@@ -183,7 +212,7 @@ class TopggWebhookServer:
                 "ok": True,
                 "claimed": True,
                 "starter_total": starter_total,
-                "event_type": "upvote",
+                "event_type": "vote.create",
             },
             status=200,
         )
