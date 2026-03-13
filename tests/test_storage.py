@@ -51,6 +51,7 @@ class StorageTests:
             assert "morph_key" in instance_column_names
             assert "frame_key" in instance_column_names
             assert "font_key" in instance_column_names
+            assert "pulled_at" in instance_column_names
 
             wishlist_row = conn.execute("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'wishlist_cards'").fetchone()
             assert wishlist_row is not None
@@ -114,6 +115,28 @@ class StorageTests:
         assert rows == [
             (instance_a, owner_a, "SPG", 120, "0", "inverse", None, None),
             (instance_b, owner_b, "PEN", 80, "1", None, "buttery", "mono"),
+        ]
+
+    def test_get_all_owned_card_instances_with_pulled_at_returns_all_owners_styles_and_timestamp(self) -> None:
+        guild_id = 1
+        owner_a = 100
+        owner_b = 200
+
+        storage.init_db()
+        instance_a = storage.add_card_to_player(guild_id, owner_a, "SPG", 120, pulled_at=1_700_000_100.0)
+        instance_b = storage.add_card_to_player(guild_id, owner_b, "PEN", 80, pulled_at=1_700_000_200.0)
+        with storage.get_db_connection() as conn:
+            scoped_guild_id = storage._scope_guild_id(guild_id)
+            instances = storage.CardInstanceRepository(conn)
+            assert instances.set_morph_key(scoped_guild_id, owner_a, instance_a, "inverse")
+            assert instances.set_frame_key(scoped_guild_id, owner_b, instance_b, "buttery")
+            assert instances.set_font_key(scoped_guild_id, owner_b, instance_b, "mono")
+
+        rows = storage.get_all_owned_card_instances_with_pulled_at(guild_id)
+
+        assert rows == [
+            (instance_a, owner_a, "SPG", 120, "0", 1_700_000_100.0, "inverse", None, None),
+            (instance_b, owner_b, "PEN", 80, "1", 1_700_000_200.0, None, "buttery", "mono"),
         ]
 
     def test_claim_vote_reward_always_adds_starter(self) -> None:
@@ -1348,12 +1371,15 @@ class StorageTests:
             global_card_code,
             global_dropped_by_user_id,
             global_pulled_by_user_id,
+            global_pulled_at,
         ) = by_hash_global
         plain_instance_id, plain_card_id, plain_generation, plain_card_code = by_plain_code
         assert global_user_id == user_id
         assert (global_instance_id, global_card_id, global_generation, global_card_code) == (plain_instance_id, plain_card_id, plain_generation, plain_card_code)
         assert global_dropped_by_user_id is None
         assert global_pulled_by_user_id is None
+        assert global_pulled_at is not None
+        assert global_pulled_at > 0
 
     def test_init_db_v5_ensures_card_code_column_and_index(self) -> None:
         with closing(sqlite3.connect(storage.DB_PATH)) as conn:
@@ -1437,6 +1463,50 @@ class StorageTests:
 
             index_row = conn.execute("SELECT name FROM sqlite_master WHERE type = 'index' AND name = 'idx_card_instances_card_code'").fetchone()
             assert index_row is not None
+
+    def test_init_db_v27_adds_pulled_at_and_backfills_nulls(self) -> None:
+        with closing(sqlite3.connect(storage.DB_PATH)) as conn:
+            with conn:
+                conn.executescript(
+                    """
+                    CREATE TABLE schema_migrations (
+                        version INTEGER NOT NULL
+                    );
+                    INSERT INTO schema_migrations(version) VALUES (26);
+
+                    CREATE TABLE card_instances (
+                        instance_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        guild_id INTEGER NOT NULL,
+                        user_id INTEGER NOT NULL,
+                        card_type_id TEXT NOT NULL,
+                        generation INTEGER NOT NULL,
+                        card_code TEXT,
+                        dropped_by_user_id INTEGER,
+                        pulled_by_user_id INTEGER,
+                        morph_key TEXT,
+                        frame_key TEXT,
+                        font_key TEXT
+                    );
+
+                    INSERT INTO card_instances (guild_id, user_id, card_type_id, generation, card_code)
+                    VALUES (0, 42, 'SPG', 123, 'a');
+                    """
+                )
+
+        storage.init_db()
+
+        with closing(sqlite3.connect(storage.DB_PATH)) as conn:
+            version_row = conn.execute("SELECT version FROM schema_migrations LIMIT 1").fetchone()
+            assert version_row is not None
+            assert int(version_row[0]) == storage.TARGET_SCHEMA_VERSION
+
+            columns = conn.execute("PRAGMA table_info(card_instances)").fetchall()
+            column_names = {str(column[1]) for column in columns}
+            assert "pulled_at" in column_names
+
+            row = conn.execute("SELECT pulled_at FROM card_instances LIMIT 1").fetchone()
+            assert row is not None
+            assert row[0] is not None
 
     def test_wishlist_add_remove_and_read(self) -> None:
         guild_id = 1

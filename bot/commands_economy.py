@@ -66,6 +66,7 @@ from .command_utils import (
     discord as discord,
     drop_choices_description as drop_choices_description,
     embed_image_payload as embed_image_payload,
+    morph_transition_image_payload as morph_transition_image_payload,
     execute_divorce as execute_divorce,
     execute_flip_wager as execute_flip_wager,
     execute_gift_card as execute_gift_card,
@@ -83,7 +84,7 @@ from .command_utils import (
     frame_rarity as frame_rarity,
     generation_value_multiplier as generation_value_multiplier,
     get_active_team_name as get_active_team_name,
-    get_all_owned_card_instances as get_all_owned_card_instances,
+    get_all_owned_card_instances_with_pulled_at as get_all_owned_card_instances_with_pulled_at,
     get_burn_candidate_by_card_id as get_burn_candidate_by_card_id,
     get_card_wish_counts as get_card_wish_counts,
     get_folder_emojis_for_instances as get_folder_emojis_for_instances,
@@ -100,7 +101,7 @@ from .command_utils import (
     get_locked_instance_ids as get_locked_instance_ids,
     get_monopoly_board_state as get_monopoly_board_state,
     get_monopoly_state as get_monopoly_state,
-    get_player_card_instances as get_player_card_instances,
+    get_player_card_instances_with_pulled_at as get_player_card_instances_with_pulled_at,
     get_player_cooldown_timestamps as get_player_cooldown_timestamps,
     get_player_drop_tickets as get_player_drop_tickets,
     get_player_flip_timestamp as get_player_flip_timestamp,
@@ -314,7 +315,15 @@ def register_economy_commands(bot: commands.Bot) -> None:
             return
         target_member = resolved_member
 
-        instances = get_player_card_instances(_guild_id(ctx), target_member.id)
+        pulled_instances = get_player_card_instances_with_pulled_at(_guild_id(ctx), target_member.id)
+        instances = [
+            (instance_id, card_id, generation, card_code)
+            for instance_id, card_id, generation, card_code, _pulled_at in pulled_instances
+        ]
+        pulled_at_by_instance = {
+            instance_id: pulled_at
+            for instance_id, _card_id, _generation, _card_code, pulled_at in pulled_instances
+        }
         title = f"{target_member.display_name}'s Collection"
         if not instances:
             if target_member.id == ctx.author.id:
@@ -343,7 +352,9 @@ def register_economy_commands(bot: commands.Bot) -> None:
                 )
                 for instance_id, _card_id, _generation, _card_code in instances
             },
+            pulled_at_by_instance=pulled_at_by_instance,
             card_line_formatter=card_display_concise,
+            initial_sort_mode="time_pulled",
             guard_title="Collection",
         )
         message = await _reply(ctx, embed=view.build_embed(), view=view)
@@ -355,7 +366,7 @@ def register_economy_commands(bot: commands.Bot) -> None:
             return
 
         guild_id = _guild_id(ctx)
-        instance_rows = get_all_owned_card_instances(guild_id)
+        instance_rows = get_all_owned_card_instances_with_pulled_at(guild_id)
         title = "All Cards"
         if not instance_rows:
             await _reply(ctx, embed=italy_embed(title, "No cards have been claimed yet. Try `ns drop`."))
@@ -363,14 +374,18 @@ def register_economy_commands(bot: commands.Bot) -> None:
 
         instances = [
             (instance_id, card_id, generation, card_code)
-            for instance_id, _owner_id, card_id, generation, card_code, _morph_key, _frame_key, _font_key in instance_rows
+            for instance_id, _owner_id, card_id, generation, card_code, _pulled_at, _morph_key, _frame_key, _font_key in instance_rows
         ]
+        pulled_at_by_instance = {
+            instance_id: pulled_at
+            for instance_id, _owner_id, _card_id, _generation, _card_code, pulled_at, _morph_key, _frame_key, _font_key in instance_rows
+        }
         instance_styles = {
             instance_id: (morph_key, frame_key, font_key)
-            for instance_id, _owner_id, _card_id, _generation, _card_code, morph_key, frame_key, font_key in instance_rows
+            for instance_id, _owner_id, _card_id, _generation, _card_code, _pulled_at, morph_key, frame_key, font_key in instance_rows
         }
         instance_ids_by_owner: dict[int, list[int]] = {}
-        for instance_id, owner_id, _card_id, _generation, _card_code, _morph_key, _frame_key, _font_key in instance_rows:
+        for instance_id, owner_id, _card_id, _generation, _card_code, _pulled_at, _morph_key, _frame_key, _font_key in instance_rows:
             instance_ids_by_owner.setdefault(owner_id, []).append(instance_id)
 
         locked_instance_ids: set[int] = set()
@@ -404,9 +419,11 @@ def register_economy_commands(bot: commands.Bot) -> None:
             instances=instances,
             wish_counts=get_card_wish_counts(_guild_id(ctx)),
             instance_styles=instance_styles,
+            pulled_at_by_instance=pulled_at_by_instance,
             locked_instance_ids=locked_instance_ids,
             folder_emojis_by_instance=folder_emojis_by_instance,
             card_line_formatter=_format_global_card_line,
+            initial_sort_mode="time_pulled",
             guard_title="Cards",
         )
         message = await _reply(ctx, embed=view.build_embed(), view=view)
@@ -579,6 +596,19 @@ def register_economy_commands(bot: commands.Bot) -> None:
                 f"Roll Cost: **{prepared.cost}** dough"
             ),
         )
+        image_url, image_file = morph_transition_image_payload(
+            prepared.card_id,
+            generation=prepared.generation,
+            before_morph_key=prepared.current_morph_key,
+            after_morph_key=prepared.current_morph_key,
+            before_frame_key=before_frame_key,
+            after_frame_key=before_frame_key,
+            before_font_key=before_font_key,
+            after_font_key=before_font_key,
+            hide_after=True,
+        )
+        if image_url is not None:
+            confirm_embed.set_image(url=image_url)
 
         view = MorphConfirmView(
             guild_id=_guild_id(ctx),
@@ -593,7 +623,10 @@ def register_economy_commands(bot: commands.Bot) -> None:
             cost=prepared.cost,
         )
 
-        message = await _reply(ctx, embed=confirm_embed, view=view)
+        send_kwargs: dict[str, object] = {"embed": confirm_embed, "view": view}
+        if image_file is not None:
+            send_kwargs["file"] = image_file
+        message = await _reply(ctx, **send_kwargs)
         view.message = message
 
     @bot.command(name="frame", aliases=["fr"])
@@ -630,6 +663,19 @@ def register_economy_commands(bot: commands.Bot) -> None:
                 f"Roll Cost: **{prepared.cost}** dough"
             ),
         )
+        image_url, image_file = morph_transition_image_payload(
+            prepared.card_id,
+            generation=prepared.generation,
+            before_morph_key=current_morph_key,
+            after_morph_key=current_morph_key,
+            before_frame_key=prepared.current_frame_key,
+            after_frame_key=prepared.current_frame_key,
+            before_font_key=current_font_key,
+            after_font_key=current_font_key,
+            hide_after=True,
+        )
+        if image_url is not None:
+            confirm_embed.set_image(url=image_url)
 
         view = FrameConfirmView(
             guild_id=_guild_id(ctx),
@@ -644,7 +690,10 @@ def register_economy_commands(bot: commands.Bot) -> None:
             cost=prepared.cost,
         )
 
-        message = await _reply(ctx, embed=confirm_embed, view=view)
+        send_kwargs: dict[str, object] = {"embed": confirm_embed, "view": view}
+        if image_file is not None:
+            send_kwargs["file"] = image_file
+        message = await _reply(ctx, **send_kwargs)
         view.message = message
 
     @bot.command(name="font", aliases=["fo"])
@@ -678,6 +727,19 @@ def register_economy_commands(bot: commands.Bot) -> None:
                 f"Roll Cost: **{prepared.cost}** dough"
             ),
         )
+        image_url, image_file = morph_transition_image_payload(
+            prepared.card_id,
+            generation=prepared.generation,
+            before_morph_key=current_morph_key,
+            after_morph_key=current_morph_key,
+            before_frame_key=current_frame_key,
+            after_frame_key=current_frame_key,
+            before_font_key=prepared.current_font_key,
+            after_font_key=prepared.current_font_key,
+            hide_after=True,
+        )
+        if image_url is not None:
+            confirm_embed.set_image(url=image_url)
 
         view = FontConfirmView(
             guild_id=_guild_id(ctx),
@@ -692,7 +754,10 @@ def register_economy_commands(bot: commands.Bot) -> None:
             cost=prepared.cost,
         )
 
-        message = await _reply(ctx, embed=confirm_embed, view=view)
+        send_kwargs: dict[str, object] = {"embed": confirm_embed, "view": view}
+        if image_file is not None:
+            send_kwargs["file"] = image_file
+        message = await _reply(ctx, **send_kwargs)
         view.message = message
 
     @bot.command(name="trade", aliases=["t"])

@@ -1,4 +1,5 @@
 import sqlite3
+import time
 from typing import Optional
 
 _BASE36_ALPHABET = "0123456789abcdefghijklmnopqrstuvwxyz"
@@ -1729,10 +1730,10 @@ class CardInstanceRepository:
         self,
         guild_id: int,
         card_code: str,
-    ) -> Optional[tuple[int, int, str, int, str, int | None, int | None]]:
+    ) -> Optional[tuple[int, int, str, int, str, int | None, int | None, float | None]]:
         row = self.conn.execute(
             """
-            SELECT instance_id, user_id, card_type_id, generation, card_code, dropped_by_user_id, pulled_by_user_id
+            SELECT instance_id, user_id, card_type_id, generation, card_code, dropped_by_user_id, pulled_by_user_id, pulled_at
             FROM card_instances
             WHERE guild_id = ? AND card_code = ?
             LIMIT 1
@@ -1749,6 +1750,7 @@ class CardInstanceRepository:
             str(row["card_code"]),
             int(row["dropped_by_user_id"]) if row["dropped_by_user_id"] is not None else None,
             int(row["pulled_by_user_id"]) if row["pulled_by_user_id"] is not None else None,
+            float(row["pulled_at"]) if row["pulled_at"] is not None else None,
         )
 
     def count_by_card(self, guild_id: int, user_id: int, card_type_id: str) -> int:
@@ -1771,8 +1773,10 @@ class CardInstanceRepository:
         *,
         dropped_by_user_id: int | None = None,
         pulled_by_user_id: int | None = None,
+        pulled_at: float | None = None,
     ) -> int:
         card_code = self._next_available_card_code()
+        effective_pulled_at = pulled_at if pulled_at is not None else time.time()
         cursor = self.conn.execute(
             """
             INSERT INTO card_instances (
@@ -1782,9 +1786,10 @@ class CardInstanceRepository:
                 generation,
                 card_code,
                 dropped_by_user_id,
-                pulled_by_user_id
+                pulled_by_user_id,
+                pulled_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 guild_id,
@@ -1794,6 +1799,7 @@ class CardInstanceRepository:
                 card_code,
                 dropped_by_user_id,
                 pulled_by_user_id,
+                effective_pulled_at,
             ),
         )
         if cursor.lastrowid is None:
@@ -1836,6 +1842,27 @@ class CardInstanceRepository:
                 str(row["card_type_id"]),
                 int(row["generation"]),
                 str(row["card_code"]),
+            )
+            for row in rows
+        ]
+
+    def list_by_owner_with_pulled_at(self, guild_id: int, user_id: int) -> list[tuple[int, str, int, str, float | None]]:
+        rows = self.conn.execute(
+            """
+            SELECT instance_id, card_type_id, generation, card_code, pulled_at
+            FROM card_instances
+            WHERE guild_id = ? AND user_id = ?
+            ORDER BY generation ASC, card_type_id ASC, instance_id ASC
+            """,
+            (guild_id, user_id),
+        ).fetchall()
+        return [
+            (
+                int(row["instance_id"]),
+                str(row["card_type_id"]),
+                int(row["generation"]),
+                str(row["card_code"]),
+                float(row["pulled_at"]) if row["pulled_at"] is not None else None,
             )
             for row in rows
         ]
@@ -1911,6 +1938,34 @@ class CardInstanceRepository:
                 str(row["card_type_id"]),
                 int(row["generation"]),
                 str(row["card_code"]),
+                str(row["morph_key"]) if row["morph_key"] is not None else None,
+                str(row["frame_key"]) if row["frame_key"] is not None else None,
+                str(row["font_key"]) if row["font_key"] is not None else None,
+            )
+            for row in rows
+        ]
+
+    def list_owner_instances_with_styles_and_pulled_at_for_guild(
+        self,
+        guild_id: int,
+    ) -> list[tuple[int, int, str, int, str, float | None, Optional[str], Optional[str], Optional[str]]]:
+        rows = self.conn.execute(
+            """
+            SELECT instance_id, user_id, card_type_id, generation, card_code, pulled_at, morph_key, frame_key, font_key
+            FROM card_instances
+            WHERE guild_id = ?
+            ORDER BY user_id ASC, instance_id ASC
+            """,
+            (guild_id,),
+        ).fetchall()
+        return [
+            (
+                int(row["instance_id"]),
+                int(row["user_id"]),
+                str(row["card_type_id"]),
+                int(row["generation"]),
+                str(row["card_code"]),
+                float(row["pulled_at"]) if row["pulled_at"] is not None else None,
                 str(row["morph_key"]) if row["morph_key"] is not None else None,
                 str(row["frame_key"]) if row["frame_key"] is not None else None,
                 str(row["font_key"]) if row["font_key"] is not None else None,

@@ -828,10 +828,12 @@ class ServicesTests:
             _card_code,
             stored_dropped_by_user_id,
             stored_pulled_by_user_id,
+            stored_pulled_at,
         ) = looked_up
         assert owner_user_id == pulled_by_user_id
         assert stored_dropped_by_user_id == dropped_by_user_id
         assert stored_pulled_by_user_id == pulled_by_user_id
+        assert stored_pulled_at is not None
 
     def test_resolve_trade_offer_denied_returns_denied_status(self) -> None:
         result = services.resolve_trade_offer(

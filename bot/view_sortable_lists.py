@@ -324,7 +324,9 @@ class SortableCollectionView(discord.ui.View):
         guard_title: str,
         locked_instance_ids: set[int] | None = None,
         folder_emojis_by_instance: dict[int, str] | None = None,
+        pulled_at_by_instance: dict[int, float | None] | None = None,
         card_line_formatter: Callable[..., str] | None = None,
+        initial_sort_mode: str = "alphabetical",
         page_size: int = 10,
     ):
         super().__init__(timeout=TRADE_TIMEOUT_SECONDS)
@@ -333,13 +335,24 @@ class SortableCollectionView(discord.ui.View):
         self.instances = instances
         self.locked_instance_ids = locked_instance_ids or set()
         self.folder_emojis_by_instance = folder_emojis_by_instance or {}
+        self.pulled_at_by_instance = pulled_at_by_instance or {}
         self.wish_counts = wish_counts or {}
         self.instance_styles = instance_styles or {}
         self.card_line_formatter = card_line_formatter or card_display
         self.guard_title = guard_title
         self.default_page_size = max(1, page_size)
         self.page_index = 0
-        self.sort_mode = "alphabetical"
+        valid_sort_modes = {
+            "generation",
+            "wishes",
+            "rarity",
+            "series",
+            "base_value",
+            "actual_value",
+            "alphabetical",
+            "time_pulled",
+        }
+        self.sort_mode = initial_sort_mode if initial_sort_mode in valid_sort_modes else "alphabetical"
         self.sort_descending = self._default_sort_descending(self.sort_mode)
         self.gallery_mode = False
         self.message: Optional[discord.Message] = None
@@ -366,7 +379,13 @@ class SortableCollectionView(discord.ui.View):
         self.sort_direction_button.label = "▼" if self.sort_descending else "▲"
 
     def _default_sort_descending(self, mode: str) -> bool:
-        return mode in {"wishes", "base_value", "actual_value"}
+        return mode in {"wishes", "base_value", "actual_value", "time_pulled"}
+
+    def _pulled_at_sort_value(self, instance_id: int) -> float:
+        pulled_at = self.pulled_at_by_instance.get(instance_id)
+        if pulled_at is None:
+            return float("-inf")
+        return float(pulled_at)
 
     def _rarity_rank(self, rarity: str) -> int:
         order = {
@@ -382,6 +401,18 @@ class SortableCollectionView(discord.ui.View):
         return order.get(rarity, len(order))
 
     def _sorted_entries_for_mode(self, mode: str, *, descending: bool) -> list[tuple[int, str, int, str]]:
+        if mode == "time_pulled":
+            return sorted(
+                self.instances,
+                key=lambda item: (
+                    self._pulled_at_sort_value(item[0]),
+                    str(CARD_CATALOG[item[1]]["name"]),
+                    item[2],
+                    item[0],
+                ),
+                reverse=descending,
+            )
+
         if mode == "generation":
             return sorted(
                 self.instances,
@@ -536,6 +567,7 @@ class SortableCollectionView(discord.ui.View):
                 embed.set_image(url=image_url)
 
         sort_label_map = {
+            "time_pulled": "Time Pulled",
             "generation": "Generation",
             "wishes": "Wishes",
             "rarity": "Rarity",
@@ -615,6 +647,11 @@ class SortableCollectionView(discord.ui.View):
         min_values=1,
         max_values=1,
         options=[
+            discord.SelectOption(
+                label="Time Pulled",
+                value="time_pulled",
+                description="Newest pulls first",
+            ),
             discord.SelectOption(
                 label="Generation",
                 value="generation",

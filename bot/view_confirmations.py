@@ -9,13 +9,16 @@ from .images import morph_transition_image_payload
 from .morphs import morph_label
 from .presentation import italy_embed
 from .services import (
+    apply_pending_font_no_charge,
+    apply_pending_frame_no_charge,
+    apply_pending_morph_no_charge,
     execute_burn_batch_confirmation,
     execute_burn_confirmation,
-    resolve_font_roll,
-    resolve_frame_roll,
-    resolve_morph_roll,
+    roll_font_preview_paid,
+    roll_frame_preview_paid,
+    roll_morph_preview_paid,
 )
-from .settings import BURN_CONFIRM_TIMEOUT_SECONDS
+from .settings import BURN_CONFIRM_TIMEOUT_SECONDS, TRAIT_ROLL_TIMEOUT_SECONDS
 from .view_utils import InteractionView, logger
 
 
@@ -50,6 +53,27 @@ def _burn_result_has_required_fields(result: object) -> bool:
 def _format_trait_roll_details(rolled_rarity: str, rolled_multiplier: float) -> str:
     rarity_label = rolled_rarity.replace("_", " ").title()
     return f"Trait Rarity: **{rarity_label}** (x{rolled_multiplier:.2f})"
+
+
+def _trait_roll_description(
+    *,
+    card_line: str,
+    current_label: str,
+    rolled_name: str,
+    rolled_rarity: str,
+    rolled_multiplier: float,
+    remaining_dough: int,
+    cost: int,
+    trait_name: str,
+) -> str:
+    return (
+        f"{card_line}\n\n"
+        f"Current {trait_name}: **{current_label}**\n"
+        f"Rolled {trait_name}: **{rolled_name}**\n"
+        f"{_format_trait_roll_details(rolled_rarity, rolled_multiplier)}\n"
+        f"Current Balance: **{remaining_dough}** dough\n"
+        f"Reroll Cost: **{cost}** dough"
+    )
 
 
 class BurnConfirmView(InteractionView):
@@ -283,7 +307,7 @@ class MorphConfirmView(InteractionView):
         before_font_key: str | None,
         cost: int,
     ):
-        super().__init__(timeout=BURN_CONFIRM_TIMEOUT_SECONDS)
+        super().__init__(timeout=TRAIT_ROLL_TIMEOUT_SECONDS)
         self.guild_id = guild_id
         self.user_id = user_id
         self.instance_id = instance_id
@@ -294,105 +318,14 @@ class MorphConfirmView(InteractionView):
         self.before_frame_key = before_frame_key
         self.before_font_key = before_font_key
         self.cost = cost
+        self.pending_morph_key: str | None = None
+        self.pending_morph_name: str | None = None
+        self.pending_rarity: str | None = None
+        self.pending_multiplier: float | None = None
         self.finished = False
         self.message: Optional[discord.Message] = None
 
-    @discord.ui.button(label="Confirm Morph", style=discord.ButtonStyle.success)
-    async def confirm_button(
-        self,
-        interaction: discord.Interaction,
-        _button: discord.ui.Button,
-    ):
-        if interaction.user.id != self.user_id:
-            await interaction.response.send_message(
-                embed=italy_embed("Morph", "Only the command user can confirm this morph."),
-                ephemeral=True,
-            )
-            return
-        if self.finished:
-            await interaction.response.send_message(
-                embed=italy_embed("Morph", "This morph request is already resolved."),
-                ephemeral=True,
-            )
-            return
-
-        result = resolve_morph_roll(
-            self.guild_id,
-            self.user_id,
-            instance_id=self.instance_id,
-            card_id=self.card_id,
-            generation=self.generation,
-            card_code=self.card_code,
-            current_morph_key=self.before_morph_key,
-            cost=self.cost,
-        )
-        if result.is_error:
-            self.finished = True
-            self._disable_buttons()
-            await interaction.response.edit_message(view=self)
-            if interaction.message is not None:
-                await interaction.message.reply(
-                    embed=italy_embed("Morph Failed", result.error_message or "Morph failed."),
-                    mention_author=False,
-                )
-            return
-
-        if (
-            result.morph_key is None
-            or result.morph_name is None
-            or result.rolled_rarity is None
-            or result.rolled_multiplier is None
-            or result.remaining_dough is None
-        ):
-            self.finished = True
-            self._disable_buttons()
-            await interaction.response.edit_message(view=self)
-            if interaction.message is not None:
-                await interaction.message.reply(
-                    embed=italy_embed("Morph Failed", "Morph failed."),
-                    mention_author=False,
-                )
-            return
-
-        self.finished = True
-        self._disable_buttons()
-        await interaction.response.edit_message(view=self)
-
-        morph_embed = italy_embed(
-            "Morph Rolled",
-            (
-                f"Rolled **{result.morph_name}** for "
-                f"{card_display(self.card_id, self.generation, card_code=self.card_code, morph_key=self.before_morph_key, frame_key=self.before_frame_key, font_key=self.before_font_key)}.\n\n"
-                f"Before: **{morph_label(self.before_morph_key)}**\n"
-                f"After: **{result.morph_name}**\n\n"
-                f"{_format_trait_roll_details(result.rolled_rarity, result.rolled_multiplier)}\n"
-                f"Morph Cost: **{self.cost}** dough\n"
-                f"Dough Remaining: **{result.remaining_dough}**"
-            ),
-        )
-        image_url, image_file = morph_transition_image_payload(
-            self.card_id,
-            generation=self.generation,
-            before_morph_key=self.before_morph_key,
-            after_morph_key=result.morph_key,
-            before_frame_key=self.before_frame_key,
-            after_frame_key=self.before_frame_key,
-            before_font_key=self.before_font_key,
-            after_font_key=self.before_font_key,
-        )
-        if image_url is not None:
-            morph_embed.set_image(url=image_url)
-
-        if interaction.message is not None:
-            send_kwargs: dict[str, object] = {
-                "embed": morph_embed,
-                "mention_author": False,
-            }
-            if image_file is not None:
-                send_kwargs["file"] = image_file
-            await interaction.message.reply(**send_kwargs)
-
-    @discord.ui.button(label="Cancel", style=discord.ButtonStyle.secondary)
+    @discord.ui.button(label="Cancel", style=discord.ButtonStyle.danger, emoji="<:ns_no:1481805593533481093>")
     async def cancel_button(
         self,
         interaction: discord.Interaction,
@@ -413,12 +346,200 @@ class MorphConfirmView(InteractionView):
 
         self.finished = True
         self._disable_buttons()
-        await interaction.response.edit_message(view=self)
-        if interaction.message is not None:
-            await interaction.message.reply(
-                embed=italy_embed("Morph Cancelled", "No morph was applied."),
-                mention_author=False,
+        await interaction.response.edit_message(
+            embed=italy_embed("Morph Cancelled", "No morph was applied."),
+            view=self,
+            attachments=[],
+        )
+
+    @discord.ui.button(label="Roll", style=discord.ButtonStyle.secondary, emoji="🎲")
+    async def roll_button(
+        self,
+        interaction: discord.Interaction,
+        _button: discord.ui.Button,
+    ):
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message(
+                embed=italy_embed("Morph", "Only the command user can roll this morph."),
+                ephemeral=True,
             )
+            return
+        if self.finished:
+            await interaction.response.send_message(
+                embed=italy_embed("Morph", "This morph request is already resolved."),
+                ephemeral=True,
+            )
+            return
+
+        result = roll_morph_preview_paid(
+            self.guild_id,
+            self.user_id,
+            instance_id=self.instance_id,
+            card_id=self.card_id,
+            generation=self.generation,
+            card_code=self.card_code,
+            current_morph_key=self.before_morph_key,
+            cost=self.cost,
+        )
+        if result.is_error:
+            await interaction.response.send_message(
+                embed=italy_embed("Morph Failed", result.error_message or "Morph failed."),
+                ephemeral=True,
+            )
+            return
+
+        if (
+            result.morph_key is None
+            or result.morph_name is None
+            or result.rolled_rarity is None
+            or result.rolled_multiplier is None
+            or result.remaining_dough is None
+        ):
+            await interaction.response.send_message(
+                embed=italy_embed("Morph Failed", "Morph failed."),
+                ephemeral=True,
+            )
+            return
+
+        self.pending_morph_key = result.morph_key
+        self.pending_morph_name = result.morph_name
+        self.pending_rarity = result.rolled_rarity
+        self.pending_multiplier = result.rolled_multiplier
+        self.apply_button.disabled = False
+
+        morph_embed = italy_embed(
+            "Morph Roll",
+            _trait_roll_description(
+                card_line=card_display(
+                    self.card_id,
+                    self.generation,
+                    card_code=self.card_code,
+                    morph_key=self.before_morph_key,
+                    frame_key=self.before_frame_key,
+                    font_key=self.before_font_key,
+                ),
+                current_label=morph_label(self.before_morph_key),
+                rolled_name=result.morph_name,
+                rolled_rarity=result.rolled_rarity,
+                rolled_multiplier=result.rolled_multiplier,
+                remaining_dough=result.remaining_dough,
+                cost=self.cost,
+                trait_name="Morph",
+            ),
+        )
+        image_url, image_file = morph_transition_image_payload(
+            self.card_id,
+            generation=self.generation,
+            before_morph_key=self.before_morph_key,
+            after_morph_key=self.pending_morph_key,
+            before_frame_key=self.before_frame_key,
+            after_frame_key=self.before_frame_key,
+            before_font_key=self.before_font_key,
+            after_font_key=self.before_font_key,
+        )
+        if image_url is not None:
+            morph_embed.set_image(url=image_url)
+
+        await interaction.response.edit_message(
+            embed=morph_embed,
+            view=self,
+            attachments=[image_file] if image_file is not None else [],
+        )
+
+    @discord.ui.button(label="Apply", style=discord.ButtonStyle.success, emoji="<:ns_yes:1481805623115907202>", disabled=True)
+    async def apply_button(
+        self,
+        interaction: discord.Interaction,
+        _button: discord.ui.Button,
+    ):
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message(
+                embed=italy_embed("Morph", "Only the command user can apply this morph."),
+                ephemeral=True,
+            )
+            return
+        if self.finished:
+            await interaction.response.send_message(
+                embed=italy_embed("Morph", "This morph request is already resolved."),
+                ephemeral=True,
+            )
+            return
+        if (
+            self.pending_morph_key is None
+            or self.pending_morph_name is None
+            or self.pending_rarity is None
+            or self.pending_multiplier is None
+        ):
+            await interaction.response.send_message(
+                embed=italy_embed("Morph", "Roll at least once before applying."),
+                ephemeral=True,
+            )
+            return
+
+        result = apply_pending_morph_no_charge(
+            self.guild_id,
+            self.user_id,
+            instance_id=self.instance_id,
+            card_id=self.card_id,
+            generation=self.generation,
+            card_code=self.card_code,
+            morph_key=self.pending_morph_key,
+            morph_name=self.pending_morph_name,
+            rolled_rarity=self.pending_rarity,
+            rolled_multiplier=self.pending_multiplier,
+            cost=self.cost,
+        )
+        if result.is_error or result.remaining_dough is None:
+            self.finished = True
+            self._disable_buttons()
+            await interaction.response.edit_message(
+                embed=italy_embed("Morph Failed", result.error_message or "Morph failed."),
+                view=self,
+                attachments=[],
+            )
+            return
+
+        self.finished = True
+        self._disable_buttons()
+
+        morph_embed = italy_embed(
+            "Morph Applied",
+            _trait_roll_description(
+                card_line=card_display(
+                    self.card_id,
+                    self.generation,
+                    card_code=self.card_code,
+                    morph_key=self.before_morph_key,
+                    frame_key=self.before_frame_key,
+                    font_key=self.before_font_key,
+                ),
+                current_label=morph_label(self.before_morph_key),
+                rolled_name=self.pending_morph_name,
+                rolled_rarity=self.pending_rarity,
+                rolled_multiplier=self.pending_multiplier,
+                remaining_dough=result.remaining_dough,
+                cost=self.cost,
+                trait_name="Morph",
+            ),
+        )
+        image_url, image_file = morph_transition_image_payload(
+            self.card_id,
+            generation=self.generation,
+            before_morph_key=self.before_morph_key,
+            after_morph_key=self.pending_morph_key,
+            before_frame_key=self.before_frame_key,
+            after_frame_key=self.before_frame_key,
+            before_font_key=self.before_font_key,
+            after_font_key=self.before_font_key,
+        )
+        if image_url is not None:
+            morph_embed.set_image(url=image_url)
+
+        await interaction.response.edit_message(
+            embed=morph_embed,
+            view=self,
+            attachments=[image_file] if image_file is not None else [],
+        )
 
     async def on_timeout(self) -> None:
         if self.finished or self.message is None:
@@ -426,7 +547,11 @@ class MorphConfirmView(InteractionView):
 
         self._disable_buttons()
         try:
-            await self.message.edit(view=self)
+            await self.message.edit(
+                embed=italy_embed("Morph Expired", "Morph interaction timed out."),
+                view=self,
+                attachments=[],
+            )
         except discord.HTTPException:
             logger.warning(
                 "Failed to edit morph confirmation message on timeout (message_id=%s)",
@@ -454,7 +579,7 @@ class FrameConfirmView(InteractionView):
         before_font_key: str | None,
         cost: int,
     ):
-        super().__init__(timeout=BURN_CONFIRM_TIMEOUT_SECONDS)
+        super().__init__(timeout=TRAIT_ROLL_TIMEOUT_SECONDS)
         self.guild_id = guild_id
         self.user_id = user_id
         self.instance_id = instance_id
@@ -465,105 +590,14 @@ class FrameConfirmView(InteractionView):
         self.before_frame_key = before_frame_key
         self.before_font_key = before_font_key
         self.cost = cost
+        self.pending_frame_key: str | None = None
+        self.pending_frame_name: str | None = None
+        self.pending_rarity: str | None = None
+        self.pending_multiplier: float | None = None
         self.finished = False
         self.message: Optional[discord.Message] = None
 
-    @discord.ui.button(label="Confirm Frame", style=discord.ButtonStyle.success)
-    async def confirm_button(
-        self,
-        interaction: discord.Interaction,
-        _button: discord.ui.Button,
-    ):
-        if interaction.user.id != self.user_id:
-            await interaction.response.send_message(
-                embed=italy_embed("Frame", "Only the command user can confirm this frame."),
-                ephemeral=True,
-            )
-            return
-        if self.finished:
-            await interaction.response.send_message(
-                embed=italy_embed("Frame", "This frame request is already resolved."),
-                ephemeral=True,
-            )
-            return
-
-        result = resolve_frame_roll(
-            self.guild_id,
-            self.user_id,
-            instance_id=self.instance_id,
-            card_id=self.card_id,
-            generation=self.generation,
-            card_code=self.card_code,
-            current_frame_key=self.before_frame_key,
-            cost=self.cost,
-        )
-        if result.is_error:
-            self.finished = True
-            self._disable_buttons()
-            await interaction.response.edit_message(view=self)
-            if interaction.message is not None:
-                await interaction.message.reply(
-                    embed=italy_embed("Frame Failed", result.error_message or "Frame failed."),
-                    mention_author=False,
-                )
-            return
-
-        if (
-            result.frame_key is None
-            or result.frame_name is None
-            or result.rolled_rarity is None
-            or result.rolled_multiplier is None
-            or result.remaining_dough is None
-        ):
-            self.finished = True
-            self._disable_buttons()
-            await interaction.response.edit_message(view=self)
-            if interaction.message is not None:
-                await interaction.message.reply(
-                    embed=italy_embed("Frame Failed", "Frame failed."),
-                    mention_author=False,
-                )
-            return
-
-        self.finished = True
-        self._disable_buttons()
-        await interaction.response.edit_message(view=self)
-
-        frame_embed = italy_embed(
-            "Frame Rolled",
-            (
-                f"Rolled **{result.frame_name}** for "
-                f"{card_display(self.card_id, self.generation, card_code=self.card_code, morph_key=self.before_morph_key, frame_key=self.before_frame_key, font_key=self.before_font_key)}.\n\n"
-                f"Before: **{frame_label(self.before_frame_key)}**\n"
-                f"After: **{result.frame_name}**\n\n"
-                f"{_format_trait_roll_details(result.rolled_rarity, result.rolled_multiplier)}\n"
-                f"Frame Cost: **{self.cost}** dough\n"
-                f"Dough Remaining: **{result.remaining_dough}**"
-            ),
-        )
-        image_url, image_file = morph_transition_image_payload(
-            self.card_id,
-            generation=self.generation,
-            before_morph_key=self.before_morph_key,
-            after_morph_key=self.before_morph_key,
-            before_frame_key=self.before_frame_key,
-            after_frame_key=result.frame_key,
-            before_font_key=self.before_font_key,
-            after_font_key=self.before_font_key,
-        )
-        if image_url is not None:
-            frame_embed.set_image(url=image_url)
-
-        if interaction.message is not None:
-            send_kwargs: dict[str, object] = {
-                "embed": frame_embed,
-                "mention_author": False,
-            }
-            if image_file is not None:
-                send_kwargs["file"] = image_file
-            await interaction.message.reply(**send_kwargs)
-
-    @discord.ui.button(label="Cancel", style=discord.ButtonStyle.secondary)
+    @discord.ui.button(label="Cancel", style=discord.ButtonStyle.danger, emoji="<:ns_no:1481805593533481093>")
     async def cancel_button(
         self,
         interaction: discord.Interaction,
@@ -584,12 +618,200 @@ class FrameConfirmView(InteractionView):
 
         self.finished = True
         self._disable_buttons()
-        await interaction.response.edit_message(view=self)
-        if interaction.message is not None:
-            await interaction.message.reply(
-                embed=italy_embed("Frame Cancelled", "No frame was applied."),
-                mention_author=False,
+        await interaction.response.edit_message(
+            embed=italy_embed("Frame Cancelled", "No frame was applied."),
+            view=self,
+            attachments=[],
+        )
+
+    @discord.ui.button(label="Roll", style=discord.ButtonStyle.secondary, emoji="🎲")
+    async def roll_button(
+        self,
+        interaction: discord.Interaction,
+        _button: discord.ui.Button,
+    ):
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message(
+                embed=italy_embed("Frame", "Only the command user can roll this frame."),
+                ephemeral=True,
             )
+            return
+        if self.finished:
+            await interaction.response.send_message(
+                embed=italy_embed("Frame", "This frame request is already resolved."),
+                ephemeral=True,
+            )
+            return
+
+        result = roll_frame_preview_paid(
+            self.guild_id,
+            self.user_id,
+            instance_id=self.instance_id,
+            card_id=self.card_id,
+            generation=self.generation,
+            card_code=self.card_code,
+            current_frame_key=self.before_frame_key,
+            cost=self.cost,
+        )
+        if result.is_error:
+            await interaction.response.send_message(
+                embed=italy_embed("Frame Failed", result.error_message or "Frame failed."),
+                ephemeral=True,
+            )
+            return
+
+        if (
+            result.frame_key is None
+            or result.frame_name is None
+            or result.rolled_rarity is None
+            or result.rolled_multiplier is None
+            or result.remaining_dough is None
+        ):
+            await interaction.response.send_message(
+                embed=italy_embed("Frame Failed", "Frame failed."),
+                ephemeral=True,
+            )
+            return
+
+        self.pending_frame_key = result.frame_key
+        self.pending_frame_name = result.frame_name
+        self.pending_rarity = result.rolled_rarity
+        self.pending_multiplier = result.rolled_multiplier
+        self.apply_button.disabled = False
+
+        frame_embed = italy_embed(
+            "Frame Roll",
+            _trait_roll_description(
+                card_line=card_display(
+                    self.card_id,
+                    self.generation,
+                    card_code=self.card_code,
+                    morph_key=self.before_morph_key,
+                    frame_key=self.before_frame_key,
+                    font_key=self.before_font_key,
+                ),
+                current_label=frame_label(self.before_frame_key),
+                rolled_name=result.frame_name,
+                rolled_rarity=result.rolled_rarity,
+                rolled_multiplier=result.rolled_multiplier,
+                remaining_dough=result.remaining_dough,
+                cost=self.cost,
+                trait_name="Frame",
+            ),
+        )
+        image_url, image_file = morph_transition_image_payload(
+            self.card_id,
+            generation=self.generation,
+            before_morph_key=self.before_morph_key,
+            after_morph_key=self.before_morph_key,
+            before_frame_key=self.before_frame_key,
+            after_frame_key=self.pending_frame_key,
+            before_font_key=self.before_font_key,
+            after_font_key=self.before_font_key,
+        )
+        if image_url is not None:
+            frame_embed.set_image(url=image_url)
+
+        await interaction.response.edit_message(
+            embed=frame_embed,
+            view=self,
+            attachments=[image_file] if image_file is not None else [],
+        )
+
+    @discord.ui.button(label="Apply", style=discord.ButtonStyle.success, emoji="<:ns_yes:1481805623115907202>", disabled=True)
+    async def apply_button(
+        self,
+        interaction: discord.Interaction,
+        _button: discord.ui.Button,
+    ):
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message(
+                embed=italy_embed("Frame", "Only the command user can apply this frame."),
+                ephemeral=True,
+            )
+            return
+        if self.finished:
+            await interaction.response.send_message(
+                embed=italy_embed("Frame", "This frame request is already resolved."),
+                ephemeral=True,
+            )
+            return
+        if (
+            self.pending_frame_key is None
+            or self.pending_frame_name is None
+            or self.pending_rarity is None
+            or self.pending_multiplier is None
+        ):
+            await interaction.response.send_message(
+                embed=italy_embed("Frame", "Roll at least once before applying."),
+                ephemeral=True,
+            )
+            return
+
+        result = apply_pending_frame_no_charge(
+            self.guild_id,
+            self.user_id,
+            instance_id=self.instance_id,
+            card_id=self.card_id,
+            generation=self.generation,
+            card_code=self.card_code,
+            frame_key=self.pending_frame_key,
+            frame_name=self.pending_frame_name,
+            rolled_rarity=self.pending_rarity,
+            rolled_multiplier=self.pending_multiplier,
+            cost=self.cost,
+        )
+        if result.is_error or result.remaining_dough is None:
+            self.finished = True
+            self._disable_buttons()
+            await interaction.response.edit_message(
+                embed=italy_embed("Frame Failed", result.error_message or "Frame failed."),
+                view=self,
+                attachments=[],
+            )
+            return
+
+        self.finished = True
+        self._disable_buttons()
+
+        frame_embed = italy_embed(
+            "Frame Applied",
+            _trait_roll_description(
+                card_line=card_display(
+                    self.card_id,
+                    self.generation,
+                    card_code=self.card_code,
+                    morph_key=self.before_morph_key,
+                    frame_key=self.before_frame_key,
+                    font_key=self.before_font_key,
+                ),
+                current_label=frame_label(self.before_frame_key),
+                rolled_name=self.pending_frame_name,
+                rolled_rarity=self.pending_rarity,
+                rolled_multiplier=self.pending_multiplier,
+                remaining_dough=result.remaining_dough,
+                cost=self.cost,
+                trait_name="Frame",
+            ),
+        )
+        image_url, image_file = morph_transition_image_payload(
+            self.card_id,
+            generation=self.generation,
+            before_morph_key=self.before_morph_key,
+            after_morph_key=self.before_morph_key,
+            before_frame_key=self.before_frame_key,
+            after_frame_key=self.pending_frame_key,
+            before_font_key=self.before_font_key,
+            after_font_key=self.before_font_key,
+        )
+        if image_url is not None:
+            frame_embed.set_image(url=image_url)
+
+        await interaction.response.edit_message(
+            embed=frame_embed,
+            view=self,
+            attachments=[image_file] if image_file is not None else [],
+        )
 
     async def on_timeout(self) -> None:
         if self.finished or self.message is None:
@@ -597,7 +819,11 @@ class FrameConfirmView(InteractionView):
 
         self._disable_buttons()
         try:
-            await self.message.edit(view=self)
+            await self.message.edit(
+                embed=italy_embed("Frame Expired", "Frame interaction timed out."),
+                view=self,
+                attachments=[],
+            )
         except discord.HTTPException:
             logger.warning(
                 "Failed to edit frame confirmation message on timeout (message_id=%s)",
@@ -625,7 +851,7 @@ class FontConfirmView(InteractionView):
         before_font_key: str | None,
         cost: int,
     ):
-        super().__init__(timeout=BURN_CONFIRM_TIMEOUT_SECONDS)
+        super().__init__(timeout=TRAIT_ROLL_TIMEOUT_SECONDS)
         self.guild_id = guild_id
         self.user_id = user_id
         self.instance_id = instance_id
@@ -636,105 +862,14 @@ class FontConfirmView(InteractionView):
         self.before_frame_key = before_frame_key
         self.before_font_key = before_font_key
         self.cost = cost
+        self.pending_font_key: str | None = None
+        self.pending_font_name: str | None = None
+        self.pending_rarity: str | None = None
+        self.pending_multiplier: float | None = None
         self.finished = False
         self.message: Optional[discord.Message] = None
 
-    @discord.ui.button(label="Confirm Font", style=discord.ButtonStyle.success)
-    async def confirm_button(
-        self,
-        interaction: discord.Interaction,
-        _button: discord.ui.Button,
-    ):
-        if interaction.user.id != self.user_id:
-            await interaction.response.send_message(
-                embed=italy_embed("Font", "Only the command user can confirm this font."),
-                ephemeral=True,
-            )
-            return
-        if self.finished:
-            await interaction.response.send_message(
-                embed=italy_embed("Font", "This font request is already resolved."),
-                ephemeral=True,
-            )
-            return
-
-        result = resolve_font_roll(
-            self.guild_id,
-            self.user_id,
-            instance_id=self.instance_id,
-            card_id=self.card_id,
-            generation=self.generation,
-            card_code=self.card_code,
-            current_font_key=self.before_font_key,
-            cost=self.cost,
-        )
-        if result.is_error:
-            self.finished = True
-            self._disable_buttons()
-            await interaction.response.edit_message(view=self)
-            if interaction.message is not None:
-                await interaction.message.reply(
-                    embed=italy_embed("Font Failed", result.error_message or "Font failed."),
-                    mention_author=False,
-                )
-            return
-
-        if (
-            result.font_key is None
-            or result.font_name is None
-            or result.rolled_rarity is None
-            or result.rolled_multiplier is None
-            or result.remaining_dough is None
-        ):
-            self.finished = True
-            self._disable_buttons()
-            await interaction.response.edit_message(view=self)
-            if interaction.message is not None:
-                await interaction.message.reply(
-                    embed=italy_embed("Font Failed", "Font failed."),
-                    mention_author=False,
-                )
-            return
-
-        self.finished = True
-        self._disable_buttons()
-        await interaction.response.edit_message(view=self)
-
-        font_embed = italy_embed(
-            "Font Rolled",
-            (
-                f"Rolled **{result.font_name}** for "
-                f"{card_display(self.card_id, self.generation, card_code=self.card_code, morph_key=self.before_morph_key, frame_key=self.before_frame_key, font_key=self.before_font_key)}.\n\n"
-                f"Before: **{font_label(self.before_font_key)}**\n"
-                f"After: **{result.font_name}**\n\n"
-                f"{_format_trait_roll_details(result.rolled_rarity, result.rolled_multiplier)}\n"
-                f"Font Cost: **{self.cost}** dough\n"
-                f"Dough Remaining: **{result.remaining_dough}**"
-            ),
-        )
-        image_url, image_file = morph_transition_image_payload(
-            self.card_id,
-            generation=self.generation,
-            before_morph_key=self.before_morph_key,
-            after_morph_key=self.before_morph_key,
-            before_frame_key=self.before_frame_key,
-            after_frame_key=self.before_frame_key,
-            before_font_key=self.before_font_key,
-            after_font_key=result.font_key,
-        )
-        if image_url is not None:
-            font_embed.set_image(url=image_url)
-
-        if interaction.message is not None:
-            send_kwargs: dict[str, object] = {
-                "embed": font_embed,
-                "mention_author": False,
-            }
-            if image_file is not None:
-                send_kwargs["file"] = image_file
-            await interaction.message.reply(**send_kwargs)
-
-    @discord.ui.button(label="Cancel", style=discord.ButtonStyle.secondary)
+    @discord.ui.button(label="Cancel", style=discord.ButtonStyle.danger, emoji="<:ns_no:1481805593533481093>")
     async def cancel_button(
         self,
         interaction: discord.Interaction,
@@ -755,12 +890,200 @@ class FontConfirmView(InteractionView):
 
         self.finished = True
         self._disable_buttons()
-        await interaction.response.edit_message(view=self)
-        if interaction.message is not None:
-            await interaction.message.reply(
-                embed=italy_embed("Font Cancelled", "No font was applied."),
-                mention_author=False,
+        await interaction.response.edit_message(
+            embed=italy_embed("Font Cancelled", "No font was applied."),
+            view=self,
+            attachments=[],
+        )
+
+    @discord.ui.button(label="Roll", style=discord.ButtonStyle.secondary, emoji="🎲")
+    async def roll_button(
+        self,
+        interaction: discord.Interaction,
+        _button: discord.ui.Button,
+    ):
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message(
+                embed=italy_embed("Font", "Only the command user can roll this font."),
+                ephemeral=True,
             )
+            return
+        if self.finished:
+            await interaction.response.send_message(
+                embed=italy_embed("Font", "This font request is already resolved."),
+                ephemeral=True,
+            )
+            return
+
+        result = roll_font_preview_paid(
+            self.guild_id,
+            self.user_id,
+            instance_id=self.instance_id,
+            card_id=self.card_id,
+            generation=self.generation,
+            card_code=self.card_code,
+            current_font_key=self.before_font_key,
+            cost=self.cost,
+        )
+        if result.is_error:
+            await interaction.response.send_message(
+                embed=italy_embed("Font Failed", result.error_message or "Font failed."),
+                ephemeral=True,
+            )
+            return
+
+        if (
+            result.font_key is None
+            or result.font_name is None
+            or result.rolled_rarity is None
+            or result.rolled_multiplier is None
+            or result.remaining_dough is None
+        ):
+            await interaction.response.send_message(
+                embed=italy_embed("Font Failed", "Font failed."),
+                ephemeral=True,
+            )
+            return
+
+        self.pending_font_key = result.font_key
+        self.pending_font_name = result.font_name
+        self.pending_rarity = result.rolled_rarity
+        self.pending_multiplier = result.rolled_multiplier
+        self.apply_button.disabled = False
+
+        font_embed = italy_embed(
+            "Font Roll",
+            _trait_roll_description(
+                card_line=card_display(
+                    self.card_id,
+                    self.generation,
+                    card_code=self.card_code,
+                    morph_key=self.before_morph_key,
+                    frame_key=self.before_frame_key,
+                    font_key=self.before_font_key,
+                ),
+                current_label=font_label(self.before_font_key),
+                rolled_name=result.font_name,
+                rolled_rarity=result.rolled_rarity,
+                rolled_multiplier=result.rolled_multiplier,
+                remaining_dough=result.remaining_dough,
+                cost=self.cost,
+                trait_name="Font",
+            ),
+        )
+        image_url, image_file = morph_transition_image_payload(
+            self.card_id,
+            generation=self.generation,
+            before_morph_key=self.before_morph_key,
+            after_morph_key=self.before_morph_key,
+            before_frame_key=self.before_frame_key,
+            after_frame_key=self.before_frame_key,
+            before_font_key=self.before_font_key,
+            after_font_key=self.pending_font_key,
+        )
+        if image_url is not None:
+            font_embed.set_image(url=image_url)
+
+        await interaction.response.edit_message(
+            embed=font_embed,
+            view=self,
+            attachments=[image_file] if image_file is not None else [],
+        )
+
+    @discord.ui.button(label="Apply", style=discord.ButtonStyle.success, emoji="<:ns_yes:1481805623115907202>", disabled=True)
+    async def apply_button(
+        self,
+        interaction: discord.Interaction,
+        _button: discord.ui.Button,
+    ):
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message(
+                embed=italy_embed("Font", "Only the command user can apply this font."),
+                ephemeral=True,
+            )
+            return
+        if self.finished:
+            await interaction.response.send_message(
+                embed=italy_embed("Font", "This font request is already resolved."),
+                ephemeral=True,
+            )
+            return
+        if (
+            self.pending_font_key is None
+            or self.pending_font_name is None
+            or self.pending_rarity is None
+            or self.pending_multiplier is None
+        ):
+            await interaction.response.send_message(
+                embed=italy_embed("Font", "Roll at least once before applying."),
+                ephemeral=True,
+            )
+            return
+
+        result = apply_pending_font_no_charge(
+            self.guild_id,
+            self.user_id,
+            instance_id=self.instance_id,
+            card_id=self.card_id,
+            generation=self.generation,
+            card_code=self.card_code,
+            font_key=self.pending_font_key,
+            font_name=self.pending_font_name,
+            rolled_rarity=self.pending_rarity,
+            rolled_multiplier=self.pending_multiplier,
+            cost=self.cost,
+        )
+        if result.is_error or result.remaining_dough is None:
+            self.finished = True
+            self._disable_buttons()
+            await interaction.response.edit_message(
+                embed=italy_embed("Font Failed", result.error_message or "Font failed."),
+                view=self,
+                attachments=[],
+            )
+            return
+
+        self.finished = True
+        self._disable_buttons()
+
+        font_embed = italy_embed(
+            "Font Applied",
+            _trait_roll_description(
+                card_line=card_display(
+                    self.card_id,
+                    self.generation,
+                    card_code=self.card_code,
+                    morph_key=self.before_morph_key,
+                    frame_key=self.before_frame_key,
+                    font_key=self.before_font_key,
+                ),
+                current_label=font_label(self.before_font_key),
+                rolled_name=self.pending_font_name,
+                rolled_rarity=self.pending_rarity,
+                rolled_multiplier=self.pending_multiplier,
+                remaining_dough=result.remaining_dough,
+                cost=self.cost,
+                trait_name="Font",
+            ),
+        )
+        image_url, image_file = morph_transition_image_payload(
+            self.card_id,
+            generation=self.generation,
+            before_morph_key=self.before_morph_key,
+            after_morph_key=self.before_morph_key,
+            before_frame_key=self.before_frame_key,
+            after_frame_key=self.before_frame_key,
+            before_font_key=self.before_font_key,
+            after_font_key=self.pending_font_key,
+        )
+        if image_url is not None:
+            font_embed.set_image(url=image_url)
+
+        await interaction.response.edit_message(
+            embed=font_embed,
+            view=self,
+            attachments=[image_file] if image_file is not None else [],
+        )
 
     async def on_timeout(self) -> None:
         if self.finished or self.message is None:
@@ -768,7 +1091,11 @@ class FontConfirmView(InteractionView):
 
         self._disable_buttons()
         try:
-            await self.message.edit(view=self)
+            await self.message.edit(
+                embed=italy_embed("Font Expired", "Font interaction timed out."),
+                view=self,
+                attachments=[],
+            )
         except discord.HTTPException:
             logger.warning(
                 "Failed to edit font confirmation message on timeout (message_id=%s)",

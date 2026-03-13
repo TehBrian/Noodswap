@@ -1305,6 +1305,43 @@ def apply_morph_to_instance(
     morph_key: str,
     cost: int,
 ) -> tuple[bool, str]:
+    spent, message = spend_dough_for_morph_roll(guild_id, user_id, instance_id, cost)
+    if not spent:
+        return False, message
+    return set_morph_on_instance_no_charge(guild_id, user_id, instance_id, morph_key)
+
+
+def spend_dough_for_morph_roll(
+    guild_id: int,
+    user_id: int,
+    instance_id: int,
+    cost: int,
+) -> tuple[bool, str]:
+    guild_id = _scope_guild_id(guild_id)
+    with get_db_connection() as conn:
+        _begin_immediate(conn)
+        players = PlayerRepository(conn, STARTING_DOUGH)
+        instances = CardInstanceRepository(conn)
+        players.ensure_player(guild_id, user_id)
+
+        owned_instance = instances.get_owned_instance_for_marry(guild_id, user_id, instance_id)
+        if owned_instance is None:
+            return False, "You do not own that card code."
+
+        dough = players.get_dough(guild_id, user_id)
+        if dough < cost:
+            return False, "You do not have enough dough."
+
+        players.add_dough(guild_id, user_id, -cost)
+        return True, ""
+
+
+def set_morph_on_instance_no_charge(
+    guild_id: int,
+    user_id: int,
+    instance_id: int,
+    morph_key: str,
+) -> tuple[bool, str]:
     guild_id = _scope_guild_id(guild_id)
     with get_db_connection() as conn:
         _begin_immediate(conn)
@@ -1320,15 +1357,9 @@ def apply_morph_to_instance(
         if existing_morph == morph_key:
             return False, "That card already has this morph."
 
-        dough = players.get_dough(guild_id, user_id)
-        if dough < cost:
-            return False, "You do not have enough dough."
-
         did_update = instances.set_morph_key(guild_id, user_id, instance_id, morph_key)
         if not did_update:
             return False, "Morph failed: card instance was not updated."
-
-        players.add_dough(guild_id, user_id, -cost)
         return True, ""
 
 
@@ -1338,6 +1369,43 @@ def apply_frame_to_instance(
     instance_id: int,
     frame_key: str,
     cost: int,
+) -> tuple[bool, str]:
+    spent, message = spend_dough_for_frame_roll(guild_id, user_id, instance_id, cost)
+    if not spent:
+        return False, message
+    return set_frame_on_instance_no_charge(guild_id, user_id, instance_id, frame_key)
+
+
+def spend_dough_for_frame_roll(
+    guild_id: int,
+    user_id: int,
+    instance_id: int,
+    cost: int,
+) -> tuple[bool, str]:
+    guild_id = _scope_guild_id(guild_id)
+    with get_db_connection() as conn:
+        _begin_immediate(conn)
+        players = PlayerRepository(conn, STARTING_DOUGH)
+        instances = CardInstanceRepository(conn)
+        players.ensure_player(guild_id, user_id)
+
+        owned_instance = instances.get_owned_instance_for_marry(guild_id, user_id, instance_id)
+        if owned_instance is None:
+            return False, "You do not own that card code."
+
+        dough = players.get_dough(guild_id, user_id)
+        if dough < cost:
+            return False, "You do not have enough dough."
+
+        players.add_dough(guild_id, user_id, -cost)
+        return True, ""
+
+
+def set_frame_on_instance_no_charge(
+    guild_id: int,
+    user_id: int,
+    instance_id: int,
+    frame_key: str,
 ) -> tuple[bool, str]:
     guild_id = _scope_guild_id(guild_id)
     with get_db_connection() as conn:
@@ -1354,15 +1422,9 @@ def apply_frame_to_instance(
         if existing_frame == frame_key:
             return False, "That card already has this frame."
 
-        dough = players.get_dough(guild_id, user_id)
-        if dough < cost:
-            return False, "You do not have enough dough."
-
         did_update = instances.set_frame_key(guild_id, user_id, instance_id, frame_key)
         if not did_update:
             return False, "Frame failed: card instance was not updated."
-
-        players.add_dough(guild_id, user_id, -cost)
         return True, ""
 
 
@@ -1372,6 +1434,43 @@ def apply_font_to_instance(
     instance_id: int,
     font_key: str,
     cost: int,
+) -> tuple[bool, str]:
+    spent, message = spend_dough_for_font_roll(guild_id, user_id, instance_id, cost)
+    if not spent:
+        return False, message
+    return set_font_on_instance_no_charge(guild_id, user_id, instance_id, font_key)
+
+
+def spend_dough_for_font_roll(
+    guild_id: int,
+    user_id: int,
+    instance_id: int,
+    cost: int,
+) -> tuple[bool, str]:
+    guild_id = _scope_guild_id(guild_id)
+    with get_db_connection() as conn:
+        _begin_immediate(conn)
+        players = PlayerRepository(conn, STARTING_DOUGH)
+        instances = CardInstanceRepository(conn)
+        players.ensure_player(guild_id, user_id)
+
+        owned_instance = instances.get_owned_instance_for_marry(guild_id, user_id, instance_id)
+        if owned_instance is None:
+            return False, "You do not own that card code."
+
+        dough = players.get_dough(guild_id, user_id)
+        if dough < cost:
+            return False, "You do not have enough dough."
+
+        players.add_dough(guild_id, user_id, -cost)
+        return True, ""
+
+
+def set_font_on_instance_no_charge(
+    guild_id: int,
+    user_id: int,
+    instance_id: int,
+    font_key: str,
 ) -> tuple[bool, str]:
     guild_id = _scope_guild_id(guild_id)
     with get_db_connection() as conn:
@@ -1388,22 +1487,16 @@ def apply_font_to_instance(
         if existing_font == font_key:
             return False, "That card already has this font."
 
-        dough = players.get_dough(guild_id, user_id)
-        if dough < cost:
-            return False, "You do not have enough dough."
-
         did_update = instances.set_font_key(guild_id, user_id, instance_id, font_key)
         if not did_update:
             return False, "Font failed: card instance was not updated."
-
-        players.add_dough(guild_id, user_id, -cost)
         return True, ""
 
 
 def get_instance_by_card_code(
     guild_id: int,
     card_code: str,
-) -> Optional[tuple[int, int, str, int, str, int | None, int | None]]:
+) -> Optional[tuple[int, int, str, int, str, int | None, int | None, float | None]]:
     guild_id = _scope_guild_id(guild_id)
     parsed = split_card_code(card_code)
     if parsed is None:
@@ -2190,6 +2283,7 @@ def add_card_to_player(
     *,
     dropped_by_user_id: int | None = None,
     pulled_by_user_id: int | None = None,
+    pulled_at: float | None = None,
 ) -> int:
     guild_id = _scope_guild_id(guild_id)
     if generation < GENERATION_MIN or generation > GENERATION_MAX:
@@ -2207,6 +2301,7 @@ def add_card_to_player(
             generation,
             dropped_by_user_id=dropped_by_user_id,
             pulled_by_user_id=pulled_by_user_id,
+            pulled_at=pulled_at,
         )
         players.set_last_pulled_instance(guild_id, user_id, instance_id)
         return instance_id
@@ -2238,6 +2333,15 @@ def get_player_card_instances(guild_id: int, user_id: int) -> list[tuple[int, st
         return instances.list_by_owner(guild_id, user_id)
 
 
+def get_player_card_instances_with_pulled_at(guild_id: int, user_id: int) -> list[tuple[int, str, int, str, float | None]]:
+    guild_id = _scope_guild_id(guild_id)
+    with get_db_connection() as conn:
+        players = PlayerRepository(conn, STARTING_DOUGH)
+        instances = CardInstanceRepository(conn)
+        players.ensure_player(guild_id, user_id)
+        return instances.list_by_owner_with_pulled_at(guild_id, user_id)
+
+
 def get_all_owned_card_instances(
     guild_id: int,
 ) -> list[tuple[int, int, str, int, str, str | None, str | None, str | None]]:
@@ -2245,6 +2349,15 @@ def get_all_owned_card_instances(
     with get_db_connection() as conn:
         instances = CardInstanceRepository(conn)
         return instances.list_owner_instances_with_styles_for_guild(guild_id)
+
+
+def get_all_owned_card_instances_with_pulled_at(
+    guild_id: int,
+) -> list[tuple[int, int, str, int, str, float | None, str | None, str | None, str | None]]:
+    guild_id = _scope_guild_id(guild_id)
+    with get_db_connection() as conn:
+        instances = CardInstanceRepository(conn)
+        return instances.list_owner_instances_with_styles_and_pulled_at_for_guild(guild_id)
 
 
 def get_total_cards(guild_id: int, user_id: int) -> int:

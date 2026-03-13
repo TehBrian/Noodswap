@@ -703,7 +703,7 @@ class ViewTests:
         assert len(interaction.message.replies) == 1
         assert interaction.message.replies[0]["embed"].title == "Burn Cancelled"
 
-    async def test_morph_confirm_applies_and_replies_with_summary(self) -> None:
+    async def test_morph_roll_then_apply_edits_message_without_reply(self) -> None:
         view = MorphConfirmView(
             guild_id=1,
             user_id=10,
@@ -719,7 +719,7 @@ class ViewTests:
         interaction = _FakeInteraction(user_id=10)
 
         with patch(
-            "bot.view_confirmations.resolve_morph_roll",
+            "bot.view_confirmations.roll_morph_preview_paid",
             return_value=type(
                 "MorphResult",
                 (),
@@ -732,21 +732,34 @@ class ViewTests:
                     "remaining_dough": 41,
                 },
             )(),
-        ) as resolve_morph:
-            await view.confirm_button.callback(interaction)
+        ) as roll_morph, patch(
+            "bot.view_confirmations.apply_pending_morph_no_charge",
+            return_value=type(
+                "MorphApplyResult",
+                (),
+                {
+                    "is_error": False,
+                    "remaining_dough": 41,
+                },
+            )(),
+        ) as apply_morph:
+            await view.roll_button.callback(interaction)
+            await view.apply_button.callback(interaction)
 
-        resolve_morph.assert_called_once()
+        roll_morph.assert_called_once()
+        apply_morph.assert_called_once()
         assert view.finished
-        assert len(interaction.response.edited_messages) == 1
-        assert interaction.response.edited_messages[0].get("view") == view
-        assert len(interaction.message.replies) == 1
-        sent_embed = interaction.message.replies[0]["embed"]
-        assert sent_embed.title == "Morph Rolled"
-        assert "Trait Rarity: **Common** (x1.00)" in sent_embed.description
-        assert "Morph Cost: **9**" in sent_embed.description
-        assert "Dough Remaining: **41**" in sent_embed.description
+        assert len(interaction.response.edited_messages) == 2
+        rolled_embed = interaction.response.edited_messages[0]["embed"]
+        assert rolled_embed.title == "Morph Roll"
+        assert "Trait Rarity: **Common** (x1.00)" in rolled_embed.description
+        assert "Current Balance: **41** dough" in rolled_embed.description
+        assert "Reroll Cost: **9** dough" in rolled_embed.description
+        applied_embed = interaction.response.edited_messages[1]["embed"]
+        assert applied_embed.title == "Morph Applied"
+        assert len(interaction.message.replies) == 0
 
-    async def test_morph_confirm_rejects_unauthorized_user(self) -> None:
+    async def test_morph_roll_rejects_unauthorized_user(self) -> None:
         view = MorphConfirmView(
             guild_id=1,
             user_id=10,
@@ -761,9 +774,9 @@ class ViewTests:
         )
         interaction = _FakeInteraction(user_id=99)
 
-        with patch("bot.view_confirmations.resolve_morph_roll") as resolve_morph:
-            await view.confirm_button.callback(interaction)
-            resolve_morph.assert_not_called()
+        with patch("bot.view_confirmations.roll_morph_preview_paid") as roll_morph:
+            await view.roll_button.callback(interaction)
+            roll_morph.assert_not_called()
         assert len(interaction.response.sent_messages) == 1
         assert interaction.response.sent_messages[0].get("ephemeral")
         assert "Only the command user" in interaction.response.sent_messages[0]["embed"].description
@@ -785,15 +798,16 @@ class ViewTests:
         view.message = fake_message
 
         await view.on_timeout()
-        assert view.confirm_button.disabled
+        assert view.roll_button.disabled
+        assert view.apply_button.disabled
         assert view.cancel_button.disabled
         assert len(fake_message.edits) == 1
         edit_kwargs = fake_message.edits[0]
         assert edit_kwargs["view"] == view
-        assert "embed" not in edit_kwargs
-        assert "attachments" not in edit_kwargs
+        assert edit_kwargs["embed"].title == "Morph Expired"
+        assert edit_kwargs["attachments"] == []
 
-    async def test_frame_confirm_applies_and_replies_with_summary(self) -> None:
+    async def test_frame_roll_then_apply_edits_message_without_reply(self) -> None:
         view = FrameConfirmView(
             guild_id=1,
             user_id=10,
@@ -809,7 +823,7 @@ class ViewTests:
         interaction = _FakeInteraction(user_id=10)
 
         with patch(
-            "bot.view_confirmations.resolve_frame_roll",
+            "bot.view_confirmations.roll_frame_preview_paid",
             return_value=type(
                 "FrameResult",
                 (),
@@ -822,19 +836,31 @@ class ViewTests:
                     "remaining_dough": 41,
                 },
             )(),
-        ) as resolve_frame:
-            await view.confirm_button.callback(interaction)
+        ) as roll_frame, patch(
+            "bot.view_confirmations.apply_pending_frame_no_charge",
+            return_value=type(
+                "FrameApplyResult",
+                (),
+                {
+                    "is_error": False,
+                    "remaining_dough": 41,
+                },
+            )(),
+        ) as apply_frame:
+            await view.roll_button.callback(interaction)
+            await view.apply_button.callback(interaction)
 
-        resolve_frame.assert_called_once()
+        roll_frame.assert_called_once()
+        apply_frame.assert_called_once()
         assert view.finished
-        assert len(interaction.response.edited_messages) == 1
-        assert interaction.response.edited_messages[0].get("view") == view
-        assert len(interaction.message.replies) == 1
-        sent_embed = interaction.message.replies[0]["embed"]
-        assert sent_embed.title == "Frame Rolled"
-        assert "Trait Rarity: **Common** (x1.00)" in sent_embed.description
-        assert "Frame Cost: **9**" in sent_embed.description
-        assert "Dough Remaining: **41**" in sent_embed.description
+        assert len(interaction.response.edited_messages) == 2
+        rolled_embed = interaction.response.edited_messages[0]["embed"]
+        assert rolled_embed.title == "Frame Roll"
+        assert "Current Balance: **41** dough" in rolled_embed.description
+        assert "Reroll Cost: **9** dough" in rolled_embed.description
+        applied_embed = interaction.response.edited_messages[1]["embed"]
+        assert applied_embed.title == "Frame Applied"
+        assert len(interaction.message.replies) == 0
 
     async def test_frame_timeout_clears_attachments_and_edits_embed(self) -> None:
         view = FrameConfirmView(
@@ -853,15 +879,16 @@ class ViewTests:
         view.message = fake_message
 
         await view.on_timeout()
-        assert view.confirm_button.disabled
+        assert view.roll_button.disabled
+        assert view.apply_button.disabled
         assert view.cancel_button.disabled
         assert len(fake_message.edits) == 1
         edit_kwargs = fake_message.edits[0]
         assert edit_kwargs["view"] == view
-        assert "embed" not in edit_kwargs
-        assert "attachments" not in edit_kwargs
+        assert edit_kwargs["embed"].title == "Frame Expired"
+        assert edit_kwargs["attachments"] == []
 
-    async def test_font_confirm_applies_and_replies_with_summary(self) -> None:
+    async def test_font_roll_then_apply_edits_message_without_reply(self) -> None:
         view = FontConfirmView(
             guild_id=1,
             user_id=10,
@@ -877,7 +904,7 @@ class ViewTests:
         interaction = _FakeInteraction(user_id=10)
 
         with patch(
-            "bot.view_confirmations.resolve_font_roll",
+            "bot.view_confirmations.roll_font_preview_paid",
             return_value=type(
                 "FontResult",
                 (),
@@ -890,19 +917,32 @@ class ViewTests:
                     "remaining_dough": 41,
                 },
             )(),
-        ) as resolve_font:
-            await view.confirm_button.callback(interaction)
+        ) as roll_font, patch(
+            "bot.view_confirmations.apply_pending_font_no_charge",
+            return_value=type(
+                "FontApplyResult",
+                (),
+                {
+                    "is_error": False,
+                    "remaining_dough": 41,
+                },
+            )(),
+        ) as apply_font:
+            await view.roll_button.callback(interaction)
+            await view.apply_button.callback(interaction)
 
-        resolve_font.assert_called_once()
+        roll_font.assert_called_once()
+        apply_font.assert_called_once()
         assert view.finished
-        assert len(interaction.response.edited_messages) == 1
-        assert interaction.response.edited_messages[0].get("view") == view
-        assert len(interaction.message.replies) == 1
-        sent_embed = interaction.message.replies[0]["embed"]
-        assert sent_embed.title == "Font Rolled"
-        assert "Trait Rarity: **Uncommon** (x1.02)" in sent_embed.description
-        assert "Font Cost: **9**" in sent_embed.description
-        assert "Dough Remaining: **41**" in sent_embed.description
+        assert len(interaction.response.edited_messages) == 2
+        rolled_embed = interaction.response.edited_messages[0]["embed"]
+        assert rolled_embed.title == "Font Roll"
+        assert "Trait Rarity: **Uncommon** (x1.02)" in rolled_embed.description
+        assert "Current Balance: **41** dough" in rolled_embed.description
+        assert "Reroll Cost: **9** dough" in rolled_embed.description
+        applied_embed = interaction.response.edited_messages[1]["embed"]
+        assert applied_embed.title == "Font Applied"
+        assert len(interaction.message.replies) == 0
 
     async def test_font_timeout_clears_attachments_and_edits_embed(self) -> None:
         view = FontConfirmView(
@@ -921,13 +961,14 @@ class ViewTests:
         view.message = fake_message
 
         await view.on_timeout()
-        assert view.confirm_button.disabled
+        assert view.roll_button.disabled
+        assert view.apply_button.disabled
         assert view.cancel_button.disabled
         assert len(fake_message.edits) == 1
         edit_kwargs = fake_message.edits[0]
         assert edit_kwargs["view"] == view
-        assert "embed" not in edit_kwargs
-        assert "attachments" not in edit_kwargs
+        assert edit_kwargs["embed"].title == "Font Expired"
+        assert edit_kwargs["attachments"] == []
 
     async def test_card_catalog_pagination_buttons_update_page(self) -> None:
         entries = [
@@ -1474,6 +1515,75 @@ class ViewTests:
         assert [row[0] for row in view._sorted_instances] == [4, 2, 3, 1]
         edited_embed = interaction.response.edited_messages[0]["embed"]
         assert "Sort: Generation" in edited_embed.footer.text
+
+    async def test_sortable_collection_view_time_pulled_sort_defaults_to_newest_first(
+        self,
+    ) -> None:
+        instances = [
+            (1, "SPG", 500, "0"),
+            (2, "BAR", 20, "1"),
+            (3, "BLA", 20, "2"),
+            (4, "SPG", 10, "3"),
+        ]
+        pulled_at_by_instance = {
+            1: 1_700_000_100.0,
+            2: None,
+            3: 1_700_000_300.0,
+            4: 1_700_000_200.0,
+        }
+        view = SortableCollectionView(
+            user_id=10,
+            title="Caller's Collection",
+            instances=instances,
+            wish_counts={},
+            instance_styles={},
+            pulled_at_by_instance=pulled_at_by_instance,
+            initial_sort_mode="time_pulled",
+            guard_title="Collection",
+            page_size=10,
+        )
+
+        assert view.sort_mode == "time_pulled"
+        assert view.sort_descending
+        assert [row[0] for row in view._sorted_instances] == [3, 4, 1, 2]
+        embed = view.build_embed()
+        assert "Sort: Time Pulled (Desc)" in embed.footer.text
+
+    async def test_sortable_collection_view_time_pulled_toggle_shows_oldest_first(
+        self,
+    ) -> None:
+        instances = [
+            (1, "SPG", 500, "0"),
+            (2, "BAR", 20, "1"),
+            (3, "BLA", 20, "2"),
+        ]
+        pulled_at_by_instance = {
+            1: 1_700_000_100.0,
+            2: None,
+            3: 1_700_000_300.0,
+        }
+        view = SortableCollectionView(
+            user_id=10,
+            title="Caller's Collection",
+            instances=instances,
+            wish_counts={},
+            instance_styles={},
+            pulled_at_by_instance=pulled_at_by_instance,
+            guard_title="Collection",
+            page_size=10,
+        )
+
+        interaction = _FakeInteraction(user_id=10)
+        view.sort_select._values = ["time_pulled"]
+        await view.sort_select.callback(interaction)
+        assert [row[0] for row in view._sorted_instances] == [3, 1, 2]
+
+        toggle_interaction = _FakeInteraction(user_id=10)
+        await view.sort_direction_button.callback(toggle_interaction)
+        assert not view.sort_descending
+        assert [row[0] for row in view._sorted_instances] == [2, 1, 3]
+        edited_embed = toggle_interaction.response.edited_messages[0]["embed"]
+        assert "Sort: Time Pulled (Asc)" in edited_embed.footer.text
 
     async def test_sortable_collection_view_sort_direction_toggle_flips_order_and_resets_page(
         self,

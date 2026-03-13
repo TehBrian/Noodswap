@@ -1,7 +1,8 @@
 from collections.abc import Callable
 import sqlite3
+import time
 
-TARGET_SCHEMA_VERSION = 26
+TARGET_SCHEMA_VERSION = 27
 _BASE36_ALPHABET = "0123456789abcdefghijklmnopqrstuvwxyz"
 
 
@@ -857,6 +858,35 @@ def _apply_migration_v26(conn: sqlite3.Connection) -> None:
     )
 
 
+def _apply_migration_v27(conn: sqlite3.Connection) -> None:
+    card_instances_table_exists = (
+        conn.execute(
+            """
+        SELECT 1
+        FROM sqlite_master
+        WHERE type = 'table' AND name = 'card_instances'
+        LIMIT 1
+        """
+        ).fetchone()
+        is not None
+    )
+    if not card_instances_table_exists:
+        return
+
+    if not _has_column(conn, "card_instances", "pulled_at"):
+        conn.execute("ALTER TABLE card_instances ADD COLUMN pulled_at REAL")
+
+    now = float(time.time())
+    conn.execute(
+        """
+        UPDATE card_instances
+        SET pulled_at = ?
+        WHERE pulled_at IS NULL
+        """,
+        (now,),
+    )
+
+
 def run_migrations(
     conn: sqlite3.Connection,
     *,
@@ -995,6 +1025,11 @@ def run_migrations(
         _apply_migration_v26(conn)
         _set_schema_version(conn, 26)
         current_version = 26
+
+    if current_version < 27:
+        _apply_migration_v27(conn)
+        _set_schema_version(conn, 27)
+        current_version = 27
 
     if current_version > target_schema_version:
         raise RuntimeError(f"Database schema version {current_version} is newer than supported {target_schema_version}.")

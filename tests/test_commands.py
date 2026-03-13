@@ -1079,7 +1079,7 @@ class CommandsLookupTests:
 
         with patch(
             "bot.commands_catalog.get_instance_by_card_code",
-            return_value=(123, 999, "SPG", 101, "abc", 222, 333),
+            return_value=(123, 999, "SPG", 101, "abc", 222, 333, 1_700_000_000.0),
         ) as lookup_dupe:
             await lookup_command.callback(ctx, card_id="AbC")
 
@@ -1091,6 +1091,7 @@ class CommandsLookupTests:
         assert "Owned by: <@999>" in sent_embed.description
         assert "Dropped by: <@222>" in sent_embed.description
         assert "Pulled by: <@333>" in sent_embed.description
+        assert "Time pulled: <t:" in sent_embed.description
         assert "G-101" in sent_embed.description
         assert "dough" in sent_embed.description
         assert "**Value Breakdown**" in sent_embed.description
@@ -1108,7 +1109,7 @@ class CommandsLookupTests:
 
         with patch(
             "bot.commands_catalog.get_instance_by_card_code",
-            return_value=(123, 999, "SPG", 101, "abc", None, None),
+            return_value=(123, 999, "SPG", 101, "abc", None, None, None),
         ) as lookup_dupe:
             await lookup_command.callback(ctx, card_id="#AbC")
 
@@ -1120,6 +1121,7 @@ class CommandsLookupTests:
         assert "Owned by: <@999>" in sent_embed.description
         assert "Dropped by: Unknown" in sent_embed.description
         assert "Pulled by: Unknown" in sent_embed.description
+        assert "Time pulled: Unknown" in sent_embed.description
         assert "G-101" in sent_embed.description
         assert "dough" in sent_embed.description
         assert "**Value Breakdown**" in sent_embed.description
@@ -1138,7 +1140,7 @@ class CommandsLookupTests:
 
         with patch(
             "bot.commands_catalog.get_instance_by_card_code",
-            return_value=(123, 999, "SPG", 101, "abc", 222, 333),
+            return_value=(123, 999, "SPG", 101, "abc", 222, 333, 1_700_000_000.0),
         ) as lookup_dupe:
             await lookup_command.callback(ctx, card_id="AbC")
 
@@ -1150,6 +1152,7 @@ class CommandsLookupTests:
         assert "Owned by: <@999>" in sent_embed.description
         assert "Dropped by: <@222>" in sent_embed.description
         assert "Pulled by: <@333>" in sent_embed.description
+        assert "Time pulled: <t:" in sent_embed.description
         assert re.search(r"HP: \*\*\d+\*\* • ATK: \*\*\d+\*\* • DEF: \*\*\d+\*\*", sent_embed.description)
 
     async def test_lookup_prefers_exact_card_code_over_card_id(self) -> None:
@@ -1163,7 +1166,7 @@ class CommandsLookupTests:
 
         with patch(
             "bot.commands_catalog.get_instance_by_card_code",
-            return_value=(777, 999, "SPG", 88, "spg", 999, 111),
+            return_value=(777, 999, "SPG", 88, "spg", 999, 111, 1_700_000_000.0),
         ) as lookup_dupe:
             await lookup_command.callback(ctx, card_id="spg")
 
@@ -1291,7 +1294,7 @@ class CommandsCollectionTests:
         ctx.send = AsyncMock()
         ctx.reply = ctx.send
 
-        with patch("bot.commands_economy.get_player_card_instances", return_value=[]):
+        with patch("bot.commands_economy.get_player_card_instances_with_pulled_at", return_value=[]):
             await collection_command.callback(ctx, player=None)
 
         ctx.send.assert_awaited_once()
@@ -1314,7 +1317,7 @@ class CommandsCollectionTests:
                 "bot.command_utils.resolve_member_argument",
                 new=AsyncMock(return_value=(target, None)),
             ) as resolve_member,
-            patch("bot.commands_economy.get_player_card_instances", return_value=[]),
+            patch("bot.commands_economy.get_player_card_instances_with_pulled_at", return_value=[]),
         ):
             await collection_command.callback(ctx, player="@Target")
 
@@ -1340,7 +1343,7 @@ class CommandsCollectionTests:
         ctx.send = AsyncMock()
         ctx.reply = ctx.send
 
-        with patch("bot.commands_economy.get_player_card_instances", return_value=[]):
+        with patch("bot.commands_economy.get_player_card_instances_with_pulled_at", return_value=[]):
             await collection_command.callback(ctx, player=None)
 
         ctx.send.assert_awaited_once()
@@ -1362,7 +1365,7 @@ class CommandsCollectionTests:
                 "bot.command_utils.resolve_member_argument",
                 new=AsyncMock(return_value=(None, "Could not find that player.")),
             ) as resolve_member,
-            patch("bot.commands_economy.get_player_card_instances", return_value=[]),
+            patch("bot.commands_economy.get_player_card_instances_with_pulled_at", return_value=[]),
         ):
             await collection_command.callback(ctx, player="ghost")
 
@@ -1382,13 +1385,13 @@ class CommandsCollectionTests:
         ctx.reply = ctx.send
 
         instances = [
-            (3, "SPG", 100, "0"),
-            (4, "SPG", 100, "1"),
-            (5, "SPG", 90, "2"),
+            (3, "SPG", 100, "0", 1_700_000_100.0),
+            (4, "SPG", 100, "1", 1_700_000_200.0),
+            (5, "SPG", 90, "2", 1_700_000_300.0),
         ]
         with (
             patch(
-                "bot.commands_economy.get_player_card_instances",
+                "bot.commands_economy.get_player_card_instances_with_pulled_at",
                 return_value=instances,
             ),
             patch("bot.command_utils.get_locked_instance_ids", return_value=set()),
@@ -1411,10 +1414,10 @@ class CommandsCollectionTests:
         ctx.send = AsyncMock()
         ctx.reply = ctx.send
 
-        instances = [(idx, "SPG", 100 + idx, str(idx)) for idx in range(1, 13)]
+        instances = [(idx, "SPG", 100 + idx, str(idx), float(1_700_000_000 + idx)) for idx in range(1, 13)]
         with (
             patch(
-                "bot.commands_economy.get_player_card_instances",
+                "bot.commands_economy.get_player_card_instances_with_pulled_at",
                 return_value=instances,
             ),
             patch("bot.command_utils.get_locked_instance_ids", return_value=set()),
@@ -1425,7 +1428,7 @@ class CommandsCollectionTests:
         send_kwargs = ctx.send.await_args.kwargs
         assert "view" in send_kwargs
         assert isinstance(send_kwargs["view"], SortableCollectionView)
-        assert send_kwargs["embed"].footer.text == "Page 1/2 • Sort: Alphabetical (Asc)"
+        assert send_kwargs["embed"].footer.text == "Page 1/2 • Sort: Time Pulled (Desc)"
 
     async def test_cards_shows_empty_state_when_no_cards(self) -> None:
         cards_command = _get_command(self.bot, "cards")
@@ -1438,7 +1441,7 @@ class CommandsCollectionTests:
 
         empty_instances: list = []
         with patch(
-            "bot.commands_economy.get_all_owned_card_instances",
+            "bot.commands_economy.get_all_owned_card_instances_with_pulled_at",
             return_value=empty_instances,
         ):
             await cards_command.callback(ctx)
@@ -1464,14 +1467,14 @@ class CommandsCollectionTests:
         ctx.reply = ctx.send
 
         instances = [
-            (1, 100, "SPG", 100, "0", None, None, None),
-            (2, 200, "SPG", 101, "1", None, None, None),
-            (3, 200, "BAR", 200, "2", None, None, None),
-            (4, 300, "PEN", 300, "3", None, None, None),
+            (1, 100, "SPG", 100, "0", 1_700_000_100.0, None, None, None),
+            (2, 200, "SPG", 101, "1", 1_700_000_200.0, None, None, None),
+            (3, 200, "BAR", 200, "2", 1_700_000_300.0, None, None, None),
+            (4, 300, "PEN", 300, "3", 1_700_000_400.0, None, None, None),
         ]
         with (
             patch(
-                "bot.commands_economy.get_all_owned_card_instances",
+                "bot.commands_economy.get_all_owned_card_instances_with_pulled_at",
                 return_value=instances,
             ),
             patch("bot.commands_economy.get_card_wish_counts", return_value={"SPG": 3, "PEN": 1}),
@@ -1491,7 +1494,7 @@ class CommandsCollectionTests:
         assert "<@200>" not in sent_embed.description
         assert "<@300>" not in sent_embed.description
         assert isinstance(sent_view, SortableCollectionView)
-        assert sent_embed.footer.text == "Page 1/1 • Sort: Alphabetical (Asc)"
+        assert sent_embed.footer.text == "Page 1/1 • Sort: Time Pulled (Desc)"
 
     async def test_cards_populates_lock_and_folder_markers_by_instance_owner(self) -> None:
         cards_command = _get_command(self.bot, "cards")
@@ -1509,9 +1512,9 @@ class CommandsCollectionTests:
         ctx.reply = ctx.send
 
         instances = [
-            (1, 100, "BAR", 200, "0", None, None, None),
-            (2, 100, "PEN", 300, "1", None, None, None),
-            (3, 200, "SPG", 100, "2", None, None, None),
+            (1, 100, "BAR", 200, "0", 1_700_000_100.0, None, None, None),
+            (2, 100, "PEN", 300, "1", 1_700_000_200.0, None, None, None),
+            (3, 200, "SPG", 100, "2", 1_700_000_300.0, None, None, None),
         ]
 
         def _locked_instances_for_owner(_guild_id: int, owner_id: int, instance_ids: list[int]) -> set[int]:
@@ -1536,7 +1539,7 @@ class CommandsCollectionTests:
 
         with (
             patch(
-                "bot.commands_economy.get_all_owned_card_instances",
+                "bot.commands_economy.get_all_owned_card_instances_with_pulled_at",
                 return_value=instances,
             ),
             patch("bot.commands_economy.get_card_wish_counts", return_value={}),

@@ -31,6 +31,12 @@ from .storage import (
     get_instance_by_code,
     get_last_pulled_instance,
     get_player_info,
+    set_font_on_instance_no_charge,
+    set_frame_on_instance_no_charge,
+    set_morph_on_instance_no_charge,
+    spend_dough_for_font_roll,
+    spend_dough_for_frame_roll,
+    spend_dough_for_morph_roll,
     resolve_battle_proposal,
     marry_card_instance,
 )
@@ -117,6 +123,7 @@ def execute_drop_claim(
         generation,
         dropped_by_user_id=dropped_by_user_id,
         pulled_by_user_id=user_id,
+        pulled_at=now,
     )
     persisted = get_instance_by_id(guild_id, instance_id)
     resolved_card_code: Optional[str] = None
@@ -1090,6 +1097,114 @@ def resolve_morph_roll(
     )
 
 
+def roll_morph_preview_paid(
+    guild_id: int,
+    user_id: int,
+    *,
+    instance_id: int,
+    card_id: str,
+    generation: int,
+    card_code: str,
+    current_morph_key: str | None,
+    cost: int,
+) -> MorphExecution:
+    available_rolls = [morph_key for morph_key in AVAILABLE_MORPHS if morph_key != current_morph_key]
+    if not available_rolls:
+        return MorphExecution(
+            error_message="No new morphs are currently available for this card.",
+            instance_id=None,
+            card_id=None,
+            generation=None,
+            card_code=None,
+            morph_key=None,
+            morph_name=None,
+            rolled_rarity=None,
+            rolled_multiplier=None,
+            cost=None,
+            remaining_dough=None,
+        )
+
+    spent, message = spend_dough_for_morph_roll(guild_id, user_id, instance_id, cost)
+    if not spent:
+        return MorphExecution(
+            error_message=message or "Morph failed.",
+            instance_id=None,
+            card_id=None,
+            generation=None,
+            card_code=None,
+            morph_key=None,
+            morph_name=None,
+            rolled_rarity=None,
+            rolled_multiplier=None,
+            cost=None,
+            remaining_dough=None,
+        )
+
+    rolled_morph = weighted_trait_choice(available_rolls, morph_rarity)
+    rolled_rarity = morph_rarity(rolled_morph)
+    rolled_multiplier = trait_rarity_multiplier(rolled_rarity)
+    dough_after, _, _ = get_player_info(guild_id, user_id)
+    return MorphExecution(
+        error_message=None,
+        instance_id=instance_id,
+        card_id=card_id,
+        generation=generation,
+        card_code=card_code,
+        morph_key=rolled_morph,
+        morph_name=morph_label(rolled_morph),
+        rolled_rarity=rolled_rarity,
+        rolled_multiplier=rolled_multiplier,
+        cost=cost,
+        remaining_dough=dough_after,
+    )
+
+
+def apply_pending_morph_no_charge(
+    guild_id: int,
+    user_id: int,
+    *,
+    instance_id: int,
+    card_id: str,
+    generation: int,
+    card_code: str,
+    morph_key: str,
+    morph_name: str,
+    rolled_rarity: str,
+    rolled_multiplier: float,
+    cost: int,
+) -> MorphExecution:
+    applied, message = set_morph_on_instance_no_charge(guild_id, user_id, instance_id, morph_key)
+    if not applied:
+        return MorphExecution(
+            error_message=message or "Morph failed.",
+            instance_id=None,
+            card_id=None,
+            generation=None,
+            card_code=None,
+            morph_key=None,
+            morph_name=None,
+            rolled_rarity=None,
+            rolled_multiplier=None,
+            cost=None,
+            remaining_dough=None,
+        )
+
+    dough_after, _, _ = get_player_info(guild_id, user_id)
+    return MorphExecution(
+        error_message=None,
+        instance_id=instance_id,
+        card_id=card_id,
+        generation=generation,
+        card_code=card_code,
+        morph_key=morph_key,
+        morph_name=morph_name,
+        rolled_rarity=rolled_rarity,
+        rolled_multiplier=rolled_multiplier,
+        cost=cost,
+        remaining_dough=dough_after,
+    )
+
+
 @dataclass(frozen=True)
 class FrameExecution:
     error_message: Optional[str]
@@ -1399,6 +1514,115 @@ def resolve_frame_roll(
     )
 
 
+def roll_frame_preview_paid(
+    guild_id: int,
+    user_id: int,
+    *,
+    instance_id: int,
+    card_id: str,
+    generation: int,
+    card_code: str,
+    current_frame_key: str | None,
+    cost: int,
+) -> FrameExecution:
+    frame_choices = available_frame_keys()
+    available_rolls = [frame_key for frame_key in frame_choices if frame_key != current_frame_key]
+    if not available_rolls:
+        return FrameExecution(
+            error_message="No new frames are currently available for this card.",
+            instance_id=None,
+            card_id=None,
+            generation=None,
+            card_code=None,
+            frame_key=None,
+            frame_name=None,
+            rolled_rarity=None,
+            rolled_multiplier=None,
+            cost=None,
+            remaining_dough=None,
+        )
+
+    spent, message = spend_dough_for_frame_roll(guild_id, user_id, instance_id, cost)
+    if not spent:
+        return FrameExecution(
+            error_message=message or "Frame failed.",
+            instance_id=None,
+            card_id=None,
+            generation=None,
+            card_code=None,
+            frame_key=None,
+            frame_name=None,
+            rolled_rarity=None,
+            rolled_multiplier=None,
+            cost=None,
+            remaining_dough=None,
+        )
+
+    rolled_frame = weighted_trait_choice(available_rolls, frame_rarity)
+    rolled_rarity = frame_rarity(rolled_frame)
+    rolled_multiplier = trait_rarity_multiplier(rolled_rarity)
+    dough_after, _, _ = get_player_info(guild_id, user_id)
+    return FrameExecution(
+        error_message=None,
+        instance_id=instance_id,
+        card_id=card_id,
+        generation=generation,
+        card_code=card_code,
+        frame_key=rolled_frame,
+        frame_name=frame_label(rolled_frame),
+        rolled_rarity=rolled_rarity,
+        rolled_multiplier=rolled_multiplier,
+        cost=cost,
+        remaining_dough=dough_after,
+    )
+
+
+def apply_pending_frame_no_charge(
+    guild_id: int,
+    user_id: int,
+    *,
+    instance_id: int,
+    card_id: str,
+    generation: int,
+    card_code: str,
+    frame_key: str,
+    frame_name: str,
+    rolled_rarity: str,
+    rolled_multiplier: float,
+    cost: int,
+) -> FrameExecution:
+    applied, message = set_frame_on_instance_no_charge(guild_id, user_id, instance_id, frame_key)
+    if not applied:
+        return FrameExecution(
+            error_message=message or "Frame failed.",
+            instance_id=None,
+            card_id=None,
+            generation=None,
+            card_code=None,
+            frame_key=None,
+            frame_name=None,
+            rolled_rarity=None,
+            rolled_multiplier=None,
+            cost=None,
+            remaining_dough=None,
+        )
+
+    dough_after, _, _ = get_player_info(guild_id, user_id)
+    return FrameExecution(
+        error_message=None,
+        instance_id=instance_id,
+        card_id=card_id,
+        generation=generation,
+        card_code=card_code,
+        frame_key=frame_key,
+        frame_name=frame_name,
+        rolled_rarity=rolled_rarity,
+        rolled_multiplier=rolled_multiplier,
+        cost=cost,
+        remaining_dough=dough_after,
+    )
+
+
 @dataclass(frozen=True)
 class FontExecution:
     error_message: Optional[str]
@@ -1702,6 +1926,114 @@ def resolve_font_roll(
         rolled_rarity=rolled_rarity,
         rolled_multiplier=rolled_multiplier,
         cost=cost,
+    )
+
+
+def roll_font_preview_paid(
+    guild_id: int,
+    user_id: int,
+    *,
+    instance_id: int,
+    card_id: str,
+    generation: int,
+    card_code: str,
+    current_font_key: str | None,
+    cost: int,
+) -> FontExecution:
+    available_rolls = [font_key for font_key in AVAILABLE_FONTS if font_key != current_font_key]
+    if not available_rolls:
+        return FontExecution(
+            error_message="No new fonts are currently available for this card.",
+            instance_id=None,
+            card_id=None,
+            generation=None,
+            card_code=None,
+            font_key=None,
+            font_name=None,
+            rolled_rarity=None,
+            rolled_multiplier=None,
+            cost=None,
+            remaining_dough=None,
+        )
+
+    spent, message = spend_dough_for_font_roll(guild_id, user_id, instance_id, cost)
+    if not spent:
+        return FontExecution(
+            error_message=message or "Font failed.",
+            instance_id=None,
+            card_id=None,
+            generation=None,
+            card_code=None,
+            font_key=None,
+            font_name=None,
+            rolled_rarity=None,
+            rolled_multiplier=None,
+            cost=None,
+            remaining_dough=None,
+        )
+
+    rolled_font = weighted_trait_choice(available_rolls, font_rarity)
+    rolled_rarity = font_rarity(rolled_font)
+    rolled_multiplier = trait_rarity_multiplier(rolled_rarity)
+    dough_after, _, _ = get_player_info(guild_id, user_id)
+    return FontExecution(
+        error_message=None,
+        instance_id=instance_id,
+        card_id=card_id,
+        generation=generation,
+        card_code=card_code,
+        font_key=rolled_font,
+        font_name=font_label(rolled_font),
+        rolled_rarity=rolled_rarity,
+        rolled_multiplier=rolled_multiplier,
+        cost=cost,
+        remaining_dough=dough_after,
+    )
+
+
+def apply_pending_font_no_charge(
+    guild_id: int,
+    user_id: int,
+    *,
+    instance_id: int,
+    card_id: str,
+    generation: int,
+    card_code: str,
+    font_key: str,
+    font_name: str,
+    rolled_rarity: str,
+    rolled_multiplier: float,
+    cost: int,
+) -> FontExecution:
+    applied, message = set_font_on_instance_no_charge(guild_id, user_id, instance_id, font_key)
+    if not applied:
+        return FontExecution(
+            error_message=message or "Font failed.",
+            instance_id=None,
+            card_id=None,
+            generation=None,
+            card_code=None,
+            font_key=None,
+            font_name=None,
+            rolled_rarity=None,
+            rolled_multiplier=None,
+            cost=None,
+            remaining_dough=None,
+        )
+
+    dough_after, _, _ = get_player_info(guild_id, user_id)
+    return FontExecution(
+        error_message=None,
+        instance_id=instance_id,
+        card_id=card_id,
+        generation=generation,
+        card_code=card_code,
+        font_key=font_key,
+        font_name=font_name,
+        rolled_rarity=rolled_rarity,
+        rolled_multiplier=rolled_multiplier,
+        cost=cost,
+        remaining_dough=dough_after,
     )
 
 

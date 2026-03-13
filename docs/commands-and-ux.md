@@ -302,6 +302,7 @@ Card identity terms:
 
 - `lookup` accepts a base `card_id`, an exact card `card_code`, or a name/series query
 - If input exactly matches an existing `card_code`, show dupe-card output (`Code`, `G-####`, and computed `Value`)
+- Dupe-card output includes `Owned by`, `Dropped by`, `Pulled by`, and `Time pulled` metadata lines (`Time pulled` shows `Unknown` if unavailable)
 - If no exact card code is found, fall back to card type lookup behavior (`card_id` match, then name/series search)
 - Entries include wishlist counts regardless of selected sort mode
 
@@ -376,8 +377,8 @@ Shows:
 - Keep duplicate copies visible as separate entries
 - Show folder emoji (if assigned) first, then lock marker next to instances protected by at least one locked tag or locked folder
 - Include each dupe's `Code` (e.g. `0`, `a`, `10`, `#10`)
-- Includes a sort dropdown with modes: `Generation`, `Wishes`, `Rarity`, `Series`, `Base Value`, `Actual Value`, `Alphabetical`
-- Default sort mode is `Alphabetical`
+- Includes a sort dropdown with modes: `Time Pulled`, `Generation`, `Wishes`, `Rarity`, `Series`, `Base Value`, `Actual Value`, `Alphabetical`
+- `collection` and `cards` default to `Time Pulled` in descending order (newest first); unknown pull time is treated as oldest
 - Includes a `Gallery` toggle that switches to one-card-per-page image mode while keeping page navigation
 
 ## Tags UX

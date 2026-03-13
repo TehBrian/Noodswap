@@ -1,4 +1,5 @@
 import asyncio
+from datetime import datetime, timezone
 import io
 import os
 import random
@@ -94,6 +95,7 @@ from .storage import (
     execute_monopoly_fine,
     execute_monopoly_roll,
     get_all_owned_card_instances,
+    get_all_owned_card_instances_with_pulled_at,
     get_folder_emojis_for_instances,
     get_instance_by_code,
     get_instance_by_card_code,
@@ -110,6 +112,7 @@ from .storage import (
     get_monopoly_board_state,
     get_monopoly_state,
     get_player_card_instances,
+    get_player_card_instances_with_pulled_at,
     get_player_cooldown_timestamps,
     get_player_pull_tickets,
     get_player_drop_tickets,
@@ -185,10 +188,20 @@ def _lookup_trait_breakdown_description(
     owner_mention: str | None,
     dropped_by_mention: str | None,
     pulled_by_mention: str | None,
+    pulled_at: float | None,
     morph_key: str | None,
     frame_key: str | None,
     font_key: str | None,
 ) -> str:
+    def _format_pulled_at_timestamp(value: float | None) -> str:
+        if value is None or value <= 0:
+            return "Unknown"
+        try:
+            unix_seconds = int(datetime.fromtimestamp(value, tz=timezone.utc).timestamp())
+        except (OverflowError, OSError, ValueError):
+            return "Unknown"
+        return f"<t:{unix_seconds}:F>"
+
     morph_rarity_label = morph_rarity(morph_key)
     frame_rarity_label = frame_rarity(frame_key)
     font_rarity_label = font_rarity(font_key)
@@ -229,6 +242,7 @@ def _lookup_trait_breakdown_description(
     lines.append(f"Owned by: {owner_mention or 'Unknown'}")
     lines.append(f"Dropped by: {dropped_by_mention or 'Unknown'}")
     lines.append(f"Pulled by: {pulled_by_mention or 'Unknown'}")
+    lines.append(f"Time pulled: {_format_pulled_at_timestamp(pulled_at)}")
 
     hp, attack, defense = value_to_stats(computed_value)
     lines.append("")
