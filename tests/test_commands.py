@@ -2249,7 +2249,7 @@ class CommandsSlotsAnimationTests:
     async def test_slots_reel_content_hides_status_emoji_until_result(self) -> None:
         symbols = ["🍞", "🍞", "🍞"]
         assert _slots_reel_content(symbols) == "🍞🍞🍞"
-        assert _slots_reel_content(symbols, result_emoji="🎉") == "🍞🍞🍞🎉"
+        assert _slots_reel_content(symbols, result_emoji="🎉") == "🍞🍞🍞      🎉"
 
     async def test_animate_slots_spin_uses_tapered_frame_delays(self) -> None:
         message = AsyncMock()

@@ -591,7 +591,7 @@ def _slots_reel_line(symbols: list[str]) -> str:
 
 def _slots_reel_content(symbols: list[str], result_emoji: str | None = None) -> str:
     line = _slots_reel_line(symbols)
-    status_emoji = result_emoji if result_emoji is not None else ""
+    status_emoji = f"      {result_emoji}" if result_emoji is not None else ""
     return f"{line}{status_emoji}"
 
 
