@@ -68,9 +68,9 @@ def _trait_roll_description(
 ) -> str:
     return (
         f"{card_line}\n\n"
-        f"Current {trait_name}: **{current_label}**\n"
+        f"Current {trait_name}: **{current_label}**\n\n"
         f"Rolled {trait_name}: **{rolled_name}**\n"
-        f"{_format_trait_roll_details(rolled_rarity, rolled_multiplier)}\n"
+        f"{_format_trait_roll_details(rolled_rarity, rolled_multiplier)}\n\n"
         f"Current Balance: **{remaining_dough}** dough\n"
         f"Reroll Cost: **{cost}** dough"
     )
