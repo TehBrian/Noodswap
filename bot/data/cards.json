@@ -179,6 +179,12 @@
     "rarity": "common",
     "series": "dessert"
   },
+  "BPN": {
+    "image": "runtime/card_images/BPN.jpg",
+    "name": "Bacon Panini",
+    "rarity": "rare",
+    "series": "entree"
+  },
   "BRC": {
     "image": "runtime/card_images/BRC.jpg",
     "name": "Burrata",
