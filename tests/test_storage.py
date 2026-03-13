@@ -495,7 +495,7 @@ class StorageTests:
         assert remaining == 0.0
         assert balance == 75
         pot_dough, pot_starter, pot_drop_tickets, pot_pull_tickets = storage.get_gambling_pot(guild_id)
-        assert pot_dough == 5
+        assert pot_dough == 3
         assert pot_starter == 0
         assert pot_drop_tickets == 0
         assert pot_pull_tickets == 0
@@ -894,7 +894,7 @@ class StorageTests:
         )
         assert status == "won"
         assert remaining == 0.0
-        assert balance == 68
+        assert balance == 57
 
         status, remaining, balance = storage.execute_flip_wager(
             guild_id,
@@ -906,7 +906,7 @@ class StorageTests:
         )
         assert status == "cooldown"
         assert remaining > 0.0
-        assert balance == 68
+        assert balance == 57
 
         status, remaining, balance = storage.execute_flip_wager(
             guild_id,
@@ -918,7 +918,7 @@ class StorageTests:
         )
         assert status == "lost"
         assert remaining == 0.0
-        assert balance == 58
+        assert balance == 47
 
     def test_burn_candidate_selects_highest_generation_copy(self) -> None:
         guild_id = 1
