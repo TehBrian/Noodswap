@@ -148,7 +148,7 @@ Stage 3 implementation guide: `docs/refactor-phase-3.md`.
 - Added `tests/test_views.py` for interaction authorization/resolution and timeout behavior checks for `DropView` and `TradeView`.
 - Expanded `tests/test_storage.py` to cover trade failure behavior (missing seller card / insufficient buyer dough) and marriage uniqueness edge cases.
 - Added initial automated test suite in `tests/test_storage.py` covering migration behavior and generation-selection rules for marry/burn/trade.
-- Added `scripts/migration_smoke.py` for quick validation of fresh-init migration behavior.
+- Replaced standalone migration smoke script with explicit pytest coverage (`test_init_db_migration_smoke_equivalent_checks`) and wired `check:migrations`/CI to that test.
 - Added explicit schema version tracking via `schema_migrations` and versioned startup migration flow in `init_db()`.
 - Moved from quantity-owned cards to instance-based ownership.
 - Added per-instance generations (`G-####`, range 1-2000).

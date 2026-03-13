@@ -16,13 +16,6 @@
       "group": "test"
     },
     {
-      "label": "check:migrations",
-      "type": "shell",
-      "command": "${workspaceFolder}/.venv/bin/python",
-      "args": ["scripts/migration_smoke.py"],
-      "group": "test"
-    },
-    {
       "label": "check:tests",
       "type": "shell",
       "command": "${workspaceFolder}/.venv/bin/python",

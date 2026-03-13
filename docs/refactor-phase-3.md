@@ -120,8 +120,7 @@ Acceptance checks:
 ## Validation commands
 
 ```bash
-uv run python -m py_compile bot/main.py bot/*.py scripts/*.py tests/*.py
-uv run python scripts/migration_smoke.py
+uv run python -m py_compile **/*.py
 uv run pytest tests -v --tb=short
 ```
 

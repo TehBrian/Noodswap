@@ -97,8 +97,8 @@ Use this default process unless there is a specific reason to do otherwise:
   - preview: `uv run python scripts/rebalance_base_values.py --mode missing --dry-run`
   - write: `uv run python scripts/rebalance_base_values.py --mode missing`
 4. Validate quickly:
-  - `uv run python -m py_compile bot/main.py bot/*.py scripts/*.py`
-  - `uv run python scripts/migration_smoke.py`
+  - `uv run python -m py_compile **/*.py`
+  - `uv run pytest -v --tb=short`
 
 Notes:
 - `--mode missing` preserves existing values and only fills absent IDs.
@@ -116,7 +116,7 @@ Notes:
 ## Migration validation helper
 
 - Run migration smoke checks (fresh init path):
-  - `uv run python scripts/migration_smoke.py`
+  - `uv run pytest tests/test_storage.py -k migration_smoke_equivalent_checks -v --tb=short`
 - VS Code task shortcut:
   - `check:migrations`
 

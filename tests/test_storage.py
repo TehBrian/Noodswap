@@ -76,6 +76,38 @@ class StorageTests:
             battles_row = conn.execute("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'battle_sessions'").fetchone()
             assert battles_row is not None
 
+    def test_init_db_migration_smoke_equivalent_checks(self) -> None:
+        storage.init_db()
+
+        with closing(sqlite3.connect(storage.DB_PATH)) as conn:
+            schema_table = conn.execute("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'schema_migrations'").fetchone()
+            assert schema_table is not None
+
+            version_row = conn.execute("SELECT version FROM schema_migrations LIMIT 1").fetchone()
+            assert version_row is not None
+            assert int(version_row[0]) == storage.TARGET_SCHEMA_VERSION
+
+            players_table = conn.execute("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'players'").fetchone()
+            assert players_table is not None
+
+            card_instances_table = conn.execute("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'card_instances'").fetchone()
+            assert card_instances_table is not None
+
+            wishlist_table = conn.execute("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'wishlist_cards'").fetchone()
+            assert wishlist_table is not None
+
+            player_columns = conn.execute("PRAGMA table_info(players)").fetchall()
+            player_column_names = {str(column[1]) for column in player_columns}
+            assert "married_instance_id" in player_column_names
+            assert "last_dropped_instance_id" in player_column_names
+            assert "last_slots_at" in player_column_names
+
+            instance_columns = conn.execute("PRAGMA table_info(card_instances)").fetchall()
+            instance_column_names = {str(column[1]) for column in instance_columns}
+            assert "morph_key" in instance_column_names
+            assert "frame_key" in instance_column_names
+            assert "font_key" in instance_column_names
+
     def test_init_db_does_not_create_player_cards_table(self) -> None:
         storage.init_db()
 
