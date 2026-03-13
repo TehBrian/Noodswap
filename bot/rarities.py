@@ -22,7 +22,7 @@ RARITY_ORDER = (
 #   raw(rank) = exp(linear_rate * rank + tail_curvature * rank^2)
 # where rank=0 is celestial and rank=7 is common.
 RARITY_CURVE_LINEAR_RATE = 0.59
-RARITY_TAIL_CURVATURE = 0.023
+RARITY_TAIL_CURVATURE = 0.017
 RARITY_TOTAL_WEIGHT = 30_000
 RARITY_CURVE_SMOOTHING = 0.02
 
