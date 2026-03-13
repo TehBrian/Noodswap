@@ -48,7 +48,7 @@ Columns:
 - `user_id INTEGER NOT NULL`
 - `card_id TEXT NOT NULL`
 - `generation INTEGER NOT NULL`
-- `card_code TEXT` (base36 dupe identifier, globally unique)
+- `card_id TEXT` (base36 dupe identifier, globally unique)
 - `morph_key TEXT` (optional per-instance visual modifier)
 - `frame_key TEXT` (optional per-instance frame modifier)
 - `font_key TEXT` (optional per-instance font modifier)
@@ -59,7 +59,7 @@ Purpose:
 
 Indexes:
 - `idx_card_instances_owner(guild_id, user_id, card_id, generation)`
-- `idx_card_instances_card_code(card_code)` (unique where `card_code` is not null)
+- `idx_card_instances_card_id(card_id)` (unique where `card_id` is not null)
 
 ### schema_migrations
 
@@ -216,7 +216,7 @@ Columns:
 - `instance_id INTEGER NOT NULL`
 - `card_id TEXT NOT NULL`
 - `generation INTEGER NOT NULL`
-- `card_code TEXT NOT NULL`
+- `card_id TEXT NOT NULL`
 - `max_hp INTEGER NOT NULL`
 - `current_hp INTEGER NOT NULL`
 - `is_active INTEGER NOT NULL DEFAULT 0`
@@ -243,22 +243,22 @@ Current migration set:
 - `v2`:
 	- Adds `wishlist_cards` table and owner index.
 - `v3`:
-	- Adds `card_instances.card_code`.
+	- Adds `card_instances.card_id`.
 	- Backfills existing rows with sequential base36 ids per guild.
-	- Enforces unique per-guild dupe ids with `idx_card_instances_card_code`.
+	- Enforces unique per-guild dupe ids with `idx_card_instances_card_id`.
 - `v4`:
 	- Normalizes all persisted data into global scope (`guild_id = 0`).
 	- Merges per-user player rows across guilds into one global player row.
-	- Reassigns `card_code` globally across all instances using ascending base36.
-	- Enforces global `card_code` uniqueness.
+	- Reassigns `card_id` globally across all instances using ascending base36.
+	- Enforces global `card_id` uniqueness.
 - `v5`:
-	- Ensures `card_instances.card_code` exists and is indexed.
-	- Rebuilds duplicate-code uniqueness index as `idx_card_instances_card_code`.
+	- Ensures `card_instances.card_id` exists and is indexed.
+	- Rebuilds duplicate-code uniqueness index as `idx_card_instances_card_id`.
 - `v25`:
 	- Renames lingering `*_card_id` columns to `*_card_type_id` during the card-type naming cleanup.
 - `v26`:
-	- Repairs legacy deployed databases that still use `card_instances.dupe_code` by renaming it to `card_code`.
-	- Rebuilds the duplicate-code uniqueness index on `card_instances.card_code`.
+	- Repairs legacy deployed databases that still use `card_instances.dupe_code` by renaming it to `card_id`.
+	- Rebuilds the duplicate-code uniqueness index on `card_instances.card_id`.
 - `v6`:
 	- Adds `players.last_drop_at` and resets `players.last_pull_at` to support split drop vs pull cooldown tracking.
 - `v7`:
@@ -312,21 +312,21 @@ Notes:
 
 - CARD TYPES have IDS (catalog identity like `SPG`).
 - CARDS have CODES (owned-copy identity like `0`, `a`, `10`).
-- Never use base ID and card code interchangeably in UX, storage, or command args.
+- Never use base ID and card ID interchangeably in UX, storage, or command args.
 
 ## Selection policies
 
-- `marry <card_code>`: targets the exact referenced instance
-- `burn <card_code>`: targets the exact referenced instance
+- `marry <card_id>`: targets the exact referenced instance
+- `burn <card_id>`: targets the exact referenced instance
 	- Burn is blocked if the referenced instance belongs to any locked tag or locked folder.
-- `trade <card_code>`: transfers the exact referenced instance
-- card code format is standalone base36 (`0-9a-z`) with optional leading `#` and without card-id prefix
+- `trade <card_id>`: transfers the exact referenced instance
+- card ID format is standalone base36 (`0-9a-z`) with optional leading `#` and without card-id prefix
 - arg-less `marry` / `burn`: default to the last pulled instance (`last_dropped_instance_id` column)
 - per-instance generation is sampled in `cards.random_generation()` from an inverse-value discrete distribution across `[GENERATION_MIN, GENERATION_MAX]`
 
 ## Terminology (explicit)
 
-- CARDS have CODES (`card_code`, e.g. `0`, `a`, `10`, `#10`).
+- CARDS have CODES (`card_id`, e.g. `0`, `a`, `10`, `#10`).
 - CARD TYPES have IDS (`card_id`, e.g. `SPG`, `PEN`).
 - Treat these as different concepts in commands, storage, and documentation.
 

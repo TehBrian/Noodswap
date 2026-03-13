@@ -23,18 +23,18 @@ class DropView(InteractionView):
         self._claim_lock = asyncio.Lock()
         self._claimed_button_ids: set[str] = set()
 
-        for index, (card_id, generation) in enumerate(choices):
-            card_name = CARD_CATALOG[card_id]["name"]
+        for index, (card_type_id, generation) in enumerate(choices):
+            card_name = CARD_CATALOG[card_type_id]["name"]
             button_id = f"drop:{index}"
             button = discord.ui.Button(
                 label=f"Pull {card_name}",
                 style=discord.ButtonStyle.primary,
                 custom_id=button_id,
             )
-            button.callback = self._make_pull_callback(card_id, generation, button_id)
+            button.callback = self._make_pull_callback(card_type_id, generation, button_id)
             self.add_item(button)
 
-    def _make_pull_callback(self, card_id: str, generation: int, button_id: str):
+    def _make_pull_callback(self, card_type_id: str, generation: int, button_id: str):
         async def callback(interaction: discord.Interaction):
             if self.finished:
                 await interaction.response.send_message(
@@ -62,7 +62,7 @@ class DropView(InteractionView):
                     claim_result = execute_drop_claim(
                         self.guild_id,
                         interaction.user.id,
-                        card_id,
+                        card_type_id,
                         generation,
                         now=discord.utils.utcnow().timestamp(),
                         pull_cooldown_seconds=PULL_COOLDOWN_SECONDS,
@@ -91,13 +91,13 @@ class DropView(InteractionView):
                     if all(isinstance(item, discord.ui.Button) and item.disabled for item in self.children):
                         self.finished = True
 
-                pulled_card_code = claim_result.card_code
+                pulled_card_id = claim_result.card_id
 
                 pulled_embed = italy_embed(
                     "Pulled Card",
-                    (f"<@{interaction.user.id}> pulled {card_display(card_id, generation, card_code=pulled_card_code, pad_card_code=False)}."),
+                    (f"<@{interaction.user.id}> pulled {card_display(card_type_id, generation, card_id=pulled_card_id, pad_card_id=False)}."),
                 )
-                image_url, image_file = embed_image_payload(card_id, generation=generation)
+                image_url, image_file = embed_image_payload(card_type_id, generation=generation)
                 if image_url is not None:
                     pulled_embed.set_thumbnail(url=image_url)
 

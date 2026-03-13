@@ -80,41 +80,41 @@ class ServicesTests:
         assert storage.get_player_drop_tickets(guild_id, user_id) == 0
 
     def test_prepare_burn_errors_without_last_pulled(self) -> None:
-        prepared = services.prepare_burn(guild_id=1, user_id=20, card_code=None)
+        prepared = services.prepare_burn(guild_id=1, user_id=20, card_id=None)
         assert prepared.is_error
-        assert prepared.error_message == "No previous pulled card found. Provide a card code, e.g. `ns burn 0`."
+        assert prepared.error_message == "No previous pulled card found. Provide a card ID, e.g. `ns burn 0`."
 
-    def test_prepare_burn_errors_for_invalid_card_code(self) -> None:
-        prepared = services.prepare_burn(guild_id=1, user_id=21, card_code="?")
+    def test_prepare_burn_errors_for_invalid_card_id(self) -> None:
+        prepared = services.prepare_burn(guild_id=1, user_id=21, card_id="?")
         assert prepared.is_error
-        assert prepared.error_message == "Invalid card code. Use format like `0`, `a`, `10`, or `#10`."
+        assert prepared.error_message == "Invalid card ID. Use format like `0`, `a`, `10`, or `#10`."
 
-    def test_prepare_burn_accepts_hash_prefixed_card_code(self) -> None:
+    def test_prepare_burn_accepts_hash_prefixed_card_id(self) -> None:
         guild_id = 1
         user_id = 212
         storage.add_card_to_player(guild_id, user_id, "SPG", 333)
         instances = storage.get_player_card_instances(guild_id, user_id)
-        card_code = instances[0][3]
+        card_id = instances[0][3]
 
-        prepared = services.prepare_burn(guild_id=guild_id, user_id=user_id, card_code=f"#{card_code.upper()}")
+        prepared = services.prepare_burn(guild_id=guild_id, user_id=user_id, card_id=f"#{card_id.upper()}")
         assert not (prepared.is_error)
-        assert prepared.card_id == "SPG"
+        assert prepared.card_type_id == "SPG"
         assert prepared.generation == 333
 
-    def test_prepare_burn_errors_when_card_code_not_owned(self) -> None:
-        prepared = services.prepare_burn(guild_id=1, user_id=22, card_code="0")
+    def test_prepare_burn_errors_when_card_id_not_owned(self) -> None:
+        prepared = services.prepare_burn(guild_id=1, user_id=22, card_id="0")
         assert prepared.is_error
-        assert prepared.error_message == "You do not own that card code."
+        assert prepared.error_message == "You do not own that card ID."
 
     def test_prepare_burn_returns_target_and_projection(self) -> None:
         guild_id = 1
         user_id = 23
         instance_id = storage.add_card_to_player(guild_id, user_id, "SPG", 333)
 
-        prepared = services.prepare_burn(guild_id=guild_id, user_id=user_id, card_code=None)
+        prepared = services.prepare_burn(guild_id=guild_id, user_id=user_id, card_id=None)
         assert not (prepared.is_error)
         assert prepared.instance_id == instance_id
-        assert prepared.card_id == "SPG"
+        assert prepared.card_type_id == "SPG"
         assert prepared.generation == 333
         assert prepared.payout is not None
         assert prepared.value is not None
@@ -131,7 +131,7 @@ class ServicesTests:
         storage.assign_tag_to_instance(guild_id, user_id, instance_id, "safe")
         storage.set_player_tag_locked(guild_id, user_id, "safe", True)
 
-        prepared = services.prepare_burn(guild_id=guild_id, user_id=user_id, card_code=None)
+        prepared = services.prepare_burn(guild_id=guild_id, user_id=user_id, card_id=None)
         assert prepared.is_error
         assert prepared.error_message == "That card is protected by locked tag(s): `safe`."
 
@@ -143,7 +143,7 @@ class ServicesTests:
         storage.assign_instance_to_folder(guild_id, user_id, instance_id, "vault")
         storage.set_player_folder_locked(guild_id, user_id, "vault", True)
 
-        prepared = services.prepare_burn(guild_id=guild_id, user_id=user_id, card_code=None)
+        prepared = services.prepare_burn(guild_id=guild_id, user_id=user_id, card_id=None)
         assert prepared.is_error
         if prepared.error_message is None:
             return
@@ -204,7 +204,7 @@ class ServicesTests:
             delta_range=8,
         )
         assert result.is_burned
-        assert result.card_id == "SPG"
+        assert result.card_type_id == "SPG"
         assert result.generation == 333
         assert result.payout is not None
         assert result.delta is not None
@@ -282,10 +282,10 @@ class ServicesTests:
         storage.add_dough(guild_id, user_id, 200)
         instance_id = storage.add_card_to_player(guild_id, user_id, "SPG", 333)
 
-        result = services.prepare_morph(guild_id=guild_id, user_id=user_id, card_code=None)
+        result = services.prepare_morph(guild_id=guild_id, user_id=user_id, card_id=None)
         assert not (result.is_error)
         assert result.instance_id == instance_id
-        assert result.card_id == "SPG"
+        assert result.card_type_id == "SPG"
         assert result.morph_key is None
         assert result.morph_name is None
         assert result.cost is not None
@@ -301,9 +301,9 @@ class ServicesTests:
             guild_id,
             user_id,
             instance_id=instance_id,
-            card_id="SPG",
+            card_type_id="SPG",
             generation=333,
-            card_code="0",
+            card_id="0",
             morph_key="black_and_white",
             morph_name="Black and White",
             rolled_rarity="common",
@@ -324,7 +324,7 @@ class ServicesTests:
         storage.apply_morph_to_instance(guild_id, user_id, instance_id, "black_and_white", 1)
 
         with patch("bot.services.AVAILABLE_MORPHS", ["black_and_white"]):
-            result = services.prepare_morph(guild_id=guild_id, user_id=user_id, card_code=None)
+            result = services.prepare_morph(guild_id=guild_id, user_id=user_id, card_id=None)
         assert result.is_error
         assert result.error_message == "No new morphs are currently available for this card."
 
@@ -376,10 +376,10 @@ class ServicesTests:
             "bot.services.available_frame_keys",
             return_value=["buttery", "gilded", "drizzled"],
         ):
-            result = services.prepare_frame(guild_id=guild_id, user_id=user_id, card_code=None)
+            result = services.prepare_frame(guild_id=guild_id, user_id=user_id, card_id=None)
         assert not (result.is_error)
         assert result.instance_id == instance_id
-        assert result.card_id == "SPG"
+        assert result.card_type_id == "SPG"
         assert result.frame_key is None
         assert result.frame_name is None
         assert result.cost is not None
@@ -395,9 +395,9 @@ class ServicesTests:
             guild_id,
             user_id,
             instance_id=instance_id,
-            card_id="SPG",
+            card_type_id="SPG",
             generation=333,
-            card_code="0",
+            card_id="0",
             frame_key="buttery",
             frame_name="Buttery",
             rolled_rarity="common",
@@ -418,7 +418,7 @@ class ServicesTests:
         storage.apply_frame_to_instance(guild_id, user_id, instance_id, "buttery", 1)
 
         with patch("bot.services.available_frame_keys", return_value=["buttery"]):
-            result = services.prepare_frame(guild_id=guild_id, user_id=user_id, card_code=None)
+            result = services.prepare_frame(guild_id=guild_id, user_id=user_id, card_id=None)
         assert result.is_error
         assert result.error_message == "No new frames are currently available for this card."
 
@@ -428,10 +428,10 @@ class ServicesTests:
         storage.add_dough(guild_id, user_id, 200)
         instance_id = storage.add_card_to_player(guild_id, user_id, "SPG", 333)
 
-        result = services.prepare_font(guild_id=guild_id, user_id=user_id, card_code=None)
+        result = services.prepare_font(guild_id=guild_id, user_id=user_id, card_id=None)
         assert not (result.is_error)
         assert result.instance_id == instance_id
-        assert result.card_id == "SPG"
+        assert result.card_type_id == "SPG"
         assert result.font_key is None
         assert result.font_name is None
         assert result.cost is not None
@@ -447,9 +447,9 @@ class ServicesTests:
             guild_id,
             user_id,
             instance_id=instance_id,
-            card_id="SPG",
+            card_type_id="SPG",
             generation=333,
-            card_code="0",
+            card_id="0",
             font_key="serif",
             font_name="Serif",
             rolled_rarity="uncommon",
@@ -470,21 +470,21 @@ class ServicesTests:
         storage.apply_font_to_instance(guild_id, user_id, instance_id, "serif", 1)
 
         with patch("bot.services.AVAILABLE_FONTS", ["serif"]):
-            result = services.prepare_font(guild_id=guild_id, user_id=user_id, card_code=None)
+            result = services.prepare_font(guild_id=guild_id, user_id=user_id, card_id=None)
         assert result.is_error
         assert result.error_message == "No new fonts are currently available for this card."
 
     def test_execute_marry_errors_without_last_pulled(self) -> None:
-        result = services.execute_marry(guild_id=1, user_id=30, card_code=None)
+        result = services.execute_marry(guild_id=1, user_id=30, card_id=None)
         assert result.is_error
-        assert result.error_message == "No previous pulled card found. Use `ns marry <card_code>` or pull from `ns drop` first."
+        assert result.error_message == "No previous pulled card found. Use `ns marry <card_id>` or pull from `ns drop` first."
 
-    def test_execute_marry_errors_for_invalid_card_code(self) -> None:
-        result = services.execute_marry(guild_id=1, user_id=31, card_code="?")
+    def test_execute_marry_errors_for_invalid_card_id(self) -> None:
+        result = services.execute_marry(guild_id=1, user_id=31, card_id="?")
         assert result.is_error
-        assert result.error_message == "You can only marry a card code you own."
+        assert result.error_message == "You can only marry a card ID you own."
 
-    def test_execute_marry_with_card_code_succeeds(self) -> None:
+    def test_execute_marry_with_card_id_succeeds(self) -> None:
         guild_id = 1
         user_id = 32
         storage.add_card_to_player(guild_id, user_id, "SPG", 400)
@@ -492,20 +492,20 @@ class ServicesTests:
         instances = storage.get_player_card_instances(guild_id, user_id)
         first_code = instances[0][3]
 
-        result = services.execute_marry(guild_id=guild_id, user_id=user_id, card_code=first_code)
+        result = services.execute_marry(guild_id=guild_id, user_id=user_id, card_id=first_code)
         assert not (result.is_error)
-        assert result.card_id == instances[0][1]
+        assert result.card_type_id == instances[0][1]
         assert result.generation == instances[0][2]
-        assert result.card_code == instances[0][3]
+        assert result.card_id == instances[0][3]
 
     def test_execute_marry_without_card_uses_last_pulled(self) -> None:
         guild_id = 1
         user_id = 33
         storage.add_card_to_player(guild_id, user_id, "PEN", 222)
 
-        result = services.execute_marry(guild_id=guild_id, user_id=user_id, card_code=None)
+        result = services.execute_marry(guild_id=guild_id, user_id=user_id, card_id=None)
         assert not (result.is_error)
-        assert result.card_id == "PEN"
+        assert result.card_type_id == "PEN"
         assert result.generation == 222
 
     def test_execute_divorce_errors_when_not_married(self) -> None:
@@ -519,12 +519,12 @@ class ServicesTests:
         storage.add_card_to_player(guild_id, user_id, "SPG", 111)
         instances = storage.get_player_card_instances(guild_id, user_id)
         only_code = instances[0][3]
-        marry_result = services.execute_marry(guild_id=guild_id, user_id=user_id, card_code=only_code)
+        marry_result = services.execute_marry(guild_id=guild_id, user_id=user_id, card_id=only_code)
         assert not (marry_result.is_error)
 
         divorce_result = services.execute_divorce(guild_id=guild_id, user_id=user_id)
         assert not (divorce_result.is_error)
-        assert divorce_result.card_id == "SPG"
+        assert divorce_result.card_type_id == "SPG"
         assert divorce_result.generation == 111
 
     def test_prepare_trade_offer_rejects_self_trade(self) -> None:
@@ -533,7 +533,7 @@ class ServicesTests:
             seller_id=50,
             buyer_id=50,
             buyer_is_bot=False,
-            card_code="0",
+            card_id="0",
             mode="dough",
             amount=10,
         )
@@ -546,7 +546,7 @@ class ServicesTests:
             seller_id=51,
             buyer_id=52,
             buyer_is_bot=True,
-            card_code="0",
+            card_id="0",
             mode="dough",
             amount=10,
         )
@@ -559,7 +559,7 @@ class ServicesTests:
             seller_id=53,
             buyer_id=54,
             buyer_is_bot=False,
-            card_code="0",
+            card_id="0",
             mode="dough",
             amount=-1,
         )
@@ -572,7 +572,7 @@ class ServicesTests:
             seller_id=53,
             buyer_id=54,
             buyer_is_bot=False,
-            card_code="0",
+            card_id="0",
             mode="dough",
             amount=0,
         )
@@ -585,25 +585,25 @@ class ServicesTests:
             seller_id=53,
             buyer_id=54,
             buyer_is_bot=False,
-            card_code="0",
+            card_id="0",
             mode="gems",
             amount=10,
         )
         assert prepared.is_error
         assert "Invalid trade mode" in prepared.error_message or ""
 
-    def test_prepare_trade_offer_rejects_invalid_card_code(self) -> None:
+    def test_prepare_trade_offer_rejects_invalid_card_id(self) -> None:
         prepared = services.prepare_trade_offer(
             guild_id=1,
             seller_id=55,
             buyer_id=56,
             buyer_is_bot=False,
-            card_code="?",
+            card_id="?",
             mode="dough",
             amount=10,
         )
         assert prepared.is_error
-        assert prepared.error_message == "Invalid card code. Use format like `0`, `a`, `10`, or `#10`."
+        assert prepared.error_message == "Invalid card ID. Use format like `0`, `a`, `10`, or `#10`."
 
     def test_prepare_trade_offer_rejects_unowned_card(self) -> None:
         prepared = services.prepare_trade_offer(
@@ -611,54 +611,54 @@ class ServicesTests:
             seller_id=57,
             buyer_id=58,
             buyer_is_bot=False,
-            card_code="0",
+            card_id="0",
             mode="dough",
             amount=10,
         )
         assert prepared.is_error
-        assert prepared.error_message == "You do not own that card code."
+        assert prepared.error_message == "You do not own that card ID."
 
-    def test_prepare_trade_offer_succeeds_with_normalized_card_code(self) -> None:
+    def test_prepare_trade_offer_succeeds_with_normalized_card_id(self) -> None:
         guild_id = 1
         seller_id = 59
         storage.add_card_to_player(guild_id, seller_id, "SPG", 444)
         instances = storage.get_player_card_instances(guild_id, seller_id)
-        card_code = instances[0][3]
+        card_id = instances[0][3]
 
         prepared = services.prepare_trade_offer(
             guild_id=guild_id,
             seller_id=seller_id,
             buyer_id=60,
             buyer_is_bot=False,
-            card_code=card_code.upper(),
+            card_id=card_id.upper(),
             mode="dough",
             amount=10,
         )
         assert not (prepared.is_error)
-        assert prepared.card_id == "SPG"
+        assert prepared.card_type_id == "SPG"
         assert prepared.generation == 444
         assert prepared.terms is not None
         assert prepared.terms.mode == "dough"
         assert prepared.terms.amount == 10
 
-    def test_prepare_trade_offer_accepts_hash_prefixed_card_code(self) -> None:
+    def test_prepare_trade_offer_accepts_hash_prefixed_card_id(self) -> None:
         guild_id = 1
         seller_id = 591
         storage.add_card_to_player(guild_id, seller_id, "SPG", 444)
         instances = storage.get_player_card_instances(guild_id, seller_id)
-        card_code = instances[0][3]
+        card_id = instances[0][3]
 
         prepared = services.prepare_trade_offer(
             guild_id=guild_id,
             seller_id=seller_id,
             buyer_id=60,
             buyer_is_bot=False,
-            card_code=f"#{card_code.upper()}",
+            card_id=f"#{card_id.upper()}",
             mode="dough",
             amount=10,
         )
         assert not (prepared.is_error)
-        assert prepared.card_id == "SPG"
+        assert prepared.card_type_id == "SPG"
         assert prepared.generation == 444
 
     def test_prepare_trade_offer_starter_mode_stores_terms(self) -> None:
@@ -666,14 +666,14 @@ class ServicesTests:
         seller_id = 592
         storage.add_card_to_player(guild_id, seller_id, "SPG", 200)
         instances = storage.get_player_card_instances(guild_id, seller_id)
-        card_code = instances[0][3]
+        card_id = instances[0][3]
 
         prepared = services.prepare_trade_offer(
             guild_id=guild_id,
             seller_id=seller_id,
             buyer_id=593,
             buyer_is_bot=False,
-            card_code=card_code,
+            card_id=card_id,
             mode="starter",
             amount=5,
         )
@@ -687,14 +687,14 @@ class ServicesTests:
         seller_id = 594
         storage.add_card_to_player(guild_id, seller_id, "SPG", 300)
         instances = storage.get_player_card_instances(guild_id, seller_id)
-        card_code = instances[0][3]
+        card_id = instances[0][3]
 
         prepared = services.prepare_trade_offer(
             guild_id=guild_id,
             seller_id=seller_id,
             buyer_id=595,
             buyer_is_bot=False,
-            card_code=card_code,
+            card_id=card_id,
             mode="drop",
             amount=2,
         )
@@ -718,12 +718,12 @@ class ServicesTests:
             seller_id=seller_id,
             buyer_id=buyer_id,
             buyer_is_bot=False,
-            card_code=seller_dupe,
+            card_id=seller_dupe,
             mode="card",
-            req_card_code="zz",
+            req_card_id="zz",
         )
         assert prepared.is_error
-        assert prepared.error_message == "The other player does not own that card code."
+        assert prepared.error_message == "The other player does not own that card ID."
 
     def test_prepare_trade_offer_card_mode_succeeds_when_both_own_cards(self) -> None:
         guild_id = 1
@@ -741,16 +741,16 @@ class ServicesTests:
             seller_id=seller_id,
             buyer_id=buyer_id,
             buyer_is_bot=False,
-            card_code=seller_dupe,
+            card_id=seller_dupe,
             mode="card",
-            req_card_code=buyer_dupe,
+            req_card_id=buyer_dupe,
         )
         assert not (prepared.is_error)
-        assert prepared.card_id == "SPG"
+        assert prepared.card_type_id == "SPG"
         assert prepared.terms is not None
         assert prepared.terms.mode == "card"
-        assert prepared.terms.req_card_id == "PEN"
-        assert prepared.terms.req_card_code == buyer_dupe
+        assert prepared.terms.req_card_type_id == "PEN"
+        assert prepared.terms.req_card_id == buyer_dupe
 
     def test_execute_drop_claim_returns_cooldown_error_when_pull_not_ready(
         self,
@@ -780,7 +780,7 @@ class ServicesTests:
         assert second_claim.is_error
         assert second_claim.cooldown_remaining_seconds or 0.0 > 0.0
 
-    def test_execute_drop_claim_returns_resolved_card_code(self) -> None:
+    def test_execute_drop_claim_returns_resolved_card_id(self) -> None:
         guild_id = 1
         user_id = 601
 
@@ -793,10 +793,10 @@ class ServicesTests:
             pull_cooldown_seconds=240,
         )
         assert not (claim.is_error)
-        assert claim.card_id == "SPG"
+        assert claim.card_type_id == "SPG"
         assert claim.generation == 777
         assert claim.instance_id is not None
-        assert claim.card_code is not None
+        assert claim.card_id is not None
 
     def test_execute_drop_claim_persists_drop_and_pull_provenance(self) -> None:
         guild_id = 1
@@ -813,9 +813,9 @@ class ServicesTests:
             dropped_by_user_id=dropped_by_user_id,
         )
         assert not (claim.is_error)
-        assert claim.card_code is not None
+        assert claim.card_id is not None
 
-        looked_up = storage.get_instance_by_card_code(guild_id, claim.card_code)
+        looked_up = storage.get_instance_by_card_id(guild_id, claim.card_id)
         assert looked_up is not None
         if looked_up is None:
             return
@@ -823,9 +823,9 @@ class ServicesTests:
         (
             _instance_id,
             owner_user_id,
-            _card_id,
+            _card_type_id,
             _generation,
-            _card_code,
+            _card_id,
             stored_dropped_by_user_id,
             stored_pulled_by_user_id,
             stored_pulled_at,
@@ -840,8 +840,8 @@ class ServicesTests:
             guild_id=1,
             seller_id=700,
             buyer_id=701,
-            card_id="SPG",
-            card_code="0",
+            card_type_id="SPG",
+            card_id="0",
             terms=services.TradeTerms(mode="dough", amount=25),
             accepted=False,
         )
@@ -854,15 +854,15 @@ class ServicesTests:
         buyer_id = 711
         storage.add_card_to_player(guild_id, seller_id, "SPG", 420)
         seller_instances = storage.get_player_card_instances(guild_id, seller_id)
-        card_code = seller_instances[0][3]
+        card_id = seller_instances[0][3]
         storage.add_dough(guild_id, buyer_id, 100)
 
         result = services.resolve_trade_offer(
             guild_id=guild_id,
             seller_id=seller_id,
             buyer_id=buyer_id,
-            card_id="SPG",
-            card_code=card_code,
+            card_type_id="SPG",
+            card_id=card_id,
             terms=services.TradeTerms(mode="dough", amount=25),
             accepted=True,
         )
@@ -878,15 +878,15 @@ class ServicesTests:
         buyer_id = 713
         storage.add_card_to_player(guild_id, seller_id, "SPG", 100)
         seller_instances = storage.get_player_card_instances(guild_id, seller_id)
-        card_code = seller_instances[0][3]
+        card_id = seller_instances[0][3]
         storage.add_starter(guild_id, buyer_id, 10)
 
         result = services.resolve_trade_offer(
             guild_id=guild_id,
             seller_id=seller_id,
             buyer_id=buyer_id,
-            card_id="SPG",
-            card_code=card_code,
+            card_type_id="SPG",
+            card_id=card_id,
             terms=services.TradeTerms(mode="starter", amount=5),
             accepted=True,
         )
@@ -900,7 +900,7 @@ class ServicesTests:
         buyer_id = 715
         storage.add_card_to_player(guild_id, seller_id, "SPG", 100)
         seller_instances = storage.get_player_card_instances(guild_id, seller_id)
-        card_code = seller_instances[0][3]
+        card_id = seller_instances[0][3]
         storage.add_starter(guild_id, buyer_id, 3)
         storage.buy_drop_tickets_with_starter(guild_id, buyer_id, 3)
 
@@ -908,8 +908,8 @@ class ServicesTests:
             guild_id=guild_id,
             seller_id=seller_id,
             buyer_id=buyer_id,
-            card_id="SPG",
-            card_code=card_code,
+            card_type_id="SPG",
+            card_id=card_id,
             terms=services.TradeTerms(mode="drop", amount=2),
             accepted=True,
         )
@@ -923,7 +923,7 @@ class ServicesTests:
         buyer_id = 1715
         storage.add_card_to_player(guild_id, seller_id, "SPG", 100)
         seller_instances = storage.get_player_card_instances(guild_id, seller_id)
-        card_code = seller_instances[0][3]
+        card_id = seller_instances[0][3]
         storage.add_starter(guild_id, buyer_id, 3)
         storage.buy_pull_tickets_with_starter(guild_id, buyer_id, 3)
 
@@ -931,8 +931,8 @@ class ServicesTests:
             guild_id=guild_id,
             seller_id=seller_id,
             buyer_id=buyer_id,
-            card_id="SPG",
-            card_code=card_code,
+            card_type_id="SPG",
+            card_id=card_id,
             terms=services.TradeTerms(mode="pull", amount=2),
             accepted=True,
         )
@@ -955,18 +955,18 @@ class ServicesTests:
             guild_id=guild_id,
             seller_id=seller_id,
             buyer_id=buyer_id,
-            card_id="SPG",
-            card_code=seller_dupe,
+            card_type_id="SPG",
+            card_id=seller_dupe,
             terms=services.TradeTerms(
                 mode="card",
-                req_card_id="PEN",
+                req_card_type_id="PEN",
                 req_generation=200,
-                req_card_code=buyer_dupe,
+                req_card_id=buyer_dupe,
             ),
             accepted=True,
         )
         assert result.is_accepted
-        assert result.received_card_id == "PEN"
+        assert result.received_card_type_id == "PEN"
         assert result.received_generation == 200
 
         seller_after = storage.get_player_card_instances(guild_id, seller_id)
@@ -987,9 +987,9 @@ class ServicesTests:
                 guild_id,
                 user_id,
                 instance_id=instance_id,
-                card_id="SPG",
+                card_type_id="SPG",
                 generation=333,
-                card_code="0",
+                card_id="0",
                 current_morph_key=None,
                 cost=1,
             )
@@ -1016,9 +1016,9 @@ class ServicesTests:
                 guild_id,
                 user_id,
                 instance_id=instance_id,
-                card_id="SPG",
+                card_type_id="SPG",
                 generation=333,
-                card_code="0",
+                card_id="0",
                 current_frame_key=None,
                 cost=1,
             )
@@ -1039,9 +1039,9 @@ class ServicesTests:
                 guild_id,
                 user_id,
                 instance_id=instance_id,
-                card_id="SPG",
+                card_type_id="SPG",
                 generation=333,
-                card_code="0",
+                card_id="0",
                 current_font_key=None,
                 cost=1,
             )

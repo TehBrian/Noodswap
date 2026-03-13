@@ -148,12 +148,12 @@ class CardCatalogView(InteractionView):
         if not page_entries:
             description = "No card types available."
         elif self.gallery_mode:
-            card_id, wish_count = page_entries[0]
-            description = f"{start + 1}. {card_base_display(card_id)} • Wishes: **{wish_count}**"
+            card_type_id, wish_count = page_entries[0]
+            description = f"{start + 1}. {card_base_display(card_type_id)} • Wishes: **{wish_count}**"
         else:
             lines = [
-                f"{idx}. {card_base_display(card_id)} • Wishes: **{wish_count}**"
-                for idx, (card_id, wish_count) in enumerate(page_entries, start=start + 1)
+                f"{idx}. {card_base_display(card_type_id)} • Wishes: **{wish_count}**"
+                for idx, (card_type_id, wish_count) in enumerate(page_entries, start=start + 1)
             ]
             description = multiline_text(lines)
 

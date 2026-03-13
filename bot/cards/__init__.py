@@ -6,8 +6,8 @@ from ..card_display import (
     card_base_display as _card_base_display_impl,
     card_display as _card_display_impl,
     card_display_concise as _card_display_concise_impl,
-    display_card_code as _display_card_code_impl,
-    display_card_code_raw as _display_card_code_raw_impl,
+    display_card_id as _display_card_id_impl,
+    display_card_id_raw as _display_card_id_raw_impl,
     generation_label as _generation_label_impl,
     proper_case as _proper_case_impl,
     series_display as _series_display_impl,
@@ -28,11 +28,11 @@ from ..card_value import (
     target_rarity_odds as _target_rarity_odds_impl,
 )
 from ..card_search import (
-    card_code as _card_code_impl,
+    card_id as _card_id_impl,
     normalize_card_id as _normalize_card_id_impl,
     search_card_ids as _search_card_ids_impl,
     search_card_ids_by_name as _search_card_ids_by_name_impl,
-    split_card_code as _split_card_code_impl,
+    split_card_id as _split_card_id_impl,
 )
 from ..fonts import font_rarity
 from ..frames import frame_rarity
@@ -74,8 +74,8 @@ def _read_card_metadata() -> dict[str, _CardMetaData]:
         raise RuntimeError(f"Invalid card metadata JSON: {CARD_CATALOG_PATH}")
 
     metadata: dict[str, _CardMetaData] = {}
-    for card_id, value in parsed.items():
-        if not isinstance(card_id, str) or not isinstance(value, dict):
+    for card_type_id, value in parsed.items():
+        if not isinstance(card_type_id, str) or not isinstance(value, dict):
             continue
 
         name = value.get("name")
@@ -92,7 +92,7 @@ def _read_card_metadata() -> dict[str, _CardMetaData]:
         }
         if isinstance(image, str):
             card_meta["image"] = image
-        metadata[card_id] = card_meta
+        metadata[card_type_id] = card_meta
 
     return metadata
 
@@ -106,9 +106,9 @@ def _read_card_base_values() -> dict[str, int]:
         raise RuntimeError(f"Invalid card base values JSON: {CARD_BASE_VALUES_PATH}")
 
     base_values: dict[str, int] = {}
-    for card_id, value in parsed.items():
-        if isinstance(card_id, str) and isinstance(value, int):
-            base_values[card_id] = value
+    for card_type_id, value in parsed.items():
+        if isinstance(card_type_id, str) and isinstance(value, int):
+            base_values[card_type_id] = value
     return base_values
 
 
@@ -140,17 +140,17 @@ def _load_card_catalog() -> dict[str, CardData]:
     card_base_values = _read_card_base_values()
 
     catalog: dict[str, CardData] = {}
-    for card_id, metadata in card_metadata.items():
+    for card_type_id, metadata in card_metadata.items():
         card: CardData = {
             "name": metadata["name"],
             "series": metadata["series"],
             "rarity": metadata["rarity"],
-            "base_value": int(card_base_values.get(card_id, 0)),
+            "base_value": int(card_base_values.get(card_type_id, 0)),
         }
         image = metadata.get("image")
         if isinstance(image, str):
             card["image"] = image
-        catalog[card_id] = card
+        catalog[card_type_id] = card
 
     return catalog
 
@@ -159,8 +159,8 @@ CARD_CATALOG: dict[str, CardData] = _load_card_catalog()
 SERIES_CATALOG: dict[str, SeriesData] = _read_series_catalog()
 
 
-def default_card_image(card_id: str) -> str:
-    return f"runtime/card_images/{card_id}.img"
+def default_card_image(card_type_id: str) -> str:
+    return f"runtime/card_images/{card_type_id}.img"
 
 
 def _read_local_image_manifest() -> dict[str, dict[str, str | int]]:
@@ -173,9 +173,9 @@ def _read_local_image_manifest() -> dict[str, dict[str, str | int]]:
         return {}
 
     manifest: dict[str, dict[str, str | int]] = {}
-    for card_id, value in parsed.items():
-        if isinstance(card_id, str) and isinstance(value, dict):
-            manifest[card_id] = value
+    for card_type_id, value in parsed.items():
+        if isinstance(card_type_id, str) and isinstance(value, dict):
+            manifest[card_type_id] = value
     return manifest
 
 
@@ -184,17 +184,17 @@ def _build_local_card_image_map() -> dict[str, str]:
     relative_base = Path("runtime") / "card_images"
     mapped: dict[str, str] = {}
 
-    for card_id in CARD_CATALOG:
-        entry = manifest_data.get(card_id)
+    for card_type_id in CARD_CATALOG:
+        entry = manifest_data.get(card_type_id)
         if isinstance(entry, dict):
             file_name = entry.get("file")
             if isinstance(file_name, str) and file_name:
-                mapped[card_id] = str(relative_base / file_name)
+                mapped[card_type_id] = str(relative_base / file_name)
                 continue
 
-        candidates = sorted(CARD_IMAGE_MANIFEST.parent.glob(f"{card_id}.*"))
+        candidates = sorted(CARD_IMAGE_MANIFEST.parent.glob(f"{card_type_id}.*"))
         if candidates:
-            mapped[card_id] = str(relative_base / candidates[0].name)
+            mapped[card_type_id] = str(relative_base / candidates[0].name)
 
     return mapped
 
@@ -202,14 +202,14 @@ def _build_local_card_image_map() -> dict[str, str]:
 CARD_IMAGE_URLS: dict[str, str] = _build_local_card_image_map()
 
 
-for _card_id, _card in CARD_CATALOG.items():
-    _card["image"] = _card.get("image") or CARD_IMAGE_URLS.get(_card_id) or default_card_image(_card_id)
+for _card_type_id, _card in CARD_CATALOG.items():
+    _card["image"] = _card.get("image") or CARD_IMAGE_URLS.get(_card_type_id) or default_card_image(_card_type_id)
 
 
 def _validate_no_remote_image_paths() -> None:
     remote_ids = [
-        card_id
-        for card_id, card in CARD_CATALOG.items()
+        card_type_id
+        for card_type_id, card in CARD_CATALOG.items()
         if isinstance(card.get("image"), str) and str(card.get("image")).startswith(("http://", "https://"))
     ]
     if remote_ids:
@@ -218,8 +218,8 @@ def _validate_no_remote_image_paths() -> None:
 
 def _validate_image_paths_use_runtime_card_images() -> None:
     invalid_ids = [
-        card_id
-        for card_id, card in CARD_CATALOG.items()
+        card_type_id
+        for card_type_id, card in CARD_CATALOG.items()
         if not isinstance(card.get("image"), str) or not str(card.get("image")).startswith("runtime/card_images/")
     ]
     if invalid_ids:
@@ -262,8 +262,8 @@ def target_rarity_odds() -> dict[str, float]:
     )
 
 
-def normalize_card_id(card_id: str) -> str:
-    return _normalize_card_id_impl(card_id)
+def normalize_card_id(card_type_id: str) -> str:
+    return _normalize_card_id_impl(card_type_id)
 
 
 def search_card_ids(query: str, *, include_series: bool = False) -> list[str]:
@@ -278,20 +278,20 @@ def search_card_ids_by_name(query: str) -> list[str]:
     return _search_card_ids_by_name_impl(query, card_catalog=CARD_CATALOG)
 
 
-def card_code(card_id: str, card_code: str) -> str:
-    return _card_code_impl(card_id, card_code)
+def card_id(card_type_id: str, card_id: str) -> str:
+    return _card_id_impl(card_type_id, card_id)
 
 
-def split_card_code(raw_code: str) -> str | None:
-    return _split_card_code_impl(raw_code)
+def split_card_id(raw_code: str) -> str | None:
+    return _split_card_id_impl(raw_code)
 
 
-def display_card_code(card_code: str | None) -> str:
-    return _display_card_code_impl(card_code)
+def display_card_id(card_id: str | None) -> str:
+    return _display_card_id_impl(card_id)
 
 
-def display_card_code_raw(card_code: str | None) -> str:
-    return _display_card_code_raw_impl(card_code)
+def display_card_id_raw(card_id: str | None) -> str:
+    return _display_card_id_raw_impl(card_id)
 
 
 def generation_label(generation: int) -> str:
@@ -310,8 +310,8 @@ def series_emoji(series: str) -> str:
     return _series_emoji_impl(series, series_catalog=SERIES_CATALOG)
 
 
-def card_base_value(card_id: str) -> int:
-    return _card_base_value_impl(card_id, card_catalog=CARD_CATALOG)
+def card_base_value(card_type_id: str) -> int:
+    return _card_base_value_impl(card_type_id, card_catalog=CARD_CATALOG)
 
 
 def trait_value_multiplier(
@@ -328,7 +328,7 @@ def trait_value_multiplier(
 
 
 def card_value(
-    card_id: str,
+    card_type_id: str,
     generation: int,
     *,
     morph_key: str | None = None,
@@ -336,7 +336,7 @@ def card_value(
     font_key: str | None = None,
 ) -> int:
     return _card_value_impl(
-        card_id,
+        card_type_id,
         generation,
         card_base_value_func=card_base_value,
         generation_multiplier_func=generation_value_multiplier,
@@ -348,9 +348,9 @@ def card_value(
     )
 
 
-def card_base_display(card_id: str) -> str:
+def card_base_display(card_type_id: str) -> str:
     return _card_base_display_impl(
-        card_id,
+        card_type_id,
         card_catalog=CARD_CATALOG,
         series_catalog=SERIES_CATALOG,
         card_base_value=card_base_value,
@@ -358,20 +358,20 @@ def card_base_display(card_id: str) -> str:
 
 
 def card_display(
-    card_id: str,
+    card_type_id: str,
     generation: int,
-    card_code: str | None = None,
+    card_id: str | None = None,
     *,
-    pad_card_code: bool = True,
+    pad_card_id: bool = True,
     morph_key: str | None = None,
     frame_key: str | None = None,
     font_key: str | None = None,
 ) -> str:
     return _card_display_impl(
-        card_id,
+        card_type_id,
         generation,
-        card_code,
-        pad_card_code=pad_card_code,
+        card_id,
+        pad_card_id=pad_card_id,
         morph_key=morph_key,
         frame_key=frame_key,
         font_key=font_key,
@@ -382,18 +382,18 @@ def card_display(
 
 
 def card_display_concise(
-    card_id: str,
+    card_type_id: str,
     generation: int,
-    card_code: str | None = None,
+    card_id: str | None = None,
     *,
     morph_key: str | None = None,
     frame_key: str | None = None,
     font_key: str | None = None,
 ) -> str:
     return _card_display_concise_impl(
-        card_id,
+        card_type_id,
         generation,
-        card_code,
+        card_id,
         morph_key=morph_key,
         frame_key=frame_key,
         font_key=font_key,
@@ -403,9 +403,9 @@ def card_display_concise(
     )
 
 
-def card_image_url(card_id: str) -> str:
-    card = CARD_CATALOG[card_id]
-    return card.get("image") or default_card_image(card_id)
+def card_image_url(card_type_id: str) -> str:
+    card = CARD_CATALOG[card_type_id]
+    return card.get("image") or default_card_image(card_type_id)
 
 
 def random_card_id() -> str:
@@ -444,7 +444,7 @@ def burn_delta_range(value: int) -> int:
 
 
 def get_burn_payout(
-    card_id: str,
+    card_type_id: str,
     generation: int,
     delta_range: int | None = None,
     *,
@@ -453,7 +453,7 @@ def get_burn_payout(
     font_key: str | None = None,
 ) -> tuple[int, int, int, int, float, int]:
     return _get_burn_payout_impl(
-        card_id,
+        card_type_id,
         generation,
         card_base_value_func=card_base_value,
         generation_multiplier_func=generation_value_multiplier,

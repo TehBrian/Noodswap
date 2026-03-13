@@ -87,7 +87,7 @@ from .command_utils import (
     get_folder_emojis_for_instances as get_folder_emojis_for_instances,
     get_gambling_pot as get_gambling_pot,
     get_instance_by_code as get_instance_by_code,
-    get_instance_by_card_code as get_instance_by_card_code,
+    get_instance_by_card_id as get_instance_by_card_id,
     get_instance_by_id as get_instance_by_id,
     get_instance_font as get_instance_font,
     get_instance_frame as get_instance_frame,
@@ -260,7 +260,7 @@ def register_catalog_commands(bot: commands.Bot) -> None:
             return
 
         wish_counts = get_card_wish_counts(_guild_id(ctx))
-        entries = [(card_id, wish_counts.get(card_id, 0)) for card_id in CARD_CATALOG]
+        entries = [(card_type_id, wish_counts.get(card_type_id, 0)) for card_type_id in CARD_CATALOG]
 
         view = CardCatalogView(user_id=ctx.author.id, entries=entries)
         message = await _reply(ctx, embed=view.build_embed(), view=view)
@@ -269,27 +269,27 @@ def register_catalog_commands(bot: commands.Bot) -> None:
     async def _run_lookup(
         ctx: commands.Context,
         *,
-        card_id: str | None,
+        card_type_id: str | None,
         image_size: tuple[int, int],
         embed_title: str,
         usage_name: str,
     ) -> None:
-        if card_id is None:
+        if card_type_id is None:
             await _reply(
                 ctx,
-                embed=italy_embed("Lookup", f"Usage: `ns {usage_name} <card_id|card_code|query>`."),
+                embed=italy_embed("Lookup", f"Usage: `ns {usage_name} <card_type_id|card_id|query>`."),
             )
             return
 
         if ctx.guild is not None:
-            matched_instance = get_instance_by_card_code(_guild_id(ctx), card_id)
+            matched_instance = get_instance_by_card_id(_guild_id(ctx), card_type_id)
             if matched_instance is not None:
                 (
                     matched_instance_id,
                     matched_owner_id,
-                    matched_card_id,
+                    matched_card_type_id,
                     matched_generation,
-                    matched_card_code,
+                    matched_card_id,
                     matched_dropped_by_id,
                     matched_pulled_by_id,
                     matched_pulled_at,
@@ -300,9 +300,9 @@ def register_catalog_commands(bot: commands.Bot) -> None:
                 lookup_embed = italy_embed(
                     embed_title,
                     _lookup_trait_breakdown_description(
-                        matched_card_id,
+                        matched_card_type_id,
                         matched_generation,
-                        matched_card_code,
+                        matched_card_id,
                         owner_mention=f"<@{matched_owner_id}>",
                         dropped_by_mention=(f"<@{matched_dropped_by_id}>" if matched_dropped_by_id is not None else None),
                         pulled_by_mention=(f"<@{matched_pulled_by_id}>" if matched_pulled_by_id is not None else None),
@@ -313,7 +313,7 @@ def register_catalog_commands(bot: commands.Bot) -> None:
                     ),
                 )
                 image_url, image_file = embed_image_payload(
-                    matched_card_id,
+                    matched_card_type_id,
                     generation=matched_generation,
                     morph_key=morph_key,
                     frame_key=frame_key,
@@ -328,7 +328,7 @@ def register_catalog_commands(bot: commands.Bot) -> None:
                 await _reply(ctx, **send_kwargs)
                 return
 
-        normalized_card_id = normalize_card_id(card_id)
+        normalized_card_id = normalize_card_id(card_type_id)
         if normalized_card_id in CARD_CATALOG:
             lookup_embed = italy_embed(embed_title, card_base_display(normalized_card_id))
             image_url, image_file = embed_image_payload(normalized_card_id, size=image_size)
@@ -340,15 +340,15 @@ def register_catalog_commands(bot: commands.Bot) -> None:
             await _reply(ctx, **send_kwargs)
             return
 
-        name_matches = search_card_ids(card_id, include_series=True)
+        name_matches = search_card_ids(card_type_id, include_series=True)
         if not name_matches:
             await _reply(ctx, embed=italy_embed("Lookup", "No results found."))
             return
 
         if len(name_matches) == 1:
-            matched_card_id = name_matches[0]
-            lookup_embed = italy_embed(embed_title, card_base_display(matched_card_id))
-            image_url, image_file = embed_image_payload(matched_card_id, size=image_size)
+            matched_card_type_id = name_matches[0]
+            lookup_embed = italy_embed(embed_title, card_base_display(matched_card_type_id))
+            image_url, image_file = embed_image_payload(matched_card_type_id, size=image_size)
             if image_url is not None:
                 lookup_embed.set_image(url=image_url)
             send_kwargs: dict[str, object] = {"embed": lookup_embed}
@@ -369,20 +369,20 @@ def register_catalog_commands(bot: commands.Bot) -> None:
         view.message = message
 
     @bot.command(name="lookup", aliases=["l"])
-    async def lookup(ctx: commands.Context, *, card_id: str | None = None):
+    async def lookup(ctx: commands.Context, *, card_type_id: str | None = None):
         await _run_lookup(
             ctx,
-            card_id=card_id,
+            card_type_id=card_type_id,
             image_size=DEFAULT_CARD_RENDER_SIZE,
             embed_title="Card Lookup",
             usage_name="lookup",
         )
 
     @bot.command(name="lookuphd", aliases=["lhd"])
-    async def lookup_hd(ctx: commands.Context, *, card_id: str | None = None):
+    async def lookup_hd(ctx: commands.Context, *, card_type_id: str | None = None):
         await _run_lookup(
             ctx,
-            card_id=card_id,
+            card_type_id=card_type_id,
             image_size=HD_CARD_RENDER_SIZE,
             embed_title="Card Lookup (HD)",
             usage_name="lookuphd",

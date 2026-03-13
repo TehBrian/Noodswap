@@ -98,7 +98,7 @@ from .storage import (
     get_all_owned_card_instances_with_pulled_at,
     get_folder_emojis_for_instances,
     get_instance_by_code,
-    get_instance_by_card_code,
+    get_instance_by_card_id,
     get_instance_font,
     get_instance_frame,
     get_instance_by_id,
@@ -166,14 +166,14 @@ def _title_case_rarity(rarity: str) -> str:
 def _instance_dupe_display(
     guild_id: int,
     instance_id: int,
-    card_id: str,
+    card_type_id: str,
     generation: int,
-    card_code: str | None,
+    card_id: str | None,
 ) -> str:
     return card_display(
-        card_id,
+        card_type_id,
         generation,
-        card_code=card_code,
+        card_id=card_id,
         morph_key=get_instance_morph(guild_id, instance_id),
         frame_key=get_instance_frame(guild_id, instance_id),
         font_key=get_instance_font(guild_id, instance_id),
@@ -181,9 +181,9 @@ def _instance_dupe_display(
 
 
 def _lookup_trait_breakdown_description(
-    card_id: str,
+    card_type_id: str,
     generation: int,
-    card_code: str | None,
+    card_id: str | None,
     *,
     owner_mention: str | None,
     dropped_by_mention: str | None,
@@ -215,10 +215,10 @@ def _lookup_trait_breakdown_description(
         frame_key=frame_key,
         font_key=font_key,
     )
-    base_value = card_base_value(card_id)
+    base_value = card_base_value(card_type_id)
     generation_multiplier = generation_value_multiplier(generation)
     computed_value = card_value(
-        card_id,
+        card_type_id,
         generation,
         morph_key=morph_key,
         frame_key=frame_key,
@@ -226,9 +226,9 @@ def _lookup_trait_breakdown_description(
     )
 
     dupe_display = card_display(
-        card_id,
+        card_type_id,
         generation,
-        card_code=card_code,
+        card_id=card_id,
         morph_key=morph_key,
         frame_key=frame_key,
         font_key=font_key,
@@ -379,8 +379,8 @@ async def resolve_optional_player_argument(
     return ctx.author, None
 
 
-def _get_card_image_bytes(card_id: str) -> bytes | None:
-    return read_local_card_image_bytes(card_id)
+def _get_card_image_bytes(card_type_id: str) -> bytes | None:
+    return read_local_card_image_bytes(card_type_id)
 
 
 def _build_drop_preview_blocking(choices: list[tuple[str, int]]) -> bytes | None:
@@ -391,9 +391,9 @@ def _build_drop_preview_blocking(choices: list[tuple[str, int]]) -> bytes | None
 
     card_w, card_h = DEFAULT_CARD_RENDER_SIZE
     card_surfaces: list[Image.Image] = []
-    for card_id, generation in choices:
+    for card_type_id, generation in choices:
         surface = render_card_surface(
-            card_id,
+            card_type_id,
             generation=generation,
             body_scale=DROP_CARD_BODY_SCALE,
             size=(card_w, card_h),
@@ -675,12 +675,12 @@ def _resolve_burn_selector_instances(
         normalized_card_id = normalize_card_id(selector_value)
         if normalized_card_id in CARD_CATALOG:
             return [], (
-                "Direct burn targets must be card codes, not card type IDs. Use codes like `0` or `#0`, or use `t:<tag_name>` / `f:<folder_name>`."
+                "Direct burn targets must be card IDs, not card type IDs. Use codes like `0` or `#0`, or use `t:<tag_name>` / `f:<folder_name>`."
             )
 
         selected = get_instance_by_code(guild_id, user_id, selector_value)
         if selected is None:
-            return [], f"You do not own the card code `{selector_value}`."
+            return [], f"You do not own the card ID `{selector_value}`."
         if selected[0] in excluded:
             return [], f"Card code `{selector_value}` is already selected."
         return [selected], None
@@ -775,21 +775,23 @@ async def _wish_add(ctx: commands.Context, *card_ids: str) -> None:
         return
 
     if not card_ids:
-        await _reply(ctx, embed=italy_embed("Wishlist", "Usage: `ns wish add <card_id> [card_id ...]`"))
+        await _reply(ctx, embed=italy_embed("Wishlist", "Usage: `ns wish add <card_type_id> [card_type_id ...]`"))
         return
 
     if len(card_ids) == 1:
-        card_id = card_ids[0]
-        normalized_card_id = normalize_card_id(card_id)
-        matched_card_ids = [normalized_card_id] if normalized_card_id in CARD_CATALOG else search_card_ids_by_name(card_id)
-        if not matched_card_ids:
+        card_type_id = card_ids[0]
+        normalized_card_id = normalize_card_id(card_type_id)
+        matched_card_type_ids = [normalized_card_id] if normalized_card_id in CARD_CATALOG else search_card_ids_by_name(card_type_id)
+        if not matched_card_type_ids:
             await _reply(ctx, embed=italy_embed("Wishlist", "Unknown card id."))
             return
-        if len(matched_card_ids) > 1:
-            match_lines = [f"{index}. {card_base_display(matched_card_id)}" for index, matched_card_id in enumerate(matched_card_ids, start=1)]
+        if len(matched_card_type_ids) > 1:
+            match_lines = [
+                f"{index}. {card_base_display(matched_card_type_id)}" for index, matched_card_type_id in enumerate(matched_card_type_ids, start=1)
+            ]
             await _reply(ctx, embed=italy_embed("Wishlist Matches", multiline_text(match_lines)))
             return
-        resolved_card_id = matched_card_ids[0]
+        resolved_card_id = matched_card_type_ids[0]
         was_added = add_card_to_wishlist(_guild_id(ctx), ctx.author.id, resolved_card_id)
         if not was_added:
             await _reply(ctx, embed=italy_embed("Wishlist", f"Already wishlisted: {card_base_display(resolved_card_id)}"))
@@ -802,14 +804,14 @@ async def _wish_add(ctx: commands.Context, *card_ids: str) -> None:
     ambiguous: list[str] = []
     unknown: list[str] = []
 
-    for card_id in card_ids:
-        normalized_card_id = normalize_card_id(card_id)
-        matched = [normalized_card_id] if normalized_card_id in CARD_CATALOG else search_card_ids_by_name(card_id)
+    for card_type_id in card_ids:
+        normalized_card_id = normalize_card_id(card_type_id)
+        matched = [normalized_card_id] if normalized_card_id in CARD_CATALOG else search_card_ids_by_name(card_type_id)
         if not matched:
-            unknown.append(card_id)
+            unknown.append(card_type_id)
             continue
         if len(matched) > 1:
-            ambiguous.append(card_id)
+            ambiguous.append(card_type_id)
             continue
         resolved = matched[0]
         if add_card_to_wishlist(_guild_id(ctx), ctx.author.id, resolved):
@@ -835,21 +837,23 @@ async def _wish_remove(ctx: commands.Context, *card_ids: str) -> None:
         return
 
     if not card_ids:
-        await _reply(ctx, embed=italy_embed("Wishlist", "Usage: `ns wish remove <card_id> [card_id ...]`"))
+        await _reply(ctx, embed=italy_embed("Wishlist", "Usage: `ns wish remove <card_type_id> [card_type_id ...]`"))
         return
 
     if len(card_ids) == 1:
-        card_id = card_ids[0]
-        normalized_card_id = normalize_card_id(card_id)
-        matched_card_ids = [normalized_card_id] if normalized_card_id in CARD_CATALOG else search_card_ids_by_name(card_id)
-        if not matched_card_ids:
+        card_type_id = card_ids[0]
+        normalized_card_id = normalize_card_id(card_type_id)
+        matched_card_type_ids = [normalized_card_id] if normalized_card_id in CARD_CATALOG else search_card_ids_by_name(card_type_id)
+        if not matched_card_type_ids:
             await _reply(ctx, embed=italy_embed("Wishlist", "Unknown card id."))
             return
-        if len(matched_card_ids) > 1:
-            match_lines = [f"{index}. {card_base_display(matched_card_id)}" for index, matched_card_id in enumerate(matched_card_ids, start=1)]
+        if len(matched_card_type_ids) > 1:
+            match_lines = [
+                f"{index}. {card_base_display(matched_card_type_id)}" for index, matched_card_type_id in enumerate(matched_card_type_ids, start=1)
+            ]
             await _reply(ctx, embed=italy_embed("Wishlist Matches", multiline_text(match_lines)))
             return
-        resolved_card_id = matched_card_ids[0]
+        resolved_card_id = matched_card_type_ids[0]
         was_removed = remove_card_from_wishlist(_guild_id(ctx), ctx.author.id, resolved_card_id)
         if not was_removed:
             await _reply(ctx, embed=italy_embed("Wishlist", f"Not on wishlist: {card_base_display(resolved_card_id)}"))
@@ -862,14 +866,14 @@ async def _wish_remove(ctx: commands.Context, *card_ids: str) -> None:
     ambiguous: list[str] = []
     unknown: list[str] = []
 
-    for card_id in card_ids:
-        normalized_card_id = normalize_card_id(card_id)
-        matched = [normalized_card_id] if normalized_card_id in CARD_CATALOG else search_card_ids_by_name(card_id)
+    for card_type_id in card_ids:
+        normalized_card_id = normalize_card_id(card_type_id)
+        matched = [normalized_card_id] if normalized_card_id in CARD_CATALOG else search_card_ids_by_name(card_type_id)
         if not matched:
-            unknown.append(card_id)
+            unknown.append(card_type_id)
             continue
         if len(matched) > 1:
-            ambiguous.append(card_id)
+            ambiguous.append(card_type_id)
             continue
         resolved = matched[0]
         if remove_card_from_wishlist(_guild_id(ctx), ctx.author.id, resolved):
@@ -901,7 +905,7 @@ async def _wish_list(ctx: commands.Context, target_member: discord.abc.User | No
     title = f"{target_member.display_name}'s Wishlist"
     if not wishlisted_card_ids:
         if target_member.id == ctx.author.id:
-            description = "Your wishlist is empty. Add cards with `ns wish add <card_id>`."
+            description = "Your wishlist is empty. Add cards with `ns wish add <card_type_id>`."
         else:
             description = f"{target_member.display_name} has an empty wishlist."
         await _reply(ctx, embed=italy_embed(title, description))
@@ -926,7 +930,7 @@ def _folder_emoji_map_for_instances(
     return get_folder_emojis_for_instances(
         guild_id,
         user_id,
-        [instance_id for instance_id, _card_id, _generation, _card_code in instances],
+        [instance_id for instance_id, _card_type_id, _generation, _card_id in instances],
     )
 
 
@@ -995,23 +999,23 @@ async def _tag_lock(ctx: commands.Context, tag_name: str, locked: bool) -> None:
     await _reply(ctx, embed=italy_embed("Tags", f"Tag `{normalized}` is now **{state}**."))
 
 
-async def _tag_assign(ctx: commands.Context, tag_name: str, *card_codes: str) -> None:
+async def _tag_assign(ctx: commands.Context, tag_name: str, *card_ids: str) -> None:
     if not await _require_guild(ctx, "Tags"):
         return
 
-    if not card_codes:
-        await _reply(ctx, embed=italy_embed("Tags", "Usage: `ns tag assign <tag_name> <card_code> [code ...]`"))
+    if not card_ids:
+        await _reply(ctx, embed=italy_embed("Tags", "Usage: `ns tag assign <tag_name> <card_id> [code ...]`"))
         return
 
     normalized = tag_name.strip().lower()
 
-    if len(card_codes) == 1:
-        card_code = card_codes[0]
-        selected = get_instance_by_code(_guild_id(ctx), ctx.author.id, card_code)
+    if len(card_ids) == 1:
+        card_id = card_ids[0]
+        selected = get_instance_by_code(_guild_id(ctx), ctx.author.id, card_id)
         if selected is None:
-            await _reply(ctx, embed=italy_embed("Tags", "You do not own that card code."))
+            await _reply(ctx, embed=italy_embed("Tags", "You do not own that card ID."))
             return
-        instance_id, card_id, generation, card_code = selected
+        instance_id, card_type_id, generation, card_id = selected
         if is_tag_assigned_to_instance(_guild_id(ctx), ctx.author.id, instance_id, tag_name):
             await _reply(ctx, embed=italy_embed("Tags", "That card is already assigned to this tag."))
             return
@@ -1023,7 +1027,7 @@ async def _tag_assign(ctx: commands.Context, tag_name: str, *card_codes: str) ->
             ctx,
             embed=italy_embed(
                 "Tags",
-                f"Tagged {_instance_dupe_display(_guild_id(ctx), instance_id, card_id, generation, card_code)} with `{normalized}`.",
+                f"Tagged {_instance_dupe_display(_guild_id(ctx), instance_id, card_type_id, generation, card_id)} with `{normalized}`.",
             ),
         )
         return
@@ -1033,19 +1037,19 @@ async def _tag_assign(ctx: commands.Context, tag_name: str, *card_codes: str) ->
     not_owned: list[str] = []
     failed: list[str] = []
 
-    for card_code in card_codes:
-        selected = get_instance_by_code(_guild_id(ctx), ctx.author.id, card_code)
+    for card_id in card_ids:
+        selected = get_instance_by_code(_guild_id(ctx), ctx.author.id, card_id)
         if selected is None:
-            not_owned.append(card_code)
+            not_owned.append(card_id)
             continue
-        instance_id, card_id, generation, card_code = selected
+        instance_id, card_type_id, generation, card_id = selected
         if is_tag_assigned_to_instance(_guild_id(ctx), ctx.author.id, instance_id, tag_name):
-            already.append(_instance_dupe_display(_guild_id(ctx), instance_id, card_id, generation, card_code))
+            already.append(_instance_dupe_display(_guild_id(ctx), instance_id, card_type_id, generation, card_id))
             continue
         if assign_tag_to_instance(_guild_id(ctx), ctx.author.id, instance_id, tag_name):
-            tagged.append(_instance_dupe_display(_guild_id(ctx), instance_id, card_id, generation, card_code))
+            tagged.append(_instance_dupe_display(_guild_id(ctx), instance_id, card_type_id, generation, card_id))
         else:
-            failed.append(card_code)
+            failed.append(card_id)
 
     lines: list[str] = []
     if tagged:
@@ -1060,23 +1064,23 @@ async def _tag_assign(ctx: commands.Context, tag_name: str, *card_codes: str) ->
     await _reply(ctx, embed=italy_embed("Tags", multiline_text(lines) if lines else "Nothing to update."))
 
 
-async def _tag_unassign(ctx: commands.Context, tag_name: str, *card_codes: str) -> None:
+async def _tag_unassign(ctx: commands.Context, tag_name: str, *card_ids: str) -> None:
     if not await _require_guild(ctx, "Tags"):
         return
 
-    if not card_codes:
-        await _reply(ctx, embed=italy_embed("Tags", "Usage: `ns tag unassign <tag_name> <card_code> [code ...]`"))
+    if not card_ids:
+        await _reply(ctx, embed=italy_embed("Tags", "Usage: `ns tag unassign <tag_name> <card_id> [code ...]`"))
         return
 
     normalized = tag_name.strip().lower()
 
-    if len(card_codes) == 1:
-        card_code = card_codes[0]
-        selected = get_instance_by_code(_guild_id(ctx), ctx.author.id, card_code)
+    if len(card_ids) == 1:
+        card_id = card_ids[0]
+        selected = get_instance_by_code(_guild_id(ctx), ctx.author.id, card_id)
         if selected is None:
-            await _reply(ctx, embed=italy_embed("Tags", "You do not own that card code."))
+            await _reply(ctx, embed=italy_embed("Tags", "You do not own that card ID."))
             return
-        instance_id, card_id, generation, card_code = selected
+        instance_id, card_type_id, generation, card_id = selected
         unassigned = unassign_tag_from_instance(_guild_id(ctx), ctx.author.id, instance_id, tag_name)
         if not unassigned:
             await _reply(ctx, embed=italy_embed("Tags", f"That card is not tagged with `{normalized}`."))
@@ -1085,7 +1089,7 @@ async def _tag_unassign(ctx: commands.Context, tag_name: str, *card_codes: str) 
             ctx,
             embed=italy_embed(
                 "Tags",
-                f"Removed `{normalized}` from {_instance_dupe_display(_guild_id(ctx), instance_id, card_id, generation, card_code)}.",
+                f"Removed `{normalized}` from {_instance_dupe_display(_guild_id(ctx), instance_id, card_type_id, generation, card_id)}.",
             ),
         )
         return
@@ -1094,16 +1098,16 @@ async def _tag_unassign(ctx: commands.Context, tag_name: str, *card_codes: str) 
     not_tagged: list[str] = []
     not_owned: list[str] = []
 
-    for card_code in card_codes:
-        selected = get_instance_by_code(_guild_id(ctx), ctx.author.id, card_code)
+    for card_id in card_ids:
+        selected = get_instance_by_code(_guild_id(ctx), ctx.author.id, card_id)
         if selected is None:
-            not_owned.append(card_code)
+            not_owned.append(card_id)
             continue
-        instance_id, card_id, generation, card_code = selected
+        instance_id, card_type_id, generation, card_id = selected
         if unassign_tag_from_instance(_guild_id(ctx), ctx.author.id, instance_id, tag_name):
-            removed.append(_instance_dupe_display(_guild_id(ctx), instance_id, card_id, generation, card_code))
+            removed.append(_instance_dupe_display(_guild_id(ctx), instance_id, card_type_id, generation, card_id))
         else:
-            not_tagged.append(_instance_dupe_display(_guild_id(ctx), instance_id, card_id, generation, card_code))
+            not_tagged.append(_instance_dupe_display(_guild_id(ctx), instance_id, card_type_id, generation, card_id))
 
     lines: list[str] = []
     if removed:
@@ -1133,7 +1137,7 @@ async def _tag_cards(ctx: commands.Context, tag_name: str) -> None:
         locked_instance_ids=get_locked_instance_ids(
             _guild_id(ctx),
             ctx.author.id,
-            [instance_id for instance_id, _card_id, _generation, _card_code in tagged_instances],
+            [instance_id for instance_id, _card_type_id, _generation, _card_id in tagged_instances],
         ),
         wish_counts=get_card_wish_counts(_guild_id(ctx)),
         folder_emojis_by_instance=_folder_emoji_map_for_instances(_guild_id(ctx), ctx.author.id, tagged_instances),
@@ -1143,7 +1147,7 @@ async def _tag_cards(ctx: commands.Context, tag_name: str) -> None:
                 get_instance_frame(_guild_id(ctx), instance_id),
                 get_instance_font(_guild_id(ctx), instance_id),
             )
-            for instance_id, _card_id, _generation, _card_code in tagged_instances
+            for instance_id, _card_type_id, _generation, _card_id in tagged_instances
         },
         guard_title="Tags",
     )
@@ -1232,23 +1236,23 @@ async def _folder_emoji(ctx: commands.Context, folder_name: str, emoji: str) -> 
     await _reply(ctx, embed=italy_embed("Folders", f"Updated emoji for `{normalized}`."))
 
 
-async def _folder_assign(ctx: commands.Context, folder_name: str, *card_codes: str) -> None:
+async def _folder_assign(ctx: commands.Context, folder_name: str, *card_ids: str) -> None:
     if not await _require_guild(ctx, "Folders"):
         return
 
-    if not card_codes:
-        await _reply(ctx, embed=italy_embed("Folders", "Usage: `ns folder assign <folder_name> <card_code> [code ...]`"))
+    if not card_ids:
+        await _reply(ctx, embed=italy_embed("Folders", "Usage: `ns folder assign <folder_name> <card_id> [code ...]`"))
         return
 
     normalized = folder_name.strip().lower()
 
-    if len(card_codes) == 1:
-        card_code = card_codes[0]
-        selected = get_instance_by_code(_guild_id(ctx), ctx.author.id, card_code)
+    if len(card_ids) == 1:
+        card_id = card_ids[0]
+        selected = get_instance_by_code(_guild_id(ctx), ctx.author.id, card_id)
         if selected is None:
-            await _reply(ctx, embed=italy_embed("Folders", "You do not own that card code."))
+            await _reply(ctx, embed=italy_embed("Folders", "You do not own that card ID."))
             return
-        instance_id, card_id, generation, card_code = selected
+        instance_id, card_type_id, generation, card_id = selected
         if is_instance_assigned_to_folder(_guild_id(ctx), ctx.author.id, instance_id, folder_name):
             await _reply(ctx, embed=italy_embed("Folders", "That card is already assigned to this folder."))
             return
@@ -1263,7 +1267,7 @@ async def _folder_assign(ctx: commands.Context, folder_name: str, *card_codes: s
             ctx,
             embed=italy_embed(
                 "Folders",
-                f"Assigned {_instance_dupe_display(_guild_id(ctx), instance_id, card_id, generation, card_code)} to `{normalized}`.",
+                f"Assigned {_instance_dupe_display(_guild_id(ctx), instance_id, card_type_id, generation, card_id)} to `{normalized}`.",
             ),
         )
         return
@@ -1273,20 +1277,20 @@ async def _folder_assign(ctx: commands.Context, folder_name: str, *card_codes: s
     not_owned: list[str] = []
     failed: list[str] = []
 
-    for card_code in card_codes:
-        selected = get_instance_by_code(_guild_id(ctx), ctx.author.id, card_code)
+    for card_id in card_ids:
+        selected = get_instance_by_code(_guild_id(ctx), ctx.author.id, card_id)
         if selected is None:
-            not_owned.append(card_code)
+            not_owned.append(card_id)
             continue
-        instance_id, card_id, generation, card_code = selected
+        instance_id, card_type_id, generation, card_id = selected
         if is_instance_assigned_to_folder(_guild_id(ctx), ctx.author.id, instance_id, folder_name):
-            already.append(_instance_dupe_display(_guild_id(ctx), instance_id, card_id, generation, card_code))
+            already.append(_instance_dupe_display(_guild_id(ctx), instance_id, card_type_id, generation, card_id))
             continue
         success, _ = assign_instance_to_folder(_guild_id(ctx), ctx.author.id, instance_id, folder_name)
         if success:
-            assigned.append(_instance_dupe_display(_guild_id(ctx), instance_id, card_id, generation, card_code))
+            assigned.append(_instance_dupe_display(_guild_id(ctx), instance_id, card_type_id, generation, card_id))
         else:
-            failed.append(card_code)
+            failed.append(card_id)
 
     lines: list[str] = []
     if assigned:
@@ -1301,23 +1305,23 @@ async def _folder_assign(ctx: commands.Context, folder_name: str, *card_codes: s
     await _reply(ctx, embed=italy_embed("Folders", multiline_text(lines) if lines else "Nothing to update."))
 
 
-async def _folder_unassign(ctx: commands.Context, folder_name: str, *card_codes: str) -> None:
+async def _folder_unassign(ctx: commands.Context, folder_name: str, *card_ids: str) -> None:
     if not await _require_guild(ctx, "Folders"):
         return
 
-    if not card_codes:
-        await _reply(ctx, embed=italy_embed("Folders", "Usage: `ns folder unassign <folder_name> <card_code> [code ...]`"))
+    if not card_ids:
+        await _reply(ctx, embed=italy_embed("Folders", "Usage: `ns folder unassign <folder_name> <card_id> [code ...]`"))
         return
 
     normalized = folder_name.strip().lower()
 
-    if len(card_codes) == 1:
-        card_code = card_codes[0]
-        selected = get_instance_by_code(_guild_id(ctx), ctx.author.id, card_code)
+    if len(card_ids) == 1:
+        card_id = card_ids[0]
+        selected = get_instance_by_code(_guild_id(ctx), ctx.author.id, card_id)
         if selected is None:
-            await _reply(ctx, embed=italy_embed("Folders", "You do not own that card code."))
+            await _reply(ctx, embed=italy_embed("Folders", "You do not own that card ID."))
             return
-        instance_id, card_id, generation, card_code = selected
+        instance_id, card_type_id, generation, card_id = selected
         removed = unassign_instance_from_folder(_guild_id(ctx), ctx.author.id, instance_id, folder_name)
         if not removed:
             await _reply(ctx, embed=italy_embed("Folders", f"That card is not assigned to `{normalized}`."))
@@ -1326,7 +1330,7 @@ async def _folder_unassign(ctx: commands.Context, folder_name: str, *card_codes:
             ctx,
             embed=italy_embed(
                 "Folders",
-                f"Removed {_instance_dupe_display(_guild_id(ctx), instance_id, card_id, generation, card_code)} from `{normalized}`.",
+                f"Removed {_instance_dupe_display(_guild_id(ctx), instance_id, card_type_id, generation, card_id)} from `{normalized}`.",
             ),
         )
         return
@@ -1335,16 +1339,16 @@ async def _folder_unassign(ctx: commands.Context, folder_name: str, *card_codes:
     not_assigned: list[str] = []
     not_owned: list[str] = []
 
-    for card_code in card_codes:
-        selected = get_instance_by_code(_guild_id(ctx), ctx.author.id, card_code)
+    for card_id in card_ids:
+        selected = get_instance_by_code(_guild_id(ctx), ctx.author.id, card_id)
         if selected is None:
-            not_owned.append(card_code)
+            not_owned.append(card_id)
             continue
-        instance_id, card_id, generation, card_code = selected
+        instance_id, card_type_id, generation, card_id = selected
         if unassign_instance_from_folder(_guild_id(ctx), ctx.author.id, instance_id, folder_name):
-            removed_list.append(_instance_dupe_display(_guild_id(ctx), instance_id, card_id, generation, card_code))
+            removed_list.append(_instance_dupe_display(_guild_id(ctx), instance_id, card_type_id, generation, card_id))
         else:
-            not_assigned.append(_instance_dupe_display(_guild_id(ctx), instance_id, card_id, generation, card_code))
+            not_assigned.append(_instance_dupe_display(_guild_id(ctx), instance_id, card_type_id, generation, card_id))
 
     lines: list[str] = []
     if removed_list:
@@ -1377,7 +1381,7 @@ async def _folder_cards(ctx: commands.Context, folder_name: str) -> None:
         locked_instance_ids=get_locked_instance_ids(
             _guild_id(ctx),
             ctx.author.id,
-            [instance_id for instance_id, _card_id, _generation, _card_code in folder_instances],
+            [instance_id for instance_id, _card_type_id, _generation, _card_id in folder_instances],
         ),
         wish_counts=get_card_wish_counts(_guild_id(ctx)),
         folder_emojis_by_instance=_folder_emoji_map_for_instances(_guild_id(ctx), ctx.author.id, folder_instances),
@@ -1387,7 +1391,7 @@ async def _folder_cards(ctx: commands.Context, folder_name: str) -> None:
                 get_instance_frame(_guild_id(ctx), instance_id),
                 get_instance_font(_guild_id(ctx), instance_id),
             )
-            for instance_id, _card_id, _generation, _card_code in folder_instances
+            for instance_id, _card_type_id, _generation, _card_id in folder_instances
         },
         guard_title="Folders",
     )
@@ -1443,23 +1447,23 @@ async def _team_list(ctx: commands.Context) -> None:
     await _reply(ctx, embed=italy_embed("Your Teams", multiline_text(lines)))
 
 
-async def _team_assign(ctx: commands.Context, team_name: str, *card_codes: str) -> None:
+async def _team_assign(ctx: commands.Context, team_name: str, *card_ids: str) -> None:
     if not await _require_guild(ctx, "Teams"):
         return
 
-    if not card_codes:
-        await _reply(ctx, embed=italy_embed("Teams", "Usage: `ns team assign <team_name> <card_code> [code ...]`"))
+    if not card_ids:
+        await _reply(ctx, embed=italy_embed("Teams", "Usage: `ns team assign <team_name> <card_id> [code ...]`"))
         return
 
     normalized = team_name.strip().lower()
 
-    if len(card_codes) == 1:
-        card_code = card_codes[0]
-        selected = get_instance_by_code(_guild_id(ctx), ctx.author.id, card_code)
+    if len(card_ids) == 1:
+        card_id = card_ids[0]
+        selected = get_instance_by_code(_guild_id(ctx), ctx.author.id, card_id)
         if selected is None:
-            await _reply(ctx, embed=italy_embed("Teams", "You do not own that card code."))
+            await _reply(ctx, embed=italy_embed("Teams", "You do not own that card ID."))
             return
-        instance_id, card_id, generation, card_code = selected
+        instance_id, card_type_id, generation, card_id = selected
         if is_instance_assigned_to_team(_guild_id(ctx), ctx.author.id, instance_id, team_name):
             await _reply(ctx, embed=italy_embed("Teams", "That card is already on this team."))
             return
@@ -1471,7 +1475,7 @@ async def _team_assign(ctx: commands.Context, team_name: str, *card_codes: str) 
             ctx,
             embed=italy_embed(
                 "Teams",
-                f"Assigned {_instance_dupe_display(_guild_id(ctx), instance_id, card_id, generation, card_code)} to `{normalized}`.",
+                f"Assigned {_instance_dupe_display(_guild_id(ctx), instance_id, card_type_id, generation, card_id)} to `{normalized}`.",
             ),
         )
         return
@@ -1481,20 +1485,20 @@ async def _team_assign(ctx: commands.Context, team_name: str, *card_codes: str) 
     not_owned: list[str] = []
     failed: list[str] = []
 
-    for card_code in card_codes:
-        selected = get_instance_by_code(_guild_id(ctx), ctx.author.id, card_code)
+    for card_id in card_ids:
+        selected = get_instance_by_code(_guild_id(ctx), ctx.author.id, card_id)
         if selected is None:
-            not_owned.append(card_code)
+            not_owned.append(card_id)
             continue
-        instance_id, card_id, generation, card_code = selected
+        instance_id, card_type_id, generation, card_id = selected
         if is_instance_assigned_to_team(_guild_id(ctx), ctx.author.id, instance_id, team_name):
-            already.append(_instance_dupe_display(_guild_id(ctx), instance_id, card_id, generation, card_code))
+            already.append(_instance_dupe_display(_guild_id(ctx), instance_id, card_type_id, generation, card_id))
             continue
         success, err = assign_instance_to_team(_guild_id(ctx), ctx.author.id, instance_id, team_name)
         if success:
-            assigned.append(_instance_dupe_display(_guild_id(ctx), instance_id, card_id, generation, card_code))
+            assigned.append(_instance_dupe_display(_guild_id(ctx), instance_id, card_type_id, generation, card_id))
         else:
-            failed.append(f"{_instance_dupe_display(_guild_id(ctx), instance_id, card_id, generation, card_code)} ({err})" if err else card_code)
+            failed.append(f"{_instance_dupe_display(_guild_id(ctx), instance_id, card_type_id, generation, card_id)} ({err})" if err else card_id)
 
     lines: list[str] = []
     if assigned:
@@ -1509,23 +1513,23 @@ async def _team_assign(ctx: commands.Context, team_name: str, *card_codes: str) 
     await _reply(ctx, embed=italy_embed("Teams", multiline_text(lines) if lines else "Nothing to update."))
 
 
-async def _team_unassign(ctx: commands.Context, team_name: str, *card_codes: str) -> None:
+async def _team_unassign(ctx: commands.Context, team_name: str, *card_ids: str) -> None:
     if not await _require_guild(ctx, "Teams"):
         return
 
-    if not card_codes:
-        await _reply(ctx, embed=italy_embed("Teams", "Usage: `ns team unassign <team_name> <card_code> [code ...]`"))
+    if not card_ids:
+        await _reply(ctx, embed=italy_embed("Teams", "Usage: `ns team unassign <team_name> <card_id> [code ...]`"))
         return
 
     normalized = team_name.strip().lower()
 
-    if len(card_codes) == 1:
-        card_code = card_codes[0]
-        selected = get_instance_by_code(_guild_id(ctx), ctx.author.id, card_code)
+    if len(card_ids) == 1:
+        card_id = card_ids[0]
+        selected = get_instance_by_code(_guild_id(ctx), ctx.author.id, card_id)
         if selected is None:
-            await _reply(ctx, embed=italy_embed("Teams", "You do not own that card code."))
+            await _reply(ctx, embed=italy_embed("Teams", "You do not own that card ID."))
             return
-        instance_id, card_id, generation, card_code = selected
+        instance_id, card_type_id, generation, card_id = selected
         removed = unassign_instance_from_team(_guild_id(ctx), ctx.author.id, instance_id, team_name)
         if not removed:
             await _reply(ctx, embed=italy_embed("Teams", f"That card is not assigned to `{normalized}`."))
@@ -1534,7 +1538,7 @@ async def _team_unassign(ctx: commands.Context, team_name: str, *card_codes: str
             ctx,
             embed=italy_embed(
                 "Teams",
-                f"Removed {_instance_dupe_display(_guild_id(ctx), instance_id, card_id, generation, card_code)} from `{normalized}`.",
+                f"Removed {_instance_dupe_display(_guild_id(ctx), instance_id, card_type_id, generation, card_id)} from `{normalized}`.",
             ),
         )
         return
@@ -1543,16 +1547,16 @@ async def _team_unassign(ctx: commands.Context, team_name: str, *card_codes: str
     not_assigned: list[str] = []
     not_owned: list[str] = []
 
-    for card_code in card_codes:
-        selected = get_instance_by_code(_guild_id(ctx), ctx.author.id, card_code)
+    for card_id in card_ids:
+        selected = get_instance_by_code(_guild_id(ctx), ctx.author.id, card_id)
         if selected is None:
-            not_owned.append(card_code)
+            not_owned.append(card_id)
             continue
-        instance_id, card_id, generation, card_code = selected
+        instance_id, card_type_id, generation, card_id = selected
         if unassign_instance_from_team(_guild_id(ctx), ctx.author.id, instance_id, team_name):
-            removed_list.append(_instance_dupe_display(_guild_id(ctx), instance_id, card_id, generation, card_code))
+            removed_list.append(_instance_dupe_display(_guild_id(ctx), instance_id, card_type_id, generation, card_id))
         else:
-            not_assigned.append(_instance_dupe_display(_guild_id(ctx), instance_id, card_id, generation, card_code))
+            not_assigned.append(_instance_dupe_display(_guild_id(ctx), instance_id, card_type_id, generation, card_id))
 
     lines: list[str] = []
     if removed_list:
@@ -1582,7 +1586,7 @@ async def _team_cards(ctx: commands.Context, team_name: str) -> None:
         locked_instance_ids=get_locked_instance_ids(
             _guild_id(ctx),
             ctx.author.id,
-            [instance_id for instance_id, _card_id, _generation, _card_code in team_instances],
+            [instance_id for instance_id, _card_type_id, _generation, _card_id in team_instances],
         ),
         wish_counts=get_card_wish_counts(_guild_id(ctx)),
         folder_emojis_by_instance=_folder_emoji_map_for_instances(_guild_id(ctx), ctx.author.id, team_instances),
@@ -1592,7 +1596,7 @@ async def _team_cards(ctx: commands.Context, team_name: str) -> None:
                 get_instance_frame(_guild_id(ctx), instance_id),
                 get_instance_font(_guild_id(ctx), instance_id),
             )
-            for instance_id, _card_id, _generation, _card_code in team_instances
+            for instance_id, _card_type_id, _generation, _card_id in team_instances
         },
         card_line_formatter=_team_card_line_with_stats,
         guard_title="Teams",
@@ -1602,9 +1606,9 @@ async def _team_cards(ctx: commands.Context, team_name: str) -> None:
 
 
 def _team_card_line_with_stats(
-    card_id: str,
+    card_type_id: str,
     generation: int,
-    card_code: str | None,
+    card_id: str | None,
     *,
     morph_key: str | None = None,
     frame_key: str | None = None,
@@ -1612,7 +1616,7 @@ def _team_card_line_with_stats(
 ) -> str:
     hp, attack, defense = value_to_stats(
         card_value(
-            card_id,
+            card_type_id,
             generation,
             morph_key=morph_key,
             frame_key=frame_key,
@@ -1620,7 +1624,7 @@ def _team_card_line_with_stats(
         )
     )
     return (
-        f"{card_display(card_id, generation, card_code, morph_key=morph_key, frame_key=frame_key, font_key=font_key)} "
+        f"{card_display(card_type_id, generation, card_id, morph_key=morph_key, frame_key=frame_key, font_key=font_key)} "
         f"• HP:{hp} ATK:{attack} DEF:{defense}"
     )
 

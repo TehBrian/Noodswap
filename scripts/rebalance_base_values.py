@@ -57,12 +57,12 @@ def _load_cards(cards_file: Path) -> dict[str, dict[str, str]]:
         raise RuntimeError(f"Invalid cards JSON: {cards_file}")
 
     cards: dict[str, dict[str, str]] = {}
-    for card_id, value in parsed.items():
-        if not isinstance(card_id, str) or not isinstance(value, dict):
+    for card_type_id, value in parsed.items():
+        if not isinstance(card_type_id, str) or not isinstance(value, dict):
             continue
         rarity = value.get("rarity")
         if isinstance(rarity, str):
-            cards[card_id] = value
+            cards[card_type_id] = value
     return cards
 
 
@@ -75,9 +75,9 @@ def _load_base_values(base_values_file: Path) -> dict[str, int]:
         raise RuntimeError(f"Invalid base values JSON: {base_values_file}")
 
     base_values: dict[str, int] = {}
-    for card_id, value in parsed.items():
-        if isinstance(card_id, str) and isinstance(value, int):
-            base_values[card_id] = value
+    for card_type_id, value in parsed.items():
+        if isinstance(card_type_id, str) and isinstance(value, int):
+            base_values[card_type_id] = value
     return base_values
 
 
@@ -88,13 +88,13 @@ def _compute_values(
     computed: dict[str, int] = {}
 
     for rarity, (low, high) in RARITY_VALUE_BANDS.items():
-        rarity_card_ids = [card_id for card_id, card in cards.items() if card.get("rarity") == rarity]
+        rarity_card_ids = [card_type_id for card_type_id, card in cards.items() if card.get("rarity") == rarity]
         if not rarity_card_ids:
             continue
 
         ranked_ids = sorted(
             rarity_card_ids,
-            key=lambda card_id: (existing_base_values.get(card_id, 0), card_id),
+            key=lambda card_type_id: (existing_base_values.get(card_type_id, 0), card_type_id),
         )
 
         if len(ranked_ids) == 1:
@@ -103,8 +103,8 @@ def _compute_values(
 
         span = high - low
         last_idx = len(ranked_ids) - 1
-        for idx, card_id in enumerate(ranked_ids):
-            computed[card_id] = int(round(low + (span * idx / last_idx)))
+        for idx, card_type_id in enumerate(ranked_ids):
+            computed[card_type_id] = int(round(low + (span * idx / last_idx)))
 
     return computed
 
@@ -122,11 +122,11 @@ def main() -> None:
         merged_values = dict(computed_values)
     else:
         merged_values = dict(existing_base_values)
-        for card_id, computed_value in computed_values.items():
-            if card_id not in merged_values:
-                merged_values[card_id] = computed_value
+        for card_type_id, computed_value in computed_values.items():
+            if card_type_id not in merged_values:
+                merged_values[card_type_id] = computed_value
 
-    missing_after_merge = sorted(card_id for card_id in cards if card_id not in merged_values)
+    missing_after_merge = sorted(card_type_id for card_type_id in cards if card_type_id not in merged_values)
 
     print(f"Cards loaded: {len(cards)}")
     print(f"Existing base values: {len(existing_base_values)}")

@@ -59,14 +59,14 @@ Presentation layer:
 
 ### Trade flow
 
-1. User runs `ns trade <player> <card_code> <amount>`
+1. User runs `ns trade <player> <card_id> <amount>`
 2. Command validates ownership and constructs `TradeView`
 3. Buyer accepts/denies via interaction
 4. On accept, storage layer transfers one card instance and dough atomically within one DB transaction scope
 
 ### Traits flow (`morph` / `frame` / `font`)
 
-1. User runs `ns morph|frame|font <card_code>`
+1. User runs `ns morph|frame|font <card_id>`
 2. Command resolves target instance and proposed trait roll via service layer
 3. Confirmation view presents before/after preview
 4. On confirm, storage persists per-instance trait key and applies dough charge atomically
@@ -81,9 +81,9 @@ The live model is instance-based:
 
 Selection rules currently implemented:
 
-- `marry <card_code>` targets the exact referenced dupe
-- `burn <card_code>` targets the exact referenced dupe
-- `trade <card_code>` targets the exact referenced dupe
+- `marry <card_id>` targets the exact referenced dupe
+- `burn <card_id>` targets the exact referenced dupe
+- `trade <card_id>` targets the exact referenced dupe
 - arg-less `marry`/`burn` default to the last pulled card instance
 
 ## Presentation contract

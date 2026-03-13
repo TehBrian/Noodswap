@@ -2,7 +2,7 @@ from collections.abc import Callable
 import sqlite3
 import time
 
-TARGET_SCHEMA_VERSION = 28
+TARGET_SCHEMA_VERSION = 29
 _BASE36_ALPHABET = "0123456789abcdefghijklmnopqrstuvwxyz"
 
 
@@ -921,6 +921,51 @@ def _apply_migration_v28(conn: sqlite3.Connection) -> None:
         )
 
 
+def _apply_migration_v29(conn: sqlite3.Connection) -> None:
+    card_instances_table_exists = (
+        conn.execute(
+            """
+        SELECT 1
+        FROM sqlite_master
+        WHERE type = 'table' AND name = 'card_instances'
+        LIMIT 1
+        """
+        ).fetchone()
+        is not None
+    )
+    if not card_instances_table_exists:
+        return
+
+    if _has_column(conn, "card_instances", "card_code") and not _has_column(conn, "card_instances", "card_id"):
+        conn.execute("ALTER TABLE card_instances RENAME COLUMN card_code TO card_id")
+
+    conn.execute("DROP INDEX IF EXISTS idx_card_instances_card_code")
+    conn.execute(
+        """
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_card_instances_card_id
+            ON card_instances(card_id)
+            WHERE card_id IS NOT NULL
+        """
+    )
+
+    battle_combatants_table_exists = (
+        conn.execute(
+            """
+        SELECT 1
+        FROM sqlite_master
+        WHERE type = 'table' AND name = 'battle_combatants'
+        LIMIT 1
+        """
+        ).fetchone()
+        is not None
+    )
+    if not battle_combatants_table_exists:
+        return
+
+    if _has_column(conn, "battle_combatants", "card_code") and not _has_column(conn, "battle_combatants", "card_id"):
+        conn.execute("ALTER TABLE battle_combatants RENAME COLUMN card_code TO card_id")
+
+
 def run_migrations(
     conn: sqlite3.Connection,
     *,
@@ -1069,6 +1114,11 @@ def run_migrations(
         _apply_migration_v28(conn)
         _set_schema_version(conn, 28)
         current_version = 28
+
+    if current_version < 29:
+        _apply_migration_v29(conn)
+        _set_schema_version(conn, 29)
+        current_version = 29
 
     if current_version > target_schema_version:
         raise RuntimeError(f"Database schema version {current_version} is newer than supported {target_schema_version}.")

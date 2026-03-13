@@ -7,8 +7,8 @@ class CardSearchRecord(TypedDict):
     series: str
 
 
-def normalize_card_id(card_id: str) -> str:
-    return card_id.strip().upper()
+def normalize_card_id(card_type_id: str) -> str:
+    return card_type_id.strip().upper()
 
 
 def _normalize_for_search(value: str) -> str:
@@ -35,28 +35,28 @@ def search_card_ids(
     search_names: dict[str, list[str]] = {}
     search_series: dict[str, list[str]] = {}
 
-    for card_id, card in card_catalog.items():
+    for card_type_id, card in card_catalog.items():
         card_name = card["name"]
         normalized_name = _normalize_for_search(card_name)
         if normalized_name:
-            search_names.setdefault(normalized_name, []).append(card_id)
+            search_names.setdefault(normalized_name, []).append(card_type_id)
         if normalized_name == cleaned_query:
-            exact_name_matches.append(card_id)
+            exact_name_matches.append(card_type_id)
         elif normalized_name.startswith(cleaned_query):
-            prefix_name_matches.append(card_id)
+            prefix_name_matches.append(card_type_id)
         elif cleaned_query in normalized_name:
-            contains_name_matches.append(card_id)
+            contains_name_matches.append(card_type_id)
 
         if include_series:
             normalized_series = _normalize_for_search(card["series"])
             if normalized_series:
-                search_series.setdefault(normalized_series, []).append(card_id)
+                search_series.setdefault(normalized_series, []).append(card_type_id)
             if normalized_series == cleaned_query:
-                exact_series_matches.append(card_id)
+                exact_series_matches.append(card_type_id)
             elif normalized_series.startswith(cleaned_query):
-                prefix_series_matches.append(card_id)
+                prefix_series_matches.append(card_type_id)
             elif cleaned_query in normalized_series:
-                contains_series_matches.append(card_id)
+                contains_series_matches.append(card_type_id)
 
     def sort_key(cid: str) -> tuple[str, str]:
         return card_catalog[cid]["name"].casefold(), cid
@@ -78,7 +78,7 @@ def search_card_ids(
     if not exact_name_matches and not exact_series_matches:
         fuzzy_match_keys = get_close_matches(cleaned_query, list(search_names), n=10, cutoff=0.75)
         fuzzy_name_matches = sorted(
-            {card_id for match_key in fuzzy_match_keys for card_id in search_names.get(match_key, [])},
+            {card_type_id for match_key in fuzzy_match_keys for card_type_id in search_names.get(match_key, [])},
             key=sort_key,
         )
         if fuzzy_name_matches:
@@ -87,7 +87,7 @@ def search_card_ids(
         if include_series:
             fuzzy_series_keys = get_close_matches(cleaned_query, list(search_series), n=10, cutoff=0.75)
             fuzzy_series_matches = sorted(
-                {card_id for match_key in fuzzy_series_keys for card_id in search_series.get(match_key, [])},
+                {card_type_id for match_key in fuzzy_series_keys for card_type_id in search_series.get(match_key, [])},
                 key=sort_key,
             )
             if fuzzy_series_matches:
@@ -96,11 +96,11 @@ def search_card_ids(
     seen: set[str] = set()
     results: list[str] = []
     for group in ordered_groups:
-        for card_id in group:
-            if card_id in seen:
+        for card_type_id in group:
+            if card_type_id in seen:
                 continue
-            seen.add(card_id)
-            results.append(card_id)
+            seen.add(card_type_id)
+            results.append(card_type_id)
     return results
 
 
@@ -108,11 +108,11 @@ def search_card_ids_by_name(query: str, *, card_catalog: Mapping[str, CardSearch
     return search_card_ids(query, card_catalog=card_catalog)
 
 
-def card_code(_card_id: str, card_code: str) -> str:
-    return card_code.strip().lower()
+def card_id(_card_type_id: str, card_id: str) -> str:
+    return card_id.strip().lower()
 
 
-def split_card_code(raw_code: str) -> str | None:
+def split_card_id(raw_code: str) -> str | None:
     cleaned = raw_code.strip()
     if not cleaned:
         return None
@@ -122,9 +122,9 @@ def split_card_code(raw_code: str) -> str | None:
         if not cleaned:
             return None
 
-    card_code = cleaned.lower()
+    card_id = cleaned.lower()
 
-    if not all(char.isdigit() or ("a" <= char <= "z") for char in card_code):
+    if not all(char.isdigit() or ("a" <= char <= "z") for char in card_id):
         return None
 
-    return card_code
+    return card_id

@@ -52,14 +52,14 @@ def _read_image_manifest() -> dict[str, dict[str, str | int]]:
         return {}
 
     manifest: dict[str, dict[str, str | int]] = {}
-    for card_id, value in parsed.items():
-        if isinstance(card_id, str) and isinstance(value, dict):
-            manifest[card_id] = value
+    for card_type_id, value in parsed.items():
+        if isinstance(card_type_id, str) and isinstance(value, dict):
+            manifest[card_type_id] = value
     return manifest
 
 
-def local_card_image_path(card_id: str) -> Path | None:
-    normalized_card_id = normalize_card_id(card_id)
+def local_card_image_path(card_type_id: str) -> Path | None:
+    normalized_card_id = normalize_card_id(card_type_id)
     manifest_data = _read_image_manifest()
     entry = manifest_data.get(normalized_card_id)
 
@@ -77,8 +77,8 @@ def local_card_image_path(card_id: str) -> Path | None:
     return None
 
 
-def read_local_card_image_bytes(card_id: str) -> bytes | None:
-    image_path = local_card_image_path(card_id)
+def read_local_card_image_bytes(card_type_id: str) -> bytes | None:
+    image_path = local_card_image_path(card_type_id)
     if image_path is None:
         return None
 
@@ -102,8 +102,8 @@ def _normalized_card_size(size: tuple[int, int]) -> tuple[int, int]:
     return width, height
 
 
-def _card_rarity(card_id: str) -> str:
-    normalized_card_id = normalize_card_id(card_id)
+def _card_rarity(card_type_id: str) -> str:
+    normalized_card_id = normalize_card_id(card_type_id)
     card = CARD_CATALOG.get(normalized_card_id)
     if card is None:
         return "common"
@@ -114,13 +114,13 @@ def _card_rarity(card_id: str) -> str:
     return rarity
 
 
-def rarity_border_color(card_id: str) -> tuple[int, int, int]:
-    rarity = _card_rarity(card_id)
+def rarity_border_color(card_type_id: str) -> tuple[int, int, int]:
+    rarity = _card_rarity(card_type_id)
     return RARITY_BORDER_COLORS.get(rarity, RARITY_BORDER_COLORS["common"])
 
 
-def _card_name_for_display(card_id: str) -> str:
-    normalized_card_id = normalize_card_id(card_id)
+def _card_name_for_display(card_type_id: str) -> str:
+    normalized_card_id = normalize_card_id(card_type_id)
     card = CARD_CATALOG.get(normalized_card_id)
     if card is None:
         return normalized_card_id
@@ -203,7 +203,7 @@ def _load_overlay_font(size: int, *, bold: bool, font_key: str | None = None):
 def _apply_text_legibility_overlay(
     image,
     *,
-    card_id: str,
+    card_type_id: str,
     generation: int | None,
     color: tuple[int, int, int],
     font_key: str | None = None,
@@ -244,7 +244,7 @@ def _apply_text_legibility_overlay(
     subtitle_font = _load_overlay_font(subtitle_size, bold=False, font_key=font_key)
 
     subtitle = _generation_overlay_text(generation).upper()
-    title = _card_name_for_display(card_id).upper()
+    title = _card_name_for_display(card_type_id).upper()
 
     left_padding = max(10, int(width * 0.05))
     right_padding = max(10, int(width * 0.05))
@@ -278,7 +278,7 @@ def _apply_text_legibility_overlay(
     return composed
 
 
-def _placeholder_card_art(card_id: str, generation: int | None, size: tuple[int, int]):
+def _placeholder_card_art(card_type_id: str, generation: int | None, size: tuple[int, int]):
     try:
         from PIL import Image, ImageDraw
     except ImportError:
@@ -287,7 +287,7 @@ def _placeholder_card_art(card_id: str, generation: int | None, size: tuple[int,
     width, height = size
     image = Image.new("RGB", (width, height), (28, 28, 28))
     draw = ImageDraw.Draw(image)
-    code_line = normalize_card_id(card_id)
+    code_line = normalize_card_id(card_type_id)
     generation_line = f"G-{generation}" if generation is not None else "G-????"
     draw.multiline_text((14, 14), f"{code_line}\n{generation_line}", fill=(230, 230, 230), spacing=4)
     draw.text((14, height - 30), "Image unavailable", fill=(188, 188, 188))
@@ -1110,7 +1110,7 @@ def _apply_morph_effect(image, morph_key: str | None):
 
 
 def render_card_surface(
-    card_id: str,
+    card_type_id: str,
     *,
     generation: int | None = None,
     morph_key: str | None = None,
@@ -1147,7 +1147,7 @@ def render_card_surface(
     inner_height = max(1, body_height - (border_px * 2))
     inner_radius = max(2, outer_radius - border_px + 1)
 
-    normalized_card_id = normalize_card_id(card_id)
+    normalized_card_id = normalize_card_id(card_type_id)
     raw_image = read_local_card_image_bytes(normalized_card_id)
     source_image = None
 
@@ -1172,7 +1172,7 @@ def render_card_surface(
 
     fitted = _apply_text_legibility_overlay(
         fitted,
-        card_id=normalized_card_id,
+        card_type_id=normalized_card_id,
         generation=generation,
         color=rarity_border_color(normalized_card_id),
         font_key=normalize_font_key(font_key),
@@ -1220,7 +1220,7 @@ def render_card_surface(
 
 
 def render_card_image_bytes(
-    card_id: str,
+    card_type_id: str,
     *,
     generation: int | None = None,
     morph_key: str | None = None,
@@ -1229,7 +1229,7 @@ def render_card_image_bytes(
     size: tuple[int, int] = DEFAULT_CARD_RENDER_SIZE,
 ) -> bytes | None:
     rendered_surface = render_card_surface(
-        card_id,
+        card_type_id,
         generation=generation,
         morph_key=morph_key,
         frame_key=frame_key,
@@ -1246,14 +1246,14 @@ def render_card_image_bytes(
 
 
 def embed_image_payload(
-    card_id: str,
+    card_type_id: str,
     generation: int | None = None,
     morph_key: str | None = None,
     frame_key: str | None = None,
     font_key: str | None = None,
     size: tuple[int, int] = DEFAULT_CARD_RENDER_SIZE,
 ) -> tuple[str | None, discord.File | None]:
-    normalized_card_id = normalize_card_id(card_id)
+    normalized_card_id = normalize_card_id(card_type_id)
     normalized_morph_key = normalize_morph_key(morph_key)
     normalized_frame_key = normalize_frame_key(frame_key)
     normalized_font_key = normalize_font_key(font_key)
@@ -1290,7 +1290,7 @@ def embed_image_payload(
 
 
 def render_morph_transition_image_bytes(
-    card_id: str,
+    card_type_id: str,
     *,
     generation: int | None = None,
     before_morph_key: str | None = None,
@@ -1307,7 +1307,7 @@ def render_morph_transition_image_bytes(
     except ImportError:
         return None
 
-    normalized_card_id = normalize_card_id(card_id)
+    normalized_card_id = normalize_card_id(card_type_id)
     normalized_before = normalize_morph_key(before_morph_key)
     normalized_after = normalize_morph_key(after_morph_key)
     normalized_before_frame = normalize_frame_key(before_frame_key)
@@ -1398,7 +1398,7 @@ def render_morph_transition_image_bytes(
 
 
 def morph_transition_image_payload(
-    card_id: str,
+    card_type_id: str,
     *,
     generation: int | None = None,
     before_morph_key: str | None = None,
@@ -1410,7 +1410,7 @@ def morph_transition_image_payload(
     hide_after: bool = False,
 ) -> tuple[str | None, discord.File | None]:
     rendered_image = render_morph_transition_image_bytes(
-        card_id,
+        card_type_id,
         generation=generation,
         before_morph_key=before_morph_key,
         after_morph_key=after_morph_key,
@@ -1423,7 +1423,7 @@ def morph_transition_image_payload(
     if rendered_image is None:
         return None, None
 
-    normalized_card_id = normalize_card_id(card_id)
+    normalized_card_id = normalize_card_id(card_type_id)
     before_suffix = normalize_morph_key(before_morph_key) or "base"
     after_suffix = normalize_morph_key(after_morph_key) or "base"
     before_frame_suffix = normalize_frame_key(before_frame_key) or "base"

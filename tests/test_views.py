@@ -88,8 +88,8 @@ class ViewTests:
             challenged_team_name="Sauce",
             challenger_rows=(
                 {
-                    "card_id": "SPG",
-                    "card_code": "0",
+                    "card_type_id": "SPG",
+                    "card_id": "0",
                     "current_hp": 80,
                     "max_hp": 100,
                     "attack": 18,
@@ -101,8 +101,8 @@ class ViewTests:
             ),
             challenged_rows=(
                 {
-                    "card_id": "PEN",
-                    "card_code": "1",
+                    "card_type_id": "PEN",
+                    "card_id": "1",
                     "current_hp": 0,
                     "max_hp": 100,
                     "attack": 16,
@@ -134,8 +134,8 @@ class ViewTests:
             challenged_team_name="Sauce",
             challenger_combatants=(
                 {
-                    "card_id": "SPG",
-                    "card_code": "0",
+                    "card_type_id": "SPG",
+                    "card_id": "0",
                     "current_hp": 0,
                     "max_hp": 100,
                     "attack": 18,
@@ -147,8 +147,8 @@ class ViewTests:
             ),
             challenged_combatants=(
                 {
-                    "card_id": "PEN",
-                    "card_code": "1",
+                    "card_type_id": "PEN",
+                    "card_id": "1",
                     "current_hp": 45,
                     "max_hp": 100,
                     "attack": 16,
@@ -178,8 +178,8 @@ class ViewTests:
             challenged_team_name="Sauce",
             challenger_combatants=(
                 {
-                    "card_id": "SPG",
-                    "card_code": "0",
+                    "card_type_id": "SPG",
+                    "card_id": "0",
                     "current_hp": 88,
                     "max_hp": 100,
                     "attack": 18,
@@ -191,8 +191,8 @@ class ViewTests:
             ),
             challenged_combatants=(
                 {
-                    "card_id": "PEN",
-                    "card_code": "1",
+                    "card_type_id": "PEN",
+                    "card_id": "1",
                     "current_hp": 72,
                     "max_hp": 100,
                     "attack": 16,
@@ -350,8 +350,8 @@ class ViewTests:
         assert "`team add <team_name>`" in battle_embed.description
         assert "`team remove <team_name>`" in battle_embed.description
         assert "`team list`" in battle_embed.description
-        assert "`team assign <team_name> <card_code>`" in battle_embed.description
-        assert "`team unassign <team_name> <card_code>`" in battle_embed.description
+        assert "`team assign <team_name> <card_id>`" in battle_embed.description
+        assert "`team unassign <team_name> <card_id>`" in battle_embed.description
         assert "`team cards <team_name>`" in battle_embed.description
         assert "`team active [team_name]`" in battle_embed.description
         assert "`battle <player> <stake>`" in battle_embed.description
@@ -385,7 +385,7 @@ class ViewTests:
 
         with patch(
             "bot.view_drop.execute_drop_claim",
-            return_value=type("Result", (), {"is_error": False, "card_code": "abc"})(),
+            return_value=type("Result", (), {"is_error": False, "card_id": "abc"})(),
         ) as execute_claim:
             await callback(interaction)
 
@@ -418,7 +418,7 @@ class ViewTests:
 
         with patch(
             "bot.view_drop.execute_drop_claim",
-            return_value=type("Result", (), {"is_error": False, "card_code": "abc"})(),
+            return_value=type("Result", (), {"is_error": False, "card_id": "abc"})(),
         ) as execute_claim:
             await callback(first_interaction)
             await callback(second_interaction)
@@ -435,7 +435,7 @@ class ViewTests:
 
         with patch(
             "bot.view_drop.execute_drop_claim",
-            return_value=type("Result", (), {"is_error": False, "card_code": "abc"})(),
+            return_value=type("Result", (), {"is_error": False, "card_id": "abc"})(),
         ):
             await callback(first_interaction)
         assert not (view.finished)
@@ -500,8 +500,8 @@ class ViewTests:
             guild_id=1,
             seller_id=10,
             buyer_id=20,
-            card_id="SPG",
-            card_code="0",
+            card_type_id="SPG",
+            card_id="0",
             terms=TradeTerms(mode="dough", amount=25),
         )
         interaction = _FakeInteraction(user_id=30)
@@ -519,8 +519,8 @@ class ViewTests:
             guild_id=1,
             seller_id=10,
             buyer_id=20,
-            card_id="SPG",
-            card_code="0",
+            card_type_id="SPG",
+            card_id="0",
             terms=TradeTerms(mode="dough", amount=25),
         )
         interaction = _FakeInteraction(user_id=20)
@@ -533,8 +533,8 @@ class ViewTests:
                 {
                     "is_failed": False,
                     "generation": 123,
-                    "card_code": "a",
-                    "received_card_id": None,
+                    "card_id": "a",
+                    "received_card_type_id": None,
                 },
             )(),
         ) as resolve_trade:
@@ -556,8 +556,8 @@ class ViewTests:
             guild_id=1,
             seller_id=10,
             buyer_id=20,
-            card_id="SPG",
-            card_code="0",
+            card_type_id="SPG",
+            card_id="0",
             terms=TradeTerms(mode="dough", amount=25),
         )
         fake_message = _FakeMessage()
@@ -573,9 +573,9 @@ class ViewTests:
             guild_id=1,
             seller_id=10,
             buyer_id=20,
-            card_id="SPG",
-            card_code="0",
-            terms=TradeTerms(mode="card", req_card_id="PEN", req_generation=200, req_card_code="1"),
+            card_type_id="SPG",
+            card_id="0",
+            terms=TradeTerms(mode="card", req_card_type_id="PEN", req_generation=200, req_card_id="1"),
         )
         interaction = _FakeInteraction(user_id=20)
 
@@ -587,10 +587,10 @@ class ViewTests:
                 {
                     "is_failed": False,
                     "generation": 100,
-                    "card_code": "0",
-                    "received_card_id": "PEN",
+                    "card_id": "0",
+                    "received_card_type_id": "PEN",
                     "received_generation": 200,
-                    "received_card_code": "1",
+                    "received_card_id": "1",
                 },
             )(),
         ):
@@ -609,7 +609,7 @@ class ViewTests:
             guild_id=1,
             user_id=10,
             instance_id=77,
-            card_id="SPG",
+            card_type_id="SPG",
             generation=321,
             delta_range=8,
         )
@@ -621,9 +621,9 @@ class ViewTests:
             {
                 "is_blocked": False,
                 "is_failed": False,
-                "card_id": "SPG",
+                "card_type_id": "SPG",
                 "generation": 321,
-                "card_code": "a",
+                "card_id": "a",
                 "payout": 42,
                 "delta": 2,
                 "locked_tags": (),
@@ -650,7 +650,7 @@ class ViewTests:
             guild_id=1,
             user_id=10,
             instance_id=77,
-            card_id="SPG",
+            card_type_id="SPG",
             generation=321,
             delta_range=8,
         )
@@ -662,9 +662,9 @@ class ViewTests:
             {
                 "is_blocked": True,
                 "is_failed": False,
-                "card_id": None,
+                "card_type_id": None,
                 "generation": None,
-                "card_code": None,
+                "card_id": None,
                 "payout": None,
                 "delta": None,
                 "locked_tags": ("safe",),
@@ -689,7 +689,7 @@ class ViewTests:
             guild_id=1,
             user_id=10,
             instance_id=77,
-            card_id="SPG",
+            card_type_id="SPG",
             generation=321,
             delta_range=8,
         )
@@ -708,9 +708,9 @@ class ViewTests:
             guild_id=1,
             user_id=10,
             instance_id=77,
-            card_id="SPG",
+            card_type_id="SPG",
             generation=321,
-            card_code="a",
+            card_id="a",
             before_morph_key=None,
             before_frame_key=None,
             before_font_key=None,
@@ -767,9 +767,9 @@ class ViewTests:
             guild_id=1,
             user_id=10,
             instance_id=77,
-            card_id="SPG",
+            card_type_id="SPG",
             generation=321,
-            card_code="a",
+            card_id="a",
             before_morph_key=None,
             before_frame_key=None,
             before_font_key=None,
@@ -789,9 +789,9 @@ class ViewTests:
             guild_id=1,
             user_id=10,
             instance_id=77,
-            card_id="SPG",
+            card_type_id="SPG",
             generation=321,
-            card_code="a",
+            card_id="a",
             before_morph_key=None,
             before_frame_key=None,
             before_font_key=None,
@@ -815,9 +815,9 @@ class ViewTests:
             guild_id=1,
             user_id=10,
             instance_id=77,
-            card_id="SPG",
+            card_type_id="SPG",
             generation=321,
-            card_code="a",
+            card_id="a",
             before_morph_key=None,
             before_frame_key=None,
             before_font_key=None,
@@ -873,9 +873,9 @@ class ViewTests:
             guild_id=1,
             user_id=10,
             instance_id=77,
-            card_id="SPG",
+            card_type_id="SPG",
             generation=321,
-            card_code="a",
+            card_id="a",
             before_morph_key=None,
             before_frame_key=None,
             before_font_key=None,
@@ -899,9 +899,9 @@ class ViewTests:
             guild_id=1,
             user_id=10,
             instance_id=77,
-            card_id="SPG",
+            card_type_id="SPG",
             generation=321,
-            card_code="a",
+            card_id="a",
             before_morph_key=None,
             before_frame_key=None,
             before_font_key=None,
@@ -958,9 +958,9 @@ class ViewTests:
             guild_id=1,
             user_id=10,
             instance_id=77,
-            card_id="SPG",
+            card_type_id="SPG",
             generation=321,
-            card_code="a",
+            card_id="a",
             before_morph_key=None,
             before_frame_key=None,
             before_font_key=None,
@@ -1525,7 +1525,7 @@ class ViewTests:
         edited_embed = interaction.response.edited_messages[0]["embed"]
         assert "Sort: Generation" in edited_embed.footer.text
 
-    async def test_sortable_collection_view_code_sort_orders_by_card_code(self) -> None:
+    async def test_sortable_collection_view_id_sort_orders_by_card_id(self) -> None:
         instances = [
             (1, "SPG", 500, "Q9"),
             (2, "BAR", 20, "A1"),
@@ -1543,15 +1543,15 @@ class ViewTests:
         )
 
         interaction = _FakeInteraction(user_id=10)
-        view.sort_select._values = ["code"]
+        view.sort_select._values = ["id"]
         await view.sort_select.callback(interaction)
-        assert view.sort_mode == "code"
+        assert view.sort_mode == "id"
         assert not view.sort_descending
         assert [row[0] for row in view._sorted_instances] == [2, 4, 3, 1]
         edited_embed = interaction.response.edited_messages[0]["embed"]
-        assert "Sort: Code (Asc)" in edited_embed.footer.text
+        assert "Sort: ID (Asc)" in edited_embed.footer.text
 
-    async def test_sortable_collection_view_code_sort_toggle_shows_descending(
+    async def test_sortable_collection_view_id_sort_toggle_shows_descending(
         self,
     ) -> None:
         instances = [
@@ -1571,7 +1571,7 @@ class ViewTests:
         )
 
         interaction = _FakeInteraction(user_id=10)
-        view.sort_select._values = ["code"]
+        view.sort_select._values = ["id"]
         await view.sort_select.callback(interaction)
         toggle_interaction = _FakeInteraction(user_id=10)
         await view.sort_direction_button.callback(toggle_interaction)
@@ -1579,7 +1579,7 @@ class ViewTests:
         assert view.sort_descending
         assert [row[0] for row in view._sorted_instances] == [1, 3, 4, 2]
         edited_embed = toggle_interaction.response.edited_messages[0]["embed"]
-        assert "Sort: Code (Desc)" in edited_embed.footer.text
+        assert "Sort: ID (Desc)" in edited_embed.footer.text
 
     async def test_sortable_collection_view_time_pulled_sort_defaults_to_newest_first(
         self,

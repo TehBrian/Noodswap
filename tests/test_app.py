@@ -75,7 +75,7 @@ async def test_missing_required_argument_includes_reason_and_usage(error_bot: co
     sent_embed = ctx.reply.await_args.kwargs["embed"]
     assert sent_embed.title == "Command Error"
     assert "Missing required argument: **mode**." in sent_embed.description
-    assert "Usage: `ns trade <player> <card_code> <mode> <amount|card_code>`." in sent_embed.description
+    assert "Usage: `ns trade <player> <card_id> <mode> <amount|card_id>`." in sent_embed.description
 
 
 async def test_bad_argument_includes_reason_and_subcommand_usage(error_bot: commands.Bot) -> None:

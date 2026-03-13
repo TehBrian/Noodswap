@@ -2,7 +2,7 @@ from dataclasses import dataclass
 import math
 from typing import Optional
 
-from .cards import card_value, get_burn_payout, make_drop_choices, split_card_code
+from .cards import card_value, get_burn_payout, make_drop_choices, split_card_id
 from .fonts import AVAILABLE_FONTS, FONT_COST_FRACTION, font_label, font_rarity
 from .frames import FRAME_COST_FRACTION, available_frame_keys, frame_label, frame_rarity
 from .morphs import AVAILABLE_MORPHS, MORPH_COST_FRACTION, morph_label, morph_rarity
@@ -80,9 +80,9 @@ def prepare_drop(guild_id: int, user_id: int, now: float) -> DropPreparation:
 class DropClaimExecution:
     error_message: Optional[str]
     instance_id: Optional[int]
-    card_id: Optional[str]
+    card_type_id: Optional[str]
     generation: Optional[int]
-    card_code: Optional[str]
+    card_id: Optional[str]
     cooldown_remaining_seconds: Optional[float]
 
     @property
@@ -93,7 +93,7 @@ class DropClaimExecution:
 def execute_drop_claim(
     guild_id: int,
     user_id: int,
-    card_id: str,
+    card_type_id: str,
     generation: int,
     *,
     now: float,
@@ -110,32 +110,32 @@ def execute_drop_claim(
         return DropClaimExecution(
             error_message="Pull cooldown active.",
             instance_id=None,
-            card_id=None,
+            card_type_id=None,
             generation=None,
-            card_code=None,
+            card_id=None,
             cooldown_remaining_seconds=cooldown_remaining,
         )
 
     instance_id = add_card_to_player(
         guild_id,
         user_id,
-        card_id,
+        card_type_id,
         generation,
         dropped_by_user_id=dropped_by_user_id,
         pulled_by_user_id=user_id,
         pulled_at=now,
     )
     persisted = get_instance_by_id(guild_id, instance_id)
-    resolved_card_code: Optional[str] = None
+    resolved_card_id: Optional[str] = None
     if persisted is not None:
-        _, _, _, resolved_card_code = persisted
+        _, _, _, resolved_card_id = persisted
 
     return DropClaimExecution(
         error_message=None,
         instance_id=instance_id,
-        card_id=card_id,
+        card_type_id=card_type_id,
         generation=generation,
-        card_code=resolved_card_code,
+        card_id=resolved_card_id,
         cooldown_remaining_seconds=0.0,
     )
 
@@ -166,9 +166,9 @@ class TradeTerms:
 
     mode: str  # "dough" | "starter" | "drop" | "pull" | "card"
     amount: Optional[int] = None  # numeric modes
-    req_card_id: Optional[str] = None  # card mode: buyer's offered card_id
+    req_card_type_id: Optional[str] = None  # card mode: buyer's offered card_type_id
     req_generation: Optional[int] = None  # card mode: buyer's offered generation
-    req_card_code: Optional[str] = None  # card mode: buyer's offered card_code
+    req_card_id: Optional[str] = None  # card mode: buyer's offered card_id
 
 
 @dataclass(frozen=True)
@@ -176,11 +176,11 @@ class TradeResolution:
     status: str
     message: str
     generation: Optional[int]
-    card_code: Optional[str]
+    card_id: Optional[str]
     # Populated for card-for-card mode when accepted
-    received_card_id: Optional[str] = None
+    received_card_type_id: Optional[str] = None
     received_generation: Optional[int] = None
-    received_card_code: Optional[str] = None
+    received_card_id: Optional[str] = None
 
     @property
     def is_accepted(self) -> bool:
@@ -199,8 +199,8 @@ def resolve_trade_offer(
     guild_id: int,
     seller_id: int,
     buyer_id: int,
+    card_type_id: str,
     card_id: str,
-    card_code: str,
     terms: TradeTerms,
     *,
     accepted: bool,
@@ -210,15 +210,15 @@ def resolve_trade_offer(
             status="denied",
             message="The trade was denied.",
             generation=None,
-            card_code=None,
+            card_id=None,
         )
 
-    success, message, generation, sold_card_code, received_info = execute_trade(
+    success, message, generation, sold_card_id, received_info = execute_trade(
         guild_id=guild_id,
         seller_id=seller_id,
         buyer_id=buyer_id,
+        card_type_id=card_type_id,
         card_id=card_id,
-        card_code=card_code,
         terms=terms,
     )
     if not success:
@@ -226,22 +226,22 @@ def resolve_trade_offer(
             status="failed",
             message=message,
             generation=None,
-            card_code=None,
+            card_id=None,
         )
 
     if received_info is not None:
-        r_card_id, r_gen, r_dupe = received_info
+        r_card_type_id, r_gen, r_dupe = received_info
     else:
-        r_card_id, r_gen, r_dupe = None, None, None
+        r_card_type_id, r_gen, r_dupe = None, None, None
 
     return TradeResolution(
         status="accepted",
         message="",
         generation=generation,
-        card_code=sold_card_code,
-        received_card_id=r_card_id,
+        card_id=sold_card_id,
+        received_card_type_id=r_card_type_id,
         received_generation=r_gen,
-        received_card_code=r_dupe,
+        received_card_id=r_dupe,
     )
 
 
@@ -249,9 +249,9 @@ def resolve_trade_offer(
 class BurnPreparation:
     error_message: Optional[str]
     instance_id: Optional[int]
-    card_id: Optional[str]
+    card_type_id: Optional[str]
     generation: Optional[int]
-    card_code: Optional[str]
+    card_id: Optional[str]
     payout: Optional[int]
     value: Optional[int]
     base_value: Optional[int]
@@ -264,18 +264,18 @@ class BurnPreparation:
         return self.error_message is not None
 
 
-def prepare_burn(guild_id: int, user_id: int, card_code: Optional[str]) -> BurnPreparation:
+def prepare_burn(guild_id: int, user_id: int, card_id: Optional[str]) -> BurnPreparation:
     target_instance: Optional[tuple[int, str, int, str]] = None
 
-    if card_code is None:
+    if card_id is None:
         target_instance = get_last_pulled_instance(guild_id, user_id)
         if target_instance is None:
             return BurnPreparation(
-                error_message="No previous pulled card found. Provide a card code, e.g. `ns burn 0`.",
+                error_message="No previous pulled card found. Provide a card ID, e.g. `ns burn 0`.",
                 instance_id=None,
-                card_id=None,
+                card_type_id=None,
                 generation=None,
-                card_code=None,
+                card_id=None,
                 payout=None,
                 value=None,
                 base_value=None,
@@ -284,14 +284,14 @@ def prepare_burn(guild_id: int, user_id: int, card_code: Optional[str]) -> BurnP
                 multiplier=None,
             )
     else:
-        parsed = split_card_code(card_code)
+        parsed = split_card_id(card_id)
         if parsed is None:
             return BurnPreparation(
-                error_message="Invalid card code. Use format like `0`, `a`, `10`, or `#10`.",
+                error_message="Invalid card ID. Use format like `0`, `a`, `10`, or `#10`.",
                 instance_id=None,
-                card_id=None,
+                card_type_id=None,
                 generation=None,
-                card_code=None,
+                card_id=None,
                 payout=None,
                 value=None,
                 base_value=None,
@@ -300,14 +300,14 @@ def prepare_burn(guild_id: int, user_id: int, card_code: Optional[str]) -> BurnP
                 multiplier=None,
             )
 
-        target_instance = get_instance_by_code(guild_id, user_id, card_code)
+        target_instance = get_instance_by_code(guild_id, user_id, card_id)
         if target_instance is None:
             return BurnPreparation(
-                error_message="You do not own that card code.",
+                error_message="You do not own that card ID.",
                 instance_id=None,
-                card_id=None,
+                card_type_id=None,
                 generation=None,
-                card_code=None,
+                card_id=None,
                 payout=None,
                 value=None,
                 base_value=None,
@@ -316,7 +316,7 @@ def prepare_burn(guild_id: int, user_id: int, card_code: Optional[str]) -> BurnP
                 multiplier=None,
             )
 
-    instance_id, burn_card_id, burn_generation, burn_card_code = target_instance
+    instance_id, burn_card_type_id, burn_generation, burn_card_id = target_instance
     locked_tags = get_locked_tags_for_instance(guild_id, user_id, instance_id)
     if locked_tags:
         locked_folder_names = [tag.removeprefix("folder:") for tag in locked_tags if tag.startswith("folder:")]
@@ -329,9 +329,9 @@ def prepare_burn(guild_id: int, user_id: int, card_code: Optional[str]) -> BurnP
         return BurnPreparation(
             error_message=error_message,
             instance_id=None,
-            card_id=None,
+            card_type_id=None,
             generation=None,
-            card_code=None,
+            card_id=None,
             payout=None,
             value=None,
             base_value=None,
@@ -344,7 +344,7 @@ def prepare_burn(guild_id: int, user_id: int, card_code: Optional[str]) -> BurnP
     frame_key = get_instance_frame(guild_id, instance_id)
     font_key = get_instance_font(guild_id, instance_id)
     payout, value, base_value, delta, multiplier, delta_range = get_burn_payout(
-        burn_card_id,
+        burn_card_type_id,
         burn_generation,
         morph_key=morph_key,
         frame_key=frame_key,
@@ -353,9 +353,9 @@ def prepare_burn(guild_id: int, user_id: int, card_code: Optional[str]) -> BurnP
     return BurnPreparation(
         error_message=None,
         instance_id=instance_id,
-        card_id=burn_card_id,
+        card_type_id=burn_card_type_id,
         generation=burn_generation,
-        card_code=burn_card_code,
+        card_id=burn_card_id,
         payout=payout,
         value=value,
         base_value=base_value,
@@ -369,9 +369,9 @@ def prepare_burn(guild_id: int, user_id: int, card_code: Optional[str]) -> BurnP
 class BurnConfirmationExecution:
     status: str
     message: str
-    card_id: Optional[str]
+    card_type_id: Optional[str]
     generation: Optional[int]
-    card_code: Optional[str]
+    card_id: Optional[str]
     payout: Optional[int]
     delta: Optional[int]
     locked_tags: tuple[str, ...]
@@ -392,9 +392,9 @@ class BurnConfirmationExecution:
 @dataclass(frozen=True)
 class BurnPreviewItem:
     instance_id: int
-    card_id: str
+    card_type_id: str
     generation: int
-    card_code: str
+    card_id: str
     value: int
     base_value: int
     delta_range: int
@@ -416,9 +416,9 @@ class BurnBatchPreparation:
 
 @dataclass(frozen=True)
 class BurnBatchConfirmationEntry:
-    card_id: str
+    card_type_id: str
     generation: int
-    card_code: str
+    card_id: str
     payout: int
     delta: int
 
@@ -463,34 +463,34 @@ def prepare_burn_batch(
 
     seen_instance_ids: set[int] = set()
     unique_targets: list[tuple[int, str, int, str]] = []
-    for instance_id, card_id, generation, card_code in targets:
+    for instance_id, card_type_id, generation, card_id in targets:
         if instance_id in seen_instance_ids:
             continue
         seen_instance_ids.add(instance_id)
-        unique_targets.append((instance_id, card_id, generation, card_code))
+        unique_targets.append((instance_id, card_type_id, generation, card_id))
 
     skipped_items: list[str] = []
     preview_items: list[BurnPreviewItem] = []
     total_value = 0
     total_delta_range = 0
 
-    for instance_id, card_id, generation, card_code in unique_targets:
+    for instance_id, card_type_id, generation, card_id in unique_targets:
         locked_tags = get_locked_tags_for_instance(guild_id, user_id, instance_id)
         if locked_tags:
             locked_names = [tag.removeprefix("folder:") for tag in locked_tags if tag.startswith("folder:")]
             if locked_names:
                 folder_text = ", ".join(f"`{name}`" for name in locked_names)
-                skipped_items.append(f"`{card_code}` (locked folder(s): {folder_text})")
+                skipped_items.append(f"`{card_id}` (locked folder(s): {folder_text})")
             else:
                 locked_tags_text = ", ".join(f"`{tag}`" for tag in locked_tags)
-                skipped_items.append(f"`{card_code}` (locked tag(s): {locked_tags_text})")
+                skipped_items.append(f"`{card_id}` (locked tag(s): {locked_tags_text})")
             continue
 
         morph_key = get_instance_morph(guild_id, instance_id)
         frame_key = get_instance_frame(guild_id, instance_id)
         font_key = get_instance_font(guild_id, instance_id)
         _payout, value, base_value, _delta, multiplier, delta_range = get_burn_payout(
-            card_id,
+            card_type_id,
             generation,
             morph_key=morph_key,
             frame_key=frame_key,
@@ -501,9 +501,9 @@ def prepare_burn_batch(
         preview_items.append(
             BurnPreviewItem(
                 instance_id=instance_id,
-                card_id=card_id,
+                card_type_id=card_type_id,
                 generation=generation,
-                card_code=card_code,
+                card_id=card_id,
                 value=value,
                 base_value=base_value,
                 delta_range=delta_range,
@@ -587,10 +587,10 @@ def execute_burn_batch_confirmation(
 
     burned_entries: list[BurnBatchConfirmationEntry] = []
     total_payout = 0
-    for instance_id, card_id, generation, card_code in burned_rows:
+    for instance_id, card_type_id, generation, card_id in burned_rows:
         resolved_delta_range = delta_by_instance.get(instance_id)
         payout, _value, _base_value, delta, _multiplier, _resolved_delta_range = get_burn_payout(
-            card_id,
+            card_type_id,
             generation,
             resolved_delta_range,
             morph_key=trait_keys_by_instance.get(instance_id, (None, None, None))[0],
@@ -600,9 +600,9 @@ def execute_burn_batch_confirmation(
         total_payout += payout
         burned_entries.append(
             BurnBatchConfirmationEntry(
-                card_id=card_id,
+                card_type_id=card_type_id,
                 generation=generation,
-                card_code=card_code,
+                card_id=card_id,
                 payout=payout,
                 delta=delta,
             )
@@ -655,9 +655,9 @@ def execute_burn_confirmation(
         return BurnConfirmationExecution(
             status="blocked",
             message="Card is protected by locked tags.",
-            card_id=None,
+            card_type_id=None,
             generation=None,
-            card_code=None,
+            card_id=None,
             payout=None,
             delta=None,
             locked_tags=locked_tags,
@@ -667,9 +667,9 @@ def execute_burn_confirmation(
         return BurnConfirmationExecution(
             status="failed",
             message="That card instance is no longer available.",
-            card_id=None,
+            card_type_id=None,
             generation=None,
-            card_code=None,
+            card_id=None,
             payout=None,
             delta=None,
             locked_tags=(),
@@ -680,9 +680,9 @@ def execute_burn_confirmation(
     return BurnConfirmationExecution(
         status="burned",
         message="",
-        card_id=burned_entry.card_id,
+        card_type_id=burned_entry.card_type_id,
         generation=burned_entry.generation,
-        card_code=burned_entry.card_code,
+        card_id=burned_entry.card_id,
         payout=burned_entry.payout,
         delta=burned_entry.delta,
         locked_tags=(),
@@ -692,80 +692,80 @@ def execute_burn_confirmation(
 @dataclass(frozen=True)
 class MarryExecution:
     error_message: Optional[str]
-    card_id: Optional[str]
+    card_type_id: Optional[str]
     generation: Optional[int]
-    card_code: Optional[str]
+    card_id: Optional[str]
 
     @property
     def is_error(self) -> bool:
         return self.error_message is not None
 
 
-def execute_marry(guild_id: int, user_id: int, card_code: Optional[str]) -> MarryExecution:
-    if card_code is None:
+def execute_marry(guild_id: int, user_id: int, card_id: Optional[str]) -> MarryExecution:
+    if card_id is None:
         last_pulled = get_last_pulled_instance(guild_id, user_id)
         if last_pulled is None:
             return MarryExecution(
-                error_message="No previous pulled card found. Use `ns marry <card_code>` or pull from `ns drop` first.",
-                card_id=None,
+                error_message="No previous pulled card found. Use `ns marry <card_id>` or pull from `ns drop` first.",
+                card_type_id=None,
                 generation=None,
-                card_code=None,
+                card_id=None,
             )
 
         instance_id, _, _, _ = last_pulled
-        success, message, married_card_id, married_generation, married_card_code = marry_card_instance(
+        success, message, married_card_type_id, married_generation, married_card_id = marry_card_instance(
             guild_id,
             user_id,
             instance_id,
         )
-        if not success or married_card_id is None or married_generation is None or married_card_code is None:
+        if not success or married_card_type_id is None or married_generation is None or married_card_id is None:
             return MarryExecution(
                 error_message=message or "Marry failed.",
-                card_id=None,
+                card_type_id=None,
                 generation=None,
-                card_code=None,
+                card_id=None,
             )
 
         return MarryExecution(
             error_message=None,
-            card_id=married_card_id,
+            card_type_id=married_card_type_id,
             generation=married_generation,
-            card_code=married_card_code,
+            card_id=married_card_id,
         )
 
-    selected = get_instance_by_code(guild_id, user_id, card_code)
+    selected = get_instance_by_code(guild_id, user_id, card_id)
     if selected is None:
         return MarryExecution(
-            error_message="You can only marry a card code you own.",
-            card_id=None,
+            error_message="You can only marry a card ID you own.",
+            card_type_id=None,
             generation=None,
-            card_code=None,
+            card_id=None,
         )
 
     instance_id, _, _, _ = selected
-    success, message, married_card_id, married_generation, married_card_code = marry_card_instance(guild_id, user_id, instance_id)
-    if not success or married_card_id is None or married_generation is None or married_card_code is None:
+    success, message, married_card_type_id, married_generation, married_card_id = marry_card_instance(guild_id, user_id, instance_id)
+    if not success or married_card_type_id is None or married_generation is None or married_card_id is None:
         return MarryExecution(
             error_message=message or "Marry failed.",
-            card_id=None,
+            card_type_id=None,
             generation=None,
-            card_code=None,
+            card_id=None,
         )
 
     return MarryExecution(
         error_message=None,
-        card_id=married_card_id,
+        card_type_id=married_card_type_id,
         generation=married_generation,
-        card_code=married_card_code,
+        card_id=married_card_id,
     )
 
 
 @dataclass(frozen=True)
 class DivorceExecution:
     error_message: Optional[str]
-    card_id: Optional[str]
+    card_type_id: Optional[str]
     generation: Optional[int]
-    card_code: Optional[str]
+    card_id: Optional[str]
 
     @property
     def is_error(self) -> bool:
@@ -777,17 +777,17 @@ def execute_divorce(guild_id: int, user_id: int) -> DivorceExecution:
     if divorced is None:
         return DivorceExecution(
             error_message="You are not married right now.",
-            card_id=None,
+            card_type_id=None,
             generation=None,
-            card_code=None,
+            card_id=None,
         )
 
-    old_card_id, old_generation, old_card_code = divorced
+    old_card_type_id, old_generation, old_card_id = divorced
     return DivorceExecution(
         error_message=None,
-        card_id=old_card_id,
+        card_type_id=old_card_type_id,
         generation=old_generation,
-        card_code=old_card_code,
+        card_id=old_card_id,
     )
 
 
@@ -795,9 +795,9 @@ def execute_divorce(guild_id: int, user_id: int) -> DivorceExecution:
 class MorphExecution:
     error_message: Optional[str]
     instance_id: Optional[int]
-    card_id: Optional[str]
+    card_type_id: Optional[str]
     generation: Optional[int]
-    card_code: Optional[str]
+    card_id: Optional[str]
     morph_key: Optional[str]
     morph_name: Optional[str]
     rolled_rarity: Optional[str]
@@ -814,9 +814,9 @@ class MorphExecution:
 class MorphPreparation:
     error_message: Optional[str]
     instance_id: Optional[int]
-    card_id: Optional[str]
+    card_type_id: Optional[str]
     generation: Optional[int]
-    card_code: Optional[str]
+    card_id: Optional[str]
     current_morph_key: Optional[str]
     morph_key: Optional[str]
     morph_name: Optional[str]
@@ -827,46 +827,46 @@ class MorphPreparation:
         return self.error_message is not None
 
 
-def prepare_morph(guild_id: int, user_id: int, card_code: Optional[str]) -> MorphPreparation:
+def prepare_morph(guild_id: int, user_id: int, card_id: Optional[str]) -> MorphPreparation:
     target_instance: Optional[tuple[int, str, int, str]] = None
 
-    if card_code is None:
+    if card_id is None:
         target_instance = get_last_pulled_instance(guild_id, user_id)
         if target_instance is None:
             return MorphPreparation(
-                error_message="No previous pulled card found. Provide a card code, e.g. `ns morph 0`.",
+                error_message="No previous pulled card found. Provide a card ID, e.g. `ns morph 0`.",
                 instance_id=None,
-                card_id=None,
+                card_type_id=None,
                 generation=None,
-                card_code=None,
+                card_id=None,
                 current_morph_key=None,
                 morph_key=None,
                 morph_name=None,
                 cost=None,
             )
     else:
-        parsed = split_card_code(card_code)
+        parsed = split_card_id(card_id)
         if parsed is None:
             return MorphPreparation(
-                error_message="Invalid card code. Use format like `0`, `a`, `10`, or `#10`.",
+                error_message="Invalid card ID. Use format like `0`, `a`, `10`, or `#10`.",
                 instance_id=None,
-                card_id=None,
+                card_type_id=None,
                 generation=None,
-                card_code=None,
+                card_id=None,
                 current_morph_key=None,
                 morph_key=None,
                 morph_name=None,
                 cost=None,
             )
 
-        target_instance = get_instance_by_code(guild_id, user_id, card_code)
+        target_instance = get_instance_by_code(guild_id, user_id, card_id)
         if target_instance is None:
             return MorphPreparation(
-                error_message="You do not own that card code.",
+                error_message="You do not own that card ID.",
                 instance_id=None,
-                card_id=None,
+                card_type_id=None,
                 generation=None,
-                card_code=None,
+                card_id=None,
                 current_morph_key=None,
                 morph_key=None,
                 morph_name=None,
@@ -877,25 +877,25 @@ def prepare_morph(guild_id: int, user_id: int, card_code: Optional[str]) -> Morp
         return MorphPreparation(
             error_message="No morphs are currently available.",
             instance_id=None,
-            card_id=None,
+            card_type_id=None,
             generation=None,
-            card_code=None,
+            card_id=None,
             current_morph_key=None,
             morph_key=None,
             morph_name=None,
             cost=None,
         )
 
-    instance_id, morph_card_id, morph_generation, morph_card_code = target_instance
+    instance_id, morph_card_type_id, morph_generation, morph_card_id = target_instance
     current_morph_key = get_instance_morph(guild_id, instance_id)
     available_rolls = [morph_key for morph_key in AVAILABLE_MORPHS if morph_key != current_morph_key]
     if not available_rolls:
         return MorphPreparation(
             error_message="No new morphs are currently available for this card.",
             instance_id=None,
-            card_id=None,
+            card_type_id=None,
             generation=None,
-            card_code=None,
+            card_id=None,
             current_morph_key=None,
             morph_key=None,
             morph_name=None,
@@ -905,7 +905,7 @@ def prepare_morph(guild_id: int, user_id: int, card_code: Optional[str]) -> Morp
     frame_key = get_instance_frame(guild_id, instance_id)
     font_key = get_instance_font(guild_id, instance_id)
     value = card_value(
-        morph_card_id,
+        morph_card_type_id,
         morph_generation,
         morph_key=current_morph_key,
         frame_key=frame_key,
@@ -917,9 +917,9 @@ def prepare_morph(guild_id: int, user_id: int, card_code: Optional[str]) -> Morp
         return MorphPreparation(
             error_message="You do not have enough dough.",
             instance_id=None,
-            card_id=None,
+            card_type_id=None,
             generation=None,
-            card_code=None,
+            card_id=None,
             current_morph_key=None,
             morph_key=None,
             morph_name=None,
@@ -929,9 +929,9 @@ def prepare_morph(guild_id: int, user_id: int, card_code: Optional[str]) -> Morp
     return MorphPreparation(
         error_message=None,
         instance_id=instance_id,
-        card_id=morph_card_id,
+        card_type_id=morph_card_type_id,
         generation=morph_generation,
-        card_code=morph_card_code,
+        card_id=morph_card_id,
         current_morph_key=current_morph_key,
         morph_key=None,
         morph_name=None,
@@ -944,9 +944,9 @@ def confirm_morph(
     user_id: int,
     *,
     instance_id: int,
-    card_id: str,
+    card_type_id: str,
     generation: int,
-    card_code: str,
+    card_id: str,
     morph_key: str,
     morph_name: str,
     rolled_rarity: str,
@@ -958,9 +958,9 @@ def confirm_morph(
         return MorphExecution(
             error_message=message or "Morph failed.",
             instance_id=None,
-            card_id=None,
+            card_type_id=None,
             generation=None,
-            card_code=None,
+            card_id=None,
             morph_key=None,
             morph_name=None,
             rolled_rarity=None,
@@ -973,9 +973,9 @@ def confirm_morph(
     return MorphExecution(
         error_message=None,
         instance_id=instance_id,
-        card_id=card_id,
+        card_type_id=card_type_id,
         generation=generation,
-        card_code=card_code,
+        card_id=card_id,
         morph_key=morph_key,
         morph_name=morph_name,
         rolled_rarity=rolled_rarity,
@@ -985,15 +985,15 @@ def confirm_morph(
     )
 
 
-def execute_morph(guild_id: int, user_id: int, card_code: Optional[str]) -> MorphExecution:
-    prepared = prepare_morph(guild_id, user_id, card_code)
+def execute_morph(guild_id: int, user_id: int, card_id: Optional[str]) -> MorphExecution:
+    prepared = prepare_morph(guild_id, user_id, card_id)
     if prepared.is_error:
         return MorphExecution(
             error_message=prepared.error_message,
             instance_id=None,
-            card_id=None,
+            card_type_id=None,
             generation=None,
-            card_code=None,
+            card_id=None,
             morph_key=None,
             morph_name=None,
             rolled_rarity=None,
@@ -1002,13 +1002,19 @@ def execute_morph(guild_id: int, user_id: int, card_code: Optional[str]) -> Morp
             remaining_dough=None,
         )
 
-    if prepared.instance_id is None or prepared.card_id is None or prepared.generation is None or prepared.card_code is None or prepared.cost is None:
+    if (
+        prepared.instance_id is None
+        or prepared.card_type_id is None
+        or prepared.generation is None
+        or prepared.card_id is None
+        or prepared.cost is None
+    ):
         return MorphExecution(
             error_message="Morph failed.",
             instance_id=None,
-            card_id=None,
+            card_type_id=None,
             generation=None,
-            card_code=None,
+            card_id=None,
             morph_key=None,
             morph_name=None,
             rolled_rarity=None,
@@ -1022,9 +1028,9 @@ def execute_morph(guild_id: int, user_id: int, card_code: Optional[str]) -> Morp
         return MorphExecution(
             error_message="No new morphs are currently available for this card.",
             instance_id=None,
-            card_id=None,
+            card_type_id=None,
             generation=None,
-            card_code=None,
+            card_id=None,
             morph_key=None,
             morph_name=None,
             rolled_rarity=None,
@@ -1041,9 +1047,9 @@ def execute_morph(guild_id: int, user_id: int, card_code: Optional[str]) -> Morp
         guild_id,
         user_id,
         instance_id=prepared.instance_id,
-        card_id=prepared.card_id,
+        card_type_id=prepared.card_type_id,
         generation=prepared.generation,
-        card_code=prepared.card_code,
+        card_id=prepared.card_id,
         morph_key=rolled_morph,
         morph_name=morph_label(rolled_morph),
         rolled_rarity=rolled_rarity,
@@ -1057,9 +1063,9 @@ def resolve_morph_roll(
     user_id: int,
     *,
     instance_id: int,
-    card_id: str,
+    card_type_id: str,
     generation: int,
-    card_code: str,
+    card_id: str,
     current_morph_key: str | None,
     cost: int,
 ) -> MorphExecution:
@@ -1068,9 +1074,9 @@ def resolve_morph_roll(
         return MorphExecution(
             error_message="No new morphs are currently available for this card.",
             instance_id=None,
-            card_id=None,
+            card_type_id=None,
             generation=None,
-            card_code=None,
+            card_id=None,
             morph_key=None,
             morph_name=None,
             rolled_rarity=None,
@@ -1086,9 +1092,9 @@ def resolve_morph_roll(
         guild_id,
         user_id,
         instance_id=instance_id,
-        card_id=card_id,
+        card_type_id=card_type_id,
         generation=generation,
-        card_code=card_code,
+        card_id=card_id,
         morph_key=rolled_morph,
         morph_name=morph_label(rolled_morph),
         rolled_rarity=rolled_rarity,
@@ -1102,9 +1108,9 @@ def roll_morph_preview_paid(
     user_id: int,
     *,
     instance_id: int,
-    card_id: str,
+    card_type_id: str,
     generation: int,
-    card_code: str,
+    card_id: str,
     current_morph_key: str | None,
     cost: int,
 ) -> MorphExecution:
@@ -1113,9 +1119,9 @@ def roll_morph_preview_paid(
         return MorphExecution(
             error_message="No new morphs are currently available for this card.",
             instance_id=None,
-            card_id=None,
+            card_type_id=None,
             generation=None,
-            card_code=None,
+            card_id=None,
             morph_key=None,
             morph_name=None,
             rolled_rarity=None,
@@ -1129,9 +1135,9 @@ def roll_morph_preview_paid(
         return MorphExecution(
             error_message=message or "Morph failed.",
             instance_id=None,
-            card_id=None,
+            card_type_id=None,
             generation=None,
-            card_code=None,
+            card_id=None,
             morph_key=None,
             morph_name=None,
             rolled_rarity=None,
@@ -1147,9 +1153,9 @@ def roll_morph_preview_paid(
     return MorphExecution(
         error_message=None,
         instance_id=instance_id,
-        card_id=card_id,
+        card_type_id=card_type_id,
         generation=generation,
-        card_code=card_code,
+        card_id=card_id,
         morph_key=rolled_morph,
         morph_name=morph_label(rolled_morph),
         rolled_rarity=rolled_rarity,
@@ -1164,9 +1170,9 @@ def apply_pending_morph_no_charge(
     user_id: int,
     *,
     instance_id: int,
-    card_id: str,
+    card_type_id: str,
     generation: int,
-    card_code: str,
+    card_id: str,
     morph_key: str,
     morph_name: str,
     rolled_rarity: str,
@@ -1178,9 +1184,9 @@ def apply_pending_morph_no_charge(
         return MorphExecution(
             error_message=message or "Morph failed.",
             instance_id=None,
-            card_id=None,
+            card_type_id=None,
             generation=None,
-            card_code=None,
+            card_id=None,
             morph_key=None,
             morph_name=None,
             rolled_rarity=None,
@@ -1193,9 +1199,9 @@ def apply_pending_morph_no_charge(
     return MorphExecution(
         error_message=None,
         instance_id=instance_id,
-        card_id=card_id,
+        card_type_id=card_type_id,
         generation=generation,
-        card_code=card_code,
+        card_id=card_id,
         morph_key=morph_key,
         morph_name=morph_name,
         rolled_rarity=rolled_rarity,
@@ -1209,9 +1215,9 @@ def apply_pending_morph_no_charge(
 class FrameExecution:
     error_message: Optional[str]
     instance_id: Optional[int]
-    card_id: Optional[str]
+    card_type_id: Optional[str]
     generation: Optional[int]
-    card_code: Optional[str]
+    card_id: Optional[str]
     frame_key: Optional[str]
     frame_name: Optional[str]
     rolled_rarity: Optional[str]
@@ -1228,9 +1234,9 @@ class FrameExecution:
 class FramePreparation:
     error_message: Optional[str]
     instance_id: Optional[int]
-    card_id: Optional[str]
+    card_type_id: Optional[str]
     generation: Optional[int]
-    card_code: Optional[str]
+    card_id: Optional[str]
     current_frame_key: Optional[str]
     frame_key: Optional[str]
     frame_name: Optional[str]
@@ -1241,46 +1247,46 @@ class FramePreparation:
         return self.error_message is not None
 
 
-def prepare_frame(guild_id: int, user_id: int, card_code: Optional[str]) -> FramePreparation:
+def prepare_frame(guild_id: int, user_id: int, card_id: Optional[str]) -> FramePreparation:
     target_instance: Optional[tuple[int, str, int, str]] = None
 
-    if card_code is None:
+    if card_id is None:
         target_instance = get_last_pulled_instance(guild_id, user_id)
         if target_instance is None:
             return FramePreparation(
-                error_message="No previous pulled card found. Provide a card code, e.g. `ns frame 0`.",
+                error_message="No previous pulled card found. Provide a card ID, e.g. `ns frame 0`.",
                 instance_id=None,
-                card_id=None,
+                card_type_id=None,
                 generation=None,
-                card_code=None,
+                card_id=None,
                 current_frame_key=None,
                 frame_key=None,
                 frame_name=None,
                 cost=None,
             )
     else:
-        parsed = split_card_code(card_code)
+        parsed = split_card_id(card_id)
         if parsed is None:
             return FramePreparation(
-                error_message="Invalid card code. Use format like `0`, `a`, `10`, or `#10`.",
+                error_message="Invalid card ID. Use format like `0`, `a`, `10`, or `#10`.",
                 instance_id=None,
-                card_id=None,
+                card_type_id=None,
                 generation=None,
-                card_code=None,
+                card_id=None,
                 current_frame_key=None,
                 frame_key=None,
                 frame_name=None,
                 cost=None,
             )
 
-        target_instance = get_instance_by_code(guild_id, user_id, card_code)
+        target_instance = get_instance_by_code(guild_id, user_id, card_id)
         if target_instance is None:
             return FramePreparation(
-                error_message="You do not own that card code.",
+                error_message="You do not own that card ID.",
                 instance_id=None,
-                card_id=None,
+                card_type_id=None,
                 generation=None,
-                card_code=None,
+                card_id=None,
                 current_frame_key=None,
                 frame_key=None,
                 frame_name=None,
@@ -1292,25 +1298,25 @@ def prepare_frame(guild_id: int, user_id: int, card_code: Optional[str]) -> Fram
         return FramePreparation(
             error_message="No frames are currently available.",
             instance_id=None,
-            card_id=None,
+            card_type_id=None,
             generation=None,
-            card_code=None,
+            card_id=None,
             current_frame_key=None,
             frame_key=None,
             frame_name=None,
             cost=None,
         )
 
-    instance_id, frame_card_id, frame_generation, frame_card_code = target_instance
+    instance_id, frame_card_type_id, frame_generation, frame_card_id = target_instance
     current_frame_key = get_instance_frame(guild_id, instance_id)
     available_rolls = [frame_key for frame_key in frame_choices if frame_key != current_frame_key]
     if not available_rolls:
         return FramePreparation(
             error_message="No new frames are currently available for this card.",
             instance_id=None,
-            card_id=None,
+            card_type_id=None,
             generation=None,
-            card_code=None,
+            card_id=None,
             current_frame_key=None,
             frame_key=None,
             frame_name=None,
@@ -1320,7 +1326,7 @@ def prepare_frame(guild_id: int, user_id: int, card_code: Optional[str]) -> Fram
     morph_key = get_instance_morph(guild_id, instance_id)
     font_key = get_instance_font(guild_id, instance_id)
     value = card_value(
-        frame_card_id,
+        frame_card_type_id,
         frame_generation,
         morph_key=morph_key,
         frame_key=current_frame_key,
@@ -1332,9 +1338,9 @@ def prepare_frame(guild_id: int, user_id: int, card_code: Optional[str]) -> Fram
         return FramePreparation(
             error_message="You do not have enough dough.",
             instance_id=None,
-            card_id=None,
+            card_type_id=None,
             generation=None,
-            card_code=None,
+            card_id=None,
             current_frame_key=None,
             frame_key=None,
             frame_name=None,
@@ -1344,9 +1350,9 @@ def prepare_frame(guild_id: int, user_id: int, card_code: Optional[str]) -> Fram
     return FramePreparation(
         error_message=None,
         instance_id=instance_id,
-        card_id=frame_card_id,
+        card_type_id=frame_card_type_id,
         generation=frame_generation,
-        card_code=frame_card_code,
+        card_id=frame_card_id,
         current_frame_key=current_frame_key,
         frame_key=None,
         frame_name=None,
@@ -1359,9 +1365,9 @@ def confirm_frame(
     user_id: int,
     *,
     instance_id: int,
-    card_id: str,
+    card_type_id: str,
     generation: int,
-    card_code: str,
+    card_id: str,
     frame_key: str,
     frame_name: str,
     rolled_rarity: str,
@@ -1373,9 +1379,9 @@ def confirm_frame(
         return FrameExecution(
             error_message=message or "Frame failed.",
             instance_id=None,
-            card_id=None,
+            card_type_id=None,
             generation=None,
-            card_code=None,
+            card_id=None,
             frame_key=None,
             frame_name=None,
             rolled_rarity=None,
@@ -1388,9 +1394,9 @@ def confirm_frame(
     return FrameExecution(
         error_message=None,
         instance_id=instance_id,
-        card_id=card_id,
+        card_type_id=card_type_id,
         generation=generation,
-        card_code=card_code,
+        card_id=card_id,
         frame_key=frame_key,
         frame_name=frame_name,
         rolled_rarity=rolled_rarity,
@@ -1400,15 +1406,15 @@ def confirm_frame(
     )
 
 
-def execute_frame(guild_id: int, user_id: int, card_code: Optional[str]) -> FrameExecution:
-    prepared = prepare_frame(guild_id, user_id, card_code)
+def execute_frame(guild_id: int, user_id: int, card_id: Optional[str]) -> FrameExecution:
+    prepared = prepare_frame(guild_id, user_id, card_id)
     if prepared.is_error:
         return FrameExecution(
             error_message=prepared.error_message,
             instance_id=None,
-            card_id=None,
+            card_type_id=None,
             generation=None,
-            card_code=None,
+            card_id=None,
             frame_key=None,
             frame_name=None,
             rolled_rarity=None,
@@ -1417,13 +1423,19 @@ def execute_frame(guild_id: int, user_id: int, card_code: Optional[str]) -> Fram
             remaining_dough=None,
         )
 
-    if prepared.instance_id is None or prepared.card_id is None or prepared.generation is None or prepared.card_code is None or prepared.cost is None:
+    if (
+        prepared.instance_id is None
+        or prepared.card_type_id is None
+        or prepared.generation is None
+        or prepared.card_id is None
+        or prepared.cost is None
+    ):
         return FrameExecution(
             error_message="Frame failed.",
             instance_id=None,
-            card_id=None,
+            card_type_id=None,
             generation=None,
-            card_code=None,
+            card_id=None,
             frame_key=None,
             frame_name=None,
             rolled_rarity=None,
@@ -1438,9 +1450,9 @@ def execute_frame(guild_id: int, user_id: int, card_code: Optional[str]) -> Fram
         return FrameExecution(
             error_message="No new frames are currently available for this card.",
             instance_id=None,
-            card_id=None,
+            card_type_id=None,
             generation=None,
-            card_code=None,
+            card_id=None,
             frame_key=None,
             frame_name=None,
             rolled_rarity=None,
@@ -1457,9 +1469,9 @@ def execute_frame(guild_id: int, user_id: int, card_code: Optional[str]) -> Fram
         guild_id,
         user_id,
         instance_id=prepared.instance_id,
-        card_id=prepared.card_id,
+        card_type_id=prepared.card_type_id,
         generation=prepared.generation,
-        card_code=prepared.card_code,
+        card_id=prepared.card_id,
         frame_key=rolled_frame,
         frame_name=frame_label(rolled_frame),
         rolled_rarity=rolled_rarity,
@@ -1473,9 +1485,9 @@ def resolve_frame_roll(
     user_id: int,
     *,
     instance_id: int,
-    card_id: str,
+    card_type_id: str,
     generation: int,
-    card_code: str,
+    card_id: str,
     current_frame_key: str | None,
     cost: int,
 ) -> FrameExecution:
@@ -1485,9 +1497,9 @@ def resolve_frame_roll(
         return FrameExecution(
             error_message="No new frames are currently available for this card.",
             instance_id=None,
-            card_id=None,
+            card_type_id=None,
             generation=None,
-            card_code=None,
+            card_id=None,
             frame_key=None,
             frame_name=None,
             rolled_rarity=None,
@@ -1503,9 +1515,9 @@ def resolve_frame_roll(
         guild_id,
         user_id,
         instance_id=instance_id,
-        card_id=card_id,
+        card_type_id=card_type_id,
         generation=generation,
-        card_code=card_code,
+        card_id=card_id,
         frame_key=rolled_frame,
         frame_name=frame_label(rolled_frame),
         rolled_rarity=rolled_rarity,
@@ -1519,9 +1531,9 @@ def roll_frame_preview_paid(
     user_id: int,
     *,
     instance_id: int,
-    card_id: str,
+    card_type_id: str,
     generation: int,
-    card_code: str,
+    card_id: str,
     current_frame_key: str | None,
     cost: int,
 ) -> FrameExecution:
@@ -1531,9 +1543,9 @@ def roll_frame_preview_paid(
         return FrameExecution(
             error_message="No new frames are currently available for this card.",
             instance_id=None,
-            card_id=None,
+            card_type_id=None,
             generation=None,
-            card_code=None,
+            card_id=None,
             frame_key=None,
             frame_name=None,
             rolled_rarity=None,
@@ -1547,9 +1559,9 @@ def roll_frame_preview_paid(
         return FrameExecution(
             error_message=message or "Frame failed.",
             instance_id=None,
-            card_id=None,
+            card_type_id=None,
             generation=None,
-            card_code=None,
+            card_id=None,
             frame_key=None,
             frame_name=None,
             rolled_rarity=None,
@@ -1565,9 +1577,9 @@ def roll_frame_preview_paid(
     return FrameExecution(
         error_message=None,
         instance_id=instance_id,
-        card_id=card_id,
+        card_type_id=card_type_id,
         generation=generation,
-        card_code=card_code,
+        card_id=card_id,
         frame_key=rolled_frame,
         frame_name=frame_label(rolled_frame),
         rolled_rarity=rolled_rarity,
@@ -1582,9 +1594,9 @@ def apply_pending_frame_no_charge(
     user_id: int,
     *,
     instance_id: int,
-    card_id: str,
+    card_type_id: str,
     generation: int,
-    card_code: str,
+    card_id: str,
     frame_key: str,
     frame_name: str,
     rolled_rarity: str,
@@ -1596,9 +1608,9 @@ def apply_pending_frame_no_charge(
         return FrameExecution(
             error_message=message or "Frame failed.",
             instance_id=None,
-            card_id=None,
+            card_type_id=None,
             generation=None,
-            card_code=None,
+            card_id=None,
             frame_key=None,
             frame_name=None,
             rolled_rarity=None,
@@ -1611,9 +1623,9 @@ def apply_pending_frame_no_charge(
     return FrameExecution(
         error_message=None,
         instance_id=instance_id,
-        card_id=card_id,
+        card_type_id=card_type_id,
         generation=generation,
-        card_code=card_code,
+        card_id=card_id,
         frame_key=frame_key,
         frame_name=frame_name,
         rolled_rarity=rolled_rarity,
@@ -1627,9 +1639,9 @@ def apply_pending_frame_no_charge(
 class FontExecution:
     error_message: Optional[str]
     instance_id: Optional[int]
-    card_id: Optional[str]
+    card_type_id: Optional[str]
     generation: Optional[int]
-    card_code: Optional[str]
+    card_id: Optional[str]
     font_key: Optional[str]
     font_name: Optional[str]
     rolled_rarity: Optional[str]
@@ -1646,9 +1658,9 @@ class FontExecution:
 class FontPreparation:
     error_message: Optional[str]
     instance_id: Optional[int]
-    card_id: Optional[str]
+    card_type_id: Optional[str]
     generation: Optional[int]
-    card_code: Optional[str]
+    card_id: Optional[str]
     current_font_key: Optional[str]
     font_key: Optional[str]
     font_name: Optional[str]
@@ -1659,46 +1671,46 @@ class FontPreparation:
         return self.error_message is not None
 
 
-def prepare_font(guild_id: int, user_id: int, card_code: Optional[str]) -> FontPreparation:
+def prepare_font(guild_id: int, user_id: int, card_id: Optional[str]) -> FontPreparation:
     target_instance: Optional[tuple[int, str, int, str]] = None
 
-    if card_code is None:
+    if card_id is None:
         target_instance = get_last_pulled_instance(guild_id, user_id)
         if target_instance is None:
             return FontPreparation(
-                error_message="No previous pulled card found. Provide a card code, e.g. `ns font 0`.",
+                error_message="No previous pulled card found. Provide a card ID, e.g. `ns font 0`.",
                 instance_id=None,
-                card_id=None,
+                card_type_id=None,
                 generation=None,
-                card_code=None,
+                card_id=None,
                 current_font_key=None,
                 font_key=None,
                 font_name=None,
                 cost=None,
             )
     else:
-        parsed = split_card_code(card_code)
+        parsed = split_card_id(card_id)
         if parsed is None:
             return FontPreparation(
-                error_message="Invalid card code. Use format like `0`, `a`, `10`, or `#10`.",
+                error_message="Invalid card ID. Use format like `0`, `a`, `10`, or `#10`.",
                 instance_id=None,
-                card_id=None,
+                card_type_id=None,
                 generation=None,
-                card_code=None,
+                card_id=None,
                 current_font_key=None,
                 font_key=None,
                 font_name=None,
                 cost=None,
             )
 
-        target_instance = get_instance_by_code(guild_id, user_id, card_code)
+        target_instance = get_instance_by_code(guild_id, user_id, card_id)
         if target_instance is None:
             return FontPreparation(
-                error_message="You do not own that card code.",
+                error_message="You do not own that card ID.",
                 instance_id=None,
-                card_id=None,
+                card_type_id=None,
                 generation=None,
-                card_code=None,
+                card_id=None,
                 current_font_key=None,
                 font_key=None,
                 font_name=None,
@@ -1709,25 +1721,25 @@ def prepare_font(guild_id: int, user_id: int, card_code: Optional[str]) -> FontP
         return FontPreparation(
             error_message="No fonts are currently available.",
             instance_id=None,
-            card_id=None,
+            card_type_id=None,
             generation=None,
-            card_code=None,
+            card_id=None,
             current_font_key=None,
             font_key=None,
             font_name=None,
             cost=None,
         )
 
-    instance_id, font_card_id, font_generation, font_card_code = target_instance
+    instance_id, font_card_type_id, font_generation, font_card_id = target_instance
     current_font_key = get_instance_font(guild_id, instance_id)
     available_rolls = [font_key for font_key in AVAILABLE_FONTS if font_key != current_font_key]
     if not available_rolls:
         return FontPreparation(
             error_message="No new fonts are currently available for this card.",
             instance_id=None,
-            card_id=None,
+            card_type_id=None,
             generation=None,
-            card_code=None,
+            card_id=None,
             current_font_key=None,
             font_key=None,
             font_name=None,
@@ -1737,7 +1749,7 @@ def prepare_font(guild_id: int, user_id: int, card_code: Optional[str]) -> FontP
     morph_key = get_instance_morph(guild_id, instance_id)
     frame_key = get_instance_frame(guild_id, instance_id)
     value = card_value(
-        font_card_id,
+        font_card_type_id,
         font_generation,
         morph_key=morph_key,
         frame_key=frame_key,
@@ -1749,9 +1761,9 @@ def prepare_font(guild_id: int, user_id: int, card_code: Optional[str]) -> FontP
         return FontPreparation(
             error_message="You do not have enough dough.",
             instance_id=None,
-            card_id=None,
+            card_type_id=None,
             generation=None,
-            card_code=None,
+            card_id=None,
             current_font_key=None,
             font_key=None,
             font_name=None,
@@ -1761,9 +1773,9 @@ def prepare_font(guild_id: int, user_id: int, card_code: Optional[str]) -> FontP
     return FontPreparation(
         error_message=None,
         instance_id=instance_id,
-        card_id=font_card_id,
+        card_type_id=font_card_type_id,
         generation=font_generation,
-        card_code=font_card_code,
+        card_id=font_card_id,
         current_font_key=current_font_key,
         font_key=None,
         font_name=None,
@@ -1776,9 +1788,9 @@ def confirm_font(
     user_id: int,
     *,
     instance_id: int,
-    card_id: str,
+    card_type_id: str,
     generation: int,
-    card_code: str,
+    card_id: str,
     font_key: str,
     font_name: str,
     rolled_rarity: str,
@@ -1790,9 +1802,9 @@ def confirm_font(
         return FontExecution(
             error_message=message or "Font failed.",
             instance_id=None,
-            card_id=None,
+            card_type_id=None,
             generation=None,
-            card_code=None,
+            card_id=None,
             font_key=None,
             font_name=None,
             rolled_rarity=None,
@@ -1805,9 +1817,9 @@ def confirm_font(
     return FontExecution(
         error_message=None,
         instance_id=instance_id,
-        card_id=card_id,
+        card_type_id=card_type_id,
         generation=generation,
-        card_code=card_code,
+        card_id=card_id,
         font_key=font_key,
         font_name=font_name,
         rolled_rarity=rolled_rarity,
@@ -1817,15 +1829,15 @@ def confirm_font(
     )
 
 
-def execute_font(guild_id: int, user_id: int, card_code: Optional[str]) -> FontExecution:
-    prepared = prepare_font(guild_id, user_id, card_code)
+def execute_font(guild_id: int, user_id: int, card_id: Optional[str]) -> FontExecution:
+    prepared = prepare_font(guild_id, user_id, card_id)
     if prepared.is_error:
         return FontExecution(
             error_message=prepared.error_message,
             instance_id=None,
-            card_id=None,
+            card_type_id=None,
             generation=None,
-            card_code=None,
+            card_id=None,
             font_key=None,
             font_name=None,
             rolled_rarity=None,
@@ -1834,13 +1846,19 @@ def execute_font(guild_id: int, user_id: int, card_code: Optional[str]) -> FontE
             remaining_dough=None,
         )
 
-    if prepared.instance_id is None or prepared.card_id is None or prepared.generation is None or prepared.card_code is None or prepared.cost is None:
+    if (
+        prepared.instance_id is None
+        or prepared.card_type_id is None
+        or prepared.generation is None
+        or prepared.card_id is None
+        or prepared.cost is None
+    ):
         return FontExecution(
             error_message="Font failed.",
             instance_id=None,
-            card_id=None,
+            card_type_id=None,
             generation=None,
-            card_code=None,
+            card_id=None,
             font_key=None,
             font_name=None,
             rolled_rarity=None,
@@ -1854,9 +1872,9 @@ def execute_font(guild_id: int, user_id: int, card_code: Optional[str]) -> FontE
         return FontExecution(
             error_message="No new fonts are currently available for this card.",
             instance_id=None,
-            card_id=None,
+            card_type_id=None,
             generation=None,
-            card_code=None,
+            card_id=None,
             font_key=None,
             font_name=None,
             rolled_rarity=None,
@@ -1873,9 +1891,9 @@ def execute_font(guild_id: int, user_id: int, card_code: Optional[str]) -> FontE
         guild_id,
         user_id,
         instance_id=prepared.instance_id,
-        card_id=prepared.card_id,
+        card_type_id=prepared.card_type_id,
         generation=prepared.generation,
-        card_code=prepared.card_code,
+        card_id=prepared.card_id,
         font_key=rolled_font,
         font_name=font_label(rolled_font),
         rolled_rarity=rolled_rarity,
@@ -1889,9 +1907,9 @@ def resolve_font_roll(
     user_id: int,
     *,
     instance_id: int,
-    card_id: str,
+    card_type_id: str,
     generation: int,
-    card_code: str,
+    card_id: str,
     current_font_key: str | None,
     cost: int,
 ) -> FontExecution:
@@ -1900,9 +1918,9 @@ def resolve_font_roll(
         return FontExecution(
             error_message="No new fonts are currently available for this card.",
             instance_id=None,
-            card_id=None,
+            card_type_id=None,
             generation=None,
-            card_code=None,
+            card_id=None,
             font_key=None,
             font_name=None,
             rolled_rarity=None,
@@ -1918,9 +1936,9 @@ def resolve_font_roll(
         guild_id,
         user_id,
         instance_id=instance_id,
-        card_id=card_id,
+        card_type_id=card_type_id,
         generation=generation,
-        card_code=card_code,
+        card_id=card_id,
         font_key=rolled_font,
         font_name=font_label(rolled_font),
         rolled_rarity=rolled_rarity,
@@ -1934,9 +1952,9 @@ def roll_font_preview_paid(
     user_id: int,
     *,
     instance_id: int,
-    card_id: str,
+    card_type_id: str,
     generation: int,
-    card_code: str,
+    card_id: str,
     current_font_key: str | None,
     cost: int,
 ) -> FontExecution:
@@ -1945,9 +1963,9 @@ def roll_font_preview_paid(
         return FontExecution(
             error_message="No new fonts are currently available for this card.",
             instance_id=None,
-            card_id=None,
+            card_type_id=None,
             generation=None,
-            card_code=None,
+            card_id=None,
             font_key=None,
             font_name=None,
             rolled_rarity=None,
@@ -1961,9 +1979,9 @@ def roll_font_preview_paid(
         return FontExecution(
             error_message=message or "Font failed.",
             instance_id=None,
-            card_id=None,
+            card_type_id=None,
             generation=None,
-            card_code=None,
+            card_id=None,
             font_key=None,
             font_name=None,
             rolled_rarity=None,
@@ -1979,9 +1997,9 @@ def roll_font_preview_paid(
     return FontExecution(
         error_message=None,
         instance_id=instance_id,
-        card_id=card_id,
+        card_type_id=card_type_id,
         generation=generation,
-        card_code=card_code,
+        card_id=card_id,
         font_key=rolled_font,
         font_name=font_label(rolled_font),
         rolled_rarity=rolled_rarity,
@@ -1996,9 +2014,9 @@ def apply_pending_font_no_charge(
     user_id: int,
     *,
     instance_id: int,
-    card_id: str,
+    card_type_id: str,
     generation: int,
-    card_code: str,
+    card_id: str,
     font_key: str,
     font_name: str,
     rolled_rarity: str,
@@ -2010,9 +2028,9 @@ def apply_pending_font_no_charge(
         return FontExecution(
             error_message=message or "Font failed.",
             instance_id=None,
-            card_id=None,
+            card_type_id=None,
             generation=None,
-            card_code=None,
+            card_id=None,
             font_key=None,
             font_name=None,
             rolled_rarity=None,
@@ -2025,9 +2043,9 @@ def apply_pending_font_no_charge(
     return FontExecution(
         error_message=None,
         instance_id=instance_id,
-        card_id=card_id,
+        card_type_id=card_type_id,
         generation=generation,
-        card_code=card_code,
+        card_id=card_id,
         font_key=font_key,
         font_name=font_name,
         rolled_rarity=rolled_rarity,
@@ -2040,9 +2058,9 @@ def apply_pending_font_no_charge(
 @dataclass(frozen=True)
 class TradeOfferPreparation:
     error_message: Optional[str]
-    card_id: Optional[str]
+    card_type_id: Optional[str]
     generation: Optional[int]
-    card_code: Optional[str]
+    card_id: Optional[str]
     terms: Optional[TradeTerms] = None
 
     @property
@@ -2055,13 +2073,13 @@ def prepare_trade_offer(
     seller_id: int,
     buyer_id: int,
     buyer_is_bot: bool,
-    card_code: str,
+    card_id: str,
     mode: str,
     amount: Optional[int] = None,
-    req_card_code: Optional[str] = None,
+    req_card_id: Optional[str] = None,
 ) -> TradeOfferPreparation:
     def _err(msg: str) -> TradeOfferPreparation:
-        return TradeOfferPreparation(error_message=msg, card_id=None, generation=None, card_code=None)
+        return TradeOfferPreparation(error_message=msg, card_type_id=None, generation=None, card_id=None)
 
     if buyer_id == seller_id:
         return _err("You cannot trade with yourself.")
@@ -2076,43 +2094,43 @@ def prepare_trade_offer(
         if amount is None or amount <= 0:
             return _err("Amount must be greater than 0.")
     else:
-        if req_card_code is None:
-            return _err("Card mode requires a card code for the requested card.")
+        if req_card_id is None:
+            return _err("Card mode requires a card ID for the requested card.")
 
-    parsed = split_card_code(card_code)
+    parsed = split_card_id(card_id)
     if parsed is None:
-        return _err("Invalid card code. Use format like `0`, `a`, `10`, or `#10`.")
+        return _err("Invalid card ID. Use format like `0`, `a`, `10`, or `#10`.")
 
-    candidate = get_instance_by_code(guild_id, seller_id, card_code)
+    candidate = get_instance_by_code(guild_id, seller_id, card_id)
     if candidate is None:
-        return _err("You do not own that card code.")
+        return _err("You do not own that card ID.")
 
-    _, candidate_card_id, generation, card_code = candidate
+    _, candidate_card_id, generation, card_id = candidate
 
     if mode == "card":
-        req_parsed = split_card_code(req_card_code)  # type: ignore[arg-type]
+        req_parsed = split_card_id(req_card_id)  # type: ignore[arg-type]
         if req_parsed is None:
-            return _err("Invalid requested card code. Use format like `0`, `a`, `10`, or `#10`.")
-        if req_card_code == card_code or req_parsed == parsed:
+            return _err("Invalid requested card ID. Use format like `0`, `a`, `10`, or `#10`.")
+        if req_card_id == card_id or req_parsed == parsed:
             return _err("Cannot request the same card you are offering.")
-        req_candidate = get_instance_by_code(guild_id, buyer_id, req_card_code)  # type: ignore[arg-type]
+        req_candidate = get_instance_by_code(guild_id, buyer_id, req_card_id)  # type: ignore[arg-type]
         if req_candidate is None:
-            return _err("The other player does not own that card code.")
-        _, req_card_id, req_generation, req_card_code = req_candidate
+            return _err("The other player does not own that card ID.")
+        _, req_card_type_id, req_generation, req_card_id = req_candidate
         terms: TradeTerms = TradeTerms(
             mode="card",
-            req_card_id=req_card_id,
+            req_card_type_id=req_card_type_id,
             req_generation=req_generation,
-            req_card_code=req_card_code,
+            req_card_id=req_card_id,
         )
     else:
         terms = TradeTerms(mode=mode, amount=amount)
 
     return TradeOfferPreparation(
         error_message=None,
-        card_id=candidate_card_id,
+        card_type_id=candidate_card_id,
         generation=generation,
-        card_code=card_code,
+        card_id=card_id,
         terms=terms,
     )
 

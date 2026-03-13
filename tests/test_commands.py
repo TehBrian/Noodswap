@@ -375,7 +375,7 @@ class CommandsTagTests:
         assert "🔒 `safe` • 2 cards" in sent_embed.description
         assert "`  ` `trash` • 1 card" in sent_embed.description
 
-    async def test_tag_assign_rejects_unowned_card_code(self) -> None:
+    async def test_tag_assign_rejects_unowned_card_id(self) -> None:
         tag_assign_command = _get_group_command(self.bot, "tag", "assign")
 
         ctx = AsyncMock()
@@ -390,7 +390,7 @@ class CommandsTagTests:
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
         assert sent_embed.title == "Tags"
-        assert sent_embed.description == "You do not own that card code."
+        assert sent_embed.description == "You do not own that card ID."
 
     async def test_tag_assign_rejects_duplicate_assignment_explicitly(self) -> None:
         tag_assign_command = _get_group_command(self.bot, "tag", "assign")
@@ -692,9 +692,9 @@ class CommandsBurnSelectorTests:
                     items=(
                         SimpleNamespace(
                             instance_id=10,
-                            card_id="SPG",
+                            card_type_id="SPG",
                             generation=100,
-                            card_code="0",
+                            card_id="0",
                             value=10,
                             base_value=9,
                             delta_range=1,
@@ -731,9 +731,9 @@ class CommandsBurnSelectorTests:
         fake_items = (
             SimpleNamespace(
                 instance_id=10,
-                card_id="SPG",
+                card_type_id="SPG",
                 generation=100,
-                card_code="0",
+                card_id="0",
                 value=12,
                 base_value=3,
                 delta_range=2,
@@ -741,9 +741,9 @@ class CommandsBurnSelectorTests:
             ),
             SimpleNamespace(
                 instance_id=11,
-                card_id="PEN",
+                card_type_id="PEN",
                 generation=200,
-                card_code="1",
+                card_id="1",
                 value=14,
                 base_value=4,
                 delta_range=3,
@@ -798,7 +798,7 @@ class CommandsBurnSelectorTests:
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
         assert sent_embed.title == "Burn"
-        assert "Direct burn targets must be card codes" in sent_embed.description
+        assert "Direct burn targets must be card IDs" in sent_embed.description
 
     async def test_burn_rejects_card_selector_with_card_type_id(self) -> None:
         burn_command = _get_command(self.bot, "burn")
@@ -814,7 +814,7 @@ class CommandsBurnSelectorTests:
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
         assert sent_embed.title == "Burn"
-        assert "Direct burn targets must be card codes" in sent_embed.description
+        assert "Direct burn targets must be card IDs" in sent_embed.description
 
 
 class CommandsTeamTests:
@@ -1028,7 +1028,7 @@ class CommandsLookupTests:
         ctx.send = AsyncMock()
         ctx.reply = ctx.send
 
-        await lookup_command.callback(ctx, card_id="zzz")
+        await lookup_command.callback(ctx, card_type_id="zzz")
 
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
@@ -1044,12 +1044,12 @@ class CommandsLookupTests:
         ctx.send = AsyncMock()
         ctx.reply = ctx.send
 
-        await lookup_command.callback(ctx, card_id=None)
+        await lookup_command.callback(ctx, card_type_id=None)
 
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
         assert sent_embed.title == "Lookup"
-        assert sent_embed.description == "Usage: `ns lookup <card_id|card_code|query>`."
+        assert sent_embed.description == "Usage: `ns lookup <card_type_id|card_id|query>`."
 
     async def test_lookup_shows_card_type_embed(self) -> None:
         lookup_command = _get_command(self.bot, "lookup")
@@ -1060,14 +1060,14 @@ class CommandsLookupTests:
         ctx.send = AsyncMock()
         ctx.reply = ctx.send
 
-        await lookup_command.callback(ctx, card_id="spg")
+        await lookup_command.callback(ctx, card_type_id="spg")
 
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
         assert sent_embed.title == "Card Lookup"
         assert "(`SPG`)" in sent_embed.description
 
-    async def test_lookup_shows_card_embed_for_exact_code(self) -> None:
+    async def test_lookup_shows_card_embed_for_exact_card_id(self) -> None:
         lookup_command = _get_command(self.bot, "lookup")
 
         ctx = AsyncMock()
@@ -1077,10 +1077,10 @@ class CommandsLookupTests:
         ctx.reply = ctx.send
 
         with patch(
-            "bot.commands_catalog.get_instance_by_card_code",
+            "bot.commands_catalog.get_instance_by_card_id",
             return_value=(123, 999, "SPG", 101, "abc", 222, 333, 1_700_000_000.0),
         ) as lookup_dupe:
-            await lookup_command.callback(ctx, card_id="AbC")
+            await lookup_command.callback(ctx, card_type_id="AbC")
 
         lookup_dupe.assert_called_once_with(1, "AbC")
         ctx.send.assert_awaited_once()
@@ -1097,7 +1097,7 @@ class CommandsLookupTests:
         assert "Trait Multiplier" in sent_embed.description
         assert re.search(r"HP: \*\*\d+\*\* • ATK: \*\*\d+\*\* • DEF: \*\*\d+\*\*", sent_embed.description)
 
-    async def test_lookup_shows_card_embed_for_hash_prefixed_code(self) -> None:
+    async def test_lookup_shows_card_embed_for_hash_prefixed_card_id(self) -> None:
         lookup_command = _get_command(self.bot, "lookup")
 
         ctx = AsyncMock()
@@ -1107,10 +1107,10 @@ class CommandsLookupTests:
         ctx.reply = ctx.send
 
         with patch(
-            "bot.commands_catalog.get_instance_by_card_code",
+            "bot.commands_catalog.get_instance_by_card_id",
             return_value=(123, 999, "SPG", 101, "abc", None, None, None),
         ) as lookup_dupe:
-            await lookup_command.callback(ctx, card_id="#AbC")
+            await lookup_command.callback(ctx, card_type_id="#AbC")
 
         lookup_dupe.assert_called_once_with(1, "#AbC")
         ctx.send.assert_awaited_once()
@@ -1126,7 +1126,7 @@ class CommandsLookupTests:
         assert "**Value Breakdown**" in sent_embed.description
         assert re.search(r"HP: \*\*\d+\*\* • ATK: \*\*\d+\*\* • DEF: \*\*\d+\*\*", sent_embed.description)
 
-    async def test_lookuphd_shows_card_embed_with_stats_for_exact_code(
+    async def test_lookuphd_shows_card_embed_with_stats_for_exact_card_id(
         self,
     ) -> None:
         lookup_command = _get_command(self.bot, "lookuphd")
@@ -1138,10 +1138,10 @@ class CommandsLookupTests:
         ctx.reply = ctx.send
 
         with patch(
-            "bot.commands_catalog.get_instance_by_card_code",
+            "bot.commands_catalog.get_instance_by_card_id",
             return_value=(123, 999, "SPG", 101, "abc", 222, 333, 1_700_000_000.0),
         ) as lookup_dupe:
-            await lookup_command.callback(ctx, card_id="AbC")
+            await lookup_command.callback(ctx, card_type_id="AbC")
 
         lookup_dupe.assert_called_once_with(1, "AbC")
         ctx.send.assert_awaited_once()
@@ -1154,7 +1154,7 @@ class CommandsLookupTests:
         assert "Time pulled: <t:" in sent_embed.description
         assert re.search(r"HP: \*\*\d+\*\* • ATK: \*\*\d+\*\* • DEF: \*\*\d+\*\*", sent_embed.description)
 
-    async def test_lookup_prefers_exact_card_code_over_card_id(self) -> None:
+    async def test_lookup_prefers_exact_owned_card_id_over_card_type_id(self) -> None:
         lookup_command = _get_command(self.bot, "lookup")
 
         ctx = AsyncMock()
@@ -1164,10 +1164,10 @@ class CommandsLookupTests:
         ctx.reply = ctx.send
 
         with patch(
-            "bot.commands_catalog.get_instance_by_card_code",
+            "bot.commands_catalog.get_instance_by_card_id",
             return_value=(777, 999, "SPG", 88, "spg", 999, 111, 1_700_000_000.0),
         ) as lookup_dupe:
-            await lookup_command.callback(ctx, card_id="spg")
+            await lookup_command.callback(ctx, card_type_id="spg")
 
         lookup_dupe.assert_called_once_with(1, "spg")
         ctx.send.assert_awaited_once()
@@ -1191,7 +1191,7 @@ class CommandsLookupTests:
         ctx.reply = ctx.send
 
         with patch("bot.commands_catalog.search_card_ids", return_value=["SPG"]):
-            await lookup_command.callback(ctx, card_id="spaghetti")
+            await lookup_command.callback(ctx, card_type_id="spaghetti")
 
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
@@ -1207,7 +1207,7 @@ class CommandsLookupTests:
         ctx.send = AsyncMock()
         ctx.reply = ctx.send
 
-        await lookup_command.callback(ctx, card_id="cheddar")
+        await lookup_command.callback(ctx, card_type_id="cheddar")
 
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
@@ -1227,7 +1227,7 @@ class CommandsLookupTests:
         ctx.send = AsyncMock()
         ctx.reply = ctx.send
 
-        await lookup_command.callback(ctx, card_id="cheese")
+        await lookup_command.callback(ctx, card_type_id="cheese")
 
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
@@ -1249,7 +1249,7 @@ class CommandsLookupTests:
         ctx.reply = ctx.send
 
         with patch("bot.commands_catalog.search_card_ids", return_value=["SPG"]) as search_cards:
-            await lookup_command.callback(ctx, card_id="spicy noodle")
+            await lookup_command.callback(ctx, card_type_id="spicy noodle")
 
         search_cards.assert_called_once_with("spicy noodle", include_series=True)
         ctx.send.assert_awaited_once()
@@ -1270,7 +1270,7 @@ class CommandsLookupTests:
             "bot.commands_catalog.embed_image_payload",
             return_value=("attachment://spg_card.png", None),
         ) as embed_payload:
-            await lookup_command.callback(ctx, card_id="spg")
+            await lookup_command.callback(ctx, card_type_id="spg")
 
         embed_payload.assert_called_once()
         assert embed_payload.call_args.kwargs["size"] == HD_CARD_RENDER_SIZE
@@ -2366,7 +2366,7 @@ class CommandsGiftTests:
             ),
             patch("bot.commands_economy.execute_gift_card") as gift_card,
         ):
-            await gift_card_command.callback(ctx, player="@BotTarget", card_code="0")
+            await gift_card_command.callback(ctx, player="@BotTarget", card_id="0")
 
         gift_card.assert_not_called()
         ctx.send.assert_awaited_once()
@@ -2405,13 +2405,13 @@ class CommandsGiftTests:
                 return_value=("attachment://gift.png", None),
             ),
         ):
-            await gift_card_command.callback(ctx, player="@Target", card_code="0")
+            await gift_card_command.callback(ctx, player="@Target", card_id="0")
 
         gift_card.assert_called_once_with(
             guild_id=1,
             sender_id=100,
             recipient_id=200,
-            card_code="0",
+            card_id="0",
         )
         get_instance.assert_called_once_with(1, 200, "a")
         ctx.send.assert_awaited_once()
@@ -2576,7 +2576,7 @@ class CommandsBurnTests:
         self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)
         register_commands(self.bot)
 
-    async def test_burn_confirmation_embed_shows_card_code(self) -> None:
+    async def test_burn_confirmation_embed_shows_card_id(self) -> None:
         burn_command = _get_command(self.bot, "burn")
 
         ctx = AsyncMock()
@@ -2591,9 +2591,9 @@ class CommandsBurnTests:
             items=(
                 SimpleNamespace(
                     instance_id=77,
-                    card_id="SPG",
+                    card_type_id="SPG",
                     generation=321,
-                    card_code="a",
+                    card_id="a",
                     value=40,
                     base_value=38,
                     delta_range=8,
@@ -2634,9 +2634,9 @@ class CommandsBurnTests:
             items=(
                 SimpleNamespace(
                     instance_id=10,
-                    card_id="SPG",
+                    card_type_id="SPG",
                     generation=100,
-                    card_code="0",
+                    card_id="0",
                     value=10,
                     base_value=9,
                     delta_range=1,
@@ -2730,9 +2730,9 @@ class CommandsMonopolyTests:
                 "",
                 "Mpreg square effect: you gave birth to a dupe.",
             ),
-            mpreg_card_id="SPG",
+            mpreg_card_type_id="SPG",
             mpreg_generation=321,
-            mpreg_card_code="a",
+            mpreg_card_id="a",
             mpreg_morph_key=None,
             mpreg_frame_key=None,
             mpreg_font_key=None,
@@ -2811,6 +2811,7 @@ class CommandsMonopolyTests:
             in_jail=False,
             doubles=False,
             lines=("Dice: **1 + 2 = 3**", "", "Landed on **Sample Card** 🟫"),
+            mpreg_card_type_id=None,
             mpreg_card_id=None,
             mpreg_generation=None,
             mpreg_morph_key=None,
@@ -2877,6 +2878,7 @@ class CommandsMonopolyTests:
                 "Landed on **Sample Card** 🟫 (#abc123)",
                 "Rent paid to <@200>: **50 dough**",
             ),
+            mpreg_card_type_id=None,
             mpreg_card_id=None,
             mpreg_generation=None,
             mpreg_morph_key=None,
@@ -2926,15 +2928,15 @@ class CommandsMorphTests:
             is_error=False,
             error_message=None,
             instance_id=77,
-            card_id="SPG",
+            card_type_id="SPG",
             generation=321,
-            card_code="a",
+            card_id="a",
             current_morph_key=None,
             cost=9,
         )
 
         with patch("bot.commands_economy.prepare_morph", return_value=result):
-            await morph_command.callback(ctx, card_code="a")
+            await morph_command.callback(ctx, card_id="a")
 
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
@@ -2958,7 +2960,7 @@ class CommandsMorphTests:
         )
 
         with patch("bot.commands_economy.prepare_morph", return_value=result):
-            await morph_command.callback(ctx, card_code="a")
+            await morph_command.callback(ctx, card_id="a")
 
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
@@ -2984,15 +2986,15 @@ class CommandsFrameTests:
             is_error=False,
             error_message=None,
             instance_id=77,
-            card_id="SPG",
+            card_type_id="SPG",
             generation=321,
-            card_code="a",
+            card_id="a",
             current_frame_key=None,
             cost=9,
         )
 
         with patch("bot.commands_economy.prepare_frame", return_value=result):
-            await frame_command.callback(ctx, card_code="a")
+            await frame_command.callback(ctx, card_id="a")
 
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
@@ -3016,7 +3018,7 @@ class CommandsFrameTests:
         )
 
         with patch("bot.commands_economy.prepare_frame", return_value=result):
-            await frame_command.callback(ctx, card_code="a")
+            await frame_command.callback(ctx, card_id="a")
 
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
@@ -3042,15 +3044,15 @@ class CommandsFontTests:
             is_error=False,
             error_message=None,
             instance_id=77,
-            card_id="SPG",
+            card_type_id="SPG",
             generation=321,
-            card_code="a",
+            card_id="a",
             current_font_key=None,
             cost=9,
         )
 
         with patch("bot.commands_economy.prepare_font", return_value=result):
-            await font_command.callback(ctx, card_code="a")
+            await font_command.callback(ctx, card_id="a")
 
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
@@ -3074,7 +3076,7 @@ class CommandsFontTests:
         )
 
         with patch("bot.commands_economy.prepare_font", return_value=result):
-            await font_command.callback(ctx, card_code="a")
+            await font_command.callback(ctx, card_id="a")
 
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]

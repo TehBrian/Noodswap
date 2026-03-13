@@ -179,7 +179,7 @@ class PlayerRepository:
     def get_last_pulled_instance(self, guild_id: int, user_id: int) -> Optional[tuple[int, str, int, str]]:
         row = self.conn.execute(
             """
-            SELECT p.last_dropped_instance_id, ci.card_type_id, ci.generation, ci.card_code
+            SELECT p.last_dropped_instance_id, ci.card_type_id, ci.generation, ci.card_id
             FROM players p
             LEFT JOIN card_instances ci
                 ON ci.instance_id = p.last_dropped_instance_id
@@ -195,12 +195,12 @@ class PlayerRepository:
         last_dropped_instance_id = row["last_dropped_instance_id"]
         card_type_id = row["card_type_id"]
         generation = row["generation"]
-        card_code = row["card_code"]
+        card_id = row["card_id"]
 
         if last_dropped_instance_id is None:
             return None
 
-        if card_type_id is None or generation is None or card_code is None:
+        if card_type_id is None or generation is None or card_id is None:
             self.conn.execute(
                 """
                 UPDATE players
@@ -215,7 +215,7 @@ class PlayerRepository:
             int(last_dropped_instance_id),
             str(card_type_id),
             int(generation),
-            str(card_code),
+            str(card_id),
         )
 
     def add_dough(self, guild_id: int, user_id: int, amount: int) -> None:
@@ -279,20 +279,20 @@ class PlayerRepository:
     def get_divorce_instance(self, guild_id: int, user_id: int) -> Optional[tuple[int, str, int, str]]:
         row = self.conn.execute(
             """
-            SELECT p.married_instance_id, ci.card_type_id, ci.generation, ci.card_code
+            SELECT p.married_instance_id, ci.card_type_id, ci.generation, ci.card_id
             FROM players p
             LEFT JOIN card_instances ci ON ci.instance_id = p.married_instance_id
             WHERE p.guild_id = ? AND p.user_id = ?
             """,
             (guild_id, user_id),
         ).fetchone()
-        if row is None or row["married_instance_id"] is None or row["card_type_id"] is None or row["card_code"] is None:
+        if row is None or row["married_instance_id"] is None or row["card_type_id"] is None or row["card_id"] is None:
             return None
         return (
             int(row["married_instance_id"]),
             str(row["card_type_id"]),
             int(row["generation"]),
-            str(row["card_code"]),
+            str(row["card_id"]),
         )
 
     def get_dough(self, guild_id: int, user_id: int) -> int:
@@ -854,7 +854,7 @@ class CardInstanceTagRepository:
     def list_tagged_instances(self, guild_id: int, user_id: int, tag_name: str) -> list[tuple[int, str, int, str]]:
         rows = self.conn.execute(
             """
-            SELECT ci.instance_id, ci.card_type_id, ci.generation, ci.card_code
+            SELECT ci.instance_id, ci.card_type_id, ci.generation, ci.card_id
             FROM card_instance_tags cit
             JOIN card_instances ci
                 ON ci.instance_id = cit.instance_id
@@ -870,7 +870,7 @@ class CardInstanceTagRepository:
                 int(row["instance_id"]),
                 str(row["card_type_id"]),
                 int(row["generation"]),
-                str(row["card_code"]),
+                str(row["card_id"]),
             )
             for row in rows
         ]
@@ -1085,7 +1085,7 @@ class CardInstanceFolderRepository:
     def list_foldered_instances(self, guild_id: int, user_id: int, folder_name: str) -> list[tuple[int, str, int, str]]:
         rows = self.conn.execute(
             """
-            SELECT ci.instance_id, ci.card_type_id, ci.generation, ci.card_code
+            SELECT ci.instance_id, ci.card_type_id, ci.generation, ci.card_id
             FROM card_instance_folders cif
             JOIN card_instances ci
                 ON ci.instance_id = cif.instance_id
@@ -1101,7 +1101,7 @@ class CardInstanceFolderRepository:
                 int(row["instance_id"]),
                 str(row["card_type_id"]),
                 int(row["generation"]),
-                str(row["card_code"]),
+                str(row["card_id"]),
             )
             for row in rows
         ]
@@ -1241,7 +1241,7 @@ class TeamMemberRepository:
     def list_team_instances(self, guild_id: int, user_id: int, team_name: str) -> list[tuple[int, str, int, str]]:
         rows = self.conn.execute(
             """
-            SELECT ci.instance_id, ci.card_type_id, ci.generation, ci.card_code
+            SELECT ci.instance_id, ci.card_type_id, ci.generation, ci.card_id
             FROM team_members tm
             JOIN card_instances ci
                 ON ci.instance_id = tm.instance_id
@@ -1257,7 +1257,7 @@ class TeamMemberRepository:
                 int(row["instance_id"]),
                 str(row["card_type_id"]),
                 int(row["generation"]),
-                str(row["card_code"]),
+                str(row["card_id"]),
             )
             for row in rows
         ]
@@ -1486,7 +1486,7 @@ class BattleCombatantRepository:
                 instance_id,
                 card_type_id,
                 generation,
-                card_code,
+                card_id,
                 max_hp,
                 current_hp,
                 attack,
@@ -1507,7 +1507,7 @@ class BattleCombatantRepository:
                     instance_id,
                     card_type_id,
                     generation,
-                    card_code,
+                    card_id,
                     max_hp,
                     current_hp,
                     attack,
@@ -1524,7 +1524,7 @@ class BattleCombatantRepository:
                     instance_id,
                     card_type_id,
                     generation,
-                    card_code,
+                    card_id,
                     max_hp,
                     current_hp,
                     attack,
@@ -1540,7 +1540,7 @@ class BattleCombatantRepository:
         rows = self.conn.execute(
             """
             SELECT battle_id, guild_id, user_id, side, slot_index, instance_id, card_type_id,
-                     generation, card_code, max_hp, current_hp, attack, defense,
+                     generation, card_id, max_hp, current_hp, attack, defense,
                      is_active, is_defending, is_knocked_out
             FROM battle_combatants
             WHERE battle_id = ?
@@ -1558,7 +1558,7 @@ class BattleCombatantRepository:
                 "instance_id": int(row["instance_id"]),
                 "card_type_id": str(row["card_type_id"]),
                 "generation": int(row["generation"]),
-                "card_code": str(row["card_code"]),
+                "card_id": str(row["card_id"]),
                 "max_hp": int(row["max_hp"]),
                 "current_hp": int(row["current_hp"]),
                 "attack": int(row["attack"]),
@@ -1664,23 +1664,23 @@ class CardInstanceRepository:
     def __init__(self, conn: sqlite3.Connection):
         self.conn = conn
 
-    def _next_available_card_code(self) -> str:
+    def _next_available_card_id(self) -> str:
         rows = self.conn.execute(
             """
-            SELECT card_code
+            SELECT card_id
             FROM card_instances
-            WHERE card_code IS NOT NULL
+            WHERE card_id IS NOT NULL
             """,
         ).fetchall()
 
         used_numbers: set[int] = set()
         for row in rows:
-            raw_card_code = row["card_code"]
-            if raw_card_code is None:
+            raw_card_id = row["card_id"]
+            if raw_card_id is None:
                 continue
 
             try:
-                used_numbers.add(_from_base36(str(raw_card_code)))
+                used_numbers.add(_from_base36(str(raw_card_id)))
             except ValueError:
                 continue
 
@@ -1692,7 +1692,7 @@ class CardInstanceRepository:
     def get_by_id(self, guild_id: int, instance_id: int) -> Optional[tuple[int, str, int, str]]:
         row = self.conn.execute(
             """
-            SELECT instance_id, card_type_id, generation, card_code
+            SELECT instance_id, card_type_id, generation, card_id
             FROM card_instances
             WHERE guild_id = ? AND instance_id = ?
             """,
@@ -1704,18 +1704,18 @@ class CardInstanceRepository:
             int(row["instance_id"]),
             str(row["card_type_id"]),
             int(row["generation"]),
-            str(row["card_code"]),
+            str(row["card_id"]),
         )
 
-    def get_by_code(self, guild_id: int, user_id: int, card_code: str) -> Optional[tuple[int, str, int, str]]:
+    def get_by_code(self, guild_id: int, user_id: int, card_id: str) -> Optional[tuple[int, str, int, str]]:
         row = self.conn.execute(
             """
-            SELECT instance_id, card_type_id, generation, card_code
+            SELECT instance_id, card_type_id, generation, card_id
             FROM card_instances
-            WHERE guild_id = ? AND user_id = ? AND card_code = ?
+            WHERE guild_id = ? AND user_id = ? AND card_id = ?
             LIMIT 1
             """,
-            (guild_id, user_id, card_code),
+            (guild_id, user_id, card_id),
         ).fetchone()
         if row is None:
             return None
@@ -1723,22 +1723,22 @@ class CardInstanceRepository:
             int(row["instance_id"]),
             str(row["card_type_id"]),
             int(row["generation"]),
-            str(row["card_code"]),
+            str(row["card_id"]),
         )
 
-    def get_by_card_code(
+    def get_by_card_id(
         self,
         guild_id: int,
-        card_code: str,
+        card_id: str,
     ) -> Optional[tuple[int, int, str, int, str, int | None, int | None, float | None]]:
         row = self.conn.execute(
             """
-            SELECT instance_id, user_id, card_type_id, generation, card_code, dropped_by_user_id, pulled_by_user_id, pulled_at
+            SELECT instance_id, user_id, card_type_id, generation, card_id, dropped_by_user_id, pulled_by_user_id, pulled_at
             FROM card_instances
-            WHERE guild_id = ? AND card_code = ?
+            WHERE guild_id = ? AND card_id = ?
             LIMIT 1
             """,
-            (guild_id, card_code),
+            (guild_id, card_id),
         ).fetchone()
         if row is None:
             return None
@@ -1747,7 +1747,7 @@ class CardInstanceRepository:
             int(row["user_id"]),
             str(row["card_type_id"]),
             int(row["generation"]),
-            str(row["card_code"]),
+            str(row["card_id"]),
             int(row["dropped_by_user_id"]) if row["dropped_by_user_id"] is not None else None,
             int(row["pulled_by_user_id"]) if row["pulled_by_user_id"] is not None else None,
             float(row["pulled_at"]) if row["pulled_at"] is not None else None,
@@ -1775,7 +1775,7 @@ class CardInstanceRepository:
         pulled_by_user_id: int | None = None,
         pulled_at: float | None = None,
     ) -> int:
-        card_code = self._next_available_card_code()
+        card_id = self._next_available_card_id()
         effective_pulled_at = pulled_at if pulled_at is not None else time.time()
         cursor = self.conn.execute(
             """
@@ -1784,7 +1784,7 @@ class CardInstanceRepository:
                 user_id,
                 card_type_id,
                 generation,
-                card_code,
+                card_id,
                 dropped_by_user_id,
                 pulled_by_user_id,
                 pulled_at
@@ -1796,7 +1796,7 @@ class CardInstanceRepository:
                 user_id,
                 card_type_id,
                 generation,
-                card_code,
+                card_id,
                 dropped_by_user_id,
                 pulled_by_user_id,
                 effective_pulled_at,
@@ -1809,7 +1809,7 @@ class CardInstanceRepository:
     def get_burn_candidate_by_card_id(self, guild_id: int, user_id: int, card_type_id: str) -> Optional[tuple[int, str, int, str]]:
         row = self.conn.execute(
             """
-            SELECT instance_id, card_type_id, generation, card_code
+            SELECT instance_id, card_type_id, generation, card_id
             FROM card_instances
             WHERE guild_id = ? AND user_id = ? AND card_type_id = ?
             ORDER BY generation DESC, instance_id ASC
@@ -1823,13 +1823,13 @@ class CardInstanceRepository:
             int(row["instance_id"]),
             str(row["card_type_id"]),
             int(row["generation"]),
-            str(row["card_code"]),
+            str(row["card_id"]),
         )
 
     def list_by_owner(self, guild_id: int, user_id: int) -> list[tuple[int, str, int, str]]:
         rows = self.conn.execute(
             """
-            SELECT instance_id, card_type_id, generation, card_code
+            SELECT instance_id, card_type_id, generation, card_id
             FROM card_instances
             WHERE guild_id = ? AND user_id = ?
             ORDER BY generation ASC, card_type_id ASC, instance_id ASC
@@ -1841,7 +1841,7 @@ class CardInstanceRepository:
                 int(row["instance_id"]),
                 str(row["card_type_id"]),
                 int(row["generation"]),
-                str(row["card_code"]),
+                str(row["card_id"]),
             )
             for row in rows
         ]
@@ -1849,7 +1849,7 @@ class CardInstanceRepository:
     def list_by_owner_with_pulled_at(self, guild_id: int, user_id: int) -> list[tuple[int, str, int, str, float | None]]:
         rows = self.conn.execute(
             """
-            SELECT instance_id, card_type_id, generation, card_code, pulled_at
+            SELECT instance_id, card_type_id, generation, card_id, pulled_at
             FROM card_instances
             WHERE guild_id = ? AND user_id = ?
             ORDER BY generation ASC, card_type_id ASC, instance_id ASC
@@ -1861,7 +1861,7 @@ class CardInstanceRepository:
                 int(row["instance_id"]),
                 str(row["card_type_id"]),
                 int(row["generation"]),
-                str(row["card_code"]),
+                str(row["card_id"]),
                 float(row["pulled_at"]) if row["pulled_at"] is not None else None,
             )
             for row in rows
@@ -1900,7 +1900,7 @@ class CardInstanceRepository:
     def list_owner_instances_for_guild(self, guild_id: int) -> list[tuple[int, int, str, int, str]]:
         rows = self.conn.execute(
             """
-            SELECT instance_id, user_id, card_type_id, generation, card_code
+            SELECT instance_id, user_id, card_type_id, generation, card_id
             FROM card_instances
             WHERE guild_id = ?
             ORDER BY user_id ASC, instance_id ASC
@@ -1913,7 +1913,7 @@ class CardInstanceRepository:
                 int(row["user_id"]),
                 str(row["card_type_id"]),
                 int(row["generation"]),
-                str(row["card_code"]),
+                str(row["card_id"]),
             )
             for row in rows
         ]
@@ -1924,7 +1924,7 @@ class CardInstanceRepository:
     ) -> list[tuple[int, int, str, int, str, Optional[str], Optional[str], Optional[str]]]:
         rows = self.conn.execute(
             """
-            SELECT instance_id, user_id, card_type_id, generation, card_code, morph_key, frame_key, font_key
+            SELECT instance_id, user_id, card_type_id, generation, card_id, morph_key, frame_key, font_key
             FROM card_instances
             WHERE guild_id = ?
             ORDER BY user_id ASC, instance_id ASC
@@ -1937,7 +1937,7 @@ class CardInstanceRepository:
                 int(row["user_id"]),
                 str(row["card_type_id"]),
                 int(row["generation"]),
-                str(row["card_code"]),
+                str(row["card_id"]),
                 str(row["morph_key"]) if row["morph_key"] is not None else None,
                 str(row["frame_key"]) if row["frame_key"] is not None else None,
                 str(row["font_key"]) if row["font_key"] is not None else None,
@@ -1951,7 +1951,7 @@ class CardInstanceRepository:
     ) -> list[tuple[int, int, str, int, str, float | None, Optional[str], Optional[str], Optional[str]]]:
         rows = self.conn.execute(
             """
-            SELECT instance_id, user_id, card_type_id, generation, card_code, pulled_at, morph_key, frame_key, font_key
+            SELECT instance_id, user_id, card_type_id, generation, card_id, pulled_at, morph_key, frame_key, font_key
             FROM card_instances
             WHERE guild_id = ?
             ORDER BY user_id ASC, instance_id ASC
@@ -1964,7 +1964,7 @@ class CardInstanceRepository:
                 int(row["user_id"]),
                 str(row["card_type_id"]),
                 int(row["generation"]),
-                str(row["card_code"]),
+                str(row["card_id"]),
                 float(row["pulled_at"]) if row["pulled_at"] is not None else None,
                 str(row["morph_key"]) if row["morph_key"] is not None else None,
                 str(row["frame_key"]) if row["frame_key"] is not None else None,
@@ -2001,7 +2001,7 @@ class CardInstanceRepository:
     def burn_owned_instance(self, guild_id: int, user_id: int, instance_id: int) -> Optional[tuple[str, int, str]]:
         row = self.conn.execute(
             """
-            SELECT card_type_id, generation, card_code
+            SELECT card_type_id, generation, card_id
             FROM card_instances
             WHERE instance_id = ? AND guild_id = ? AND user_id = ?
             """,
@@ -2012,7 +2012,7 @@ class CardInstanceRepository:
 
         card_type_id = str(row["card_type_id"])
         generation = int(row["generation"])
-        card_code = str(row["card_code"])
+        card_id = str(row["card_id"])
 
         self.conn.execute(
             """
@@ -2022,7 +2022,7 @@ class CardInstanceRepository:
             (instance_id,),
         )
 
-        return card_type_id, generation, card_code
+        return card_type_id, generation, card_id
 
     def select_instance_for_marry(self, guild_id: int, user_id: int, card_type_id: str) -> Optional[tuple[int, int]]:
         row = self.conn.execute(
@@ -2042,7 +2042,7 @@ class CardInstanceRepository:
     def get_owned_instance_for_marry(self, guild_id: int, user_id: int, instance_id: int) -> Optional[tuple[str, int, str]]:
         selected_row = self.conn.execute(
             """
-            SELECT card_type_id, generation, card_code
+            SELECT card_type_id, generation, card_id
             FROM card_instances
             WHERE guild_id = ? AND user_id = ? AND instance_id = ?
             """,
@@ -2053,18 +2053,18 @@ class CardInstanceRepository:
         return (
             str(selected_row["card_type_id"]),
             int(selected_row["generation"]),
-            str(selected_row["card_code"]),
+            str(selected_row["card_id"]),
         )
 
-    def get_seller_trade_instance(self, guild_id: int, seller_id: int, card_code: str) -> Optional[tuple[int, str, int, str]]:
+    def get_seller_trade_instance(self, guild_id: int, seller_id: int, card_id: str) -> Optional[tuple[int, str, int, str]]:
         row = self.conn.execute(
             """
-            SELECT instance_id, card_type_id, generation, card_code
+            SELECT instance_id, card_type_id, generation, card_id
             FROM card_instances
-            WHERE guild_id = ? AND user_id = ? AND card_code = ?
+            WHERE guild_id = ? AND user_id = ? AND card_id = ?
             LIMIT 1
             """,
-            (guild_id, seller_id, card_code),
+            (guild_id, seller_id, card_id),
         ).fetchone()
         if row is None:
             return None
@@ -2072,7 +2072,7 @@ class CardInstanceRepository:
             int(row["instance_id"]),
             str(row["card_type_id"]),
             int(row["generation"]),
-            str(row["card_code"]),
+            str(row["card_id"]),
         )
 
     def transfer_to_user(self, instance_id: int, buyer_id: int) -> None:

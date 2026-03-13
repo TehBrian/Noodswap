@@ -15,19 +15,19 @@ def italy_marry_embed(title: str, description: str = "") -> discord.Embed:
     return italy_embed(title=title, description=description, color=ITALY_PINK)
 
 
-def format_drop_choice_line(card_id: str, generation: int) -> str:
-    return card_display(card_id, generation, pad_card_code=False)
+def format_drop_choice_line(card_type_id: str, generation: int) -> str:
+    return card_display(card_type_id, generation, pad_card_id=False)
 
 
 def drop_choices_description(choices: list[tuple[str, int]]) -> str:
-    lines = [format_drop_choice_line(card_id, generation) for card_id, generation in choices]
+    lines = [format_drop_choice_line(card_type_id, generation) for card_type_id, generation in choices]
     return f"""{multiline_text(lines)}"""
 
 
 def burn_confirmation_description(
-    card_id: str,
+    card_type_id: str,
     generation: int,
-    card_code: str | None,
+    card_id: str | None,
     value: int,
     base_value: int,
     delta_range: int,
@@ -35,7 +35,7 @@ def burn_confirmation_description(
 ) -> str:
     return f"""Burn this card?
 
-{card_display(card_id, generation, card_code=card_code)}
+{card_display(card_type_id, generation, card_id=card_id)}
 
 Base Value: **{base_value}**
 Total Multiplier: **x{multiplier:.2f}**
@@ -46,9 +46,9 @@ Payout: **{value}** ± **{delta_range}**"""
 def trade_offer_description(
     offered_to_mention: str,
     seller_mention: str,
-    card_id: str,
+    card_type_id: str,
     generation: int,
-    card_code: str | None,
+    card_id: str | None,
     terms: object,  # TradeTerms; typed as object to avoid circular import
 ) -> str:
     mode: str = getattr(terms, "mode")
@@ -62,32 +62,32 @@ def trade_offer_description(
         price_line = f"Price: **{getattr(terms, 'amount')}** pull ticket(s)"
     else:
         # card mode
-        req_card_id = getattr(terms, "req_card_id", None)
+        req_card_type_id = getattr(terms, "req_card_type_id", None)
         req_gen = getattr(terms, "req_generation", None)
-        req_dupe = getattr(terms, "req_card_code", None)
-        if req_card_id is not None and req_gen is not None:
-            req_text = card_display(req_card_id, req_gen, card_code=req_dupe)
+        req_dupe = getattr(terms, "req_card_id", None)
+        if req_card_type_id is not None and req_gen is not None:
+            req_text = card_display(req_card_type_id, req_gen, card_id=req_dupe)
         else:
             req_text = "unknown card"
         price_line = f"Requesting: {req_text}"
     return f"""Offered to: {offered_to_mention}
 Seller: {seller_mention}
 
-Card: {card_display(card_id, generation, card_code=card_code)}
+Card: {card_display(card_type_id, generation, card_id=card_id)}
 {price_line}"""
 
 
 def gift_offer_description(
     offered_to_mention: str,
     sender_mention: str,
-    card_id: str,
+    card_type_id: str,
     generation: int,
-    card_code: str | None,
+    card_id: str | None,
 ) -> str:
     return f"""Offered to: {offered_to_mention}
 Sender: {sender_mention}
 
-Card: {card_display(card_id, generation, card_code=card_code)}"""
+Card: {card_display(card_type_id, generation, card_id=card_id)}"""
 
 
 def battle_offer_description(
@@ -116,8 +116,8 @@ def _hp_bar(current_hp: int, max_hp: int, width: int = 12) -> str:
 
 
 def _combatant_line(row: dict[str, int | str | bool]) -> str:
+    card_type_id = str(row["card_type_id"])
     card_id = str(row["card_id"])
-    card_code = str(row["card_code"])
     current_hp = int(row["current_hp"])
     max_hp = int(row["max_hp"])
     attack = int(row["attack"]) if row.get("attack") is not None else 0
@@ -135,7 +135,7 @@ def _combatant_line(row: dict[str, int | str | bool]) -> str:
     state_text = f" ({', '.join(state_bits)})" if state_bits else ""
     hp_text = f"{current_hp:>3}/{max_hp:<3}"
     health_line = f"`HP {hp_text}` {_hp_bar(current_hp, max_hp)}"
-    info_line = f"`{card_id}#{card_code}`{state_text} • HP:{current_hp} ATK:{attack} DEF:{defense}"
+    info_line = f"`{card_type_id}#{card_id}`{state_text} • HP:{current_hp} ATK:{attack} DEF:{defense}"
     return f"{health_line}\n{info_line}"
 
 
@@ -189,22 +189,22 @@ COMMAND_SYNTAX_BY_KEY: dict[str, str] = {
     "folder": (
         "ns folder add <folder_name> [emoji], ns folder remove <folder_name>, ns folder list, "
         "ns folder lock <folder_name>, ns folder unlock <folder_name>, "
-        "ns folder assign <folder_name> <card_code>, ns folder unassign <folder_name> <card_code>, "
+        "ns folder assign <folder_name> <card_id>, ns folder unassign <folder_name> <card_id>, "
         "ns folder cards <folder_name>, ns folder emoji <folder_name> <emoji>"
     ),
     "folder add": "ns folder add <folder_name> [emoji]",
-    "folder assign": "ns folder assign <folder_name> <card_code>",
+    "folder assign": "ns folder assign <folder_name> <card_id>",
     "folder cards": "ns folder cards <folder_name>",
     "folder emoji": "ns folder emoji <folder_name> <emoji>",
     "folder list": "ns folder list",
     "folder lock": "ns folder lock <folder_name>",
     "folder remove": "ns folder remove <folder_name>",
-    "folder unassign": "ns folder unassign <folder_name> <card_code>",
+    "folder unassign": "ns folder unassign <folder_name> <card_id>",
     "folder unlock": "ns folder unlock <folder_name>",
-    "font": "ns font [card_code]",
-    "frame": "ns frame [card_code]",
-    "gift": "ns gift <dough|starter|drop|pull|card> <player> <amount|card_code>",
-    "gift card": "ns gift card <player> <card_code>",
+    "font": "ns font [card_id]",
+    "frame": "ns frame [card_id]",
+    "gift": "ns gift <dough|starter|drop|pull|card> <player> <amount|card_id>",
+    "gift card": "ns gift card <player> <card_id>",
     "gift dough": "ns gift dough <player> <dough>",
     "gift drop": "ns gift drop <player> <tickets>",
     "gift pull": "ns gift pull <player> <tickets>",
@@ -212,51 +212,51 @@ COMMAND_SYNTAX_BY_KEY: dict[str, str] = {
     "help": "ns help",
     "info": "ns info [player]",
     "leaderboard": "ns leaderboard",
-    "lookup": "ns lookup <card_id|card_code|query>",
-    "lookuphd": "ns lookuphd <card_id|card_code|query>",
-    "marry": "ns marry [card_code]",
+    "lookup": "ns lookup <card_type_id|card_id|query>",
+    "lookuphd": "ns lookuphd <card_type_id|card_id|query>",
+    "marry": "ns marry [card_id]",
     "monopoly": "ns monopoly <roll|fine|board|pot>",
     "monopoly board": "ns monopoly board",
     "monopoly fine": "ns monopoly fine",
     "monopoly pot": "ns monopoly pot",
     "monopoly roll": "ns monopoly roll",
-    "morph": "ns morph [card_code]",
+    "morph": "ns morph [card_id]",
     "slots": "ns slots",
     "tag": (
         "ns tag add <tag_name>, ns tag remove <tag_name>, ns tag list, "
         "ns tag lock <tag_name>, ns tag unlock <tag_name>, "
-        "ns tag assign <tag_name> <card_code>, ns tag unassign <tag_name> <card_code>, "
+        "ns tag assign <tag_name> <card_id>, ns tag unassign <tag_name> <card_id>, "
         "ns tag cards <tag_name>"
     ),
     "tag add": "ns tag add <tag_name>",
-    "tag assign": "ns tag assign <tag_name> <card_code>",
+    "tag assign": "ns tag assign <tag_name> <card_id>",
     "tag cards": "ns tag cards <tag_name>",
     "tag list": "ns tag list",
     "tag lock": "ns tag lock <tag_name>",
     "tag remove": "ns tag remove <tag_name>",
-    "tag unassign": "ns tag unassign <tag_name> <card_code>",
+    "tag unassign": "ns tag unassign <tag_name> <card_id>",
     "tag unlock": "ns tag unlock <tag_name>",
     "team": (
         "ns team add <team_name>, ns team remove <team_name>, ns team list, "
-        "ns team assign <team_name> <card_code>, ns team unassign <team_name> <card_code>, "
+        "ns team assign <team_name> <card_id>, ns team unassign <team_name> <card_id>, "
         "ns team cards <team_name>, ns team active [team_name]"
     ),
     "team active": "ns team active [team_name]",
     "team add": "ns team add <team_name>",
-    "team assign": "ns team assign <team_name> <card_code>",
+    "team assign": "ns team assign <team_name> <card_id>",
     "team cards": "ns team cards <team_name>",
     "team list": "ns team list",
     "team remove": "ns team remove <team_name>",
-    "team unassign": "ns team unassign <team_name> <card_code>",
-    "trade": "ns trade <player> <card_code> <mode> <amount|card_code>",
+    "team unassign": "ns team unassign <team_name> <card_id>",
+    "trade": "ns trade <player> <card_id> <mode> <amount|card_id>",
     "vote": "ns vote",
-    "wa": "ns wish add <card_id>",
-    "wish": "ns wish add <card_id>, ns wish remove <card_id>, ns wish list [player]",
-    "wish add": "ns wish add <card_id>",
+    "wa": "ns wish add <card_type_id>",
+    "wish": "ns wish add <card_type_id>, ns wish remove <card_type_id>, ns wish list [player]",
+    "wish add": "ns wish add <card_type_id>",
     "wish list": "ns wish list [player]",
-    "wish remove": "ns wish remove <card_id>",
+    "wish remove": "ns wish remove <card_type_id>",
     "wl": "ns wish list [player]",
-    "wr": "ns wish remove <card_id>",
+    "wr": "ns wish remove <card_type_id>",
 }
 
 
@@ -273,8 +273,8 @@ HELP_CATEGORY_PAGES: tuple[tuple[str, str, str], ...] = (
 - `collection [player]` (`c`) — View a player's cards. Defaults to yourself or the replied user.
 - `cards` (`ca`) — View all owned card instances across all players.
 - `types` (`ty`) — View all card types.
-- `lookup <card_id|card_code|query>` (`l`) — Look up a card type by ID or query or an owned card by code.
-- `lookuphd <card_id|card_code|query>` (`lhd`) — View a card in high resolution.
+- `lookup <card_type_id|card_id|query>` (`l`) — Look up a card type by type ID or query, or an owned copy by card ID.
+- `lookuphd <card_type_id|card_id|query>` (`lhd`) — View a card in high resolution.
 - `help` (`h`) — Open this help menu.""",
     ),
     (
@@ -285,15 +285,15 @@ HELP_CATEGORY_PAGES: tuple[tuple[str, str, str], ...] = (
 - `buy pull [quantity]` — Buy pull tickets for 1 starter each. Defaults to 1.
 - `cooldown [player]` (`cd`) — Check a player's cooldowns. Defaults to yourself or the replied user.
 - `vote` (`v`) — Vote for the bot to claim rewards.
-- `burn [target...]` (`b`) — Burn targets for dough. Supports card codes plus
+- `burn [target...]` (`b`) — Burn targets for dough. Supports card IDs plus
     `t:<tag>` and `f:<folder>` selectors. Defaults to last pulled card.
 - `cards` (`ca`) — View all owned card instances across all players, with sortable ranking.
 - `gift dough <player> <dough>` (`gift d`) — Send dough to a player.
 - `gift starter <player> <starter>` (`gift s`) — Send starter to a player.
 - `gift drop <player> <tickets>` — Send drop tickets to a player.
 - `gift pull <player> <tickets>` — Send pull tickets to a player.
-- `gift card <player> <card_code>` (`gift c`) — Send a card to a player.
-- `trade <player> <card_code> <mode> <amount|req_code>` (`t`) — Offer a trade. Mode: `dough`, `starter`, `drop`, `pull`, or `card`.""",
+- `gift card <player> <card_id>` (`gift c`) — Send a card to a player.
+- `trade <player> <card_id> <mode> <amount|req_code>` (`t`) — Offer a trade. Mode: `dough`, `starter`, `drop`, `pull`, or `card`.""",
     ),
     (
         "gambling",
@@ -317,8 +317,8 @@ HELP_CATEGORY_PAGES: tuple[tuple[str, str, str], ...] = (
 - `team add <team_name>` (`... a`) — Create a team.
 - `team remove <team_name>` (`... r`) — Delete one of your teams.
 - `team list` (`... l`) — List your teams.
-- `team assign <team_name> <card_code>` (`... as`) — Add a card to a team.
-- `team unassign <team_name> <card_code>` (`... u`) — Remove a card from a team.
+- `team assign <team_name> <card_id>` (`... as`) — Add a card to a team.
+- `team unassign <team_name> <card_id>` (`... u`) — Remove a card from a team.
 - `team cards <team_name>` (`... c`) — List cards in a team.
 - `team active [team_name]` — Show or set your active battle team.
 - `battle <player> <stake>` (`bt`) — Propose a battle to another player.""",
@@ -326,16 +326,16 @@ HELP_CATEGORY_PAGES: tuple[tuple[str, str, str], ...] = (
     (
         "traits",
         "Traits",
-        """- `morph [card_code]` (`mo`) — Roll for a morph. Defaults to last pulled card.
-- `frame [card_code]` (`fr`) — Roll for a frame. Defaults to last pulled card.
-- `font [card_code]` (`fo`) — Roll for a font. Defaults to last pulled card.""",
+        """- `morph [card_id]` (`mo`) — Roll for a morph. Defaults to last pulled card.
+- `frame [card_id]` (`fr`) — Roll for a frame. Defaults to last pulled card.
+- `font [card_id]` (`fo`) — Roll for a font. Defaults to last pulled card.""",
     ),
     (
         "wishlist",
         "Wishlist",
         """- `wish` (`w`) — Manage your wishlist.
-- `wish add <card_id>` (`... a`, `wa`) — Add a card to your wishlist.
-- `wish remove <card_id>` (`... r`, `wr`) — Remove a card from your wishlist.
+- `wish add <card_type_id>` (`... a`, `wa`) — Add a card to your wishlist.
+- `wish remove <card_type_id>` (`... r`, `wr`) — Remove a card from your wishlist.
 - `wish list [player]` (`... l`, `wl`) — Show a player's wishlist. Defaults to yourself or the replied user.""",
     ),
     (
@@ -347,8 +347,8 @@ HELP_CATEGORY_PAGES: tuple[tuple[str, str, str], ...] = (
 - `tag list` (`... l`) — List your tags.
 - `tag lock <tag_name>` — Enable burn protection for that tag.
 - `tag unlock <tag_name>` — Disable burn protection for that tag.
-- `tag assign <tag_name> <card_code>` (`... as`) — Add a card to a tag.
-- `tag unassign <tag_name> <card_code>` (`... u`) — Remove a card from a tag.
+- `tag assign <tag_name> <card_id>` (`... as`) — Add a card to a tag.
+- `tag unassign <tag_name> <card_id>` (`... u`) — Remove a card from a tag.
 - `tag cards <tag_name>` (`... c`) — Show cards in that tag.""",
     ),
     (
@@ -360,15 +360,15 @@ HELP_CATEGORY_PAGES: tuple[tuple[str, str, str], ...] = (
 - `folder list` (`... l`) — List your folders with emoji, lock state, and card counts.
 - `folder lock <folder_name>` — Enable burn protection for that folder.
 - `folder unlock <folder_name>` — Disable burn protection for that folder.
-- `folder assign <folder_name> <card_code>` (`... as`) — Add a card to a folder.
-- `folder unassign <folder_name> <card_code>` (`... u`) — Remove a card from a folder.
+- `folder assign <folder_name> <card_id>` (`... as`) — Add a card to a folder.
+- `folder unassign <folder_name> <card_id>` (`... u`) — Remove a card from a folder.
 - `folder cards <folder_name>` (`... c`) — Show cards in that folder.
 - `folder emoji <folder_name> <emoji>` (`... e`) — Update a folder emoji.""",
     ),
     (
         "relationship",
         "Relationship",
-        """- `marry [card_code]` (`m`) — Marry a card. Defaults to last pulled card.
+        """- `marry [card_id]` (`m`) — Marry a card. Defaults to last pulled card.
 - `divorce` (`dv`) — End your current marriage.""",
     ),
 )

@@ -86,7 +86,7 @@ from .command_utils import (
     get_folder_emojis_for_instances as get_folder_emojis_for_instances,
     get_gambling_pot as get_gambling_pot,
     get_instance_by_code as get_instance_by_code,
-    get_instance_by_card_code as get_instance_by_card_code,
+    get_instance_by_card_id as get_instance_by_card_id,
     get_instance_by_id as get_instance_by_id,
     get_instance_font as get_instance_font,
     get_instance_frame as get_instance_frame,
@@ -193,7 +193,7 @@ def register_social_commands(bot: commands.Bot) -> None:
             ctx,
             embed=italy_embed(
                 "Wishlist",
-                "Usage: `ns wish add <card_id> [id ...]`, `ns wish remove <card_id> [id ...]`, or `ns wish list [player]`.",
+                "Usage: `ns wish add <card_type_id> [id ...]`, `ns wish remove <card_type_id> [id ...]`, or `ns wish list [player]`.",
             ),
         )
 
@@ -244,7 +244,7 @@ def register_social_commands(bot: commands.Bot) -> None:
                 (
                     "Usage: `ns tag add <tag_name>`, `ns tag remove <tag_name>`, `ns tag list`, "
                     "`ns tag lock <tag_name>`, `ns tag unlock <tag_name>`, "
-                    "`ns tag assign <tag_name> <card_code> [code ...]`, `ns tag unassign <tag_name> <card_code> [code ...]`, "
+                    "`ns tag assign <tag_name> <card_id> [code ...]`, `ns tag unassign <tag_name> <card_id> [code ...]`, "
                     "`ns tag cards <tag_name>`."
                 ),
             ),
@@ -271,12 +271,12 @@ def register_social_commands(bot: commands.Bot) -> None:
         await _tag_lock(ctx, tag_name, False)
 
     @tag.command(name="assign", aliases=["as"])
-    async def tag_assign(ctx: commands.Context, tag_name: str, *card_codes: str):
-        await _tag_assign(ctx, tag_name, *card_codes)
+    async def tag_assign(ctx: commands.Context, tag_name: str, *card_ids: str):
+        await _tag_assign(ctx, tag_name, *card_ids)
 
     @tag.command(name="unassign", aliases=["u"])
-    async def tag_unassign(ctx: commands.Context, tag_name: str, *card_codes: str):
-        await _tag_unassign(ctx, tag_name, *card_codes)
+    async def tag_unassign(ctx: commands.Context, tag_name: str, *card_ids: str):
+        await _tag_unassign(ctx, tag_name, *card_ids)
 
     @tag.command(name="cards", aliases=["c"])
     async def tag_cards(ctx: commands.Context, tag_name: str):
@@ -291,7 +291,7 @@ def register_social_commands(bot: commands.Bot) -> None:
                 (
                     "Usage: `ns folder add <folder_name> [emoji]`, `ns folder remove <folder_name>`, "
                     "`ns folder list`, `ns folder lock <folder_name>`, `ns folder unlock <folder_name>`, "
-                    "`ns folder assign <folder_name> <card_code> [code ...]`, `ns folder unassign <folder_name> <card_code> [code ...]`, "
+                    "`ns folder assign <folder_name> <card_id> [code ...]`, `ns folder unassign <folder_name> <card_id> [code ...]`, "
                     "`ns folder cards <folder_name>`, `ns folder emoji <folder_name> <emoji>`."
                 ),
             ),
@@ -318,12 +318,12 @@ def register_social_commands(bot: commands.Bot) -> None:
         await _folder_lock(ctx, folder_name, False)
 
     @folder.command(name="assign", aliases=["as"])
-    async def folder_assign(ctx: commands.Context, folder_name: str, *card_codes: str):
-        await _folder_assign(ctx, folder_name, *card_codes)
+    async def folder_assign(ctx: commands.Context, folder_name: str, *card_ids: str):
+        await _folder_assign(ctx, folder_name, *card_ids)
 
     @folder.command(name="unassign", aliases=["u"])
-    async def folder_unassign(ctx: commands.Context, folder_name: str, *card_codes: str):
-        await _folder_unassign(ctx, folder_name, *card_codes)
+    async def folder_unassign(ctx: commands.Context, folder_name: str, *card_ids: str):
+        await _folder_unassign(ctx, folder_name, *card_ids)
 
     @folder.command(name="cards", aliases=["c"])
     async def folder_cards(ctx: commands.Context, folder_name: str):
@@ -341,7 +341,7 @@ def register_social_commands(bot: commands.Bot) -> None:
                 "Teams",
                 (
                     "Usage: `ns team add <team_name>`, `ns team remove <team_name>`, `ns team list`, "
-                    "`ns team assign <team_name> <card_code> [code ...]`, `ns team unassign <team_name> <card_code> [code ...]`, "
+                    "`ns team assign <team_name> <card_id> [code ...]`, `ns team unassign <team_name> <card_id> [code ...]`, "
                     "`ns team cards <team_name>`, `ns team active [team_name]`."
                 ),
             ),
@@ -360,12 +360,12 @@ def register_social_commands(bot: commands.Bot) -> None:
         await _team_list(ctx)
 
     @team.command(name="assign", aliases=["as"])
-    async def team_assign(ctx: commands.Context, team_name: str, *card_codes: str):
-        await _team_assign(ctx, team_name, *card_codes)
+    async def team_assign(ctx: commands.Context, team_name: str, *card_ids: str):
+        await _team_assign(ctx, team_name, *card_ids)
 
     @team.command(name="unassign", aliases=["u"])
-    async def team_unassign(ctx: commands.Context, team_name: str, *card_codes: str):
-        await _team_unassign(ctx, team_name, *card_codes)
+    async def team_unassign(ctx: commands.Context, team_name: str, *card_ids: str):
+        await _team_unassign(ctx, team_name, *card_ids)
 
     @team.command(name="cards", aliases=["c"])
     async def team_cards(ctx: commands.Context, team_name: str):
@@ -467,10 +467,10 @@ def register_social_commands(bot: commands.Bot) -> None:
         if married_instance_id is not None:
             married_instance = get_instance_by_id(_guild_id(ctx), married_instance_id)
             if married_instance is not None:
-                _, married_card_id, married_generation, married_card_code = married_instance
-                married = card_display(married_card_id, married_generation, card_code=married_card_code)
+                _, married_card_type_id, married_generation, married_card_id = married_instance
+                married = card_display(married_card_type_id, married_generation, card_id=married_card_id)
                 married_image_url, married_image_file = embed_image_payload(
-                    married_card_id,
+                    married_card_type_id,
                     generation=married_generation,
                     morph_key=get_instance_morph(_guild_id(ctx), married_instance_id),
                     frame_key=get_instance_frame(_guild_id(ctx), married_instance_id),

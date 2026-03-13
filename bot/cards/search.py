@@ -1,15 +1,15 @@
 from . import (
-    card_code,
+    card_id,
     normalize_card_id,
     search_card_ids,
     search_card_ids_by_name,
-    split_card_code,
+    split_card_id,
 )
 
 __all__ = [
-    "card_code",
+    "card_id",
     "normalize_card_id",
     "search_card_ids",
     "search_card_ids_by_name",
-    "split_card_code",
+    "split_card_id",
 ]

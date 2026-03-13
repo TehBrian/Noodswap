@@ -81,14 +81,14 @@ class StorageTests:
     def test_marry_selects_lowest_generation_copy(self) -> None:
         guild_id = 1
         user_id = 100
-        card_id = "SPG"
+        card_type_id = "SPG"
 
         storage.init_db()
-        instance_a = storage.add_card_to_player(guild_id, user_id, card_id, 500)
-        instance_b = storage.add_card_to_player(guild_id, user_id, card_id, 50)
-        storage.add_card_to_player(guild_id, user_id, card_id, 900)
+        instance_a = storage.add_card_to_player(guild_id, user_id, card_type_id, 500)
+        instance_b = storage.add_card_to_player(guild_id, user_id, card_type_id, 50)
+        storage.add_card_to_player(guild_id, user_id, card_type_id, 900)
 
-        success, message, married_instance_id, married_generation = storage.marry_card(guild_id, user_id, card_id)
+        success, message, married_instance_id, married_generation = storage.marry_card(guild_id, user_id, card_type_id)
         assert success
         assert message == ""
         assert married_generation == 50
@@ -392,7 +392,7 @@ class StorageTests:
         owner_id = 1251
         storage.init_db()
 
-        common_card_id = next(card_id for card_id, data in storage.CARD_CATALOG.items() if str(data["rarity"]).lower() == "common")
+        common_card_id = next(card_type_id for card_type_id, data in storage.CARD_CATALOG.items() if str(data["rarity"]).lower() == "common")
         generation = 100
         storage.add_card_to_player(guild_id, owner_id, common_card_id, generation)
         storage.add_dough(guild_id, roller_id, 10_000)
@@ -428,7 +428,7 @@ class StorageTests:
         owner_id = 2251
         storage.init_db()
 
-        common_card_id = next(card_id for card_id, data in storage.CARD_CATALOG.items() if str(data["rarity"]).lower() == "common")
+        common_card_id = next(card_type_id for card_type_id, data in storage.CARD_CATALOG.items() if str(data["rarity"]).lower() == "common")
         generation = 123
         storage.add_card_to_player(guild_id, owner_id, common_card_id, generation)
         storage.add_dough(guild_id, roller_id, 10_000)
@@ -467,16 +467,16 @@ class StorageTests:
                 cooldown_seconds=660.0,
             )
         assert result.status == "ok"
-        assert result.mpreg_card_id == "SPG"
+        assert result.mpreg_card_type_id == "SPG"
         assert result.mpreg_generation == 321
-        assert result.mpreg_card_code is not None
+        assert result.mpreg_card_id is not None
         assert result.thumbnail_card_id == "SPG"
         assert result.thumbnail_generation == 321
 
         expected_line = storage.card_display(
             "SPG",
             321,
-            card_code=result.mpreg_card_code,
+            card_id=result.mpreg_card_id,
             morph_key=result.mpreg_morph_key,
             frame_key=result.mpreg_frame_key,
             font_key=result.mpreg_font_key,
@@ -585,49 +585,49 @@ class StorageTests:
     def test_burn_candidate_selects_highest_generation_copy(self) -> None:
         guild_id = 1
         user_id = 101
-        card_id = "PEN"
+        card_type_id = "PEN"
 
         storage.init_db()
-        storage.add_card_to_player(guild_id, user_id, card_id, 5)
-        storage.add_card_to_player(guild_id, user_id, card_id, 900)
-        storage.add_card_to_player(guild_id, user_id, card_id, 400)
+        storage.add_card_to_player(guild_id, user_id, card_type_id, 5)
+        storage.add_card_to_player(guild_id, user_id, card_type_id, 900)
+        storage.add_card_to_player(guild_id, user_id, card_type_id, 400)
 
-        selected = storage.get_burn_candidate_by_card_id(guild_id, user_id, card_id)
+        selected = storage.get_burn_candidate_by_card_id(guild_id, user_id, card_type_id)
         assert selected is not None
         if selected is None:
             return
-        _instance_id, selected_card_id, selected_generation, _selected_card_code = selected
-        assert selected_card_id == card_id
+        _instance_id, selected_card_type_id, selected_generation, _selected_card_id = selected
+        assert selected_card_type_id == card_type_id
         assert selected_generation == 900
 
     def test_trade_transfers_highest_generation_and_updates_dough(self) -> None:
         guild_id = 1
         seller_id = 500
         buyer_id = 600
-        card_id = "SPG"
+        card_type_id = "SPG"
 
         storage.init_db()
-        storage.add_card_to_player(guild_id, seller_id, card_id, 20)
-        storage.add_card_to_player(guild_id, seller_id, card_id, 800)
+        storage.add_card_to_player(guild_id, seller_id, card_type_id, 20)
+        storage.add_card_to_player(guild_id, seller_id, card_type_id, 800)
         storage.add_dough(guild_id, buyer_id, 100)
-        selected = storage.get_burn_candidate_by_card_id(guild_id, seller_id, card_id)
+        selected = storage.get_burn_candidate_by_card_id(guild_id, seller_id, card_type_id)
         assert selected is not None
         if selected is None:
             return
-        _, _, _, selected_card_code = selected
+        _, _, _, selected_card_id = selected
 
-        success, message, traded_generation, traded_card_code, _ = storage.execute_trade(
+        success, message, traded_generation, traded_card_id, _ = storage.execute_trade(
             guild_id=guild_id,
             seller_id=seller_id,
             buyer_id=buyer_id,
-            card_id=card_id,
-            card_code=selected_card_code,
+            card_type_id=card_type_id,
+            card_id=selected_card_id,
             terms=TradeTerms(mode="dough", amount=30),
         )
         assert success
         assert message == ""
         assert traded_generation == 800
-        assert traded_card_code is not None
+        assert traded_card_id is not None
 
         seller_instances = storage.get_player_card_instances(guild_id, seller_id)
         buyer_instances = storage.get_player_card_instances(guild_id, buyer_id)
@@ -649,18 +649,18 @@ class StorageTests:
         storage.init_db()
         storage.add_dough(guild_id, buyer_id, 100)
 
-        success, message, traded_generation, traded_card_code, _ = storage.execute_trade(
+        success, message, traded_generation, traded_card_id, _ = storage.execute_trade(
             guild_id=guild_id,
             seller_id=seller_id,
             buyer_id=buyer_id,
-            card_id="SPG",
-            card_code="0",
+            card_type_id="SPG",
+            card_id="0",
             terms=TradeTerms(mode="dough", amount=10),
         )
         assert not (success)
-        assert message == "Trade failed: seller no longer has that card code."
+        assert message == "Trade failed: seller no longer has that card ID."
         assert traded_generation is None
-        assert traded_card_code is None
+        assert traded_card_id is None
 
         seller_dough, _, _ = storage.get_player_info(guild_id, seller_id)
         buyer_dough, _, _ = storage.get_player_info(guild_id, buyer_id)
@@ -679,20 +679,20 @@ class StorageTests:
         assert selected is not None
         if selected is None:
             return
-        _, _, _, selected_card_code = selected
+        _, _, _, selected_card_id = selected
 
-        success, message, traded_generation, traded_card_code, _ = storage.execute_trade(
+        success, message, traded_generation, traded_card_id, _ = storage.execute_trade(
             guild_id=guild_id,
             seller_id=seller_id,
             buyer_id=buyer_id,
-            card_id="SPG",
-            card_code=selected_card_code,
+            card_type_id="SPG",
+            card_id=selected_card_id,
             terms=TradeTerms(mode="dough", amount=20),
         )
         assert not (success)
         assert message == "Trade failed: buyer does not have enough dough."
         assert traded_generation is None
-        assert traded_card_code is None
+        assert traded_card_id is None
 
         seller_instances = storage.get_player_card_instances(guild_id, seller_id)
         buyer_instances = storage.get_player_card_instances(guild_id, buyer_id)
@@ -716,14 +716,14 @@ class StorageTests:
         assert selected is not None
         if selected is None:
             return
-        _, _, _, card_code = selected
+        _, _, _, card_id = selected
 
         success, message, gen, _dupe, received = storage.execute_trade(
             guild_id=guild_id,
             seller_id=seller_id,
             buyer_id=buyer_id,
-            card_id="SPG",
-            card_code=card_code,
+            card_type_id="SPG",
+            card_id=card_id,
             terms=TradeTerms(mode="starter", amount=4),
         )
         assert success
@@ -749,14 +749,14 @@ class StorageTests:
         assert selected is not None
         if selected is None:
             return
-        _, _, _, card_code = selected
+        _, _, _, card_id = selected
 
         success, message, gen, _dupe, received = storage.execute_trade(
             guild_id=guild_id,
             seller_id=seller_id,
             buyer_id=buyer_id,
-            card_id="SPG",
-            card_code=card_code,
+            card_type_id="SPG",
+            card_id=card_id,
             terms=TradeTerms(mode="starter", amount=5),
         )
         assert not (success)
@@ -781,14 +781,14 @@ class StorageTests:
         assert selected is not None
         if selected is None:
             return
-        _, _, _, card_code = selected
+        _, _, _, card_id = selected
 
         success, message, gen, _dupe, received = storage.execute_trade(
             guild_id=guild_id,
             seller_id=seller_id,
             buyer_id=buyer_id,
-            card_id="SPG",
-            card_code=card_code,
+            card_type_id="SPG",
+            card_id=card_id,
             terms=TradeTerms(mode="drop", amount=3),
         )
         assert success
@@ -814,14 +814,14 @@ class StorageTests:
         assert selected is not None
         if selected is None:
             return
-        _, _, _, card_code = selected
+        _, _, _, card_id = selected
 
         success, message, gen, _dupe, received = storage.execute_trade(
             guild_id=guild_id,
             seller_id=seller_id,
             buyer_id=buyer_id,
-            card_id="SPG",
-            card_code=card_code,
+            card_type_id="SPG",
+            card_id=card_id,
             terms=TradeTerms(mode="drop", amount=5),
         )
         assert not (success)
@@ -844,14 +844,14 @@ class StorageTests:
         assert selected is not None
         if selected is None:
             return
-        _, _, _, card_code = selected
+        _, _, _, card_id = selected
 
         success, message, gen, _dupe, received = storage.execute_trade(
             guild_id=guild_id,
             seller_id=seller_id,
             buyer_id=buyer_id,
-            card_id="SPG",
-            card_code=card_code,
+            card_type_id="SPG",
+            card_id=card_id,
             terms=TradeTerms(mode="pull", amount=3),
         )
         assert success
@@ -878,9 +878,9 @@ class StorageTests:
             guild_id=guild_id,
             seller_id=seller_id,
             buyer_id=buyer_id,
-            card_id="SPG",
-            card_code=seller_dupe,
-            terms=TradeTerms(mode="card", req_card_code=buyer_dupe),
+            card_type_id="SPG",
+            card_id=seller_dupe,
+            terms=TradeTerms(mode="card", req_card_id=buyer_dupe),
         )
         assert success
         assert message == ""
@@ -888,8 +888,8 @@ class StorageTests:
         assert received is not None
         if received is None:
             return
-        r_card_id, r_gen, _r_dupe = received
-        assert r_card_id == "PEN"
+        r_card_type_id, r_gen, _r_dupe = received
+        assert r_card_type_id == "PEN"
         assert r_gen == 200
 
         seller_after = storage.get_player_card_instances(guild_id, seller_id)
@@ -913,9 +913,9 @@ class StorageTests:
             guild_id=guild_id,
             seller_id=seller_id,
             buyer_id=buyer_id,
-            card_id="SPG",
-            card_code=seller_dupe,
-            terms=TradeTerms(mode="card", req_card_code="zzz"),
+            card_type_id="SPG",
+            card_id=seller_dupe,
+            terms=TradeTerms(mode="card", req_card_id="zzz"),
         )
         assert not (success)
         assert message == "Trade failed: buyer no longer has the requested card."
@@ -948,9 +948,9 @@ class StorageTests:
             guild_id=guild_id,
             seller_id=seller_id,
             buyer_id=buyer_id,
-            card_id="SPG",
-            card_code=seller_dupe,
-            terms=TradeTerms(mode="card", req_card_code=buyer_dupe),
+            card_type_id="SPG",
+            card_id=seller_dupe,
+            terms=TradeTerms(mode="card", req_card_id=buyer_dupe),
         )
         assert success
 
@@ -972,19 +972,19 @@ class StorageTests:
         assert selected is not None
         if selected is None:
             return
-        _, _card_id, _generation, selected_card_code = selected
+        _, _card_type_id, _generation, selected_card_id = selected
 
-        success, message, gifted_card_id, gifted_generation, gifted_card_code = storage.execute_gift_card(
+        success, message, gifted_card_type_id, gifted_generation, gifted_card_id = storage.execute_gift_card(
             guild_id=guild_id,
             sender_id=sender_id,
             recipient_id=recipient_id,
-            card_code=selected_card_code,
+            card_id=selected_card_id,
         )
         assert success
         assert message == ""
-        assert gifted_card_id == "SPG"
+        assert gifted_card_type_id == "SPG"
         assert gifted_generation == 200
-        assert gifted_card_code == selected_card_code
+        assert gifted_card_id == selected_card_id
 
         sender_instances = storage.get_player_card_instances(guild_id, sender_id)
         recipient_instances = storage.get_player_card_instances(guild_id, recipient_id)
@@ -1009,19 +1009,19 @@ class StorageTests:
         assert selected is not None
         if selected is None:
             return
-        _instance_id, _card_id, _generation, card_code = selected
+        _instance_id, _card_type_id, _generation, card_id = selected
 
-        success, message, gifted_card_id, gifted_generation, gifted_card_code = storage.execute_gift_card(
+        success, message, gifted_card_type_id, gifted_generation, gifted_card_id = storage.execute_gift_card(
             guild_id=guild_id,
             sender_id=sender_id,
             recipient_id=recipient_id,
-            card_code=card_code,
+            card_id=card_id,
         )
         assert success
         assert message == ""
-        assert gifted_card_id == "SPG"
+        assert gifted_card_type_id == "SPG"
         assert gifted_generation == 300
-        assert gifted_card_code == card_code
+        assert gifted_card_id == card_id
         assert storage.get_last_pulled_instance(guild_id, sender_id) is None
 
     def test_gift_starter_transfers_balances(self) -> None:
@@ -1175,20 +1175,20 @@ class StorageTests:
         guild_id = 1
         first_user = 800
         second_user = 801
-        card_id = "SPG"
+        card_type_id = "SPG"
 
         storage.init_db()
-        storage.add_card_to_player(guild_id, first_user, card_id, 120)
-        storage.add_card_to_player(guild_id, second_user, card_id, 130)
+        storage.add_card_to_player(guild_id, first_user, card_type_id, 120)
+        storage.add_card_to_player(guild_id, second_user, card_type_id, 130)
 
-        first_success, first_message, _, _ = storage.marry_card(guild_id, first_user, card_id)
+        first_success, first_message, _, _ = storage.marry_card(guild_id, first_user, card_type_id)
         assert first_success
         assert first_message == ""
 
         second_success, second_message, second_instance_id, second_generation = storage.marry_card(
             guild_id,
             second_user,
-            card_id,
+            card_type_id,
         )
         assert not (second_success)
         assert second_message == "That card is already married by another player."
@@ -1200,11 +1200,11 @@ class StorageTests:
     ) -> None:
         guild_id = 1
         user_id = 900
-        card_id = "SPG"
+        card_type_id = "SPG"
 
         storage.init_db()
-        first_instance_id = storage.add_card_to_player(guild_id, user_id, card_id, 100)
-        second_instance_id = storage.add_card_to_player(guild_id, user_id, card_id, 200)
+        first_instance_id = storage.add_card_to_player(guild_id, user_id, card_type_id, 100)
+        second_instance_id = storage.add_card_to_player(guild_id, user_id, card_type_id, 200)
 
         success, message, _, _, _ = storage.marry_card_instance(guild_id, user_id, first_instance_id)
         assert success
@@ -1215,7 +1215,7 @@ class StorageTests:
             second_message,
             second_card_id,
             second_generation,
-            second_card_code,
+            second_card_id,
         ) = storage.marry_card_instance(
             guild_id,
             user_id,
@@ -1225,17 +1225,17 @@ class StorageTests:
         assert second_message == "You are already married. Use `ns divorce` first."
         assert second_card_id is None
         assert second_generation is None
-        assert second_card_code is None
+        assert second_card_id is None
 
     def test_remove_card_clears_last_pulled_pointer(self) -> None:
         guild_id = 1
         user_id = 910
-        card_id = "SPG"
+        card_type_id = "SPG"
 
         storage.init_db()
-        instance_id = storage.add_card_to_player(guild_id, user_id, card_id, 250)
+        instance_id = storage.add_card_to_player(guild_id, user_id, card_type_id, 250)
 
-        removed = storage.remove_card_from_player(guild_id, user_id, card_id)
+        removed = storage.remove_card_from_player(guild_id, user_id, card_type_id)
         assert removed is not None
         if removed is None:
             return
@@ -1247,10 +1247,10 @@ class StorageTests:
     def test_get_last_pulled_instance_clears_stale_pointer(self) -> None:
         guild_id = 1
         user_id = 912
-        card_id = "SPG"
+        card_type_id = "SPG"
 
         storage.init_db()
-        instance_id = storage.add_card_to_player(guild_id, user_id, card_id, 300)
+        instance_id = storage.add_card_to_player(guild_id, user_id, card_type_id, 300)
 
         with closing(sqlite3.connect(storage.DB_PATH)) as conn:
             with conn:
@@ -1274,29 +1274,29 @@ class StorageTests:
         guild_id = 1
         seller_id = 913
         buyer_id = 914
-        card_id = "SPG"
+        card_type_id = "SPG"
 
         storage.init_db()
-        storage.add_card_to_player(guild_id, seller_id, card_id, 300)
+        storage.add_card_to_player(guild_id, seller_id, card_type_id, 300)
         selected = storage.get_last_pulled_instance(guild_id, seller_id)
         assert selected is not None
         if selected is None:
             return
-        _instance_id, _card_id, _generation, card_code = selected
+        _instance_id, _card_type_id, _generation, card_id = selected
 
         storage.add_dough(guild_id, buyer_id, 100)
-        success, message, traded_generation, traded_card_code, _ = storage.execute_trade(
+        success, message, traded_generation, traded_card_id, _ = storage.execute_trade(
             guild_id=guild_id,
             seller_id=seller_id,
             buyer_id=buyer_id,
+            card_type_id=card_type_id,
             card_id=card_id,
-            card_code=card_code,
             terms=TradeTerms(mode="dough", amount=10),
         )
         assert success
         assert message == ""
         assert traded_generation == 300
-        assert traded_card_code == card_code
+        assert traded_card_id == card_id
         assert storage.get_last_pulled_instance(guild_id, seller_id) is None
 
         with closing(sqlite3.connect(storage.DB_PATH)) as conn:
@@ -1309,7 +1309,7 @@ class StorageTests:
             return
         assert row[0] is None
 
-    def test_card_codes_assign_sequential_and_reuse_lowest_free(self) -> None:
+    def test_card_ids_assign_sequential_and_reuse_lowest_free(self) -> None:
         guild_id = 1
         user_id = 911
 
@@ -1320,7 +1320,7 @@ class StorageTests:
 
         with closing(sqlite3.connect(storage.DB_PATH)) as conn:
             dupe_rows = conn.execute(
-                "SELECT instance_id, card_code FROM card_instances WHERE guild_id = ? ORDER BY instance_id ASC",
+                "SELECT instance_id, card_id FROM card_instances WHERE guild_id = ? ORDER BY instance_id ASC",
                 (storage.GLOBAL_GUILD_ID,),
             ).fetchall()
         dupe_by_instance = {int(row[0]): str(row[1]) for row in dupe_rows}
@@ -1336,14 +1336,14 @@ class StorageTests:
 
         with closing(sqlite3.connect(storage.DB_PATH)) as conn:
             dupe_rows = conn.execute(
-                "SELECT instance_id, card_code FROM card_instances WHERE guild_id = ? ORDER BY instance_id ASC",
+                "SELECT instance_id, card_id FROM card_instances WHERE guild_id = ? ORDER BY instance_id ASC",
                 (storage.GLOBAL_GUILD_ID,),
             ).fetchall()
         dupe_by_instance = {int(row[0]): str(row[1]) for row in dupe_rows}
         assert dupe_by_instance[reused_instance] == "1"
         assert dupe_by_instance[next_instance] == "3"
 
-    def test_get_instance_by_code_accepts_hash_prefix(self) -> None:
+    def test_get_instance_by_card_id_accepts_hash_prefix(self) -> None:
         guild_id = 1
         user_id = 915
 
@@ -1353,11 +1353,11 @@ class StorageTests:
         assert instance is not None
         if instance is None:
             return
-        _found_instance_id, _card_id, _generation, card_code = instance
+        _found_instance_id, _card_type_id, _generation, card_id = instance
 
-        by_plain_code = storage.get_instance_by_code(guild_id, user_id, card_code.upper())
-        by_hash_code = storage.get_instance_by_code(guild_id, user_id, f"#{card_code.upper()}")
-        by_hash_global = storage.get_instance_by_card_code(guild_id, f"#{card_code.upper()}")
+        by_plain_code = storage.get_instance_by_code(guild_id, user_id, card_id.upper())
+        by_hash_code = storage.get_instance_by_code(guild_id, user_id, f"#{card_id.upper()}")
+        by_hash_global = storage.get_instance_by_card_id(guild_id, f"#{card_id.upper()}")
         assert by_plain_code == by_hash_code
         assert by_hash_global is not None
         if by_hash_global is None or by_plain_code is None:
@@ -1368,25 +1368,25 @@ class StorageTests:
             global_user_id,
             global_card_id,
             global_generation,
-            global_card_code,
+            global_card_id,
             global_dropped_by_user_id,
             global_pulled_by_user_id,
             global_pulled_at,
         ) = by_hash_global
-        plain_instance_id, plain_card_id, plain_generation, plain_card_code = by_plain_code
+        plain_instance_id, plain_card_id, plain_generation, plain_card_id = by_plain_code
         assert global_user_id == user_id
-        assert (global_instance_id, global_card_id, global_generation, global_card_code) == (
+        assert (global_instance_id, global_card_id, global_generation, global_card_id) == (
             plain_instance_id,
             plain_card_id,
             plain_generation,
-            plain_card_code,
+            plain_card_id,
         )
         assert global_dropped_by_user_id is None
         assert global_pulled_by_user_id is None
         assert global_pulled_at is not None
         assert global_pulled_at > 0
 
-    def test_init_db_v5_ensures_card_code_column_and_index(self) -> None:
+    def test_init_db_v5_ensures_legacy_card_code_column_and_index(self) -> None:
         with closing(sqlite3.connect(storage.DB_PATH)) as conn:
             with conn:
                 conn.executescript("""
@@ -1399,11 +1399,11 @@ class StorageTests:
                         instance_id INTEGER PRIMARY KEY AUTOINCREMENT,
                         guild_id INTEGER NOT NULL,
                         user_id INTEGER NOT NULL,
-                        card_id TEXT NOT NULL,
+                        card_type_id TEXT NOT NULL,
                         generation INTEGER NOT NULL
                     );
 
-                    INSERT INTO card_instances (guild_id, user_id, card_id, generation)
+                    INSERT INTO card_instances (guild_id, user_id, card_type_id, generation)
                     VALUES (0, 42, 'SPG', 123);
                     """)
 
@@ -1416,9 +1416,9 @@ class StorageTests:
 
             columns = conn.execute("PRAGMA table_info(card_instances)").fetchall()
             column_names = {str(column[1]) for column in columns}
-            assert "card_code" in column_names
+            assert "card_id" in column_names
 
-            index_row = conn.execute("SELECT name FROM sqlite_master WHERE type = 'index' AND name = 'idx_card_instances_card_code'").fetchone()
+            index_row = conn.execute("SELECT name FROM sqlite_master WHERE type = 'index' AND name = 'idx_card_instances_card_id'").fetchone()
             assert index_row is not None
 
     def test_init_db_v26_renames_legacy_dupe_code_column(self) -> None:
@@ -1459,14 +1459,14 @@ class StorageTests:
 
             columns = conn.execute("PRAGMA table_info(card_instances)").fetchall()
             column_names = {str(column[1]) for column in columns}
-            assert "card_code" in column_names
+            assert "card_id" in column_names
             assert "dupe_code" not in column_names
 
-            row = conn.execute("SELECT card_code FROM card_instances LIMIT 1").fetchone()
+            row = conn.execute("SELECT card_id FROM card_instances LIMIT 1").fetchone()
             assert row is not None
             assert str(row[0]) == "a"
 
-            index_row = conn.execute("SELECT name FROM sqlite_master WHERE type = 'index' AND name = 'idx_card_instances_card_code'").fetchone()
+            index_row = conn.execute("SELECT name FROM sqlite_master WHERE type = 'index' AND name = 'idx_card_instances_card_id'").fetchone()
             assert index_row is not None
 
     def test_init_db_v27_adds_pulled_at_and_backfills_nulls(self) -> None:
@@ -1485,7 +1485,7 @@ class StorageTests:
                         user_id INTEGER NOT NULL,
                         card_type_id TEXT NOT NULL,
                         generation INTEGER NOT NULL,
-                        card_code TEXT,
+                        card_id TEXT,
                         dropped_by_user_id INTEGER,
                         pulled_by_user_id INTEGER,
                         morph_key TEXT,
@@ -1493,7 +1493,7 @@ class StorageTests:
                         font_key TEXT
                     );
 
-                    INSERT INTO card_instances (guild_id, user_id, card_type_id, generation, card_code)
+                    INSERT INTO card_instances (guild_id, user_id, card_type_id, generation, card_id)
                     VALUES (0, 42, 'SPG', 123, 'a');
                     """
                 )
@@ -1529,7 +1529,7 @@ class StorageTests:
                         user_id INTEGER NOT NULL,
                         card_type_id TEXT NOT NULL,
                         generation INTEGER NOT NULL,
-                        card_code TEXT,
+                        card_id TEXT,
                         dropped_by_user_id INTEGER,
                         pulled_by_user_id INTEGER,
                         pulled_at REAL

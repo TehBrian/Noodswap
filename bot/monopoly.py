@@ -205,7 +205,7 @@ def random_epic_or_better_card_id() -> str:
         if rarity in RARITY_EPIC_OR_HIGHER:
             return candidate
 
-    fallback = [card_id for card_id, data in CARD_CATALOG.items() if str(data["rarity"]).lower() in RARITY_EPIC_OR_HIGHER]
+    fallback = [card_type_id for card_type_id, data in CARD_CATALOG.items() if str(data["rarity"]).lower() in RARITY_EPIC_OR_HIGHER]
     return random.choice(fallback)
 
 

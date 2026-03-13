@@ -4,7 +4,7 @@
 
 1. Migration framework is minimal
 - `schema_migrations` + in-code step migrations now exist in `init_db()`.
-- A recovery migration now normalizes legacy `card_instances.dupe_code` databases to `card_code` on startup so older persistent runtime volumes can survive schema refactors.
+- A recovery migration now normalizes legacy `card_instances.dupe_code` databases to `card_id` on startup so older persistent runtime volumes can survive schema refactors.
 - Still missing richer migration ergonomics (standalone migration files and downgrade strategy).
 
 2. Concurrency/race handling is basic
@@ -81,8 +81,8 @@ Stage 3 implementation guide: `docs/refactor-phase-3.md`.
 
 - Hardened cooldown command paths with per-player in-flight command gating for `drop`, `pull`, `slots`, `flip`, and `monopoly roll` to prevent duplicate concurrent executions while preserving storage-level cooldown enforcement as source of truth; Monopoly doubles behavior remains unchanged (immediate reroll allowed after the active roll resolves).
 - Changed `cards` / `ca` from a player-scoped duplicate view into a global owned-instance index that lists every claimed card across all players and annotates each line with its owner; `collection` remains the per-player inventory view.
-- Expanded `trade` mode beyond dough-only: `trade <player> <card_code> <mode> <amount|req_card_code>` now supports `dough`, `starter`, `drop` (aliases: `tickets`/`ticket`/`drop_tickets`), and `card` (card-for-card swap where both sides exchange a specific owned dupe). Card mode clears marriage and last-pulled pointers for both transferred instances. Either side losing their card between offer and accept causes a deterministic failure (no partial-fill).
-- Reworked `gift` into explicit immediate-transfer subcommands (`ns gift dough <player> <dough>`, `ns gift starter <player> <starter>`, `ns gift drop <player> <tickets>`, and `ns gift card <player> <card_code>`) so runtime behavior and docs align around one-step transfers.
+- Expanded `trade` mode beyond dough-only: `trade <player> <card_id> <mode> <amount|req_card_id>` now supports `dough`, `starter`, `drop` (aliases: `tickets`/`ticket`/`drop_tickets`), and `card` (card-for-card swap where both sides exchange a specific owned dupe). Card mode clears marriage and last-pulled pointers for both transferred instances. Either side losing their card between offer and accept causes a deterministic failure (no partial-fill).
+- Reworked `gift` into explicit immediate-transfer subcommands (`ns gift dough <player> <dough>`, `ns gift starter <player> <starter>`, `ns gift drop <player> <tickets>`, and `ns gift card <player> <card_id>`) so runtime behavior and docs align around one-step transfers.
 - Finalized command-module split: `bot/commands.py` is now a thin registrar entrypoint delegating to domain modules (`commands_social`, `commands_catalog`, `commands_economy`, `commands_gambling`, `commands_admin`) with shared helpers in `command_utils.py`.
 - Updated `wish add`, `tag/folder/team assign`, and `tag/folder/team unassign` to accept multiple space-separated targets with dedupe + mixed-result feedback (including team remaining-slot `before -> after` reporting), and changed batch burn semantics to partial execution (burn eligible targets, report skipped locked/unavailable targets) instead of all-or-nothing lock blocking.
 - Added persistent `players.votes` tracking for successful top.gg webhook claims, surfaced the count in `info`, and added `Votes` as a sortable `leaderboard` criterion.

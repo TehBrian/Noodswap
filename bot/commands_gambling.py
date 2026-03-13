@@ -93,7 +93,7 @@ from .command_utils import (
     get_folder_emojis_for_instances as get_folder_emojis_for_instances,
     get_gambling_pot as get_gambling_pot,
     get_instance_by_code as get_instance_by_code,
-    get_instance_by_card_code as get_instance_by_card_code,
+    get_instance_by_card_id as get_instance_by_card_id,
     get_instance_by_id as get_instance_by_id,
     get_instance_font as get_instance_font,
     get_instance_frame as get_instance_frame,
@@ -405,7 +405,7 @@ def register_gambling_commands(bot: commands.Bot) -> None:
 
             embed = italy_embed("Monopoly Roll", multiline_text(list(result.lines)))
             image_file = None
-            thumbnail_card_id = getattr(result, "thumbnail_card_id", None) or result.mpreg_card_id
+            thumbnail_card_id = getattr(result, "thumbnail_card_id", None) or result.mpreg_card_type_id
             thumbnail_generation = getattr(result, "thumbnail_generation", None) or result.mpreg_generation
             thumbnail_morph_key = getattr(result, "thumbnail_morph_key", None)
             thumbnail_frame_key = getattr(result, "thumbnail_frame_key", None)

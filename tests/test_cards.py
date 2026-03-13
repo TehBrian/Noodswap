@@ -14,8 +14,8 @@ from bot.settings import GENERATION_MAX, GENERATION_MIN
 
 def test_every_card_has_local_path_image_value() -> None:
     missing_local_path_ids = [
-        card_id
-        for card_id, card in CARD_CATALOG.items()
+        card_type_id
+        for card_type_id, card in CARD_CATALOG.items()
         if not isinstance(card.get("image"), str) or not card["image"].startswith("runtime/card_images/")
     ]
     assert missing_local_path_ids == []
@@ -23,7 +23,9 @@ def test_every_card_has_local_path_image_value() -> None:
 
 def test_no_card_uses_remote_image_urls() -> None:
     remote_ids = [
-        card_id for card_id, card in CARD_CATALOG.items() if isinstance(card.get("image"), str) and card["image"].startswith(("http://", "https://"))
+        card_type_id
+        for card_type_id, card in CARD_CATALOG.items()
+        if isinstance(card.get("image"), str) and card["image"].startswith(("http://", "https://"))
     ]
     assert remote_ids == []
 

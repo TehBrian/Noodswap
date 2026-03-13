@@ -139,8 +139,8 @@ This bot uses privileged intents. Enable these for your application in Discord D
 - `ns collection [player]` / `ns c [player]` — show your collection or another player's collection with interactive sorting and gallery toggle (defaults to yourself).
 - `ns cards` / `ns ca` — show all owned card instances across all players, with owner labels plus the same sorting and gallery controls as collection.
 - `ns types` / `ns ty` — show all available card types with interactive sorting (wishes, rarity, series, base value, alphabetical; default alphabetical), plus a gallery toggle for one-card image mode.
-- `ns lookup <card_id|card_code|query>` / `ns l <card_id|card_code|query>` — show card type details, or exact owned-card details when a card code is provided.
-- `ns lookuphd <card_id|card_code|query>` / `ns lhd <card_id|card_code|query>` — same as lookup, but renders the card image at `1000x1400`.
+- `ns lookup <card_type_id|card_id|query>` / `ns l <card_type_id|card_id|query>` — show card type details, or exact owned-card details when a card ID is provided.
+- `ns lookuphd <card_type_id|card_id|query>` / `ns lhd <card_type_id|card_id|query>` — same as lookup, but renders the card image at `1000x1400`.
 - `ns help` / `ns h` — show command help.
 - `ns drop` / `ns d` — open a drop with 3 random cards; anyone can claim unclaimed cards via buttons. If drop cooldown is active, one `drop ticket` is auto-consumed instead.
 - `ns buy drop [quantity]` — buy drop tickets using `starter` (cost: 1 starter per ticket; default quantity is 1).
@@ -148,21 +148,21 @@ This bot uses privileged intents. Enable these for your application in Discord D
 - `ns flip <stake>` / `ns f <stake>` — coin flip wager with 46% win / 54% lose odds; heads wins `+stake`, tails loses `-stake` (2m cooldown).
 - `ns vote` / `ns v` — open the top.gg vote page and claim `starter` reward when your vote is detected.
 - `ns cooldown [player]` / `ns cd [player]` — show drop (6m), pull (4m), flip (2m), slots (22m), and monopoly (2.5m) cooldowns for yourself or another player.
-- `ns burn [targets...]` / `ns b [targets...]` — burn one or more targets for dough. Supports card codes/IDs plus selectors `t:<tag_name>` and `f:<folder_name>`. If any selected card is in a locked tag or locked folder, the entire burn is blocked.
+- `ns burn [targets...]` / `ns b [targets...]` — burn one or more targets for dough. Supports card IDs/IDs plus selectors `t:<tag_name>` and `f:<folder_name>`. If any selected card is in a locked tag or locked folder, the entire burn is blocked.
 - `ns gift dough <player> <dough>` / `ns gift d <player> <dough>` — send dough directly to another player.
 - `ns gift starter <player> <starter>` / `ns gift s <player> <starter>` — send starter directly to another player.
 - `ns gift drop <player> <tickets>` — send drop tickets directly to another player.
-- `ns gift card <player> <card_code>` / `ns gift c <player> <card_code>` — send one owned card copy directly to another player.
-- `ns morph [card_code]` / `ns mo [card_code]` — pay 20% of card value (rounded up) to apply a random morph; currently supports `black_and_white`.
-- `ns frame [card_code]` / `ns fr [card_code]` — pay 20% of card value (rounded up) to apply a random frame from available frames (`buttery`, `gilded`, `drizzled`) in `assets/frames/`.
-- `ns font [card_code]` / `ns fo [card_code]` — pay 20% of card value (rounded up) to apply a random font (`serif`, `mono`, `storybook`, `spooky`, `pixel`, `playful`). `Classic` is now the default baseline style (not a trait modifier).
-- `ns trade <player> <card_code> <mode> <amount|req_card_code>` / `ns t ...` — offer a dupe trade; mode selects payment type (`dough`, `starter`, `drop` (aliases: `ticket`/`tickets`/`drop_tickets`), or `card` for card-swap).
+- `ns gift card <player> <card_id>` / `ns gift c <player> <card_id>` — send one owned card copy directly to another player.
+- `ns morph [card_id]` / `ns mo [card_id]` — pay 20% of card value (rounded up) to apply a random morph; currently supports `black_and_white`.
+- `ns frame [card_id]` / `ns fr [card_id]` — pay 20% of card value (rounded up) to apply a random frame from available frames (`buttery`, `gilded`, `drizzled`) in `assets/frames/`.
+- `ns font [card_id]` / `ns fo [card_id]` — pay 20% of card value (rounded up) to apply a random font (`serif`, `mono`, `storybook`, `spooky`, `pixel`, `playful`). `Classic` is now the default baseline style (not a trait modifier).
+- `ns trade <player> <card_id> <mode> <amount|req_card_id>` / `ns t ...` — offer a dupe trade; mode selects payment type (`dough`, `starter`, `drop` (aliases: `ticket`/`tickets`/`drop_tickets`), or `card` for card-swap).
 - `ns team` / `ns tm` — team command group.
 - `ns team add <team_name>` / `ns team a <team_name>` — create a team (max 32 chars, normalized lowercase).
 - `ns team remove <team_name>` / `ns team r <team_name>` — delete one of your teams.
 - `ns team list` / `ns team l` — list your teams and card counts.
-- `ns team assign <team_name> <card_code>` / `ns team as ...` — assign one owned card instance to a team.
-- `ns team unassign <team_name> <card_code>` / `ns team u ...` — remove a card instance from a team.
+- `ns team assign <team_name> <card_id>` / `ns team as ...` — assign one owned card instance to a team.
+- `ns team unassign <team_name> <card_id>` / `ns team u ...` — remove a card instance from a team.
 - `ns team cards <team_name>` / `ns team c <team_name>` — view a team's cards.
 - `ns team active [team_name]` — show current active team, or set one for battles.
 - `ns battle <player> <stake>` / `ns bt ...` — propose a stake battle; challenged player can accept or deny.
@@ -175,19 +175,19 @@ This bot uses privileged intents. Enable these for your application in Discord D
 - `ns tag remove <tag_name>` / `ns tag r <tag_name>` — delete one of your tags.
 - `ns tag list` / `ns tag l` — list your tags, lock status, and card counts.
 - `ns tag lock <tag_name>` / `ns tag unlock <tag_name>` — toggle burn protection for that tag.
-- `ns tag assign <tag_name> <card_code>` / `ns tag as ...` — tag one of your owned cards.
-- `ns tag unassign <tag_name> <card_code>` / `ns tag u ...` — remove a card from a tag.
+- `ns tag assign <tag_name> <card_id>` / `ns tag as ...` — tag one of your owned cards.
+- `ns tag unassign <tag_name> <card_id>` / `ns tag u ...` — remove a card from a tag.
 - `ns tag cards <tag_name>` / `ns tag c <tag_name>` — list cards in a specific tag.
 - `ns folder` / `ns fd` — folder command group.
 - `ns folder add <folder_name> [emoji]` / `ns folder a ...` — create a personal folder with optional emoji (default `📁`).
 - `ns folder remove <folder_name>` / `ns folder r ...` — delete one of your folders.
 - `ns folder list` / `ns folder l` — list your folders, emoji, lock status, and card counts.
 - `ns folder lock <folder_name>` / `ns folder unlock <folder_name>` — toggle burn protection for that folder.
-- `ns folder assign <folder_name> <card_code>` / `ns folder as ...` — place one owned card instance into a folder (moves it if it already had one).
-- `ns folder unassign <folder_name> <card_code>` / `ns folder u ...` — remove a card from that folder.
+- `ns folder assign <folder_name> <card_id>` / `ns folder as ...` — place one owned card instance into a folder (moves it if it already had one).
+- `ns folder unassign <folder_name> <card_id>` / `ns folder u ...` — remove a card from that folder.
 - `ns folder cards <folder_name>` / `ns folder c <folder_name>` — list cards in a specific folder.
 - `ns folder emoji <folder_name> <emoji>` / `ns folder e ...` — update a folder's emoji.
-- `ns marry [card_code]` / `ns m [card_code]` — marry a specific owned dupe by code.
+- `ns marry [card_id]` / `ns m [card_id]` — marry a specific owned dupe by code.
 - `ns divorce` / `ns dv` — divorce your currently married card.
 
 ### Owner-only admin commands

@@ -128,9 +128,9 @@ def series_attack_message(series: str, card_name: str, damage: int, rng: random.
 @dataclass(frozen=True)
 class BattleCard:
     instance_id: int
-    card_id: str
+    card_type_id: str
     generation: int
-    card_code: str
+    card_id: str
     rarity: str
     series: str
     max_hp: int
@@ -173,19 +173,19 @@ def value_to_stats(value: int) -> tuple[int, int, int]:
 
 def build_battle_card(
     instance_id: int,
-    card_id: str,
+    card_type_id: str,
     generation: int,
-    card_code: str,
+    card_id: str,
     *,
     morph_key: str | None = None,
     frame_key: str | None = None,
     font_key: str | None = None,
 ) -> BattleCard:
-    card = CARD_CATALOG[card_id]
+    card = CARD_CATALOG[card_type_id]
     rarity = str(card["rarity"])
     series = str(card["series"])
     computed_value = card_value(
-        card_id,
+        card_type_id,
         generation,
         morph_key=morph_key,
         frame_key=frame_key,
@@ -194,9 +194,9 @@ def build_battle_card(
     hp, attack, defense = value_to_stats(computed_value)
     return BattleCard(
         instance_id=instance_id,
-        card_id=card_id,
+        card_type_id=card_type_id,
         generation=generation,
-        card_code=card_code,
+        card_id=card_id,
         rarity=rarity,
         series=series,
         max_hp=hp,
@@ -208,7 +208,7 @@ def build_battle_card(
 def build_team_battle_cards(
     instances: list[tuple[int, str, int, str]],
 ) -> list[BattleCard]:
-    return [build_battle_card(instance_id, card_id, generation, card_code) for instance_id, card_id, generation, card_code in instances]
+    return [build_battle_card(instance_id, card_type_id, generation, card_id) for instance_id, card_type_id, generation, card_id in instances]
 
 
 def resolve_attack(

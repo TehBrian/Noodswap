@@ -81,20 +81,20 @@ class SortableCardListView(discord.ui.View):
         if mode == "wishes":
             return sorted(
                 self.card_ids,
-                key=lambda card_id: (
-                    (-self.wish_counts.get(card_id, 0) if descending else self.wish_counts.get(card_id, 0)),
-                    str(CARD_CATALOG[card_id]["name"]),
-                    card_id,
+                key=lambda card_type_id: (
+                    (-self.wish_counts.get(card_type_id, 0) if descending else self.wish_counts.get(card_type_id, 0)),
+                    str(CARD_CATALOG[card_type_id]["name"]),
+                    card_type_id,
                 ),
             )
 
         if mode == "series":
             return sorted(
                 self.card_ids,
-                key=lambda card_id: (
-                    str(CARD_CATALOG[card_id]["series"]),
-                    str(CARD_CATALOG[card_id]["name"]),
-                    card_id,
+                key=lambda card_type_id: (
+                    str(CARD_CATALOG[card_type_id]["series"]),
+                    str(CARD_CATALOG[card_type_id]["name"]),
+                    card_type_id,
                 ),
                 reverse=descending,
             )
@@ -102,29 +102,29 @@ class SortableCardListView(discord.ui.View):
         if mode == "base_value":
             return sorted(
                 self.card_ids,
-                key=lambda card_id: (
-                    (-int(CARD_CATALOG[card_id]["base_value"]) if descending else int(CARD_CATALOG[card_id]["base_value"])),
-                    str(CARD_CATALOG[card_id]["name"]),
-                    card_id,
+                key=lambda card_type_id: (
+                    (-int(CARD_CATALOG[card_type_id]["base_value"]) if descending else int(CARD_CATALOG[card_type_id]["base_value"])),
+                    str(CARD_CATALOG[card_type_id]["name"]),
+                    card_type_id,
                 ),
             )
 
         if mode == "alphabetical":
             return sorted(
                 self.card_ids,
-                key=lambda card_id: (
-                    str(CARD_CATALOG[card_id]["name"]),
-                    card_id,
+                key=lambda card_type_id: (
+                    str(CARD_CATALOG[card_type_id]["name"]),
+                    card_type_id,
                 ),
                 reverse=descending,
             )
 
         return sorted(
             self.card_ids,
-            key=lambda card_id: (
-                self._rarity_rank(str(CARD_CATALOG[card_id]["rarity"])),
-                str(CARD_CATALOG[card_id]["name"]),
-                card_id,
+            key=lambda card_type_id: (
+                self._rarity_rank(str(CARD_CATALOG[card_type_id]["rarity"])),
+                str(CARD_CATALOG[card_type_id]["name"]),
+                card_type_id,
             ),
             reverse=descending,
         )
@@ -160,10 +160,10 @@ class SortableCardListView(discord.ui.View):
         if not page_card_ids:
             description = "No entries available."
         elif self.gallery_mode:
-            card_id = page_card_ids[0]
-            description = f"{start + 1}. {card_base_display(card_id)}"
+            card_type_id = page_card_ids[0]
+            description = f"{start + 1}. {card_base_display(card_type_id)}"
         else:
-            lines = [f"{idx}. {card_base_display(card_id)}" for idx, card_id in enumerate(page_card_ids, start=start + 1)]
+            lines = [f"{idx}. {card_base_display(card_type_id)}" for idx, card_type_id in enumerate(page_card_ids, start=start + 1)]
             description = multiline_text(lines)
 
         embed = italy_embed(self.title, description)
@@ -344,7 +344,7 @@ class SortableCollectionView(discord.ui.View):
         self.page_index = 0
         valid_sort_modes = {
             "generation",
-            "code",
+            "id",
             "wishes",
             "rarity",
             "series",
@@ -424,7 +424,7 @@ class SortableCollectionView(discord.ui.View):
                 ),
             )
 
-        if mode == "code":
+        if mode == "id":
             return sorted(
                 self.instances,
                 key=lambda item: (
@@ -554,23 +554,23 @@ class SortableCollectionView(discord.ui.View):
         if not page_instances:
             description = "No entries available."
         elif self.gallery_mode:
-            instance_id, card_id, generation, card_code = page_instances[0]
+            instance_id, card_type_id, generation, card_id = page_instances[0]
             marker = self._instance_marker(instance_id)
-            description = f"{start + 1}. {marker}{self._format_card_line(instance_id, card_id, generation, card_code)}"
+            description = f"{start + 1}. {marker}{self._format_card_line(instance_id, card_type_id, generation, card_id)}"
         else:
             lines = [
-                f"{idx}. {self._instance_marker(instance_id)}{self._format_card_line(instance_id, card_id, generation, card_code)}"
-                for idx, (instance_id, card_id, generation, card_code) in enumerate(page_instances, start=start + 1)
+                f"{idx}. {self._instance_marker(instance_id)}{self._format_card_line(instance_id, card_type_id, generation, card_id)}"
+                for idx, (instance_id, card_type_id, generation, card_id) in enumerate(page_instances, start=start + 1)
             ]
             description = multiline_text(lines)
 
         embed = italy_embed(self.title, description)
         if self.gallery_mode and page_instances:
-            instance_id, card_id, generation, _card_code = page_instances[0]
+            instance_id, card_type_id, generation, _card_id = page_instances[0]
             morph_key, frame_key, font_key = self.instance_styles.get(instance_id, (None, None, None))
 
             image_url, image_file = embed_image_payload(
-                card_id,
+                card_type_id,
                 generation=generation,
                 morph_key=morph_key,
                 frame_key=frame_key,
@@ -582,7 +582,7 @@ class SortableCollectionView(discord.ui.View):
         sort_label_map = {
             "time_pulled": "Time Pulled",
             "generation": "Generation",
-            "code": "Code",
+            "id": "ID",
             "wishes": "Wishes",
             "rarity": "Rarity",
             "series": "Series",
@@ -602,13 +602,13 @@ class SortableCollectionView(discord.ui.View):
         folder_marker = f"{folder_emoji} " if folder_emoji is not None else "`  ` "
         return f"{folder_marker}{lock_marker}"
 
-    def _format_card_line(self, instance_id: int, card_id: str, generation: int, card_code: str | None) -> str:
+    def _format_card_line(self, instance_id: int, card_type_id: str, generation: int, card_id: str | None) -> str:
         morph_key, frame_key, font_key = self.instance_styles.get(instance_id, (None, None, None))
         try:
             return self.card_line_formatter(
-                card_id,
+                card_type_id,
                 generation,
-                card_code,
+                card_id,
                 instance_id=instance_id,
                 morph_key=morph_key,
                 frame_key=frame_key,
@@ -617,15 +617,15 @@ class SortableCollectionView(discord.ui.View):
         except TypeError:
             try:
                 return self.card_line_formatter(
-                    card_id,
+                    card_type_id,
                     generation,
-                    card_code,
+                    card_id,
                     morph_key=morph_key,
                     frame_key=frame_key,
                     font_key=font_key,
                 )
             except TypeError:
-                return self.card_line_formatter(card_id, generation, card_code)
+                return self.card_line_formatter(card_type_id, generation, card_id)
 
     def build_embed(self) -> discord.Embed:
         embed, _file = self._build_embed_and_file()
@@ -672,9 +672,9 @@ class SortableCollectionView(discord.ui.View):
                 description="Lowest generation first",
             ),
             discord.SelectOption(
-                label="Code",
-                value="code",
-                description="Sort by card code",
+                label="ID",
+                value="id",
+                description="Sort by card ID",
             ),
             discord.SelectOption(label="Wishes", value="wishes", description="Highest wish count first"),
             discord.SelectOption(label="Rarity", value="rarity", description="Rarest cards first"),

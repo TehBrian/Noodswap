@@ -173,11 +173,11 @@ Use extra caution when editing:
 - each drop card can only be claimed once, while other cards remain claimable until timeout
 - inventory/dough/marriage state appears consistently across guilds for the same user
 - `ns collection` shows instance generations
-- `ns marry <card_code>` marries the exact referenced dupe (code examples: `0`, `a`, `10`, `#10`)
+- `ns marry <card_id>` marries the exact referenced dupe (code examples: `0`, `a`, `10`, `#10`)
 - `ns burn` asks for confirm/cancel before burning
 - `ns burn` (no arg) defaults to the last pulled card instance
-- `ns burn <card_code>` burns the exact referenced dupe (code examples: `0`, `a`, `10`, `#10`)
-- `ns trade <player> <card_code> <amount>` transfers the exact referenced dupe and dough
+- `ns burn <card_id>` burns the exact referenced dupe (code examples: `0`, `a`, `10`, `#10`)
+- `ns trade <player> <card_id> <amount>` transfers the exact referenced dupe and dough
 - `ns cooldown [player]` shows correct pull cooldown status for self/target
 - `ns info` shows correct dough/married display
 - `ns help` displays grouped command sections with descriptions

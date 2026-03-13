@@ -47,7 +47,7 @@ def _format_skip_reasons(reasons: tuple[str, ...] | list[str]) -> str:
 
 
 def _burn_result_has_required_fields(result: object) -> bool:
-    return all(getattr(result, field_name) is not None for field_name in ("card_id", "generation", "card_code", "payout", "delta"))
+    return all(getattr(result, field_name) is not None for field_name in ("card_type_id", "generation", "card_id", "payout", "delta"))
 
 
 def _format_trait_roll_details(rolled_rarity: str, rolled_multiplier: float) -> str:
@@ -82,7 +82,7 @@ class BurnConfirmView(InteractionView):
         guild_id: int,
         user_id: int,
         instance_id: int,
-        card_id: str,
+        card_type_id: str,
         generation: int,
         delta_range: int,
         burn_items: list[tuple[int, int]] | None = None,
@@ -91,7 +91,7 @@ class BurnConfirmView(InteractionView):
         self.guild_id = guild_id
         self.user_id = user_id
         self.instance_id = instance_id
-        self.card_id = card_id
+        self.card_type_id = card_type_id
         self.generation = generation
         self.delta_range = delta_range
         if burn_items is None:
@@ -168,7 +168,7 @@ class BurnConfirmView(InteractionView):
 
             burned_embed = italy_embed(
                 "**Card Burned**",
-                f"""{card_display(burn_result.card_id, burn_result.generation, card_code=burn_result.card_code)}
+                f"""{card_display(burn_result.card_type_id, burn_result.generation, card_id=burn_result.card_id)}
 
 Payout: **{burn_result.payout} dough**
     RNG: **{burn_result.delta:+}**""",
@@ -213,7 +213,7 @@ Payout: **{burn_result.payout} dough**
         for entry in burn_result.burned_entries:
             total_payout += entry.payout
             burned_lines.append(
-                f"{card_display(entry.card_id, entry.generation, card_code=entry.card_code)}\n"
+                f"{card_display(entry.card_type_id, entry.generation, card_id=entry.card_id)}\n"
                 f"Payout: **{entry.payout} dough** | RNG: **{entry.delta:+}**"
             )
 
@@ -299,9 +299,9 @@ class MorphConfirmView(InteractionView):
         guild_id: int,
         user_id: int,
         instance_id: int,
-        card_id: str,
+        card_type_id: str,
         generation: int,
-        card_code: str,
+        card_id: str,
         before_morph_key: str | None,
         before_frame_key: str | None,
         before_font_key: str | None,
@@ -311,9 +311,9 @@ class MorphConfirmView(InteractionView):
         self.guild_id = guild_id
         self.user_id = user_id
         self.instance_id = instance_id
-        self.card_id = card_id
+        self.card_type_id = card_type_id
         self.generation = generation
-        self.card_code = card_code
+        self.card_id = card_id
         self.before_morph_key = before_morph_key
         self.before_frame_key = before_frame_key
         self.before_font_key = before_font_key
@@ -375,9 +375,9 @@ class MorphConfirmView(InteractionView):
             self.guild_id,
             self.user_id,
             instance_id=self.instance_id,
-            card_id=self.card_id,
+            card_type_id=self.card_type_id,
             generation=self.generation,
-            card_code=self.card_code,
+            card_id=self.card_id,
             current_morph_key=self.before_morph_key,
             cost=self.cost,
         )
@@ -411,9 +411,9 @@ class MorphConfirmView(InteractionView):
             "Morph Roll",
             _trait_roll_description(
                 card_line=card_display(
-                    self.card_id,
+                    self.card_type_id,
                     self.generation,
-                    card_code=self.card_code,
+                    card_id=self.card_id,
                     morph_key=self.before_morph_key,
                     frame_key=self.before_frame_key,
                     font_key=self.before_font_key,
@@ -428,7 +428,7 @@ class MorphConfirmView(InteractionView):
             ),
         )
         image_url, image_file = morph_transition_image_payload(
-            self.card_id,
+            self.card_type_id,
             generation=self.generation,
             before_morph_key=self.before_morph_key,
             after_morph_key=self.pending_morph_key,
@@ -475,9 +475,9 @@ class MorphConfirmView(InteractionView):
             self.guild_id,
             self.user_id,
             instance_id=self.instance_id,
-            card_id=self.card_id,
+            card_type_id=self.card_type_id,
             generation=self.generation,
-            card_code=self.card_code,
+            card_id=self.card_id,
             morph_key=self.pending_morph_key,
             morph_name=self.pending_morph_name,
             rolled_rarity=self.pending_rarity,
@@ -501,9 +501,9 @@ class MorphConfirmView(InteractionView):
             "Morph Applied",
             _trait_roll_description(
                 card_line=card_display(
-                    self.card_id,
+                    self.card_type_id,
                     self.generation,
-                    card_code=self.card_code,
+                    card_id=self.card_id,
                     morph_key=self.before_morph_key,
                     frame_key=self.before_frame_key,
                     font_key=self.before_font_key,
@@ -518,7 +518,7 @@ class MorphConfirmView(InteractionView):
             ),
         )
         image_url, image_file = morph_transition_image_payload(
-            self.card_id,
+            self.card_type_id,
             generation=self.generation,
             before_morph_key=self.before_morph_key,
             after_morph_key=self.pending_morph_key,
@@ -566,9 +566,9 @@ class FrameConfirmView(InteractionView):
         guild_id: int,
         user_id: int,
         instance_id: int,
-        card_id: str,
+        card_type_id: str,
         generation: int,
-        card_code: str,
+        card_id: str,
         before_morph_key: str | None,
         before_frame_key: str | None,
         before_font_key: str | None,
@@ -578,9 +578,9 @@ class FrameConfirmView(InteractionView):
         self.guild_id = guild_id
         self.user_id = user_id
         self.instance_id = instance_id
-        self.card_id = card_id
+        self.card_type_id = card_type_id
         self.generation = generation
-        self.card_code = card_code
+        self.card_id = card_id
         self.before_morph_key = before_morph_key
         self.before_frame_key = before_frame_key
         self.before_font_key = before_font_key
@@ -642,9 +642,9 @@ class FrameConfirmView(InteractionView):
             self.guild_id,
             self.user_id,
             instance_id=self.instance_id,
-            card_id=self.card_id,
+            card_type_id=self.card_type_id,
             generation=self.generation,
-            card_code=self.card_code,
+            card_id=self.card_id,
             current_frame_key=self.before_frame_key,
             cost=self.cost,
         )
@@ -678,9 +678,9 @@ class FrameConfirmView(InteractionView):
             "Frame Roll",
             _trait_roll_description(
                 card_line=card_display(
-                    self.card_id,
+                    self.card_type_id,
                     self.generation,
-                    card_code=self.card_code,
+                    card_id=self.card_id,
                     morph_key=self.before_morph_key,
                     frame_key=self.before_frame_key,
                     font_key=self.before_font_key,
@@ -695,7 +695,7 @@ class FrameConfirmView(InteractionView):
             ),
         )
         image_url, image_file = morph_transition_image_payload(
-            self.card_id,
+            self.card_type_id,
             generation=self.generation,
             before_morph_key=self.before_morph_key,
             after_morph_key=self.before_morph_key,
@@ -742,9 +742,9 @@ class FrameConfirmView(InteractionView):
             self.guild_id,
             self.user_id,
             instance_id=self.instance_id,
-            card_id=self.card_id,
+            card_type_id=self.card_type_id,
             generation=self.generation,
-            card_code=self.card_code,
+            card_id=self.card_id,
             frame_key=self.pending_frame_key,
             frame_name=self.pending_frame_name,
             rolled_rarity=self.pending_rarity,
@@ -768,9 +768,9 @@ class FrameConfirmView(InteractionView):
             "Frame Applied",
             _trait_roll_description(
                 card_line=card_display(
-                    self.card_id,
+                    self.card_type_id,
                     self.generation,
-                    card_code=self.card_code,
+                    card_id=self.card_id,
                     morph_key=self.before_morph_key,
                     frame_key=self.before_frame_key,
                     font_key=self.before_font_key,
@@ -785,7 +785,7 @@ class FrameConfirmView(InteractionView):
             ),
         )
         image_url, image_file = morph_transition_image_payload(
-            self.card_id,
+            self.card_type_id,
             generation=self.generation,
             before_morph_key=self.before_morph_key,
             after_morph_key=self.before_morph_key,
@@ -833,9 +833,9 @@ class FontConfirmView(InteractionView):
         guild_id: int,
         user_id: int,
         instance_id: int,
-        card_id: str,
+        card_type_id: str,
         generation: int,
-        card_code: str,
+        card_id: str,
         before_morph_key: str | None,
         before_frame_key: str | None,
         before_font_key: str | None,
@@ -845,9 +845,9 @@ class FontConfirmView(InteractionView):
         self.guild_id = guild_id
         self.user_id = user_id
         self.instance_id = instance_id
-        self.card_id = card_id
+        self.card_type_id = card_type_id
         self.generation = generation
-        self.card_code = card_code
+        self.card_id = card_id
         self.before_morph_key = before_morph_key
         self.before_frame_key = before_frame_key
         self.before_font_key = before_font_key
@@ -909,9 +909,9 @@ class FontConfirmView(InteractionView):
             self.guild_id,
             self.user_id,
             instance_id=self.instance_id,
-            card_id=self.card_id,
+            card_type_id=self.card_type_id,
             generation=self.generation,
-            card_code=self.card_code,
+            card_id=self.card_id,
             current_font_key=self.before_font_key,
             cost=self.cost,
         )
@@ -945,9 +945,9 @@ class FontConfirmView(InteractionView):
             "Font Roll",
             _trait_roll_description(
                 card_line=card_display(
-                    self.card_id,
+                    self.card_type_id,
                     self.generation,
-                    card_code=self.card_code,
+                    card_id=self.card_id,
                     morph_key=self.before_morph_key,
                     frame_key=self.before_frame_key,
                     font_key=self.before_font_key,
@@ -962,7 +962,7 @@ class FontConfirmView(InteractionView):
             ),
         )
         image_url, image_file = morph_transition_image_payload(
-            self.card_id,
+            self.card_type_id,
             generation=self.generation,
             before_morph_key=self.before_morph_key,
             after_morph_key=self.before_morph_key,
@@ -1009,9 +1009,9 @@ class FontConfirmView(InteractionView):
             self.guild_id,
             self.user_id,
             instance_id=self.instance_id,
-            card_id=self.card_id,
+            card_type_id=self.card_type_id,
             generation=self.generation,
-            card_code=self.card_code,
+            card_id=self.card_id,
             font_key=self.pending_font_key,
             font_name=self.pending_font_name,
             rolled_rarity=self.pending_rarity,
@@ -1035,9 +1035,9 @@ class FontConfirmView(InteractionView):
             "Font Applied",
             _trait_roll_description(
                 card_line=card_display(
-                    self.card_id,
+                    self.card_type_id,
                     self.generation,
-                    card_code=self.card_code,
+                    card_id=self.card_id,
                     morph_key=self.before_morph_key,
                     frame_key=self.before_frame_key,
                     font_key=self.before_font_key,
@@ -1052,7 +1052,7 @@ class FontConfirmView(InteractionView):
             ),
         )
         image_url, image_file = morph_transition_image_payload(
-            self.card_id,
+            self.card_type_id,
             generation=self.generation,
             before_morph_key=self.before_morph_key,
             after_morph_key=self.before_morph_key,

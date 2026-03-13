@@ -13,8 +13,8 @@ This document defines behavior and presentation for commands and interaction flo
 - `collection [player]` / `c [player]`
 - `cards` / `ca`
 - `types` / `ty`
-- `lookup <card_id|card_code|query>` / `l <card_id|card_code|query>`
-- `lookuphd <card_id|card_code|query>` / `lhd <card_id|card_code|query>`
+- `lookup <card_type_id|card_id|query>` / `l <card_type_id|card_id|query>`
+- `lookuphd <card_type_id|card_id|query>` / `lhd <card_type_id|card_id|query>`
 - `help` / `h`
 - `drop` / `d`
 - `buy drop [quantity]`
@@ -29,17 +29,17 @@ This document defines behavior and presentation for commands and interaction flo
 - `gift starter <player> <starter>` / `gift s <player> <starter>`
 - `gift drop <player> <tickets>`
 - `gift pull <player> <tickets>`
-- `gift card <player> <card_code>` / `gift c <player> <card_code>`
-- `morph [card_code]` / `mo [card_code]`
-- `frame [card_code]` / `fr [card_code]`
-- `font [card_code]` / `fo [card_code]`
-- `trade <player> <card_code> <mode> <amount|req_card_code>` / `t ...`
+- `gift card <player> <card_id>` / `gift c <player> <card_id>`
+- `morph [card_id]` / `mo [card_id]`
+- `frame [card_id]` / `fr [card_id]`
+- `font [card_id]` / `fo [card_id]`
+- `trade <player> <card_id> <mode> <amount|req_card_id>` / `t ...`
 - `team` / `tm`
 - `team add <team_name>` / `team a <team_name>`
 - `team remove <team_name>` / `team r <team_name>`
 - `team list` / `team l`
-- `team assign <team_name> <card_code>` / `team as ...`
-- `team unassign <team_name> <card_code>` / `team u ...`
+- `team assign <team_name> <card_id>` / `team as ...`
+- `team unassign <team_name> <card_id>` / `team u ...`
 - `team cards <team_name>` / `team c <team_name>`
 - `team active [team_name]`
 - `folder` / `fd`
@@ -47,8 +47,8 @@ This document defines behavior and presentation for commands and interaction flo
 - `folder remove <folder_name>` / `folder r ...`
 - `folder list` / `folder l`
 - `folder lock <folder_name>` / `folder unlock <folder_name>`
-- `folder assign <folder_name> <card_code>` / `folder as ...`
-- `folder unassign <folder_name> <card_code>` / `folder u ...`
+- `folder assign <folder_name> <card_id>` / `folder as ...`
+- `folder unassign <folder_name> <card_id>` / `folder u ...`
 - `folder cards <folder_name>` / `folder c ...`
 - `folder emoji <folder_name> <emoji>` / `folder e ...`
 - `battle <player> <stake>` / `bt ...`
@@ -56,7 +56,7 @@ This document defines behavior and presentation for commands and interaction flo
 - `wish add <card_id>` / `wish a <card_id>` / `w add <card_id>` / `w a <card_id>` / `wa <card_id>`
 - `wish remove <card_id>` / `wish r <card_id>` / `w remove <card_id>` / `w r <card_id>` / `wr <card_id>`
 - `wish list [player]` / `wish l [player]` / `w list [player]` / `w l [player]` / `wl [player]`
-- `marry [card_code]` / `m [card_code]`
+- `marry [card_id]` / `m [card_id]`
 - `divorce` / `dv`
 - owner-only: `dbexport`, `dbreset`
 
@@ -132,12 +132,12 @@ Burn flow:
 
 - `burn` with no argument targets the player's most recently pulled card instance
 - `burn` accepts one or many targets in the same command
-- card targets can be provided as a card code (for an exact card) or as a card type id (burns the highest-generation owned copy)
+- card targets can be provided as a card ID (for an exact card) or as a card type id (burns the highest-generation owned copy)
 - tag targets are provided as `t:<tag_name>`
 - folder targets are provided as `f:<folder_name>`
 - all selected targets are confirmed together and listed individually in the confirmation embed
 - if any selected target is protected by locked tags or a locked folder, the full burn is blocked and no cards are burned
-- card code format is standalone base36 with optional leading `#` (examples: `0`, `a`, `10`, `#10`)
+- card ID format is standalone base36 with optional leading `#` (examples: `0`, `a`, `10`, `#10`)
 - Burn always requires confirm/cancel interaction before destruction
 - Burn payout includes a generation multiplier (lower generation = higher payout)
 - Multiplier curve uses progress^7 scaling with a max of x70.00 (generation 1 = x70.00)
@@ -175,20 +175,20 @@ Burn result format should remain:
 - `gift dough <player> <dough>` sends dough immediately
 - `gift starter <player> <starter>` sends starter immediately
 - `gift drop <player> <tickets>` sends drop tickets immediately
-- `gift card <player> <card_code>` sends one owned card copy immediately
+- `gift card <player> <card_id>` sends one owned card copy immediately
 - player argument supports mention or exact username resolution
-- card code format is standalone base36 with optional leading `#` (examples: `0`, `a`, `10`, `#10`)
+- card ID format is standalone base36 with optional leading `#` (examples: `0`, `a`, `10`, `#10`)
 - gifting to yourself is blocked
 - gifting to bots is blocked
 - sender must have enough balance for dough/starter/drop gifts
-- sender must own the provided card code for card gifts
+- sender must own the provided card ID for card gifts
 - gift response embed shows the gifted card image as a top-right thumbnail when available
 
 ## Morph UX
 
 - `morph` with no argument targets the player's most recently pulled card instance
-- `morph <card_code>` targets that exact owned card code
-- card code format is standalone base36 with optional leading `#` (examples: `0`, `a`, `10`, `#10`)
+- `morph <card_id>` targets that exact owned card ID
+- card ID format is standalone base36 with optional leading `#` (examples: `0`, `a`, `10`, `#10`)
 - morph selection is random from available morphs
 - morph cost is `20%` of the target card's computed value (`card_value`), rounded up to the nearest whole dough
 - morph uses a hidden-roll confirmation step: initial response shows current style and `before -> ?` preview, and only `Confirm Morph` rolls and applies the result
@@ -199,8 +199,8 @@ Burn result format should remain:
 ## Frame UX
 
 - `frame` with no argument targets the player's most recently pulled card instance
-- `frame <card_code>` targets that exact owned card code
-- card code format is standalone base36 with optional leading `#` (examples: `0`, `a`, `10`, `#10`)
+- `frame <card_id>` targets that exact owned card ID
+- card ID format is standalone base36 with optional leading `#` (examples: `0`, `a`, `10`, `#10`)
 - frame selection is random from available frames
 - frame cost is `20%` of the target card's computed value (`card_value`), rounded up to the nearest whole dough
 - frame uses a hidden-roll confirmation step: initial response shows current style and `before -> ?` preview, and only `Confirm Frame` rolls and applies the result
@@ -211,8 +211,8 @@ Burn result format should remain:
 ## Font UX
 
 - `font` with no argument targets the player's most recently pulled card instance
-- `font <card_code>` targets that exact owned card code
-- card code format is standalone base36 with optional leading `#` (examples: `0`, `a`, `10`, `#10`)
+- `font <card_id>` targets that exact owned card ID
+- card ID format is standalone base36 with optional leading `#` (examples: `0`, `a`, `10`, `#10`)
 - font selection is random from available fonts
 - font cost is `20%` of the target card's computed value (`card_value`), rounded up to the nearest whole dough
 - font uses a hidden-roll confirmation step: initial response shows current style and `before -> ?` preview, and only `Confirm Font` rolls and applies the result
@@ -252,7 +252,7 @@ Card identity terms:
 ## Team UX
 
 - Team names are normalized to lowercase and limited to 32 chars.
-- Team membership is per-instance (uses card code ownership checks).
+- Team membership is per-instance (uses card ID ownership checks).
 - Team capacity is limited to `3` cards.
 - A player can have multiple teams.
 - `team active <team_name>` sets the team used for battles.
@@ -300,10 +300,10 @@ Card identity terms:
 
 ## Lookup UX
 
-- `lookup` accepts a base `card_id`, an exact card `card_code`, or a name/series query
-- If input exactly matches an existing `card_code`, show dupe-card output (`Code`, `G-####`, and computed `Value`)
+- `lookup` accepts a base `card_id`, an exact card `card_id`, or a name/series query
+- If input exactly matches an existing `card_id`, show dupe-card output (`Code`, `G-####`, and computed `Value`)
 - Dupe-card output includes `Owned by`, `Dropped by`, `Pulled by`, and `Time pulled` metadata lines (`Time pulled` shows `Unknown` if unavailable)
-- If no exact card code is found, fall back to card type lookup behavior (`card_id` match, then name/series search)
+- If no exact card ID is found, fall back to card type lookup behavior (`card_id` match, then name/series search)
 - Entries include wishlist counts regardless of selected sort mode
 
 ## Info UX
@@ -366,8 +366,8 @@ Shows:
 ## Marriage UX
 
 - `marry` with no argument targets the player's most recently pulled card instance
-- `marry <card_code>` targets that exact owned card code
-- card code format is standalone base36 with optional leading `#` (examples: `0`, `a`, `10`, `#10`)
+- `marry <card_id>` targets that exact owned card ID
+- card ID format is standalone base36 with optional leading `#` (examples: `0`, `a`, `10`, `#10`)
 - `marry` success responses display the selected card image
 - `divorce` success responses display the divorced card image
 

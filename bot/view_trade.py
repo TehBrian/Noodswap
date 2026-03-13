@@ -11,15 +11,15 @@ from .storage import get_instance_by_code, get_instance_font, get_instance_frame
 from .view_utils import InteractionView, logger
 
 
-def _instance_style_from_code(guild_id: int, user_id: int, card_code: str | None) -> tuple[str | None, str | None, str | None]:
-    if card_code is None:
+def _instance_style_from_code(guild_id: int, user_id: int, card_id: str | None) -> tuple[str | None, str | None, str | None]:
+    if card_id is None:
         return None, None, None
 
     try:
-        instance = get_instance_by_code(guild_id, user_id, card_code)
+        instance = get_instance_by_code(guild_id, user_id, card_id)
         if instance is None:
             return None, None, None
-        instance_id, _card_id, _generation, _resolved_card_code = instance
+        instance_id, _card_type_id, _generation, _resolved_card_id = instance
         return (
             get_instance_morph(guild_id, instance_id),
             get_instance_frame(guild_id, instance_id),
@@ -48,16 +48,16 @@ class TradeView(InteractionView):
         guild_id: int,
         seller_id: int,
         buyer_id: int,
+        card_type_id: str,
         card_id: str,
-        card_code: str,
         terms: TradeTerms,
     ):
         super().__init__(timeout=TRADE_TIMEOUT_SECONDS)
         self.guild_id = guild_id
         self.seller_id = seller_id
         self.buyer_id = buyer_id
+        self.card_type_id = card_type_id
         self.card_id = card_id
-        self.card_code = card_code
         self.terms = terms
         self.finished = False
         self.message: Optional[discord.Message] = None
@@ -84,8 +84,8 @@ class TradeView(InteractionView):
                     guild_id=self.guild_id,
                     seller_id=self.seller_id,
                     buyer_id=self.buyer_id,
+                    card_type_id=self.card_type_id,
                     card_id=self.card_id,
-                    card_code=self.card_code,
                     terms=self.terms,
                     accepted=False,
                 )
@@ -102,8 +102,8 @@ class TradeView(InteractionView):
                 guild_id=self.guild_id,
                 seller_id=self.seller_id,
                 buyer_id=self.buyer_id,
+                card_type_id=self.card_type_id,
                 card_id=self.card_id,
-                card_code=self.card_code,
                 terms=self.terms,
                 accepted=True,
             )
@@ -120,34 +120,34 @@ class TradeView(InteractionView):
             self.finished = True
             self._disable_buttons()
 
-            traded_card_text = card_base_display(self.card_id)
+            traded_card_text = card_base_display(self.card_type_id)
             if trade_result.generation is not None:
                 sold_morph_key, sold_frame_key, sold_font_key = _instance_style_from_code(
                     self.guild_id,
                     self.buyer_id,
-                    trade_result.card_code,
+                    trade_result.card_id,
                 )
                 traded_card_text = card_display(
-                    self.card_id,
+                    self.card_type_id,
                     trade_result.generation,
-                    card_code=trade_result.card_code,
+                    card_id=trade_result.card_id,
                     morph_key=sold_morph_key,
                     frame_key=sold_frame_key,
                     font_key=sold_font_key,
                 )
 
-            if self.terms.mode == "card" and trade_result.received_card_id is not None:
-                received_text = card_base_display(trade_result.received_card_id)
+            if self.terms.mode == "card" and trade_result.received_card_type_id is not None:
+                received_text = card_base_display(trade_result.received_card_type_id)
                 if trade_result.received_generation is not None:
                     received_morph_key, received_frame_key, received_font_key = _instance_style_from_code(
                         self.guild_id,
                         self.seller_id,
-                        trade_result.received_card_code,
+                        trade_result.received_card_id,
                     )
                     received_text = card_display(
-                        trade_result.received_card_id,
+                        trade_result.received_card_type_id,
                         trade_result.received_generation,
-                        card_code=trade_result.received_card_code,
+                        card_id=trade_result.received_card_id,
                         morph_key=received_morph_key,
                         frame_key=received_frame_key,
                         font_key=received_font_key,

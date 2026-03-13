@@ -71,7 +71,7 @@ Acceptance checks:
 ## B) Cards split
 
 Current pain point:
-- Legacy card code mixed data loading, search, display formatting, and value-generation logic in one surface.
+- Legacy card ID mixed data loading, search, display formatting, and value-generation logic in one surface.
 
 Target structure:
 - `bot/cards/catalog.py`

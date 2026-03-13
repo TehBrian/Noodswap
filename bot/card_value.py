@@ -52,8 +52,8 @@ def target_rarity_odds(
     return {rarity: active_weights[rarity] / total_weight for rarity in active_weights}
 
 
-def card_base_value(card_id: str, *, card_catalog: Mapping[str, CardValueRecord]) -> int:
-    return int(card_catalog[card_id]["base_value"])
+def card_base_value(card_type_id: str, *, card_catalog: Mapping[str, CardValueRecord]) -> int:
+    return int(card_catalog[card_type_id]["base_value"])
 
 
 def generation_value_multiplier(generation: int, *, generation_min: int, generation_max: int) -> float:
@@ -63,14 +63,14 @@ def generation_value_multiplier(generation: int, *, generation_min: int, generat
 
 
 def card_value(
-    card_id: str,
+    card_type_id: str,
     generation: int,
     *,
     card_base_value_func: Callable[[str], int],
     generation_multiplier_func: Callable[[int], float],
     trait_multiplier: float = 1.0,
 ) -> int:
-    base_value = card_base_value_func(card_id)
+    base_value = card_base_value_func(card_type_id)
     multiplier = generation_multiplier_func(generation) * max(1.0, trait_multiplier)
     return max(1, int(round(base_value * multiplier)))
 
@@ -138,12 +138,12 @@ def make_drop_choices(
 ) -> list[tuple[str, int]]:
     if size >= len(card_catalog):
         card_ids = random.sample(list(card_catalog.keys()), len(card_catalog))
-        return [(card_id, random_generation_func()) for card_id in card_ids]
+        return [(card_type_id, random_generation_func()) for card_type_id in card_ids]
 
     chosen: set[str] = set()
     while len(chosen) < size:
         chosen.add(random_card_id_func())
-    return [(card_id, random_generation_func()) for card_id in chosen]
+    return [(card_type_id, random_generation_func()) for card_type_id in chosen]
 
 
 def burn_delta_range(value: int) -> int:
@@ -152,7 +152,7 @@ def burn_delta_range(value: int) -> int:
 
 
 def get_burn_payout(
-    card_id: str,
+    card_type_id: str,
     generation: int,
     *,
     card_base_value_func: Callable[[str], int],
@@ -161,7 +161,7 @@ def get_burn_payout(
     trait_multiplier: float = 1.0,
     delta_range: int | None = None,
 ) -> tuple[int, int, int, int, float, int]:
-    base_value = card_base_value_func(card_id)
+    base_value = card_base_value_func(card_type_id)
     multiplier = generation_multiplier_func(generation) * max(1.0, trait_multiplier)
     value = max(1, int(round(base_value * multiplier)))
     resolved_delta_range = burn_delta_range_func(value) if delta_range is None else max(1, delta_range)

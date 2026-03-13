@@ -90,7 +90,7 @@ from .command_utils import (
     get_folder_emojis_for_instances as get_folder_emojis_for_instances,
     get_gambling_pot as get_gambling_pot,
     get_instance_by_code as get_instance_by_code,
-    get_instance_by_card_code as get_instance_by_card_code,
+    get_instance_by_card_id as get_instance_by_card_id,
     get_instance_by_id as get_instance_by_id,
     get_instance_font as get_instance_font,
     get_instance_frame as get_instance_frame,
@@ -208,11 +208,11 @@ def register_economy_commands(bot: commands.Bot) -> None:
             view.message = message
 
     @bot.command(name="marry", aliases=["m"])
-    async def marry(ctx: commands.Context, card_code: str | None = None):
+    async def marry(ctx: commands.Context, card_id: str | None = None):
         if not await _require_guild(ctx, "Marry", marry_style=True):
             return
 
-        result = execute_marry(_guild_id(ctx), ctx.author.id, card_code)
+        result = execute_marry(_guild_id(ctx), ctx.author.id, card_id)
         if result.is_error:
             await _reply(
                 ctx,
@@ -220,15 +220,15 @@ def register_economy_commands(bot: commands.Bot) -> None:
             )
             return
 
-        if result.card_id is None or result.generation is None:
+        if result.card_type_id is None or result.generation is None:
             await _reply(ctx, embed=italy_marry_embed("Marry", "Marry failed."))
             return
 
         morph_key = None
         frame_key = None
         font_key = None
-        if result.card_code is not None:
-            married_instance = get_instance_by_code(_guild_id(ctx), ctx.author.id, result.card_code)
+        if result.card_id is not None:
+            married_instance = get_instance_by_code(_guild_id(ctx), ctx.author.id, result.card_id)
             if married_instance is not None:
                 married_instance_id, _, _, _ = married_instance
                 morph_key = get_instance_morph(_guild_id(ctx), married_instance_id)
@@ -237,11 +237,11 @@ def register_economy_commands(bot: commands.Bot) -> None:
 
         marry_embed = italy_marry_embed(
             "Marry",
-            f"You are now married to {card_display(result.card_id, result.generation, card_code=result.card_code, morph_key=morph_key, frame_key=frame_key, font_key=font_key)}.",
+            f"You are now married to {card_display(result.card_type_id, result.generation, card_id=result.card_id, morph_key=morph_key, frame_key=frame_key, font_key=font_key)}.",
         )
 
         image_url, image_file = embed_image_payload(
-            result.card_id,
+            result.card_type_id,
             generation=result.generation,
             morph_key=morph_key,
             frame_key=frame_key,
@@ -267,15 +267,15 @@ def register_economy_commands(bot: commands.Bot) -> None:
             )
             return
 
-        if result.card_id is None or result.generation is None:
+        if result.card_type_id is None or result.generation is None:
             await _reply(ctx, embed=italy_marry_embed("Divorce", "Divorce failed."))
             return
 
         morph_key = None
         frame_key = None
         font_key = None
-        if result.card_code is not None:
-            divorced_instance = get_instance_by_code(_guild_id(ctx), ctx.author.id, result.card_code)
+        if result.card_id is not None:
+            divorced_instance = get_instance_by_code(_guild_id(ctx), ctx.author.id, result.card_id)
             if divorced_instance is not None:
                 divorced_instance_id, _, _, _ = divorced_instance
                 morph_key = get_instance_morph(_guild_id(ctx), divorced_instance_id)
@@ -284,11 +284,11 @@ def register_economy_commands(bot: commands.Bot) -> None:
 
         divorce_embed = italy_marry_embed(
             "Divorce",
-            f"You divorced {card_display(result.card_id, result.generation, card_code=result.card_code, morph_key=morph_key, frame_key=frame_key, font_key=font_key)}.",
+            f"You divorced {card_display(result.card_type_id, result.generation, card_id=result.card_id, morph_key=morph_key, frame_key=frame_key, font_key=font_key)}.",
         )
 
         image_url, image_file = embed_image_payload(
-            result.card_id,
+            result.card_type_id,
             generation=result.generation,
             morph_key=morph_key,
             frame_key=frame_key,
@@ -316,8 +316,10 @@ def register_economy_commands(bot: commands.Bot) -> None:
         target_member = resolved_member
 
         pulled_instances = get_player_card_instances_with_pulled_at(_guild_id(ctx), target_member.id)
-        instances = [(instance_id, card_id, generation, card_code) for instance_id, card_id, generation, card_code, _pulled_at in pulled_instances]
-        pulled_at_by_instance = {instance_id: pulled_at for instance_id, _card_id, _generation, _card_code, pulled_at in pulled_instances}
+        instances = [
+            (instance_id, card_type_id, generation, card_id) for instance_id, card_type_id, generation, card_id, _pulled_at in pulled_instances
+        ]
+        pulled_at_by_instance = {instance_id: pulled_at for instance_id, _card_type_id, _generation, _card_id, pulled_at in pulled_instances}
         title = f"{target_member.display_name}'s Collection"
         if not instances:
             if target_member.id == ctx.author.id:
@@ -334,7 +336,7 @@ def register_economy_commands(bot: commands.Bot) -> None:
             locked_instance_ids=get_locked_instance_ids(
                 _guild_id(ctx),
                 target_member.id,
-                [instance_id for instance_id, _card_id, _generation, _card_code in instances],
+                [instance_id for instance_id, _card_type_id, _generation, _card_id in instances],
             ),
             wish_counts=get_card_wish_counts(_guild_id(ctx)),
             folder_emojis_by_instance=_folder_emoji_map_for_instances(_guild_id(ctx), target_member.id, instances),
@@ -344,7 +346,7 @@ def register_economy_commands(bot: commands.Bot) -> None:
                     get_instance_frame(_guild_id(ctx), instance_id),
                     get_instance_font(_guild_id(ctx), instance_id),
                 )
-                for instance_id, _card_id, _generation, _card_code in instances
+                for instance_id, _card_type_id, _generation, _card_id in instances
             },
             pulled_at_by_instance=pulled_at_by_instance,
             card_line_formatter=card_display_concise,
@@ -367,19 +369,19 @@ def register_economy_commands(bot: commands.Bot) -> None:
             return
 
         instances = [
-            (instance_id, card_id, generation, card_code)
-            for instance_id, _owner_id, card_id, generation, card_code, _pulled_at, _morph_key, _frame_key, _font_key in instance_rows
+            (instance_id, card_type_id, generation, card_id)
+            for instance_id, _owner_id, card_type_id, generation, card_id, _pulled_at, _morph_key, _frame_key, _font_key in instance_rows
         ]
         pulled_at_by_instance = {
             instance_id: pulled_at
-            for instance_id, _owner_id, _card_id, _generation, _card_code, pulled_at, _morph_key, _frame_key, _font_key in instance_rows
+            for instance_id, _owner_id, _card_type_id, _generation, _card_id, pulled_at, _morph_key, _frame_key, _font_key in instance_rows
         }
         instance_styles = {
             instance_id: (morph_key, frame_key, font_key)
-            for instance_id, _owner_id, _card_id, _generation, _card_code, _pulled_at, morph_key, frame_key, font_key in instance_rows
+            for instance_id, _owner_id, _card_type_id, _generation, _card_id, _pulled_at, morph_key, frame_key, font_key in instance_rows
         }
         instance_ids_by_owner: dict[int, list[int]] = {}
-        for instance_id, owner_id, _card_id, _generation, _card_code, _pulled_at, _morph_key, _frame_key, _font_key in instance_rows:
+        for instance_id, owner_id, _card_type_id, _generation, _card_id, _pulled_at, _morph_key, _frame_key, _font_key in instance_rows:
             instance_ids_by_owner.setdefault(owner_id, []).append(instance_id)
 
         locked_instance_ids: set[int] = set()
@@ -389,9 +391,9 @@ def register_economy_commands(bot: commands.Bot) -> None:
             folder_emojis_by_instance.update(get_folder_emojis_for_instances(guild_id, owner_id, owner_instance_ids))
 
         def _format_global_card_line(
-            card_id: str,
+            card_type_id: str,
             generation: int,
-            card_code: str | None,
+            card_id: str | None,
             *,
             instance_id: int | None = None,
             morph_key: str | None = None,
@@ -399,9 +401,9 @@ def register_economy_commands(bot: commands.Bot) -> None:
             font_key: str | None = None,
         ) -> str:
             return card_display_concise(
-                card_id,
+                card_type_id,
                 generation,
-                card_code,
+                card_id,
                 morph_key=morph_key,
                 frame_key=frame_key,
                 font_key=font_key,
@@ -435,7 +437,7 @@ def register_economy_commands(bot: commands.Bot) -> None:
             return
 
         if not parsed_selectors:
-            prepared_single = prepare_burn(_guild_id(ctx), ctx.author.id, card_code=None)
+            prepared_single = prepare_burn(_guild_id(ctx), ctx.author.id, card_id=None)
             if prepared_single.is_error:
                 await _reply(
                     ctx,
@@ -444,18 +446,18 @@ def register_economy_commands(bot: commands.Bot) -> None:
                 return
             if (
                 prepared_single.instance_id is None
-                or prepared_single.card_id is None
+                or prepared_single.card_type_id is None
                 or prepared_single.generation is None
-                or prepared_single.card_code is None
+                or prepared_single.card_id is None
             ):
                 await _reply(ctx, embed=italy_embed("Burn", "Burn failed."))
                 return
             resolved_targets.append(
                 (
                     prepared_single.instance_id,
-                    prepared_single.card_id,
+                    prepared_single.card_type_id,
                     prepared_single.generation,
-                    prepared_single.card_code,
+                    prepared_single.card_id,
                 )
             )
         else:
@@ -472,15 +474,15 @@ def register_economy_commands(bot: commands.Bot) -> None:
                     await _reply(ctx, embed=italy_embed("Burn", selection_error))
                     return
                 resolved_targets.extend(selected_instances)
-                selected_instance_ids.update(instance_id for instance_id, _card_id, _generation, _card_code in selected_instances)
+                selected_instance_ids.update(instance_id for instance_id, _card_type_id, _generation, _card_id in selected_instances)
 
         deduped_targets: list[tuple[int, str, int, str]] = []
         seen_instance_ids: set[int] = set()
-        for instance_id, card_id, generation, card_code in resolved_targets:
+        for instance_id, card_type_id, generation, card_id in resolved_targets:
             if instance_id in seen_instance_ids:
                 continue
             seen_instance_ids.add(instance_id)
-            deduped_targets.append((instance_id, card_id, generation, card_code))
+            deduped_targets.append((instance_id, card_type_id, generation, card_id))
 
         prepared = prepare_burn_batch(_guild_id(ctx), ctx.author.id, deduped_targets)
         if prepared.is_error:
@@ -507,7 +509,7 @@ def register_economy_commands(bot: commands.Bot) -> None:
             item_frame_key = get_instance_frame(_guild_id(ctx), item.instance_id)
             item_font_key = get_instance_font(_guild_id(ctx), item.instance_id)
             item_lines.append(
-                f"{card_display(item.card_id, item.generation, card_code=item.card_code, morph_key=item_morph_key, frame_key=item_frame_key, font_key=item_font_key)}\n"
+                f"{card_display(item.card_type_id, item.generation, card_id=item.card_id, morph_key=item_morph_key, frame_key=item_frame_key, font_key=item_font_key)}\n"
                 f"Base: **{item.base_value}** | Generation: **x{item.multiplier:.2f}** | "
                 f"Value: **{item.value}** | Payout: **{item.value}** ± **{item.delta_range}**"
             )
@@ -533,7 +535,7 @@ def register_economy_commands(bot: commands.Bot) -> None:
             guild_id=_guild_id(ctx),
             user_id=ctx.author.id,
             instance_id=primary_item.instance_id,
-            card_id=primary_item.card_id,
+            card_type_id=primary_item.card_type_id,
             generation=primary_item.generation,
             delta_range=primary_item.delta_range,
             burn_items=[(item.instance_id, item.delta_range) for item in prepared.items],
@@ -542,7 +544,7 @@ def register_economy_commands(bot: commands.Bot) -> None:
         send_kwargs: dict[str, object] = {"embed": confirm_embed, "view": view}
         if len(prepared.items) == 1:
             image_url, image_file = embed_image_payload(
-                primary_item.card_id,
+                primary_item.card_type_id,
                 generation=primary_item.generation,
                 morph_key=get_instance_morph(_guild_id(ctx), primary_item.instance_id),
                 frame_key=get_instance_frame(_guild_id(ctx), primary_item.instance_id),
@@ -557,11 +559,11 @@ def register_economy_commands(bot: commands.Bot) -> None:
         view.message = message
 
     @bot.command(name="morph", aliases=["mo"])
-    async def morph(ctx: commands.Context, card_code: str | None = None):
+    async def morph(ctx: commands.Context, card_id: str | None = None):
         if not await _require_guild(ctx, "Morph"):
             return
 
-        prepared = prepare_morph(_guild_id(ctx), ctx.author.id, card_code)
+        prepared = prepare_morph(_guild_id(ctx), ctx.author.id, card_id)
         if prepared.is_error:
             await _reply(
                 ctx,
@@ -571,9 +573,9 @@ def register_economy_commands(bot: commands.Bot) -> None:
 
         if (
             prepared.instance_id is None
-            or prepared.card_id is None
+            or prepared.card_type_id is None
             or prepared.generation is None
-            or prepared.card_code is None
+            or prepared.card_id is None
             or prepared.cost is None
         ):
             await _reply(ctx, embed=italy_embed("Morph", "Morph failed."))
@@ -585,13 +587,13 @@ def register_economy_commands(bot: commands.Bot) -> None:
         confirm_embed = italy_embed(
             "Morph Confirmation",
             (
-                f"{card_display(prepared.card_id, prepared.generation, card_code=prepared.card_code, morph_key=prepared.current_morph_key, frame_key=before_frame_key, font_key=before_font_key)}\n\n"
+                f"{card_display(prepared.card_type_id, prepared.generation, card_id=prepared.card_id, morph_key=prepared.current_morph_key, frame_key=before_frame_key, font_key=before_font_key)}\n\n"
                 f"Current Morph: **{morph_label(prepared.current_morph_key)}**\n"
                 f"Roll Cost: **{prepared.cost}** dough"
             ),
         )
         image_url, image_file = morph_transition_image_payload(
-            prepared.card_id,
+            prepared.card_type_id,
             generation=prepared.generation,
             before_morph_key=prepared.current_morph_key,
             after_morph_key=prepared.current_morph_key,
@@ -608,9 +610,9 @@ def register_economy_commands(bot: commands.Bot) -> None:
             guild_id=_guild_id(ctx),
             user_id=ctx.author.id,
             instance_id=prepared.instance_id,
-            card_id=prepared.card_id,
+            card_type_id=prepared.card_type_id,
             generation=prepared.generation,
-            card_code=prepared.card_code,
+            card_id=prepared.card_id,
             before_morph_key=prepared.current_morph_key,
             before_frame_key=before_frame_key,
             before_font_key=before_font_key,
@@ -624,11 +626,11 @@ def register_economy_commands(bot: commands.Bot) -> None:
         view.message = message
 
     @bot.command(name="frame", aliases=["fr"])
-    async def frame(ctx: commands.Context, card_code: str | None = None):
+    async def frame(ctx: commands.Context, card_id: str | None = None):
         if not await _require_guild(ctx, "Frame"):
             return
 
-        prepared = prepare_frame(_guild_id(ctx), ctx.author.id, card_code)
+        prepared = prepare_frame(_guild_id(ctx), ctx.author.id, card_id)
         if prepared.is_error:
             await _reply(
                 ctx,
@@ -638,9 +640,9 @@ def register_economy_commands(bot: commands.Bot) -> None:
 
         if (
             prepared.instance_id is None
-            or prepared.card_id is None
+            or prepared.card_type_id is None
             or prepared.generation is None
-            or prepared.card_code is None
+            or prepared.card_id is None
             or prepared.cost is None
         ):
             await _reply(ctx, embed=italy_embed("Frame", "Frame failed."))
@@ -652,13 +654,13 @@ def register_economy_commands(bot: commands.Bot) -> None:
         confirm_embed = italy_embed(
             "Frame Confirmation",
             (
-                f"{card_display(prepared.card_id, prepared.generation, card_code=prepared.card_code, morph_key=current_morph_key, frame_key=prepared.current_frame_key, font_key=current_font_key)}\n\n"
+                f"{card_display(prepared.card_type_id, prepared.generation, card_id=prepared.card_id, morph_key=current_morph_key, frame_key=prepared.current_frame_key, font_key=current_font_key)}\n\n"
                 f"Current Frame: **{frame_label(prepared.current_frame_key)}**\n"
                 f"Roll Cost: **{prepared.cost}** dough"
             ),
         )
         image_url, image_file = morph_transition_image_payload(
-            prepared.card_id,
+            prepared.card_type_id,
             generation=prepared.generation,
             before_morph_key=current_morph_key,
             after_morph_key=current_morph_key,
@@ -675,9 +677,9 @@ def register_economy_commands(bot: commands.Bot) -> None:
             guild_id=_guild_id(ctx),
             user_id=ctx.author.id,
             instance_id=prepared.instance_id,
-            card_id=prepared.card_id,
+            card_type_id=prepared.card_type_id,
             generation=prepared.generation,
-            card_code=prepared.card_code,
+            card_id=prepared.card_id,
             before_morph_key=current_morph_key,
             before_frame_key=prepared.current_frame_key,
             before_font_key=current_font_key,
@@ -691,20 +693,20 @@ def register_economy_commands(bot: commands.Bot) -> None:
         view.message = message
 
     @bot.command(name="font", aliases=["fo"])
-    async def font(ctx: commands.Context, card_code: str | None = None):
+    async def font(ctx: commands.Context, card_id: str | None = None):
         if not await _require_guild(ctx, "Font"):
             return
 
-        prepared = prepare_font(_guild_id(ctx), ctx.author.id, card_code)
+        prepared = prepare_font(_guild_id(ctx), ctx.author.id, card_id)
         if prepared.is_error:
             await _reply(ctx, embed=italy_embed("Font", prepared.error_message or "Font failed."))
             return
 
         if (
             prepared.instance_id is None
-            or prepared.card_id is None
+            or prepared.card_type_id is None
             or prepared.generation is None
-            or prepared.card_code is None
+            or prepared.card_id is None
             or prepared.cost is None
         ):
             await _reply(ctx, embed=italy_embed("Font", "Font failed."))
@@ -716,13 +718,13 @@ def register_economy_commands(bot: commands.Bot) -> None:
         confirm_embed = italy_embed(
             "Font Confirmation",
             (
-                f"{card_display(prepared.card_id, prepared.generation, card_code=prepared.card_code, morph_key=current_morph_key, frame_key=current_frame_key, font_key=prepared.current_font_key)}\n\n"
+                f"{card_display(prepared.card_type_id, prepared.generation, card_id=prepared.card_id, morph_key=current_morph_key, frame_key=current_frame_key, font_key=prepared.current_font_key)}\n\n"
                 f"Current Font: **{font_label(prepared.current_font_key)}**\n"
                 f"Roll Cost: **{prepared.cost}** dough"
             ),
         )
         image_url, image_file = morph_transition_image_payload(
-            prepared.card_id,
+            prepared.card_type_id,
             generation=prepared.generation,
             before_morph_key=current_morph_key,
             after_morph_key=current_morph_key,
@@ -739,9 +741,9 @@ def register_economy_commands(bot: commands.Bot) -> None:
             guild_id=_guild_id(ctx),
             user_id=ctx.author.id,
             instance_id=prepared.instance_id,
-            card_id=prepared.card_id,
+            card_type_id=prepared.card_type_id,
             generation=prepared.generation,
-            card_code=prepared.card_code,
+            card_id=prepared.card_id,
             before_morph_key=current_morph_key,
             before_frame_key=current_frame_key,
             before_font_key=prepared.current_font_key,
@@ -755,7 +757,7 @@ def register_economy_commands(bot: commands.Bot) -> None:
         view.message = message
 
     @bot.command(name="trade", aliases=["t"])
-    async def trade(ctx: commands.Context, player: str, card_code: str, mode: str, value: str):
+    async def trade(ctx: commands.Context, player: str, card_id: str, mode: str, value: str):
         if not await _require_guild(ctx, "Trade"):
             return
 
@@ -771,9 +773,9 @@ def register_economy_commands(bot: commands.Bot) -> None:
             return
 
         amount: int | None = None
-        req_card_code: str | None = None
+        req_card_id: str | None = None
         if canonical_mode == "card":
-            req_card_code = value
+            req_card_id = value
         else:
             try:
                 amount = int(value)
@@ -800,10 +802,10 @@ def register_economy_commands(bot: commands.Bot) -> None:
             seller_id=ctx.author.id,
             buyer_id=resolved_member.id,
             buyer_is_bot=resolved_member.bot,
-            card_code=card_code,
+            card_id=card_id,
             mode=canonical_mode,
             amount=amount,
-            req_card_code=req_card_code,
+            req_card_id=req_card_id,
         )
 
         if prepared.is_error:
@@ -813,7 +815,7 @@ def register_economy_commands(bot: commands.Bot) -> None:
             )
             return
 
-        if prepared.card_id is None or prepared.generation is None or prepared.card_code is None or prepared.terms is None:
+        if prepared.card_type_id is None or prepared.generation is None or prepared.card_id is None or prepared.terms is None:
             await _reply(ctx, embed=italy_embed("Trade", "Trade failed."))
             return
 
@@ -821,8 +823,8 @@ def register_economy_commands(bot: commands.Bot) -> None:
             guild_id=_guild_id(ctx),
             seller_id=ctx.author.id,
             buyer_id=resolved_member.id,
+            card_type_id=prepared.card_type_id,
             card_id=prepared.card_id,
-            card_code=prepared.card_code,
             terms=prepared.terms,
         )
 
@@ -833,9 +835,9 @@ def register_economy_commands(bot: commands.Bot) -> None:
                 trade_offer_description(
                     resolved_member.mention,
                     ctx.author.mention,
-                    prepared.card_id,
+                    prepared.card_type_id,
                     prepared.generation,
-                    prepared.card_code,
+                    prepared.card_id,
                     prepared.terms,
                 ),
             ),
@@ -854,7 +856,7 @@ def register_economy_commands(bot: commands.Bot) -> None:
                     "`ns gift starter <player> <starter>`, "
                     "`ns gift drop <player> <tickets>`, "
                     "`ns gift pull <player> <tickets>`, "
-                    "or `ns gift card <player> <card_code>`."
+                    "or `ns gift card <player> <card_id>`."
                 ),
             ),
         )
@@ -1024,7 +1026,7 @@ def register_economy_commands(bot: commands.Bot) -> None:
         )
 
     @gift.command(name="card", aliases=["c"])
-    async def gift_card(ctx: commands.Context, player: str, card_code: str):
+    async def gift_card(ctx: commands.Context, player: str, card_id: str):
         if not await _require_guild(ctx, "Gift"):
             return
 
@@ -1040,23 +1042,23 @@ def register_economy_commands(bot: commands.Bot) -> None:
             await _reply(ctx, embed=italy_embed("Gift", "You cannot gift cards to bots."))
             return
 
-        gifted, error_message, card_id, generation, card_code = execute_gift_card(
+        gifted, error_message, card_type_id, generation, card_id = execute_gift_card(
             guild_id=_guild_id(ctx),
             sender_id=ctx.author.id,
             recipient_id=resolved_member.id,
-            card_code=card_code,
+            card_id=card_id,
         )
         if not gifted:
             await _reply(ctx, embed=italy_embed("Gift", error_message or "Gift failed."))
             return
 
-        if card_id is None or generation is None:
+        if card_type_id is None or generation is None:
             await _reply(ctx, embed=italy_embed("Gift", "Gift failed."))
             return
 
         gifted_instance = None
-        if card_code is not None:
-            gifted_instance = get_instance_by_code(_guild_id(ctx), resolved_member.id, card_code)
+        if card_id is not None:
+            gifted_instance = get_instance_by_code(_guild_id(ctx), resolved_member.id, card_id)
         morph_key = None
         frame_key = None
         font_key = None
@@ -1065,25 +1067,25 @@ def register_economy_commands(bot: commands.Bot) -> None:
                 gifted_instance_id,
                 _gifted_card_id,
                 _gifted_generation,
-                _gifted_card_code,
+                _gifted_card_id,
             ) = gifted_instance
             morph_key = get_instance_morph(_guild_id(ctx), gifted_instance_id)
             frame_key = get_instance_frame(_guild_id(ctx), gifted_instance_id)
             font_key = get_instance_font(_guild_id(ctx), gifted_instance_id)
 
-        gifted_card_text = card_base_display(card_id)
-        if card_code is not None:
+        gifted_card_text = card_base_display(card_type_id)
+        if card_id is not None:
             gifted_card_text = card_display(
-                card_id,
+                card_type_id,
                 generation,
-                card_code=card_code,
+                card_id=card_id,
                 morph_key=morph_key,
                 frame_key=frame_key,
                 font_key=font_key,
             )
 
         image_url, image_file = embed_image_payload(
-            card_id,
+            card_type_id,
             generation=generation,
             morph_key=morph_key,
             frame_key=frame_key,
