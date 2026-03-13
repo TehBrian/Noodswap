@@ -235,14 +235,14 @@ class StorageTests:
         result = storage.execute_oven_deposit(guild_id, user_id, 100)
         assert result.status == "ok"
         assert result.amount == 100
-        assert result.fee == 8
-        assert result.net_amount == 92
-        assert result.pot_contribution == 2
+        assert result.fee == 3
+        assert result.net_amount == 97
+        assert result.pot_contribution == 1
         assert result.dough_balance == 400
-        assert result.oven_balance == 92
+        assert result.oven_balance == 97
 
         pot_dough, _, _, _ = storage.get_gambling_pot(guild_id)
-        assert pot_dough == 2
+        assert pot_dough == 1
 
     def test_oven_withdraw_applies_fee_and_contributes_to_pot(self) -> None:
         guild_id = 1
@@ -255,14 +255,14 @@ class StorageTests:
         result = storage.execute_oven_withdraw(guild_id, user_id, 100)
         assert result.status == "ok"
         assert result.amount == 100
-        assert result.fee == 8
-        assert result.net_amount == 92
-        assert result.pot_contribution == 2
-        assert result.dough_balance == 392
-        assert result.oven_balance == 84
+        assert result.fee == 3
+        assert result.net_amount == 97
+        assert result.pot_contribution == 1
+        assert result.dough_balance == 397
+        assert result.oven_balance == 94
 
         pot_dough, _, _, _ = storage.get_gambling_pot(guild_id)
-        assert pot_dough == 6
+        assert pot_dough == 3
 
     def test_oven_deposit_rejects_zero_net_transfer(self) -> None:
         guild_id = 1
@@ -286,7 +286,7 @@ class StorageTests:
 
         result = storage.execute_oven_withdraw(guild_id, user_id, 50)
         assert result.status == "insufficient_oven"
-        assert result.oven_balance == 18
+        assert result.oven_balance == 19
 
     def test_oven_deposit_starter_applies_fee_and_pot_contribution(self) -> None:
         guild_id = 1
@@ -353,7 +353,7 @@ class StorageTests:
         storage.execute_oven_deposit(guild_id, user_id, 5, "pull")
 
         oven_balances = storage.get_player_oven_balances(guild_id, user_id)
-        assert oven_balances == (23, 9, 4, 4)
+        assert oven_balances == (24, 9, 4, 4)
 
     def test_monopoly_fine_ignores_oven_balance(self) -> None:
         guild_id = 1
@@ -371,7 +371,7 @@ class StorageTests:
         fine_result = storage.execute_monopoly_fine(guild_id, user_id)
         assert fine_result.status == "released"
         assert fine_result.paid == 100
-        assert storage.get_player_oven_balance(guild_id, user_id) == 92
+        assert storage.get_player_oven_balance(guild_id, user_id) == 97
 
     def test_consume_pull_cooldown_or_ticket_bypasses_without_changing_timestamp(self) -> None:
         guild_id = 1

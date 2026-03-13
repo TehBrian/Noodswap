@@ -903,10 +903,10 @@ def register_economy_commands(bot: commands.Bot) -> None:
                 "Oven",
                 multiline_text(
                     [
-                        f"Oven Dough: **{oven_dough}** | Spendable Dough: **{dough}**",
-                        f"Oven Starter: **{oven_starter}** | Spendable Starter: **{starter}**",
-                        f"Oven Drop Tickets: **{oven_drop_tickets}** | Spendable Drop Tickets: **{drop_tickets}**",
-                        f"Oven Pull Tickets: **{oven_pull_tickets}** | Spendable Pull Tickets: **{pull_tickets}**",
+                        f"Dough: **{oven_dough}**",
+                        f"Starter: **{oven_starter}**",
+                        f"Drop Tickets: **{oven_drop_tickets}**",
+                        f"Pull Tickets: **{oven_pull_tickets}**",
                     ]
                 ),
             ),
@@ -930,7 +930,7 @@ def register_economy_commands(bot: commands.Bot) -> None:
         if result.status == "net_too_small":
             await _reply(
                 ctx,
-                embed=italy_embed("Oven", "Amount is too small after the 8% oven fee. Try a larger amount."),
+                embed=italy_embed("Oven", "Amount is too small after the 3% oven fee. Try a larger amount."),
             )
             return
         if result.status == "insufficient_spendable":
@@ -952,10 +952,11 @@ def register_economy_commands(bot: commands.Bot) -> None:
                     [
                         f"Item: **{item_label}**",
                         f"Requested: **{result.amount}**",
-                        f"Fee (8%): **{result.fee}**",
+                        "",
+                        f"Fee (3%): **{result.fee}**",
                         f"Moved to Oven: **{result.net_amount}**",
-                        f"Monopoly Pot from Fee: **+{result.pot_contribution}**",
-                        f"Spendable {item_label.title()}: **{result.spendable_balance}**",
+                        "",
+                        f"Wallet {item_label.title()}: **{result.spendable_balance}**",
                         f"Oven {item_label.title()}: **{result.oven_balance}**",
                     ]
                 ),
@@ -980,7 +981,7 @@ def register_economy_commands(bot: commands.Bot) -> None:
         if result.status == "net_too_small":
             await _reply(
                 ctx,
-                embed=italy_embed("Oven", "Amount is too small after the 8% oven fee. Try a larger amount."),
+                embed=italy_embed("Oven", "Amount is too small after the 3% oven fee. Try a larger amount."),
             )
             return
         if result.status == "insufficient_oven":
@@ -1002,10 +1003,11 @@ def register_economy_commands(bot: commands.Bot) -> None:
                     [
                         f"Item: **{item_label}**",
                         f"Requested: **{result.amount}**",
-                        f"Fee (8%): **{result.fee}**",
+                        "",
+                        f"Fee (3%): **{result.fee}**",
                         f"Moved to Wallet: **{result.net_amount}**",
-                        f"Monopoly Pot from Fee: **+{result.pot_contribution}**",
-                        f"Spendable {item_label.title()}: **{result.spendable_balance}**",
+                        "",
+                        f"Wallet {item_label.title()}: **{result.spendable_balance}**",
                         f"Oven {item_label.title()}: **{result.oven_balance}**",
                     ]
                 ),

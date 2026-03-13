@@ -2404,11 +2404,11 @@ class CommandsOvenTests:
                 status="ok",
                 item="starter",
                 amount=100,
-                fee=8,
-                net_amount=92,
-                pot_contribution=2,
+                fee=3,
+                net_amount=97,
+                pot_contribution=1,
                 spendable_balance=900,
-                oven_balance=92,
+                oven_balance=97,
             ),
         ):
             await oven_deposit_command.callback(ctx, amount=100, item="starter")
@@ -2417,8 +2417,8 @@ class CommandsOvenTests:
         sent_embed = ctx.send.await_args.kwargs["embed"]
         assert sent_embed.title == "Deposit"
         assert "Item: **starter**" in sent_embed.description
-        assert "Fee (8%): **8**" in sent_embed.description
-        assert "Moved to Oven: **92**" in sent_embed.description
+        assert "Fee (3%): **3**" in sent_embed.description
+        assert "Moved to Oven: **97**" in sent_embed.description
 
     async def test_oven_withdraw_rejects_insufficient_oven_balance(self) -> None:
         oven_withdraw_command = _get_command(self.bot, "withdraw")
