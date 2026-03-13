@@ -483,7 +483,7 @@ def register_social_commands(bot: commands.Bot) -> None:
                 )
 
         embed = italy_embed(f"{target_member.display_name}'s Info")
-        items_lines = [
+        wallet_lines = [
             f"Dough: {dough}",
             f"Starter: {starter}",
             f"Drop Tickets: {drop_tickets}",
@@ -500,8 +500,8 @@ def register_social_commands(bot: commands.Bot) -> None:
             value=str(get_total_cards(_guild_id(ctx), target_member.id)),
             inline=True,
         )
-        embed.add_field(name="**Items**", value="\n".join(items_lines), inline=True)
-        embed.add_field(name="**Oven**", value="\n".join(oven_lines), inline=True)
+        embed.add_field(name="**Wallet Items**", value="\n".join(wallet_lines), inline=True)
+        embed.add_field(name="**Oven Items**", value="\n".join(oven_lines), inline=True)
         embed.add_field(name="Wishes", value=str(wishes_count), inline=True)
         embed.add_field(name="Married Card", value=married, inline=False)
         if married_image_url is not None:

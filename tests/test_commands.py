@@ -2307,7 +2307,7 @@ class CommandsInfoTests:
         sent_embed = ctx.send.await_args.kwargs["embed"]
         field_values = {field.name: field.value for field in sent_embed.fields}
         assert field_values.get("Cards") == "7"
-        assert field_values.get("**Items**") == "\n".join(
+        assert field_values.get("**Wallet Items**") == "\n".join(
             [
                 "Dough: 123",
                 "Starter: 9",
@@ -2315,7 +2315,7 @@ class CommandsInfoTests:
                 "Pull Tickets: 6",
             ]
         )
-        assert field_values.get("**Oven**") == "\n".join(
+        assert field_values.get("**Oven Items**") == "\n".join(
             [
                 "Dough: 21",
                 "Starter: 3",
@@ -2387,7 +2387,9 @@ class CommandsOvenTests:
         sent_embed = ctx.send.await_args.kwargs["embed"]
         assert sent_embed.title == "Oven"
         assert "Oven Dough: **125**" in sent_embed.description
-        assert "Spendable Dough: **300**" in sent_embed.description
+        assert "Oven Starter: **4**" in sent_embed.description
+        assert "Oven Drop Tickets: **3**" in sent_embed.description
+        assert "Oven Pull Tickets: **2**" in sent_embed.description
 
     async def test_oven_deposit_success_shows_fee_breakdown(self) -> None:
         oven_deposit_command = _get_command(self.bot, "deposit")
@@ -2416,7 +2418,7 @@ class CommandsOvenTests:
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
         assert sent_embed.title == "Deposit"
-        assert "Item: **starter**" in sent_embed.description
+        assert "Wallet Item: **starter**" in sent_embed.description
         assert "Fee (3%): **3**" in sent_embed.description
         assert "Moved to Oven: **97**" in sent_embed.description
 

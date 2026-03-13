@@ -299,9 +299,9 @@ HELP_CATEGORY_PAGES: tuple[tuple[str, str, str], ...] = (
 - `gift drop <player> <tickets>` — Send drop tickets to a player.
 - `gift pull <player> <tickets>` — Send pull tickets to a player.
 - `gift card <player> <card_id>` (`gift c`) — Send a card to a player.
-- `deposit <amount> [dough|starter|drop|pull]` — Move an item into the oven (default: dough).
-- `withdraw <amount> [dough|starter|drop|pull]` — Move an item out of the oven (default: dough).
-- `oven balance` — Show all oven balances and spendable balances.
+- `deposit <amount> [dough|starter|drop|pull]` — Move an item from your wallet into the oven (default: dough).
+- `withdraw <amount> [dough|starter|drop|pull]` — Move an item out of the oven and back to your wallet (default: dough).
+- `oven balance` — Show all oven balances and wallet balances.
 - `oven deposit <amount> [item]` — Oven-group alias for `deposit`.
 - `oven withdraw <amount> [item]` — Oven-group alias for `withdraw`.
 - `trade <player> <card_id> <mode> <amount|req_code>` (`t`) — Offer a trade. Mode: `dough`, `starter`, `drop`, `pull`, or `card`.""",

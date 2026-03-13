@@ -153,9 +153,9 @@ This bot uses privileged intents. Enable these for your application in Discord D
 - `ns gift starter <player> <starter>` / `ns gift s <player> <starter>` — send starter directly to another player.
 - `ns gift drop <player> <tickets>` — send drop tickets directly to another player.
 - `ns gift card <player> <card_id>` / `ns gift c <player> <card_id>` — send one owned card copy directly to another player.
-- `ns deposit <amount> [dough|starter|drop|pull]` — move an item into the oven (default item: `dough`) with 3% fee (rounded up).
-- `ns withdraw <amount> [dough|starter|drop|pull]` — move an item out of the oven (default item: `dough`) with 3% fee (rounded up).
-- `ns oven balance` — show all oven balances and spendable balances.
+- `ns deposit <amount> [dough|starter|drop|pull]` — move an item from your wallet into the oven (default item: `dough`) with 3% fee (rounded up).
+- `ns withdraw <amount> [dough|starter|drop|pull]` — move an item out of the oven and back to your wallet (default item: `dough`) with 3% fee (rounded up).
+- `ns oven balance` — show all oven balances and wallet balances.
 - `ns oven deposit <amount> [item]` — group alias for `ns deposit`.
 - `ns oven withdraw <amount> [item]` — group alias for `ns withdraw`.
 - `ns morph [card_id]` / `ns mo [card_id]` — pay 20% of card value (rounded up) to apply a random morph; currently supports `black_and_white`.

@@ -889,10 +889,6 @@ def register_economy_commands(bot: commands.Bot) -> None:
         if not await _require_guild(ctx, "Oven"):
             return
 
-        dough, _, _ = get_player_info(_guild_id(ctx), ctx.author.id)
-        starter = get_player_starter(_guild_id(ctx), ctx.author.id)
-        drop_tickets = get_player_drop_tickets(_guild_id(ctx), ctx.author.id)
-        pull_tickets = get_player_pull_tickets(_guild_id(ctx), ctx.author.id)
         oven_dough, oven_starter, oven_drop_tickets, oven_pull_tickets = get_player_oven_balances(
             _guild_id(ctx),
             ctx.author.id,
@@ -903,10 +899,10 @@ def register_economy_commands(bot: commands.Bot) -> None:
                 "Oven",
                 multiline_text(
                     [
-                        f"Dough: **{oven_dough}**",
-                        f"Starter: **{oven_starter}**",
-                        f"Drop Tickets: **{oven_drop_tickets}**",
-                        f"Pull Tickets: **{oven_pull_tickets}**",
+                        f"Oven Dough: **{oven_dough}**",
+                        f"Oven Starter: **{oven_starter}**",
+                        f"Oven Drop Tickets: **{oven_drop_tickets}**",
+                        f"Oven Pull Tickets: **{oven_pull_tickets}**",
                     ]
                 ),
             ),
@@ -938,7 +934,7 @@ def register_economy_commands(bot: commands.Bot) -> None:
                 ctx,
                 embed=italy_embed(
                     "Oven",
-                    f"You do not have enough {_oven_item_label(result.item)}. Current balance: **{result.spendable_balance}**.",
+                    f"You do not have enough {_oven_item_label(result.item)}. Current wallet balance: **{result.spendable_balance}**.",
                 ),
             )
             return
@@ -950,7 +946,7 @@ def register_economy_commands(bot: commands.Bot) -> None:
                 "Deposit",
                 multiline_text(
                     [
-                        f"Item: **{item_label}**",
+                        f"Wallet Item: **{item_label}**",
                         f"Requested: **{result.amount}**",
                         "",
                         f"Fee (3%): **{result.fee}**",
@@ -1001,7 +997,7 @@ def register_economy_commands(bot: commands.Bot) -> None:
                 "Withdraw",
                 multiline_text(
                     [
-                        f"Item: **{item_label}**",
+                        f"Wallet Item: **{item_label}**",
                         f"Requested: **{result.amount}**",
                         "",
                         f"Fee (3%): **{result.fee}**",
@@ -1211,7 +1207,7 @@ def register_economy_commands(bot: commands.Bot) -> None:
             await _reply(ctx, embed=italy_embed("Gift", "You cannot gift cards to bots."))
             return
 
-        gifted, error_message, card_type_id, generation, card_id = execute_gift_card(
+        gifted, error_message, card_type_id, generation, gifted_card_id = execute_gift_card(
             guild_id=_guild_id(ctx),
             sender_id=ctx.author.id,
             recipient_id=resolved_member.id,
@@ -1226,8 +1222,8 @@ def register_economy_commands(bot: commands.Bot) -> None:
             return
 
         gifted_instance = None
-        if card_id is not None:
-            gifted_instance = get_instance_by_code(_guild_id(ctx), resolved_member.id, card_id)
+        if gifted_card_id is not None:
+            gifted_instance = get_instance_by_code(_guild_id(ctx), resolved_member.id, gifted_card_id)
         morph_key = None
         frame_key = None
         font_key = None
@@ -1243,11 +1239,11 @@ def register_economy_commands(bot: commands.Bot) -> None:
             font_key = get_instance_font(_guild_id(ctx), gifted_instance_id)
 
         gifted_card_text = card_base_display(card_type_id)
-        if card_id is not None:
+        if gifted_card_id is not None:
             gifted_card_text = card_display(
                 card_type_id,
                 generation,
-                card_id=card_id,
+                card_id=gifted_card_id,
                 morph_key=morph_key,
                 frame_key=frame_key,
                 font_key=font_key,
