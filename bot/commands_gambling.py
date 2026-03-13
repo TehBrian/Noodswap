@@ -13,6 +13,8 @@ from .command_utils import (
     DropView as DropView,
     FLIP_ACTIVITY_PHRASES as FLIP_ACTIVITY_PHRASES,
     FLIP_COOLDOWN_SECONDS as FLIP_COOLDOWN_SECONDS,
+    FLIP_WIN_PAYOUT_MULTIPLIER_DENOMINATOR as FLIP_WIN_PAYOUT_MULTIPLIER_DENOMINATOR,
+    FLIP_WIN_PAYOUT_MULTIPLIER_NUMERATOR as FLIP_WIN_PAYOUT_MULTIPLIER_NUMERATOR,
     FLIP_REVEAL_DELAY_SECONDS as FLIP_REVEAL_DELAY_SECONDS,
     FLIP_WIN_PROBABILITY as FLIP_WIN_PROBABILITY,
     FontConfirmView as FontConfirmView,
@@ -330,9 +332,10 @@ def register_gambling_commands(bot: commands.Bot) -> None:
             await asyncio.sleep(FLIP_REVEAL_DELAY_SECONDS)
 
             if did_player_win:
+                payout = (stake * FLIP_WIN_PAYOUT_MULTIPLIER_NUMERATOR) // FLIP_WIN_PAYOUT_MULTIPLIER_DENOMINATOR
                 final_lines = [
                     f"Result: **{result_side.capitalize()}**",
-                    f"Payout: **+{stake}** dough",
+                    f"Payout: **+{payout}** dough",
                     f"Balance: **{dough_total}** dough",
                 ]
             else:

@@ -2138,7 +2138,7 @@ class CommandsFlipTests:
             patch("bot.commands_gambling.random.choice", return_value="rolling"),
             patch(
                 "bot.commands_gambling.execute_flip_wager",
-                return_value=("won", 0.0, 60),
+                return_value=("won", 0.0, 68),
             ) as execute_flip,
             patch("bot.commands_gambling.asyncio.sleep", new=AsyncMock()) as sleep_mock,
         ):
@@ -2155,7 +2155,7 @@ class CommandsFlipTests:
         message.edit.assert_awaited_once()
         final_embed = message.edit.await_args.kwargs["embed"]
         assert "Heads" in final_embed.description
-        assert "+10" in final_embed.description
+        assert "+18" in final_embed.description
 
     async def test_flip_shows_tails_on_loss_after_delay(self) -> None:
         flip_command = _get_command(self.bot, "flip")
@@ -2204,7 +2204,7 @@ class CommandsFlipTests:
             patch("bot.commands_gambling.random.choice", return_value="whirling"),
             patch(
                 "bot.commands_gambling.execute_flip_wager",
-                return_value=("won", 0.0, 60),
+                return_value=("won", 0.0, 68),
             ),
             patch("bot.commands_gambling.asyncio.sleep", new=AsyncMock()),
         ):
@@ -2230,7 +2230,7 @@ class CommandsFlipTests:
             patch("bot.commands_gambling.random.choice", return_value="tumbling"),
             patch(
                 "bot.commands_gambling.execute_flip_wager",
-                return_value=("won", 0.0, 60),
+                return_value=("won", 0.0, 68),
             ),
             patch("bot.commands_gambling.asyncio.sleep", new=AsyncMock()),
         ):

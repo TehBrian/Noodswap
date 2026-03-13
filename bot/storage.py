@@ -40,6 +40,10 @@ from .repositories import (
 from .settings import (
     DB_LOCK_TIMEOUT_SECONDS,
     DB_PATH,
+    FLIP_LOSS_POT_CONTRIBUTION_DENOMINATOR,
+    FLIP_LOSS_POT_CONTRIBUTION_NUMERATOR,
+    FLIP_WIN_PAYOUT_MULTIPLIER_DENOMINATOR,
+    FLIP_WIN_PAYOUT_MULTIPLIER_NUMERATOR,
     GENERATION_MAX,
     GENERATION_MIN,
     MONOPOLY_BOARD_SIZE,
@@ -2105,10 +2109,14 @@ def execute_flip_wager(
         if current_dough < stake:
             return "insufficient_dough", 0.0, current_dough
 
-        dough_delta = stake if did_win else -stake
+        win_payout = (stake * FLIP_WIN_PAYOUT_MULTIPLIER_NUMERATOR) // FLIP_WIN_PAYOUT_MULTIPLIER_DENOMINATOR
+        pot_contribution = (
+            stake * FLIP_LOSS_POT_CONTRIBUTION_NUMERATOR
+        ) // FLIP_LOSS_POT_CONTRIBUTION_DENOMINATOR
+        dough_delta = win_payout if did_win else -stake
         players.add_dough(guild_id, user_id, dough_delta)
         if not did_win:
-            pot.add(guild_id, dough=stake)
+            pot.add(guild_id, dough=pot_contribution)
         players.set_last_flip_at(guild_id, user_id, now)
         return ("won" if did_win else "lost"), 0.0, current_dough + dough_delta
 

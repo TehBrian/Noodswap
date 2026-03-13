@@ -164,8 +164,9 @@ Burn result format should remain:
 - side call aliases `h`/`t` are accepted
 - flip uses a 2-minute per-player cooldown
 - outcome odds are fixed at 46% win (`Heads`) and 54% loss (`Tails`)
-- on win, player gains `+stake` dough (net)
+- on win, player gains `+1.8x stake` dough (net)
 - on loss, player loses `-stake` dough (net)
+- on loss, `0.2x stake` dough is added to the Monopoly pot
 - insufficient-dough responses should report stake and current balance
 - flip responses use the standard `italy_embed` style
 - successful flips use a delayed reveal: initial embed shows a randomized "coin is ..." suspense line, then edits to reveal the result after 3 seconds
