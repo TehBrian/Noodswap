@@ -1261,7 +1261,7 @@ def register_economy_commands(bot: commands.Bot) -> None:
             "Gift",
             multiline_text(
                 [
-                    f"Sent to: <@{resolved_member.id}>",
+                    f"Recipient: <@{resolved_member.id}>",
                     f"Sender: <@{ctx.author.id}>",
                     "",
                     f"Card: {gifted_card_text}",

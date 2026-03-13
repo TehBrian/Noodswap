@@ -1757,8 +1757,8 @@ class CommandsBuyTests:
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
         assert sent_embed.title == "Buy"
-        assert "Purchased: **3 drop ticket(s)**" in sent_embed.description
-        assert "Starter Balance: **4**" in sent_embed.description
+        assert "Purchased: **3 drop tickets**" in sent_embed.description
+        assert "Starter: **4**" in sent_embed.description
         assert "Drop Tickets: **7**" in sent_embed.description
 
     async def test_buy_pull_purchases_with_starter(self) -> None:
@@ -1780,8 +1780,8 @@ class CommandsBuyTests:
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
         assert sent_embed.title == "Buy"
-        assert "Purchased: **3 pull ticket(s)**" in sent_embed.description
-        assert "Starter Balance: **4**" in sent_embed.description
+        assert "Purchased: **3 pull tickets**" in sent_embed.description
+        assert "Starter: **4**" in sent_embed.description
         assert "Pull Tickets: **8**" in sent_embed.description
 
 
@@ -2526,7 +2526,7 @@ class CommandsGiftTests:
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
         assert sent_embed.title == "Gift"
-        assert "Sent to: <@200>" in sent_embed.description
+        assert "Recipient: <@200>" in sent_embed.description
         assert "Sender: <@100>" in sent_embed.description
         assert "Card:" in sent_embed.description
         assert "view" not in ctx.send.await_args.kwargs
