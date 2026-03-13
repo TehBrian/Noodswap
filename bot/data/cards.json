@@ -83,6 +83,12 @@
     "rarity": "common",
     "series": "bread"
   },
+  "BAB": {
+    "image": "runtime/card_images/BAB.jpg",
+    "name": "Big Arch Burger",
+    "rarity": "common",
+    "series": "entree"
+  },
   "BAK": {
     "image": "runtime/card_images/BAK.jpg",
     "name": "Baklava",
@@ -1507,6 +1513,12 @@
     "rarity": "uncommon",
     "series": "noodle"
   },
+  "TBG": {
+    "image": "runtime/card_images/TBG.jpg",
+    "name": "Trisha's Big Arch",
+    "rarity": "uncommon",
+    "series": "entree"
+  },
   "TIR": {
     "image": "runtime/card_images/TIR.jpg",
     "name": "Tiramisu",
@@ -1560,6 +1572,12 @@
     "name": "Udon Carbonara",
     "rarity": "uncommon",
     "series": "noodle"
+  },
+  "TSS": {
+    "image": "runtime/card_images/TSS.jpg",
+    "name": "Trisha's Shamrock Shake",
+    "rarity": "epic",
+    "series": "dessert"
   },
   "UDO": {
     "image": "runtime/card_images/UDO.jpg",
