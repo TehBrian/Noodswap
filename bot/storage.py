@@ -47,7 +47,7 @@ from .settings import (
     GENERATION_MAX,
     GENERATION_MIN,
     MONOPOLY_BOARD_SIZE,
-    MONOPOLY_CHEESE_TAX_DOUGH,
+    MONOPOLY_CHEESE_TAX_PERCENT,
     MONOPOLY_GO_REWARD_DOUGH,
     MONOPOLY_JAIL_FINE_DOUGH,
     STARTING_DOUGH,
@@ -1751,7 +1751,9 @@ def execute_monopoly_roll(
             lines.append(f"Landed on **{space.name}** {space.emoji}")
 
         if space.kind == "tax":
-            paid = _deduct_up_to(players, guild_id, user_id, MONOPOLY_CHEESE_TAX_DOUGH)
+            current_dough = players.get_dough(guild_id, user_id)
+            tax_due = (current_dough * MONOPOLY_CHEESE_TAX_PERCENT) // 100
+            paid = _deduct_up_to(players, guild_id, user_id, tax_due)
             if paid > 0:
                 pot.add(guild_id, dough=paid)
             lines.append(f"You had to pay **{paid} dough**. Ouch! 🧀")

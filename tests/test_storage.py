@@ -483,6 +483,38 @@ class StorageTests:
         )
         assert expected_line in result.lines
 
+    def test_monopoly_cheese_tax_costs_seven_percent_of_player_dough(self) -> None:
+        guild_id = 1
+        user_id = 2252
+        storage.init_db()
+        storage.add_dough(guild_id, user_id, 10_000)
+
+        with (
+            patch("bot.storage.roll_dice", return_value=(1, 2, False)),
+            patch(
+                "bot.storage.board_space",
+                return_value=SimpleNamespace(kind="tax", name="Tomato Tax", emoji="💸", rarity=None),
+            ),
+        ):
+            result = storage.execute_monopoly_roll(
+                guild_id,
+                user_id,
+                now=41_000.0,
+                cooldown_seconds=660.0,
+            )
+
+        assert result.status == "ok"
+        assert any("**700 dough**" in line for line in result.lines)
+
+        player_dough, _, _ = storage.get_player_info(guild_id, user_id)
+        assert player_dough == 9300
+
+        pot_dough, pot_starter, pot_drop_tickets, pot_pull_tickets = storage.get_gambling_pot(guild_id)
+        assert pot_dough == 700
+        assert pot_starter == 0
+        assert pot_drop_tickets == 0
+        assert pot_pull_tickets == 0
+
     def test_monopoly_card_move_to_free_parking_awards_pot(self) -> None:
         guild_id = 1
         user_id = 1253
