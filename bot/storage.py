@@ -47,7 +47,6 @@ from .settings import (
     GENERATION_MAX,
     GENERATION_MIN,
     MONOPOLY_BOARD_SIZE,
-    MONOPOLY_CHEESE_TAX_PERCENT,
     MONOPOLY_GO_REWARD_DOUGH,
     MONOPOLY_JAIL_FINE_DOUGH,
     MONOPOLY_JAIL_FINE_POT_CONTRIBUTION_DENOMINATOR,
@@ -56,6 +55,8 @@ from .settings import (
     MONOPOLY_NEGATIVE_CHANCE_POT_CONTRIBUTION_NUMERATOR,
     MONOPOLY_PROPERTY_TRANSACTION_FEE_POT_CONTRIBUTION_DENOMINATOR,
     MONOPOLY_PROPERTY_TRANSACTION_FEE_POT_CONTRIBUTION_NUMERATOR,
+    MONOPOLY_TOMATO_TAX_PERCENT,
+    MONOPOLY_TRUFFLE_TAX_PERCENT,
     MONOPOLY_TAX_POT_CONTRIBUTION_DENOMINATOR,
     MONOPOLY_TAX_POT_CONTRIBUTION_NUMERATOR,
     OVEN_TRANSACTION_FEE_DENOMINATOR,
@@ -1925,7 +1926,8 @@ def execute_monopoly_roll(
 
         if space.kind == "tax":
             current_dough = players.get_dough(guild_id, user_id)
-            tax_due = (current_dough * MONOPOLY_CHEESE_TAX_PERCENT) // 100
+            tax_percent = MONOPOLY_TRUFFLE_TAX_PERCENT if space.name == "Truffle Tax" else MONOPOLY_TOMATO_TAX_PERCENT
+            tax_due = (current_dough * tax_percent) // 100
             paid = _deduct_up_to(players, guild_id, user_id, tax_due)
             pot_contribution = _scaled_value(
                 paid,
