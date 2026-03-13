@@ -2418,7 +2418,7 @@ class CommandsOvenTests:
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
         assert sent_embed.title == "Deposit"
-        assert "Wallet Item: **starter**" in sent_embed.description
+        assert "Item: **Starter**" in sent_embed.description
         assert "Fee (3%): **3**" in sent_embed.description
         assert "Moved to Oven: **97**" in sent_embed.description
 

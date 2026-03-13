@@ -946,7 +946,7 @@ def register_economy_commands(bot: commands.Bot) -> None:
                 "Deposit",
                 multiline_text(
                     [
-                        f"Wallet Item: **{item_label}**",
+                        f"Item: **{item_label.title()}**",
                         f"Requested: **{result.amount}**",
                         "",
                         f"Fee (3%): **{result.fee}**",
@@ -997,7 +997,7 @@ def register_economy_commands(bot: commands.Bot) -> None:
                 "Withdraw",
                 multiline_text(
                     [
-                        f"Wallet Item: **{item_label}**",
+                        f"Item: **{item_label.title()}**",
                         f"Requested: **{result.amount}**",
                         "",
                         f"Fee (3%): **{result.fee}**",
