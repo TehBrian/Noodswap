@@ -47,31 +47,31 @@ BOARD_SPACES: tuple[MonopolySpace, ...] = (
     MonopolySpace(1, "Common Property", "property", "⬜", "common"),
     MonopolySpace(2, "Community Charcuterie", "community", "🧺"),
     MonopolySpace(3, "Common Property", "property", "⬜", "common"),
-    MonopolySpace(4, "Tomato Tax", "tax", "💸"),
+    MonopolySpace(4, "Tomato Tax", "tax", "🍅"),
     MonopolySpace(5, "Community Charcuterie", "community", "🧺"),
     MonopolySpace(6, "Uncommon Property", "property", "🟫", "uncommon"),
-    MonopolySpace(7, "Cheese Chance", "chance", "❓"),
+    MonopolySpace(7, "Cheese Chance", "chance", "🧀"),
     MonopolySpace(8, "Uncommon Property", "property", "🟫", "uncommon"),
     MonopolySpace(9, "Uncommon Property", "property", "🟫", "uncommon"),
-    MonopolySpace(10, "Mpreg Square", "mpreg", "🤰"),
+    MonopolySpace(10, "Mpreg Square", "mpreg", "🫃"),
     MonopolySpace(11, "Rare Property", "property", "🟪", "rare"),
     MonopolySpace(12, "Community Charcuterie", "community", "🧺"),
     MonopolySpace(13, "Rare Property", "property", "🟪", "rare"),
     MonopolySpace(14, "Rare Property", "property", "🟪", "rare"),
-    MonopolySpace(15, "Cheese Chance", "chance", "❓"),
+    MonopolySpace(15, "Cheese Chance", "chance", "🧀"),
     MonopolySpace(16, "Epic Property", "property", "🟧", "epic"),
     MonopolySpace(17, "Community Charcuterie", "community", "🧺"),
     MonopolySpace(18, "Epic Property", "property", "🟧", "epic"),
     MonopolySpace(19, "Epic Property", "property", "🟧", "epic"),
     MonopolySpace(20, "Free Parking", "free_parking", "🅿️"),
     MonopolySpace(21, "Legendary Property", "property", "🟥", "legendary"),
-    MonopolySpace(22, "Cheese Chance", "chance", "❓"),
+    MonopolySpace(22, "Cheese Chance", "chance", "🧀"),
     MonopolySpace(23, "Legendary Property", "property", "🟥", "legendary"),
     MonopolySpace(24, "Legendary Property", "property", "🟥", "legendary"),
     MonopolySpace(25, "Community Charcuterie", "community", "🧺"),
     MonopolySpace(26, "Mythical Property", "property", "🟩", "mythical"),
     MonopolySpace(27, "Mythical Property", "property", "🟩", "mythical"),
-    MonopolySpace(28, "Cheese Chance", "chance", "❓"),
+    MonopolySpace(28, "Cheese Chance", "chance", "🧀"),
     MonopolySpace(29, "Mythical Property", "property", "🟩", "mythical"),
     MonopolySpace(30, "Go To Jail", "go_to_jail", "❌"),
     MonopolySpace(31, "Divine Property", "property", "🟨", "divine"),
@@ -79,9 +79,9 @@ BOARD_SPACES: tuple[MonopolySpace, ...] = (
     MonopolySpace(33, "Community Charcuterie", "community", "🧺"),
     MonopolySpace(34, "Divine Property", "property", "🟨", "divine"),
     MonopolySpace(35, "Community Charcuterie", "community", "🧺"),
-    MonopolySpace(36, "Cheese Chance", "chance", "❓"),
+    MonopolySpace(36, "Cheese Chance", "chance", "🧀"),
     MonopolySpace(37, "Celestial Property", "property", "🟦", "celestial"),
-    MonopolySpace(38, "Tomato Tax", "tax", "💸"),
+    MonopolySpace(38, "Truffle Tax", "tax", "🍄‍🟫"),
     MonopolySpace(39, "Celestial Property", "property", "🟦", "celestial"),
 )
 
@@ -241,9 +241,9 @@ def render_board(player_position: int) -> str:
     lines = ["".join(row) for row in grid]
     lines.append("")
     lines.append("""Legend:
-⬅️ GO, 💸 Cheese Tax
-🧺 Community Charcuterie, ❓ Cheese Chance
-🅿️ Free Parking, ❌ Go To Jail, 🤰 Mpreg Square
+⬅️ GO, 🍅 Tomato Tax, 🍄‍🟫 Truffle Tax
+🧺 Community Charcuterie, 🧀 Cheese Chance
+🅿️ Free Parking, ❌ Go To Jail, 🫃 Mpreg Square
 """)
     lines.append("""Properties:
 ⬜ Common, 🟫 Uncommon, 🟪 Rare, 🟧 Epic

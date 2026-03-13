@@ -1756,7 +1756,7 @@ def execute_monopoly_roll(
             paid = _deduct_up_to(players, guild_id, user_id, tax_due)
             if paid > 0:
                 pot.add(guild_id, dough=paid)
-            lines.append(f"You had to pay **{paid} dough**. Ouch! 🧀")
+            lines.append(f"You had to pay **{paid} dough**. Ouch! {space.emoji}")
 
         elif space.kind == "free_parking":
             pot_dough, pot_starter, pot_drop_tickets, pot_pull_tickets = pot.get_balances(guild_id)
