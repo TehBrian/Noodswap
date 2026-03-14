@@ -79,6 +79,7 @@ Stage 3 implementation guide: `docs/refactor-phase-3.md`.
 
 ## Decision log (recent)
 
+- Added `ship <user> [other_user]` social command with reply-based `<user>` fallback, deterministic order-independent compatibility scoring (`0..100` from hashed user IDs), and generated embed image composition using both users' Discord avatars plus a centered chocolate-backed percentage overlay loaded from `runtime/images/ship_chocolate.png`.
 - Added schema migration v32 to rescale legacy wallet and oven dough balances independently with `new_bal = log(old_bal + 1)^6.1` during startup upgrade.
 - Added an oven bank economy path (`ns oven deposit|withdraw|balance`) backed by `players.oven_dough`; oven transactions charge a 3% fee (rounded up), route 20% of that fee (rounded up) to the Monopoly pot, and oven funds are excluded from normal spend/tax/rent flows until withdrawn.
 - Hardened cooldown command paths with per-player in-flight command gating for `drop`, `pull`, `slots`, `flip`, and `monopoly roll` to prevent duplicate concurrent executions while preserving storage-level cooldown enforcement as source of truth; Monopoly doubles behavior remains unchanged (immediate reroll allowed after the active roll resolves).

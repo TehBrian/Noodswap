@@ -137,7 +137,9 @@ from .command_utils import (
     read_local_card_image_bytes as read_local_card_image_bytes,
     remove_card_from_wishlist as remove_card_from_wishlist,
     render_card_surface as render_card_surface,
+    ship_compatibility_percent as ship_compatibility_percent,
     reset_db_data as reset_db_data,
+    resolve_replied_player_argument as resolve_replied_player_argument,
     resolve_member_argument as resolve_member_argument,
     resolve_optional_player_argument as resolve_optional_player_argument,
     search_card_ids as search_card_ids,
@@ -154,6 +156,8 @@ from .command_utils import (
     unassign_instance_from_team as unassign_instance_from_team,
     unassign_tag_from_instance as unassign_tag_from_instance,
     value_to_stats as value_to_stats,
+    fetch_avatar_image_bytes as fetch_avatar_image_bytes,
+    build_ship_image_file as build_ship_image_file,
     _battle as _battle,
     _cooldown_status_line as _cooldown_status_line,
     _folder_add as _folder_add,
@@ -419,6 +423,80 @@ def register_social_commands(bot: commands.Bot) -> None:
             ctx,
             embed=italy_embed(f"{target_member.display_name}'s Cooldowns", description),
         )
+
+    @bot.command(name="ship")
+    async def ship(ctx: commands.Context, user: str | None = None, *, other_user: str | None = None):
+        if not await _require_guild(ctx, "Ship"):
+            return
+
+        if user is None:
+            target_user, resolve_error = await resolve_replied_player_argument(ctx)
+            if target_user is None:
+                await _reply(
+                    ctx,
+                    embed=italy_embed(
+                        "Ship",
+                        f"{resolve_error or 'Could not resolve player.'}\nUsage: `ns ship <user> [other_user]`.",
+                    ),
+                )
+                return
+        else:
+            target_user, resolve_error = await resolve_member_argument(ctx, user)
+            if target_user is None:
+                await _reply(
+                    ctx,
+                    embed=italy_embed("Ship", resolve_error or "Could not resolve player."),
+                )
+                return
+
+        if other_user is None:
+            target_other_user = ctx.author
+        else:
+            target_other_user, other_resolve_error = await resolve_member_argument(ctx, other_user)
+            if target_other_user is None:
+                await _reply(
+                    ctx,
+                    embed=italy_embed("Ship", other_resolve_error or "Could not resolve other player."),
+                )
+                return
+
+        compatibility_percent = ship_compatibility_percent(target_user.id, target_other_user.id)
+        left_avatar_bytes = await fetch_avatar_image_bytes(target_other_user)
+        right_avatar_bytes = await fetch_avatar_image_bytes(target_user)
+        if left_avatar_bytes is None or right_avatar_bytes is None:
+            await _reply(
+                ctx,
+                embed=italy_embed("Ship", "Could not load one or both avatars right now. Please try again."),
+            )
+            return
+
+        image_file = await build_ship_image_file(
+            left_avatar_bytes=left_avatar_bytes,
+            right_avatar_bytes=right_avatar_bytes,
+            compatibility_percent=compatibility_percent,
+        )
+        if image_file is None:
+            await _reply(
+                ctx,
+                embed=italy_embed(
+                    "Ship",
+                    "Ship rendering is unavailable. Ensure `runtime/images/ship_chocolate.png` exists and try again.",
+                ),
+            )
+            return
+
+        embed = italy_embed(
+            "Ship",
+            multiline_text(
+                [
+                    f"Left: **{target_other_user.display_name}**",
+                    f"Right: **{target_user.display_name}**",
+                    f"Compatibility: **{compatibility_percent}%**",
+                ]
+            ),
+        )
+        embed.set_image(url="attachment://ship_result.png")
+        await _reply(ctx, embed=embed, file=image_file)
 
     @bot.command(name="leaderboard", aliases=["le"])
     async def leaderboard(ctx: commands.Context):

@@ -42,6 +42,7 @@ def main() -> None:
     runtime_dir = repo_root / "runtime"
     runtime_db_dir = runtime_dir / "db"
     runtime_image_dir = runtime_dir / "card_images"
+    runtime_overlay_image_dir = runtime_dir / "images"
     runtime_fonts_dir = runtime_dir / "fonts"
     runtime_frames_dir = runtime_dir / "frames"
     runtime_log_dir = runtime_dir / "logs"
@@ -49,6 +50,7 @@ def main() -> None:
     seed_dir = repo_root / "assets"
     seed_db_path = seed_dir / "bot.seed.db"
     seed_image_dir = seed_dir / "card_images"
+    seed_overlay_image_dir = seed_dir / "images"
     seed_fonts_dir = seed_dir / "fonts"
     seed_frames_dir = seed_dir / "frames"
 
@@ -70,6 +72,11 @@ def main() -> None:
         print(f"Replaced runtime card images: {seed_image_dir} -> {runtime_image_dir}")
     else:
         print(f"No seed image directory found at: {seed_image_dir}")
+
+    if _replace_directory(seed_overlay_image_dir, runtime_overlay_image_dir):
+        print(f"Replaced runtime overlay images: {seed_overlay_image_dir} -> {runtime_overlay_image_dir}")
+    else:
+        print(f"No seed overlay image directory found at: {seed_overlay_image_dir}")
 
     if _replace_directory(seed_fonts_dir, runtime_fonts_dir):
         print(f"Replaced runtime fonts: {seed_fonts_dir} -> {runtime_fonts_dir}")

@@ -18,6 +18,7 @@ from bot.command_utils import (
     _build_drop_preview_blocking,
     _get_card_image_bytes,
     _slots_reel_content,
+    ship_compatibility_percent,
 )
 from bot.commands import register_commands
 from bot.images import (
@@ -530,6 +531,129 @@ class CommandsTagTests:
         assert sent_embed.title == "Wishlist Matches"
         assert "1. (`CHD`) [🧀] **Cheddar**" in sent_embed.description
         assert "2. (`CHJ`) [🧀] **Cheddar Jack**" in sent_embed.description
+
+
+class CommandsShipTests:
+    def setup_method(self) -> None:
+        self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)
+        register_commands(self.bot)
+
+    async def test_ship_defaults_other_user_to_author(self) -> None:
+        ship_command = _get_command(self.bot, "ship")
+
+        ctx = AsyncMock()
+        ctx.guild = _FakeGuild(1)
+        ctx.author = _FakeMember(100, "Caller")
+        ctx.send = AsyncMock()
+        ctx.reply = ctx.send
+
+        target = _FakeMember(200, "Target")
+        file_obj = object()
+
+        with (
+            patch(
+                "bot.commands_social.resolve_member_argument",
+                new=AsyncMock(return_value=(target, None)),
+            ) as resolve_member,
+            patch(
+                "bot.commands_social.ship_compatibility_percent",
+                return_value=84,
+            ) as compatibility,
+            patch(
+                "bot.commands_social.fetch_avatar_image_bytes",
+                new=AsyncMock(side_effect=[b"left", b"right"]),
+            ) as fetch_avatar,
+            patch(
+                "bot.commands_social.build_ship_image_file",
+                new=AsyncMock(return_value=file_obj),
+            ) as build_image,
+        ):
+            await ship_command.callback(ctx, user="@Target", other_user=None)
+
+        resolve_member.assert_awaited_once_with(ctx, "@Target")
+        compatibility.assert_called_once_with(target.id, ctx.author.id)
+        assert fetch_avatar.await_count == 2
+        fetch_avatar.assert_any_await(ctx.author)
+        fetch_avatar.assert_any_await(target)
+        build_image.assert_awaited_once_with(
+            left_avatar_bytes=b"left",
+            right_avatar_bytes=b"right",
+            compatibility_percent=84,
+        )
+
+        ctx.send.assert_awaited_once()
+        sent_embed = ctx.send.await_args.kwargs["embed"]
+        assert sent_embed.title == "Ship"
+        assert "Compatibility: **84%**" in sent_embed.description
+        assert sent_embed.image.url == "attachment://ship_result.png"
+        assert ctx.send.await_args.kwargs["file"] is file_obj
+
+    async def test_ship_uses_replied_player_when_user_omitted(self) -> None:
+        ship_command = _get_command(self.bot, "ship")
+
+        ctx = AsyncMock()
+        ctx.guild = _FakeGuild(1)
+        ctx.author = _FakeMember(100, "Caller")
+        ctx.send = AsyncMock()
+        ctx.reply = ctx.send
+
+        replied_user = _FakeMember(200, "Replied")
+        file_obj = object()
+
+        with (
+            patch(
+                "bot.commands_social.resolve_replied_player_argument",
+                new=AsyncMock(return_value=(replied_user, None)),
+            ) as resolve_replied,
+            patch(
+                "bot.commands_social.ship_compatibility_percent",
+                return_value=65,
+            ),
+            patch(
+                "bot.commands_social.fetch_avatar_image_bytes",
+                new=AsyncMock(side_effect=[b"left", b"right"]),
+            ),
+            patch(
+                "bot.commands_social.build_ship_image_file",
+                new=AsyncMock(return_value=file_obj),
+            ),
+        ):
+            await ship_command.callback(ctx, user=None, other_user=None)
+
+        resolve_replied.assert_awaited_once_with(ctx)
+        ctx.send.assert_awaited_once()
+        sent_embed = ctx.send.await_args.kwargs["embed"]
+        assert "Left: **Caller**" in sent_embed.description
+        assert "Right: **Replied**" in sent_embed.description
+
+    async def test_ship_with_missing_user_and_no_reply_shows_usage(self) -> None:
+        ship_command = _get_command(self.bot, "ship")
+
+        ctx = AsyncMock()
+        ctx.guild = _FakeGuild(1)
+        ctx.author = _FakeMember(100, "Caller")
+        ctx.send = AsyncMock()
+        ctx.reply = ctx.send
+
+        with patch(
+            "bot.commands_social.resolve_replied_player_argument",
+            new=AsyncMock(return_value=(None, "Provide a player or reply to that player's message.")),
+        ):
+            await ship_command.callback(ctx, user=None, other_user=None)
+
+        ctx.send.assert_awaited_once()
+        sent_embed = ctx.send.await_args.kwargs["embed"]
+        assert sent_embed.title == "Ship"
+        assert "Usage: `ns ship <user> [other_user]`." in sent_embed.description
+
+    def test_ship_compatibility_percent_is_deterministic_and_order_independent(self) -> None:
+        first = ship_compatibility_percent(111, 999)
+        second = ship_compatibility_percent(999, 111)
+        third = ship_compatibility_percent(111, 999)
+
+        assert first == second
+        assert second == third
+        assert 0 <= first <= 100
 
 
 class CommandsFolderTests:

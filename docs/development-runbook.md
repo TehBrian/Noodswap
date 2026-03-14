@@ -110,7 +110,7 @@ Notes:
 - Card rendering is local-only and expects runtime assets under `runtime/`.
 - Initialize runtime seeds locally (replaces runtime copies from `assets/`):
   - `uv run python scripts/init_runtime.py`
-  - Replaces `runtime/card_images/`, `runtime/fonts/`, and `runtime/frames/`
+  - Replaces `runtime/card_images/`, `runtime/images/`, `runtime/fonts/`, and `runtime/frames/`
 - Production deploys use `deploy/update.sh`, which runs `scripts/init_runtime.py` on-host before container restart.
 
 ## Migration validation helper

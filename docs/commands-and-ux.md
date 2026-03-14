@@ -62,6 +62,7 @@ This document defines behavior and presentation for commands and interaction flo
 - `wish add <card_id>` / `wish a <card_id>` / `w add <card_id>` / `w a <card_id>` / `wa <card_id>`
 - `wish remove <card_id>` / `wish r <card_id>` / `w remove <card_id>` / `w r <card_id>` / `wr <card_id>`
 - `wish list [player]` / `wish l [player]` / `w list [player]` / `w l [player]` / `wl [player]`
+- `ship <user> [other_user]`
 - `marry [card_id]` / `m [card_id]`
 - `divorce` / `dv`
 - owner-only: `dbexport`, `dbreset`

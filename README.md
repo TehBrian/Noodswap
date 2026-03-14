@@ -56,7 +56,7 @@ Use a deploy path such as `/home/noodswap-user/noodswap` owned by a dedicated Li
 ```bash
 sudo useradd --system --create-home --home-dir /home/noodswap-user --shell /usr/sbin/nologin noodswap-user
 sudo -u noodswap-user mkdir -p /home/noodswap-user/noodswap
-sudo -u noodswap-user bash -lc 'cd /home/noodswap-user/bot/deploy && cp .env.example .env && cp runtime.env.example runtime.env && mkdir -p ../runtime/db ../runtime/card_images ../runtime/logs'
+sudo -u noodswap-user bash -lc 'cd /home/noodswap-user/bot/deploy && cp .env.example .env && cp runtime.env.example runtime.env && mkdir -p ../runtime/db ../runtime/card_images ../runtime/images ../runtime/logs'
 ```
 
 Set required values:
@@ -114,7 +114,7 @@ Behavior notes:
 - Deploy resolves target SHA and deploys `IMAGE_REPOSITORY:<that-sha>`.
 - The workflow waits for that exact GHCR tag to become available before running the deploy step, avoiding stale `latest` races.
 - After deploy, workflow verifies `noodswap-bot` is running and that its configured image exactly equals `IMAGE_REPOSITORY:<that-sha>`.
-- `deploy/update.sh` now performs a runtime writability preflight and fails before container startup if `runtime/{db,card_images,logs}` is not writable.
+- `deploy/update.sh` now performs a runtime writability preflight and fails before container startup if `runtime/{db,card_images,images,logs}` is not writable.
 - Production compose includes a SQLite healthcheck (`PRAGMA quick_check`) against `runtime/db/noodswap.db`.
 
 Full Actions deploy instructions: `docs/deploy-github-actions.md`.
@@ -123,6 +123,7 @@ Full Actions deploy instructions: `docs/deploy-github-actions.md`.
 
 - SQLite DB: `runtime/db/noodswap.db`
 - Cached card images: `runtime/card_images`
+- Runtime overlay images: `runtime/images`
 - Seed fixtures live under `assets/` and can initialize fresh runtime directories.
 - Immutable render assets (fonts, frames) live under `assets/` and are baked into the image.
 - Deploys run from GitHub-hosted runners to Ubuntu via SSH
@@ -178,6 +179,7 @@ This bot uses privileged intents. Enable these for your application in Discord D
 - `ns wish add <card_id>` / `ns wish a <card_id>` / `ns w add <card_id>` / `ns w a <card_id>` / `ns wa <card_id>` — add a card to your wishlist.
 - `ns wish remove <card_id>` / `ns wish r <card_id>` / `ns w remove <card_id>` / `ns w r <card_id>` / `ns wr <card_id>` — remove a card from your wishlist.
 - `ns wish list [player]` / `ns wish l [player]` / `ns w list [player]` / `ns w l [player]` / `ns wl [player]` — show a wishlist (defaults to yourself).
+- `ns ship <user> [other_user]` — show deterministic compatibility between two players; if omitted, `[other_user]` defaults to yourself and `<user>` can be provided by replying to a message.
 - `ns tag` / `ns tg` — tag command group.
 - `ns tag add <tag_name>` / `ns tag a <tag_name>` — create a personal tag collection.
 - `ns tag remove <tag_name>` / `ns tag r <tag_name>` — delete one of your tags.

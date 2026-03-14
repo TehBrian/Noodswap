@@ -1,5 +1,6 @@
 import asyncio
 from datetime import datetime, timezone
+import hashlib
 import io
 import os
 import random
@@ -30,6 +31,7 @@ from .images import (
     DROP_CARD_BODY_SCALE,
     HD_CARD_RENDER_SIZE,
     embed_image_payload,
+    render_ship_image_bytes,
     morph_transition_image_payload,
     read_local_card_image_bytes,
     render_card_surface,
@@ -72,6 +74,7 @@ from .settings import (
     MONOPOLY_ROLL_COOLDOWN_SECONDS,
     PULL_COOLDOWN_SECONDS,
     SLOTS_COOLDOWN_SECONDS,
+    SHIP_CHOCOLATE_IMAGE_PATH,
     VOTE_STARTER_REWARD,
 )
 from .storage import (
@@ -385,6 +388,131 @@ async def resolve_optional_player_argument(
             return ctx.author, None
 
     return ctx.author, None
+
+
+async def resolve_replied_player_argument(ctx: commands.Context) -> tuple[discord.abc.User | None, str | None]:
+    if ctx.guild is None:
+        return None, "Use this command in a server."
+
+    message = getattr(ctx, "message", None)
+    reference = getattr(message, "reference", None)
+    if reference is None:
+        return None, "Provide a player or reply to that player's message."
+
+    replied_author_id: int | None = None
+    resolved_reference = getattr(reference, "resolved", None)
+    if isinstance(resolved_reference, discord.Message):
+        replied_author_id = resolved_reference.author.id
+    else:
+        resolved_author = getattr(resolved_reference, "author", None)
+        resolved_author_id = getattr(resolved_author, "id", None)
+        if isinstance(resolved_author_id, int):
+            replied_author_id = resolved_author_id
+
+    if replied_author_id is None:
+        reference_message_id = getattr(reference, "message_id", None)
+        if not isinstance(reference_message_id, int):
+            return None, "Could not resolve the replied user."
+
+        channel = getattr(ctx, "channel", None)
+        fetch_message = getattr(channel, "fetch_message", None)
+        if callable(fetch_message):
+            try:
+                fetch_message_coro = cast(Callable[[int], Awaitable[discord.Message]], fetch_message)
+                referenced_message = await fetch_message_coro(reference_message_id)
+                fetched_author_id = getattr(referenced_message.author, "id", None)
+                if isinstance(fetched_author_id, int):
+                    replied_author_id = fetched_author_id
+            except discord.NotFound, discord.Forbidden, discord.HTTPException:
+                replied_author_id = None
+
+    if replied_author_id is None:
+        return None, "Could not resolve the replied user."
+
+    target_member = ctx.guild.get_member(replied_author_id)
+    if target_member is not None:
+        return target_member, None
+
+    fetch_member = getattr(ctx.guild, "fetch_member", None)
+    if callable(fetch_member):
+        try:
+            fetch_member_coro = cast(Callable[[int], Awaitable[discord.Member]], fetch_member)
+            return await fetch_member_coro(replied_author_id), None
+        except discord.NotFound, discord.Forbidden, discord.HTTPException:
+            return None, "Could not resolve the replied user."
+
+    return None, "Could not resolve the replied user."
+
+
+def ship_compatibility_percent(left_user_id: int, right_user_id: int) -> int:
+    first_id, second_id = sorted((left_user_id, right_user_id))
+    digest = hashlib.blake2b(
+        f"{first_id}:{second_id}".encode("ascii"),
+        digest_size=8,
+    ).digest()
+    return int.from_bytes(digest, "big") % 101
+
+
+async def fetch_avatar_image_bytes(user: discord.abc.User, *, timeout_seconds: float = 8.0) -> bytes | None:
+    display_avatar = getattr(user, "display_avatar", None)
+    if display_avatar is None:
+        return None
+
+    avatar_url: str | None = None
+    replace_avatar = getattr(display_avatar, "replace", None)
+    if callable(replace_avatar):
+        try:
+            avatar_url = str(replace_avatar(size=256, static_format="png"))
+        except TypeError:
+            avatar_url = None
+
+    if not avatar_url:
+        url = getattr(display_avatar, "url", None)
+        if isinstance(url, str) and url:
+            avatar_url = url
+
+    if not avatar_url:
+        return None
+
+    timeout = aiohttp.ClientTimeout(total=timeout_seconds)
+    try:
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            async with session.get(avatar_url) as response:
+                if response.status != 200:
+                    return None
+                return await response.read()
+    except aiohttp.ClientError, asyncio.TimeoutError:
+        return None
+
+
+def load_ship_chocolate_overlay_bytes() -> bytes | None:
+    try:
+        return SHIP_CHOCOLATE_IMAGE_PATH.read_bytes()
+    except OSError:
+        return None
+
+
+async def build_ship_image_file(
+    *,
+    left_avatar_bytes: bytes,
+    right_avatar_bytes: bytes,
+    compatibility_percent: int,
+) -> discord.File | None:
+    chocolate_overlay_bytes = load_ship_chocolate_overlay_bytes()
+    if chocolate_overlay_bytes is None:
+        return None
+
+    rendered = await asyncio.to_thread(
+        render_ship_image_bytes,
+        left_avatar_bytes=left_avatar_bytes,
+        right_avatar_bytes=right_avatar_bytes,
+        compatibility_percent=compatibility_percent,
+        chocolate_overlay_bytes=chocolate_overlay_bytes,
+    )
+    if rendered is None:
+        return None
+
+    return discord.File(io.BytesIO(rendered), filename="ship_result.png")
 
 
 def _get_card_image_bytes(card_type_id: str) -> bytes | None:

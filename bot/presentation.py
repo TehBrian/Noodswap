@@ -227,6 +227,7 @@ COMMAND_SYNTAX_BY_KEY: dict[str, str] = {
     "oven withdraw": "ns oven withdraw <amount>",
     "morph": "ns morph [card_id]",
     "slots": "ns slots",
+    "ship": "ns ship <user> [other_user]",
     "tag": (
         "ns tag add <tag_name>, ns tag remove <tag_name>, ns tag list, "
         "ns tag lock <tag_name>, ns tag unlock <tag_name>, "
@@ -379,7 +380,8 @@ HELP_CATEGORY_PAGES: tuple[tuple[str, str, str], ...] = (
     (
         "relationship",
         "Relationship",
-        """- `marry [card_id]` (`m`) — Marry a card. Defaults to last pulled card.
+        """- `ship <user> [other_user]` — Show deterministic compatibility between two players; `[other_user]` defaults to yourself.
+- `marry [card_id]` (`m`) — Marry a card. Defaults to last pulled card.
 - `divorce` (`dv`) — End your current marriage.""",
     ),
 )

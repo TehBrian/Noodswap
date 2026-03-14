@@ -86,6 +86,10 @@ RUNTIME_DIR = _resolve_path(os.getenv("DATA_DIR", str(PROJECT_ROOT / "runtime"))
 DB_PATH = _resolve_path(os.getenv("SQLITE_PATH", str(RUNTIME_DIR / "db" / "noodswap.db")))
 CARD_IMAGE_DIR = _resolve_path(os.getenv("IMAGE_DIR", str(RUNTIME_DIR / "card_images")))
 CARD_IMAGE_MANIFEST = CARD_IMAGE_DIR / "manifest.json"
+RUNTIME_IMAGE_DIR = _resolve_path(os.getenv("RUNTIME_IMAGE_DIR", str(RUNTIME_DIR / "images")))
+SHIP_CHOCOLATE_IMAGE_PATH = _resolve_path(
+    os.getenv("SHIP_CHOCOLATE_IMAGE_PATH", str(RUNTIME_IMAGE_DIR / "ship_chocolate.png"))
+)
 CARD_FONTS_DIR = _resolve_path(os.getenv("FONTS_DIR", str(RUNTIME_DIR / "fonts")))
 FRAMES_DIR = _resolve_path(os.getenv("FRAMES_DIR", str(RUNTIME_DIR / "frames")))
 

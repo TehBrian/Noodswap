@@ -1436,3 +1436,120 @@ def morph_transition_image_payload(
     )
     attachment_url = f"attachment://{file_name}"
     return attachment_url, discord.File(io.BytesIO(rendered_image), filename=file_name)
+
+
+def render_ship_image_bytes(
+    *,
+    left_avatar_bytes: bytes,
+    right_avatar_bytes: bytes,
+    compatibility_percent: int,
+    chocolate_overlay_bytes: bytes,
+    size: tuple[int, int] = (940, 420),
+) -> bytes | None:
+    try:
+        from PIL import Image, ImageDraw, ImageOps
+    except ImportError:
+        return None
+
+    width, height = size
+    if width <= 0 or height <= 0:
+        return None
+
+    if compatibility_percent < 0 or compatibility_percent > 100:
+        return None
+
+    try:
+        left_avatar = Image.open(io.BytesIO(left_avatar_bytes)).convert("RGBA")
+        right_avatar = Image.open(io.BytesIO(right_avatar_bytes)).convert("RGBA")
+        chocolate_overlay = Image.open(io.BytesIO(chocolate_overlay_bytes)).convert("RGBA")
+    except Exception:
+        return None
+
+    canvas = Image.new("RGBA", (width, height), (24, 20, 18, 255))
+    draw = ImageDraw.Draw(canvas)
+
+    # Add a subtle center spotlight so the chocolate and percent stand out.
+    for idx in range(18, 0, -1):
+        alpha = int(4 + idx * 2)
+        radius_x = (width // 2) + idx * 24
+        radius_y = (height // 2) + idx * 12
+        draw.ellipse(
+            (
+                (width // 2) - radius_x,
+                (height // 2) - radius_y,
+                (width // 2) + radius_x,
+                (height // 2) + radius_y,
+            ),
+            fill=(70, 50, 42, alpha),
+        )
+
+    avatar_size = max(140, min(height - 80, 220))
+    avatar_y = (height - avatar_size) // 2
+    left_x = max(24, int(round(width * 0.08)))
+    right_x = width - left_x - avatar_size
+
+    def _circular_avatar(source: Image.Image) -> Image.Image:
+        fitted = ImageOps.fit(source, (avatar_size, avatar_size), method=Image.Resampling.LANCZOS)
+        mask = Image.new("L", (avatar_size, avatar_size), 0)
+        mask_draw = ImageDraw.Draw(mask)
+        mask_draw.ellipse((0, 0, avatar_size - 1, avatar_size - 1), fill=255)
+        circle = Image.new("RGBA", (avatar_size, avatar_size), (0, 0, 0, 0))
+        circle.paste(fitted, (0, 0), mask)
+        return circle
+
+    left_circle = _circular_avatar(left_avatar)
+    right_circle = _circular_avatar(right_avatar)
+
+    ring_width = max(5, avatar_size // 24)
+    ring_color = (235, 223, 197, 255)
+    shadow = Image.new("RGBA", (avatar_size + 12, avatar_size + 12), (0, 0, 0, 0))
+    shadow_draw = ImageDraw.Draw(shadow)
+    shadow_draw.ellipse((0, 0, avatar_size + 11, avatar_size + 11), fill=(0, 0, 0, 88))
+
+    for x in (left_x, right_x):
+        canvas.alpha_composite(shadow, (x - 6, avatar_y + 6))
+
+    canvas.alpha_composite(left_circle, (left_x, avatar_y))
+    canvas.alpha_composite(right_circle, (right_x, avatar_y))
+
+    ring_layer = Image.new("RGBA", (avatar_size, avatar_size), (0, 0, 0, 0))
+    ring_draw = ImageDraw.Draw(ring_layer)
+    ring_draw.ellipse((0, 0, avatar_size - 1, avatar_size - 1), outline=ring_color, width=ring_width)
+    canvas.alpha_composite(ring_layer, (left_x, avatar_y))
+    canvas.alpha_composite(ring_layer, (right_x, avatar_y))
+
+    chocolate_max_w = max(190, min(320, width - (avatar_size * 2) - 140))
+    chocolate_max_h = max(120, min(180, height - 110))
+    chocolate = ImageOps.contain(
+        chocolate_overlay,
+        (chocolate_max_w, chocolate_max_h),
+        method=Image.Resampling.LANCZOS,
+    )
+    chocolate_x = (width - chocolate.width) // 2
+    chocolate_y = (height - chocolate.height) // 2
+    canvas.alpha_composite(chocolate, (chocolate_x, chocolate_y))
+
+    percent_text = f"{compatibility_percent}%"
+    font_size = max(42, min(72, chocolate.height // 2))
+    percent_font = _load_overlay_font(font_size, bold=True)
+
+    text_bbox = draw.textbbox((0, 0), percent_text, font=percent_font)
+    text_w = max(1, text_bbox[2] - text_bbox[0])
+    text_h = max(1, text_bbox[3] - text_bbox[1])
+    text_x = (width - text_w) // 2
+    text_y = (height - text_h) // 2 - max(2, text_h // 8)
+
+    stroke_width = max(2, font_size // 18)
+    draw.text(
+        (text_x, text_y),
+        percent_text,
+        font=percent_font,
+        fill=(255, 245, 225, 255),
+        stroke_width=stroke_width,
+        stroke_fill=(50, 26, 20, 255),
+    )
+
+    output = io.BytesIO()
+    canvas.save(output, format="PNG")
+    output.seek(0)
+    return output.getvalue()
