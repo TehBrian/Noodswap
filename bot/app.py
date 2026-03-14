@@ -159,6 +159,13 @@ def create_bot() -> commands.Bot:
         logger.info("Logged in as %s (id=%s)", bot.user, bot.user.id)
 
     @bot.event
+    async def on_message(message: discord.Message):
+        # Ignore all bot-authored messages to avoid bot-to-bot command loops.
+        if message.author.bot:
+            return
+        await bot.process_commands(message)
+
+    @bot.event
     async def on_command_error(ctx: commands.Context, error: commands.CommandError):
         if hasattr(ctx.command, "on_error"):
             return

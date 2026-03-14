@@ -113,6 +113,24 @@ async def test_too_many_arguments_includes_reason_and_usage(error_bot: commands.
     assert "Usage: `ns flip <stake> [heads|tails]`." in sent_embed.description
 
 
+async def test_on_message_ignores_bot_authors(error_bot: commands.Bot) -> None:
+    error_bot.process_commands = AsyncMock()
+    message = SimpleNamespace(author=SimpleNamespace(bot=True))
+
+    await error_bot.on_message(message)
+
+    error_bot.process_commands.assert_not_awaited()
+
+
+async def test_on_message_processes_human_authors(error_bot: commands.Bot) -> None:
+    error_bot.process_commands = AsyncMock()
+    message = SimpleNamespace(author=SimpleNamespace(bot=False))
+
+    await error_bot.on_message(message)
+
+    error_bot.process_commands.assert_awaited_once_with(message)
+
+
 def test_all_public_commands_have_curated_error_syntax() -> None:
     bot = create_bot()
     missing_keys: list[str] = []
