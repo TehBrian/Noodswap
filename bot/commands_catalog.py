@@ -407,8 +407,8 @@ def register_catalog_commands(bot: commands.Bot) -> None:
             now=now,
             recent_window_seconds=12 * 60 * 60,
         )
-        yes_emoji = "<:ns_yes:1481805623115907202>"
-        no_emoji = "<:ns_no:1481805593533481093>"
+        yes_emoji = "✅"
+        no_emoji = "❌"
         topgg_vote_status = yes_emoji if voted_topgg_recent else no_emoji
         dbl_vote_status = yes_emoji if voted_dbl_recent else no_emoji
         seconds_until_month_reset = max(0, int(next_month_reset_unix - now))

@@ -2803,8 +2803,8 @@ class CommandsVoteTests:
         assert "Earn rewards and support Noodswap by voting!" in sent_embed.description
         assert "Reward: **+3 starter** and **+500 dough**" in sent_embed.description
         assert "Reward: **+2 drop tickets** and **+1 pull ticket**" in sent_embed.description
-        assert "Voted on [Top.gg](https://top.gg/bot/1478727078286196909/vote) yet: <:ns_yes:1481805623115907202>" in sent_embed.description
-        assert "Voted on [DiscordBotList](https://discordbotlist.com/bots/noodswap/upvote) yet: <:ns_no:1481805593533481093>" in sent_embed.description
+        assert "Voted on [Top.gg](https://top.gg/bot/1478727078286196909/vote) yet: ✅" in sent_embed.description
+        assert "Voted on [DiscordBotList](https://discordbotlist.com/bots/noodswap/upvote) yet: ❌" in sent_embed.description
         assert "- **Total** Votes: **12**" in sent_embed.description
         assert "- **Monthly** Votes: **4**" in sent_embed.description
         assert isinstance(sent_view, discord.ui.View)
