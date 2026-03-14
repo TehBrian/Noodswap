@@ -587,7 +587,7 @@ def ship_result_description(left_name: str, right_name: str, compatibility_perce
         [
             f"Left: **{left_name}**",
             f"Right: **{right_name}**",
-            f"Compatibility: **{compatibility_percent}%**",
+            f"Compastability: **{compatibility_percent}%**",
         ]
     )
 

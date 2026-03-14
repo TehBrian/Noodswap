@@ -584,7 +584,7 @@ class CommandsShipTests:
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
         assert sent_embed.title == "Ship"
-        assert "Compatibility: **84%**" in sent_embed.description
+        assert "Compastability: **84%**" in sent_embed.description
         assert sent_embed.image.url == "attachment://ship_result.png"
         assert ctx.send.await_args.kwargs["file"] is file_obj
 
@@ -623,8 +623,8 @@ class CommandsShipTests:
         resolve_replied.assert_awaited_once_with(ctx)
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
-        assert "Left: **Caller**" in sent_embed.description
-        assert "Right: **Replied**" in sent_embed.description
+        assert "Left: **<@100>**" in sent_embed.description
+        assert "Right: **<@200>**" in sent_embed.description
 
     async def test_ship_with_missing_user_and_no_reply_shows_usage(self) -> None:
         ship_command = _get_command(self.bot, "ship")

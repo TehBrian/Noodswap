@@ -1483,9 +1483,10 @@ def render_ship_image_bytes(
             fill=(70, 50, 42, alpha),
         )
 
-    avatar_size = max(140, min(height - 80, 220))
+    # Slightly larger portraits with tighter outer spacing and more center separation.
+    avatar_size = max(168, min(height - 44, 250))
     avatar_y = (height - avatar_size) // 2
-    left_x = max(24, int(round(width * 0.08)))
+    left_x = max(10, int(round(width * 0.03)))
     right_x = width - left_x - avatar_size
 
     def _circular_avatar(source: Image.Image) -> Image.Image:
@@ -1518,8 +1519,8 @@ def render_ship_image_bytes(
     canvas.alpha_composite(ring_layer, (left_x, avatar_y))
     canvas.alpha_composite(ring_layer, (right_x, avatar_y))
 
-    chocolate_max_w = max(190, min(320, width - (avatar_size * 2) - 140))
-    chocolate_max_h = max(120, min(180, height - 110))
+    chocolate_max_w = max(220, min(390, width - (avatar_size * 2) - 64))
+    chocolate_max_h = max(150, min(240, height - 72))
     chocolate = ImageOps.contain(
         chocolate_overlay,
         (chocolate_max_w, chocolate_max_h),

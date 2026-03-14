@@ -152,8 +152,8 @@ def test_player_cooldowns_description() -> None:
 
 
 def test_ship_result_description() -> None:
-    description = ship_result_description("Left User", "Right User", 88)
-    assert description == "Left: **Left User**\nRight: **Right User**\nCompatibility: **88%**"
+    description = ship_result_description("<@1>", "<@2>", 88)
+    assert description == "Left: **<@1>**\nRight: **<@2>**\nCompastability: **88%**"
 
 
 def test_flip_suspense_description_with_and_without_call() -> None:

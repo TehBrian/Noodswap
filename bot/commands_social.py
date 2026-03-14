@@ -492,8 +492,8 @@ def register_social_commands(bot: commands.Bot) -> None:
         embed = italy_embed(
             "Ship",
             ship_result_description(
-                target_other_user.display_name,
-                target_user.display_name,
+                f"<@{target_other_user.id}>",
+                f"<@{target_user.id}>",
                 compatibility_percent,
             ),
         )
