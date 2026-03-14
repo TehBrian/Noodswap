@@ -596,7 +596,7 @@ class StorageTests:
         assert pot_drop_tickets == 0
         assert pot_pull_tickets == 0
 
-    def test_monopoly_property_rent_is_ninety_percent_of_card_value(self) -> None:
+    def test_monopoly_property_rent_is_full_card_value_plus_convenience_fee(self) -> None:
         guild_id = 1
         roller_id = 1250
         owner_id = 1251
@@ -614,11 +614,11 @@ class StorageTests:
             frame_key=None,
             font_key=None,
         )
-        expected_rent = int(full_value * 0.9)
-        expected_fee = full_value - expected_rent
+        expected_rent = (full_value * storage.MONOPOLY_PROPERTY_RENT_PERCENT) // 100
+        expected_fee = (full_value * storage.MONOPOLY_PROPERTY_CONVENIENCE_FEE_PERCENT) // 100
         expected_fee_to_pot = (
-            expected_fee * storage.MONOPOLY_PROPERTY_TRANSACTION_FEE_POT_CONTRIBUTION_NUMERATOR
-        ) // storage.MONOPOLY_PROPERTY_TRANSACTION_FEE_POT_CONTRIBUTION_DENOMINATOR
+            expected_fee * storage.MONOPOLY_PROPERTY_CONVENIENCE_FEE_POT_CONTRIBUTION_NUMERATOR
+        ) // storage.MONOPOLY_PROPERTY_CONVENIENCE_FEE_POT_CONTRIBUTION_DENOMINATOR
 
         with patch("bot.storage.roll_dice", return_value=(1, 2, False)):
             result = storage.execute_monopoly_roll(
@@ -628,11 +628,11 @@ class StorageTests:
                 cooldown_seconds=660.0,
             )
         assert result.status == "ok"
-        assert any(line == f"(**+{expected_fee}** transaction fee)" for line in result.lines)
+        assert any(line == f"(**+{expected_fee}** convenience fee)" for line in result.lines)
 
         roller_dough, _, _ = storage.get_player_info(guild_id, roller_id)
         owner_dough, _, _ = storage.get_player_info(guild_id, owner_id)
-        assert roller_dough == 10_000 - full_value
+        assert roller_dough == 10_000 - expected_rent - expected_fee
         assert owner_dough == expected_rent
         pot_dough, _pot_starter, _pot_drop_tickets, _pot_pull_tickets = storage.get_gambling_pot(guild_id)
         assert pot_dough == expected_fee_to_pot

@@ -53,8 +53,10 @@ from .settings import (
     MONOPOLY_JAIL_FINE_POT_CONTRIBUTION_NUMERATOR,
     MONOPOLY_NEGATIVE_CHANCE_POT_CONTRIBUTION_DENOMINATOR,
     MONOPOLY_NEGATIVE_CHANCE_POT_CONTRIBUTION_NUMERATOR,
-    MONOPOLY_PROPERTY_TRANSACTION_FEE_POT_CONTRIBUTION_DENOMINATOR,
-    MONOPOLY_PROPERTY_TRANSACTION_FEE_POT_CONTRIBUTION_NUMERATOR,
+    MONOPOLY_PROPERTY_CONVENIENCE_FEE_PERCENT,
+    MONOPOLY_PROPERTY_CONVENIENCE_FEE_POT_CONTRIBUTION_DENOMINATOR,
+    MONOPOLY_PROPERTY_CONVENIENCE_FEE_POT_CONTRIBUTION_NUMERATOR,
+    MONOPOLY_PROPERTY_RENT_PERCENT,
     MONOPOLY_TOMATO_TAX_PERCENT,
     MONOPOLY_TRUFFLE_TAX_PERCENT,
     MONOPOLY_TAX_POT_CONTRIBUTION_DENOMINATOR,
@@ -2166,30 +2168,31 @@ def execute_monopoly_roll(
                     frame_key=frame_key,
                     font_key=font_key,
                 )
-                rent_due = int(full_value * 0.9)
-                transaction_fee_due = full_value - rent_due
+                rent_due = (full_value * MONOPOLY_PROPERTY_RENT_PERCENT) // 100
+                convenience_fee_due = (full_value * MONOPOLY_PROPERTY_CONVENIENCE_FEE_PERCENT) // 100
+                total_due = rent_due + convenience_fee_due
 
-                total_paid = _deduct_up_to(players, guild_id, user_id, full_value)
+                total_paid = _deduct_up_to(players, guild_id, user_id, total_due)
                 rent_paid = min(total_paid, rent_due)
-                transaction_fee_paid = min(max(0, total_paid - rent_paid), transaction_fee_due)
+                convenience_fee_paid = min(max(0, total_paid - rent_paid), convenience_fee_due)
 
                 if rent_paid > 0:
                     players.ensure_player(guild_id, owner_id)
                     players.add_dough(guild_id, owner_id, rent_paid)
-                pot_transaction_fee = _scaled_value(
-                    transaction_fee_paid,
-                    MONOPOLY_PROPERTY_TRANSACTION_FEE_POT_CONTRIBUTION_NUMERATOR,
-                    MONOPOLY_PROPERTY_TRANSACTION_FEE_POT_CONTRIBUTION_DENOMINATOR,
+                pot_convenience_fee = _scaled_value(
+                    convenience_fee_paid,
+                    MONOPOLY_PROPERTY_CONVENIENCE_FEE_POT_CONTRIBUTION_NUMERATOR,
+                    MONOPOLY_PROPERTY_CONVENIENCE_FEE_POT_CONTRIBUTION_DENOMINATOR,
                 )
-                if pot_transaction_fee > 0:
-                    pot.add(guild_id, dough=pot_transaction_fee)
+                if pot_convenience_fee > 0:
+                    pot.add(guild_id, dough=pot_convenience_fee)
                 thumbnail_card_id = card_type_id
                 thumbnail_generation = generation
                 thumbnail_morph_key = morph_key
                 thumbnail_frame_key = frame_key
                 thumbnail_font_key = font_key
                 lines.append(f"Rent paid to <@{owner_id}>: **{rent_paid} dough**")
-                lines.append(f"(**+{transaction_fee_paid}** transaction fee)")
+                lines.append(f"(**+{convenience_fee_paid}** convenience fee)")
             else:
                 lines.append("")
                 lines.append(f"Landed on a **{space.rarity}** {space.emoji} property.")
