@@ -885,7 +885,7 @@ async def _animate_slots_spin(message: discord.Message, final_symbols: list[str]
 
 async def _reply(ctx: commands.Context, **kwargs):
     """Reply to the invoking command message without pinging the author."""
-    return await ctx.reply(mention_author=False, **kwargs)
+    return await ctx.reply(mention_author=True, **kwargs)
 
 
 def _guild_id(ctx: commands.Context) -> int:

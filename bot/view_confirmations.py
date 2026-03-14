@@ -138,7 +138,7 @@ class BurnConfirmView(InteractionView):
                             "Burn Blocked",
                             f"This card is protected by {lock_reason_text}.",
                         ),
-                        mention_author=False,
+                        mention_author=True,
                     )
                 return
 
@@ -151,7 +151,7 @@ class BurnConfirmView(InteractionView):
                 if interaction.message is not None:
                     await interaction.message.reply(
                         embed=italy_embed("Burn Failed", burn_result.message),
-                        mention_author=False,
+                        mention_author=True,
                     )
                 return
 
@@ -162,7 +162,7 @@ class BurnConfirmView(InteractionView):
                 if interaction.message is not None:
                     await interaction.message.reply(
                         embed=italy_embed("Burn Failed", "Burn failed."),
-                        mention_author=False,
+                        mention_author=True,
                     )
                 return
 
@@ -180,7 +180,7 @@ Payout: **{burn_result.payout} dough**
                 view=self,
             )
             if interaction.message is not None:
-                await interaction.message.reply(embed=burned_embed, mention_author=False)
+                await interaction.message.reply(embed=burned_embed, mention_author=True)
             return
 
         burn_result = execute_burn_batch_confirmation(
@@ -199,12 +199,12 @@ Payout: **{burn_result.payout} dough**
                     skipped_lines = [f"`#{instance_id}`: {_format_skip_reasons(reasons)}" for instance_id, reasons in burn_result.skipped_instances]
                     await interaction.message.reply(
                         embed=italy_embed("Burn Failed", "\n".join(skipped_lines)),
-                        mention_author=False,
+                        mention_author=True,
                     )
                     return
                 await interaction.message.reply(
                     embed=italy_embed("Burn Failed", burn_result.message),
-                    mention_author=False,
+                    mention_author=True,
                 )
             return
 
@@ -237,7 +237,7 @@ Payout: **{burn_result.payout} dough**
             view=self,
         )
         if interaction.message is not None:
-            await interaction.message.reply(embed=burned_embed, mention_author=False)
+            await interaction.message.reply(embed=burned_embed, mention_author=True)
 
     @discord.ui.button(label="Cancel", style=discord.ButtonStyle.secondary)
     async def cancel_button(
@@ -266,7 +266,7 @@ Payout: **{burn_result.payout} dough**
         if interaction.message is not None:
             await interaction.message.reply(
                 embed=italy_embed("Burn Cancelled", "No card was burned."),
-                mention_author=False,
+                mention_author=True,
             )
 
     async def on_timeout(self) -> None:

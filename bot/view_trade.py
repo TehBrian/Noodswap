@@ -170,7 +170,7 @@ class TradeView(InteractionView):
         if interaction.message is not None:
             await interaction.message.reply(
                 embed=italy_embed("Trade Accepted", accepted_body),
-                mention_author=False,
+                mention_author=True,
             )
 
     @discord.ui.button(label="Accept", style=discord.ButtonStyle.success)

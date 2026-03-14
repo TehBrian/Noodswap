@@ -108,7 +108,7 @@ class DropView(InteractionView):
                 if interaction.message is not None:
                     send_kwargs: dict[str, object] = {
                         "embed": pulled_embed,
-                        "mention_author": False,
+                        "mention_author": True,
                     }
                     if image_file is not None:
                         send_kwargs["file"] = image_file

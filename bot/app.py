@@ -38,7 +38,7 @@ def _normalize_secret(value: str) -> str:
 
 
 async def _reply(ctx: commands.Context, **kwargs):
-    return await ctx.reply(mention_author=False, **kwargs)
+    return await ctx.reply(mention_author=True, **kwargs)
 
 
 def _resolve_command_syntax(ctx: commands.Context) -> str | None:
