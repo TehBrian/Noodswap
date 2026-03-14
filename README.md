@@ -18,12 +18,13 @@ Discord trading-card style bot using `discord.py`.
    ```bash
    export DISCORD_TOKEN=your-token
    ```
-   - Optional top.gg webhook integration:
+   - Optional vote webhook integration:
    ```bash
    export TOPGG_WEBHOOK_SECRET=your-topgg-webhook-secret
    export TOPGG_BOT_ID=your-discord-bot-id
+   export DISCORDBOTLIST_WEBHOOK_SECRET=your-discordbotlist-webhook-secret
    ```
-   `TOPGG_WEBHOOK_SECRET` is what enables vote detection. `TOPGG_BOT_ID` is optional and only used if the bot id cannot be resolved at runtime for the vote-link URL.
+   `TOPGG_WEBHOOK_SECRET` and `DISCORDBOTLIST_WEBHOOK_SECRET` enable automatic vote detection. `TOPGG_BOT_ID` is optional and only used if the bot id cannot be resolved at runtime for the vote-link URL.
    - Production (recommended): inject secret from your platform secret manager as either `DISCORD_TOKEN` or a mounted file path in `DISCORD_TOKEN_FILE`.
 4. Initialize local runtime state:
    ```bash
@@ -77,6 +78,15 @@ Optional runtime values for top.gg webhook integration:
 - `TOPGG_WEBHOOK_REQUIRE_JSON_CONTENT_TYPE` - when `true`, enforce `application/json`; default `true`
 - `TOPGG_WEBHOOK_ALLOWED_IPS` - optional source IP allowlist; leave empty unless the app receives the real client IP directly
 
+Optional runtime values for DiscordBotList webhook integration:
+
+- `DISCORDBOTLIST_WEBHOOK_SECRET` - required for DiscordBotList vote detection; this must match the webhook secret configured in DiscordBotList
+- `DISCORDBOTLIST_WEBHOOK_PATH` - POST route DiscordBotList should call; default `/noodswap/discordbotlist-vote-webhook`
+- `DISCORDBOTLIST_WEBHOOK_MAX_BODY_BYTES` - maximum accepted request size in bytes; default `16384`
+- `DISCORDBOTLIST_WEBHOOK_REQUIRE_JSON_CONTENT_TYPE` - when `true`, enforce `application/json`; default `true`
+- `DISCORDBOTLIST_WEBHOOK_ALLOWED_IPS` - optional source IP allowlist; leave empty unless the app receives the real client IP directly
+- `DISCORDBOTLIST_WEBHOOK_HOST` / `DISCORDBOTLIST_WEBHOOK_PORT` - bind overrides if DiscordBotList is enabled without top.gg (when both providers are enabled, the top.gg host/port setting is used for the shared listener)
+
 Top.gg webhook checklist:
 
 - In top.gg, set the webhook URL to your public bot endpoint, for example `https://your-domain.example/noodswap/topgg-vote-webhook`.
@@ -86,6 +96,13 @@ Top.gg webhook checklist:
 - Top.gg test webhooks should return `200` without granting a reward (`type=webhook.test`); real votes arrive as `type=vote.create` and grant `starter` automatically.
 - Signature verification uses the `x-topgg-signature` header (`t=...,v1=...`) over the exact raw request body; avoid proxy/body middleware that rewrites payload bytes.
 - If you are behind a reverse proxy, keep `TOPGG_WEBHOOK_ALLOWED_IPS` empty unless you have explicitly arranged real client IP forwarding all the way to the app.
+
+DiscordBotList webhook checklist:
+
+- In DiscordBotList bot settings, set the webhook URL to your public endpoint, for example `https://your-domain.example/noodswap/discordbotlist-vote-webhook`.
+- Set the DiscordBotList webhook secret to the same value as `DISCORDBOTLIST_WEBHOOK_SECRET`.
+- DiscordBotList authorization uses the `Authorization` header and must exactly match the configured secret.
+- Successful DiscordBotList webhooks grant `starter` automatically, matching top.gg behavior.
 
 ### Manual deploy/update
 
@@ -150,7 +167,7 @@ This bot uses privileged intents. Enable these for your application in Discord D
 - `ns buy drop [quantity]` — buy drop tickets using `starter` (cost: 1 starter per ticket; default quantity is 1).
 - `ns slots` / `ns sl` — spin 3 food reels; 2 matches award 200-400 dough, and 3 matches award 800-1200 dough plus 1-3 `starter`.
 - `ns flip <stake>` / `ns f <stake>` — coin flip wager with 46% win / 54% lose odds; heads wins `+1.8x stake`, tails loses `-stake` (2m cooldown). On tails, `0.2x stake` is added to the Monopoly pot.
-- `ns vote` / `ns v` — open the top.gg vote page and claim `starter` reward when your vote is detected.
+- `ns vote` / `ns v` — open the vote page and claim `starter` reward automatically when top.gg or DiscordBotList webhook events are detected.
 - `ns cooldown [player]` / `ns cd [player]` — show drop (6m), pull (4m), flip (2m), slots (22m), and monopoly (2.5m) cooldowns for yourself or another player.
 - `ns burn [targets...]` / `ns b [targets...]` — burn one or more targets for dough. Supports card IDs/IDs plus selectors `t:<tag_name>` and `f:<folder_name>`. If any selected card is in a locked tag or locked folder, the entire burn is blocked.
 - `ns gift dough <player> <dough>` / `ns gift d <player> <dough>` — send dough directly to another player.

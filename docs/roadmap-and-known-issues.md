@@ -79,6 +79,8 @@ Stage 3 implementation guide: `docs/refactor-phase-3.md`.
 
 ## Decision log (recent)
 
+- Added DiscordBotList vote webhook intake (`/noodswap/discordbotlist-vote-webhook`) with `Authorization` secret validation, automatic starter rewards, and shared listener routing alongside top.gg.
+- Added `vote_events` persistence to track per-webhook vote intake metadata (`provider`, `received_at`, `user_id`, source IP/path, payload snapshot), while keeping `players.votes` as the aggregate successful vote counter.
 - Added `ship <user> [other_user]` social command with reply-based `<user>` fallback, deterministic order-independent compatibility scoring (`0..100` from hashed user IDs), and generated embed image composition using both users' Discord avatars plus a centered chocolate-backed percentage overlay loaded from `runtime/images/ship_chocolate.png`.
 - Added schema migration v32 to rescale legacy wallet and oven dough balances independently with `new_bal = log(old_bal + 1)^6.1` during startup upgrade.
 - Added an oven bank economy path (`ns oven deposit|withdraw|balance`) backed by `players.oven_dough`; oven transactions charge a 3% fee (rounded up), route 20% of that fee (rounded up) to the Monopoly pot, and oven funds are excluded from normal spend/tax/rent flows until withdrawn.

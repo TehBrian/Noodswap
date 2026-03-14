@@ -1,10 +1,11 @@
 import sqlite3
 import time
 import random
+import json
 from dataclasses import dataclass
 from collections.abc import Iterator
 from contextlib import contextmanager
-from typing import Optional
+from typing import Any, Optional
 
 from .cards import (
     CARD_CATALOG,
@@ -2236,14 +2237,52 @@ def claim_vote_reward(
     guild_id: int,
     user_id: int,
     reward_amount: int,
+    vote_provider: str = "",
+    remote_ip: str | None = None,
+    webhook_path: str = "",
+    payload: dict[str, Any] | None = None,
+    received_at: float | None = None,
 ) -> int:
     guild_id = _scope_guild_id(guild_id)
+    provider = vote_provider.strip().lower() or "unknown"
+    request_path = webhook_path.strip() or ""
+    payload_json = "{}"
+    if payload is not None:
+        try:
+            payload_json = json.dumps(payload, separators=(",", ":"), sort_keys=True)
+        except TypeError:
+            payload_json = json.dumps({"unserializable_payload": True})
+    vote_received_at = float(received_at) if received_at is not None else float(time.time())
+
     with get_db_connection() as conn:
         _begin_immediate(conn)
         players = PlayerRepository(conn, STARTING_DOUGH)
         players.ensure_player(guild_id, user_id)
         players.add_starter(guild_id, user_id, reward_amount)
         players.add_votes(guild_id, user_id, 1)
+        conn.execute(
+            """
+            INSERT INTO vote_events (
+                guild_id,
+                user_id,
+                provider,
+                received_at,
+                remote_ip,
+                webhook_path,
+                payload_json
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                guild_id,
+                user_id,
+                provider,
+                vote_received_at,
+                remote_ip,
+                request_path,
+                payload_json,
+            ),
+        )
         return players.get_starter(guild_id, user_id)
 
 

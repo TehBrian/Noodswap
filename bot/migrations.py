@@ -3,7 +3,7 @@ import math
 import sqlite3
 import time
 
-TARGET_SCHEMA_VERSION = 34
+TARGET_SCHEMA_VERSION = 35
 _BASE36_ALPHABET = "0123456789abcdefghijklmnopqrstuvwxyz"
 
 
@@ -1174,6 +1174,32 @@ def _apply_migration_v34(conn: sqlite3.Connection) -> None:
     )
 
 
+def _apply_migration_v35(conn: sqlite3.Connection) -> None:
+    conn.executescript(
+        """
+        CREATE TABLE IF NOT EXISTS vote_events (
+            event_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            guild_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            provider TEXT NOT NULL,
+            received_at REAL NOT NULL,
+            remote_ip TEXT,
+            webhook_path TEXT NOT NULL DEFAULT '',
+            payload_json TEXT NOT NULL DEFAULT '{}',
+            FOREIGN KEY (guild_id, user_id)
+                REFERENCES players(guild_id, user_id)
+                ON DELETE CASCADE
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_vote_events_user_received
+            ON vote_events(guild_id, user_id, received_at DESC);
+
+        CREATE INDEX IF NOT EXISTS idx_vote_events_provider_received
+            ON vote_events(provider, received_at DESC);
+        """
+    )
+
+
 def run_migrations(
     conn: sqlite3.Connection,
     *,
@@ -1352,6 +1378,11 @@ def run_migrations(
         _apply_migration_v34(conn)
         _set_schema_version(conn, 34)
         current_version = 34
+
+    if current_version < 35:
+        _apply_migration_v35(conn)
+        _set_schema_version(conn, 35)
+        current_version = 35
 
     if current_version > target_schema_version:
         raise RuntimeError(f"Database schema version {current_version} is newer than supported {target_schema_version}.")

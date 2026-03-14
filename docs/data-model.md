@@ -39,8 +39,31 @@ Purpose:
 - Player economy and cooldown state in the global Noodswap scope
 - Includes standard spendable currencies (`dough`, `starter`, `drop_tickets`, `pull_tickets`) plus segregated oven balances (`oven_dough`, `oven_starter`, `oven_drop_tickets`, `oven_pull_tickets`)
 - Oven balances are excluded from spend/tax/rent flows until explicitly withdrawn
-- Tracks cumulative successful top.gg vote rewards (`votes`)
+- Tracks cumulative successful webhook vote rewards across all providers (`votes`)
 - Marriage linkage to a specific owned card instance
+
+### vote_events
+
+Primary key:
+- `event_id INTEGER PRIMARY KEY AUTOINCREMENT`
+
+Columns:
+- `event_id`
+- `guild_id INTEGER NOT NULL`
+- `user_id INTEGER NOT NULL`
+- `provider TEXT NOT NULL` (`topgg`, `discordbotlist`, etc.)
+- `received_at REAL NOT NULL` (event ingestion timestamp)
+- `remote_ip TEXT` (best-effort source IP as seen by the app)
+- `webhook_path TEXT NOT NULL DEFAULT ''` (the route that received the webhook)
+- `payload_json TEXT NOT NULL DEFAULT '{}'` (compact JSON payload snapshot)
+
+Purpose:
+- Stores per-vote audit history for "when / where / who" vote intake tracking
+- Enables future provider-specific eligibility and rolling-window vote summaries without changing aggregate `players.votes`
+
+Indexes:
+- `idx_vote_events_user_received(guild_id, user_id, received_at DESC)`
+- `idx_vote_events_provider_received(provider, received_at DESC)`
 
 ### card_instances
 
@@ -295,7 +318,7 @@ Current migration set:
 	- Adds `player_folders` for per-player folder collections, emojis, and lock state.
 	- Adds `card_instance_folders` for one-folder-per-instance assignment.
 - `v19`:
-	- Adds `players.votes` for cumulative successful top.gg vote claims.
+	- Adds `players.votes` for cumulative successful vote claims.
 - `v23`:
 	- Adds `players.pull_tickets` for pull-cooldown bypass purchases/consumption.
 	- Adds `gambling_pot.pull_tickets` for Monopoly pot parity.
@@ -305,6 +328,8 @@ Current migration set:
 	- Undoes v32 (inverse: `restored = exp(c^(1/6.1)) - 1`) then applies the intended formula: `new_bal = log10(old_bal + 1)^6.1` independently to wallet and oven dough.
 - `v34`:
 	- Rescales `gambling_pot.dough` (global pot, `guild_id = 0`) using `new_bal = log10(old_bal + 1)^6.1`.
+- `v35`:
+	- Adds `vote_events` for provider-specific vote webhook audit/event history (`provider`, `received_at`, source details, payload snapshot).
 
 Notes:
 - Startup migration is in-code (`bot/migrations.py`) and invoked by `storage.init_db()` using incremental version checks.

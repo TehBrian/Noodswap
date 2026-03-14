@@ -1,4 +1,5 @@
 import math
+import json
 import sqlite3
 import tempfile
 from contextlib import closing
@@ -75,6 +76,9 @@ class StorageTests:
 
             battles_row = conn.execute("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'battle_sessions'").fetchone()
             assert battles_row is not None
+
+            vote_events_row = conn.execute("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'vote_events'").fetchone()
+            assert vote_events_row is not None
 
     def test_init_db_migration_smoke_equivalent_checks(self) -> None:
         storage.init_db()
@@ -195,6 +199,44 @@ class StorageTests:
             reward_amount=1,
         )
         assert starter_total == 2
+
+    def test_claim_vote_reward_records_vote_event_metadata(self) -> None:
+        guild_id = 1
+        user_id = 4321
+
+        storage.init_db()
+
+        starter_total = storage.claim_vote_reward(
+            guild_id=guild_id,
+            user_id=user_id,
+            reward_amount=3,
+            vote_provider="discordbotlist",
+            remote_ip="198.51.100.11",
+            webhook_path="/noodswap/discordbotlist-vote-webhook",
+            payload={"id": str(user_id), "username": "tester"},
+            received_at=1_700_000_000.5,
+        )
+        assert starter_total == 3
+
+        with storage.get_db_connection() as conn:
+            row = conn.execute(
+                """
+                SELECT provider, remote_ip, webhook_path, payload_json, received_at
+                FROM vote_events
+                WHERE guild_id = 0 AND user_id = ?
+                ORDER BY event_id DESC
+                LIMIT 1
+                """,
+                (user_id,),
+            ).fetchone()
+
+        assert row is not None
+        assert str(row["provider"]) == "discordbotlist"
+        assert str(row["remote_ip"]) == "198.51.100.11"
+        assert str(row["webhook_path"]) == "/noodswap/discordbotlist-vote-webhook"
+        assert float(row["received_at"]) == 1_700_000_000.5
+        payload = json.loads(str(row["payload_json"]))
+        assert payload["id"] == str(user_id)
 
     def test_slots_cooldown_and_starter_award(self) -> None:
         guild_id = 1

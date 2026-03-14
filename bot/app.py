@@ -13,6 +13,13 @@ from .services import end_open_battles_for_shutdown
 from .settings import (
     CARD_FONTS_DIR,
     COMMAND_PREFIX,
+    DISCORDBOTLIST_WEBHOOK_ALLOWED_IPS,
+    DISCORDBOTLIST_WEBHOOK_HOST,
+    DISCORDBOTLIST_WEBHOOK_MAX_BODY_BYTES,
+    DISCORDBOTLIST_WEBHOOK_PATH,
+    DISCORDBOTLIST_WEBHOOK_PORT,
+    DISCORDBOTLIST_WEBHOOK_REQUIRE_JSON_CONTENT_TYPE,
+    DISCORDBOTLIST_WEBHOOK_SECRET,
     SHORT_COMMAND_PREFIX,
     TOPGG_BOT_ID,
     TOPGG_WEBHOOK_ALLOWED_IPS,
@@ -27,6 +34,19 @@ from .storage import init_db
 from .topgg_webhook import TopggWebhookConfig, TopggWebhookServer
 
 logger = logging.getLogger(__name__)
+
+
+def _resolve_vote_webhook_bind() -> tuple[str, int]:
+    if TOPGG_WEBHOOK_SECRET and DISCORDBOTLIST_WEBHOOK_SECRET:
+        if (TOPGG_WEBHOOK_HOST, TOPGG_WEBHOOK_PORT) != (DISCORDBOTLIST_WEBHOOK_HOST, DISCORDBOTLIST_WEBHOOK_PORT):
+            logger.warning(
+                "Both webhook providers are enabled with different host/port settings; using top.gg bind %s:%s.",
+                TOPGG_WEBHOOK_HOST,
+                TOPGG_WEBHOOK_PORT,
+            )
+    if TOPGG_WEBHOOK_SECRET:
+        return TOPGG_WEBHOOK_HOST, TOPGG_WEBHOOK_PORT
+    return DISCORDBOTLIST_WEBHOOK_HOST, DISCORDBOTLIST_WEBHOOK_PORT
 
 
 def _normalize_secret(value: str) -> str:
@@ -116,16 +136,22 @@ def create_bot() -> commands.Bot:
     class NoodswapBot(commands.Bot):
         def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)
+            webhook_host, webhook_port = _resolve_vote_webhook_bind()
             self._topgg_webhook_server = TopggWebhookServer(
                 TopggWebhookConfig(
                     secret=TOPGG_WEBHOOK_SECRET,
-                    host=TOPGG_WEBHOOK_HOST,
-                    port=TOPGG_WEBHOOK_PORT,
+                    host=webhook_host,
+                    port=webhook_port,
                     path=TOPGG_WEBHOOK_PATH,
                     expected_bot_id=TOPGG_BOT_ID,
                     max_body_bytes=TOPGG_WEBHOOK_MAX_BODY_BYTES,
                     require_json_content_type=TOPGG_WEBHOOK_REQUIRE_JSON_CONTENT_TYPE,
                     allowed_ip_networks=TOPGG_WEBHOOK_ALLOWED_IPS,
+                    discordbotlist_secret=DISCORDBOTLIST_WEBHOOK_SECRET,
+                    discordbotlist_path=DISCORDBOTLIST_WEBHOOK_PATH,
+                    discordbotlist_max_body_bytes=DISCORDBOTLIST_WEBHOOK_MAX_BODY_BYTES,
+                    discordbotlist_require_json_content_type=DISCORDBOTLIST_WEBHOOK_REQUIRE_JSON_CONTENT_TYPE,
+                    discordbotlist_allowed_ip_networks=DISCORDBOTLIST_WEBHOOK_ALLOWED_IPS,
                 )
             )
 

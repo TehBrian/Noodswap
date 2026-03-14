@@ -13,7 +13,9 @@ from bot.settings import VOTE_STARTER_REWARD
 from bot.topgg_webhook import (
     TopggWebhookConfig,
     TopggWebhookServer,
+    _extract_discordbotlist_user_id,
     _extract_user_id,
+    _is_discordbotlist_authorized,
     _is_request_ip_allowed,
     _normalize_route_path,
     _verify_signature,
@@ -78,6 +80,17 @@ def _test_body(user_platform_id: str, bot_platform_id: str = "BOT123") -> bytes:
     ).encode()
 
 
+def _discordbotlist_vote_body(user_id: str) -> bytes:
+    return json_module.dumps(
+        {
+            "admin": False,
+            "avatar": "abc123hash",
+            "username": "dbltester",
+            "id": user_id,
+        }
+    ).encode()
+
+
 def _mocked_post(
     path: str,
     raw_body: bytes,
@@ -98,6 +111,37 @@ def _mocked_post(
     return request
 
 
+def _mocked_discordbotlist_post(
+    path: str,
+    raw_body: bytes,
+    secret: str,
+    content_type: str = "application/json",
+    extra_headers: dict | None = None,
+) -> object:
+    headers = {
+        "Content-Type": content_type,
+        "Authorization": secret,
+    }
+    if extra_headers:
+        headers.update(extra_headers)
+    request = make_mocked_request("POST", path, headers=headers)
+    request.read = AsyncMock(return_value=raw_body)
+    return request
+
+
+def _count_vote_events(*, user_id: int, provider: str) -> int:
+    with storage.get_db_connection() as conn:
+        row = conn.execute(
+            """
+            SELECT COUNT(*) AS c
+            FROM vote_events
+            WHERE guild_id = 0 AND user_id = ? AND provider = ?
+            """,
+            (user_id, provider),
+        ).fetchone()
+    return int(row["c"]) if row is not None else 0
+
+
 def test_normalize_route_path_prefixes_slash() -> None:
     assert _normalize_route_path("noodswap/topgg-vote-webhook") == "/noodswap/topgg-vote-webhook"
 
@@ -114,6 +158,14 @@ def test_extract_user_id_rejects_non_numeric_platform_id() -> None:
 
 def test_extract_user_id_returns_none_when_data_missing() -> None:
     assert _extract_user_id({"type": "vote.create"}) is None
+
+
+def test_extract_discordbotlist_user_id_accepts_numeric_string() -> None:
+    assert _extract_discordbotlist_user_id({"id": "123"}) == 123
+
+
+def test_extract_discordbotlist_user_id_rejects_non_numeric() -> None:
+    assert _extract_discordbotlist_user_id({"id": "abc"}) is None
 
 
 def test_verify_signature_accepts_correct_hmac() -> None:
@@ -138,6 +190,14 @@ def test_verify_signature_rejects_malformed_header() -> None:
     assert not _verify_signature(body, "notaheader", _SECRET)
 
 
+def test_discordbotlist_authorization_accepts_exact_secret() -> None:
+    assert _is_discordbotlist_authorized("dbl-secret", "dbl-secret")
+
+
+def test_discordbotlist_authorization_rejects_wrong_secret() -> None:
+    assert not _is_discordbotlist_authorized("wrong", "dbl-secret")
+
+
 def test_is_request_ip_allowed_allows_when_no_allowlist() -> None:
     assert _is_request_ip_allowed("203.0.113.5", ())
 
@@ -153,8 +213,8 @@ def test_is_request_ip_allowed_rejects_invalid_or_missing_remote() -> None:
             allowed_ip_networks=allowlist,
         )
     )
-    assert not _is_request_ip_allowed(None, server._allowed_networks)
-    assert not _is_request_ip_allowed("not-an-ip", server._allowed_networks)
+    assert not _is_request_ip_allowed(None, server._topgg_allowed_networks)
+    assert not _is_request_ip_allowed("not-an-ip", server._topgg_allowed_networks)
 
 
 def test_is_request_ip_allowed_checks_cidr_membership() -> None:
@@ -168,8 +228,8 @@ def test_is_request_ip_allowed_checks_cidr_membership() -> None:
             allowed_ip_networks=allowlist,
         )
     )
-    assert _is_request_ip_allowed("203.0.113.25", server._allowed_networks)
-    assert not _is_request_ip_allowed("198.51.100.25", server._allowed_networks)
+    assert _is_request_ip_allowed("203.0.113.25", server._topgg_allowed_networks)
+    assert not _is_request_ip_allowed("198.51.100.25", server._topgg_allowed_networks)
 
 
 @pytest.fixture
@@ -185,6 +245,8 @@ def webhook_server() -> TopggWebhookServer:
             port=8080,
             path="/noodswap/topgg-vote-webhook",
             expected_bot_id="",
+            discordbotlist_secret="dbl-secret",
+            discordbotlist_path="/noodswap/discordbotlist-vote-webhook",
         )
     )
     try:
@@ -232,6 +294,7 @@ async def test_claims_vote_reward_on_valid_payload(webhook_server: TopggWebhookS
     assert response.status == 200
     assert storage.get_player_starter(0, 123) == VOTE_STARTER_REWARD
     assert storage.get_player_votes(0, 123) == 1
+    assert _count_vote_events(user_id=123, provider="topgg") == 1
 
 
 async def test_duplicate_vote_claims_reward_each_time(webhook_server: TopggWebhookServer) -> None:
@@ -243,6 +306,7 @@ async def test_duplicate_vote_claims_reward_each_time(webhook_server: TopggWebho
     assert second_response.status == 200
     assert storage.get_player_starter(0, 456) == VOTE_STARTER_REWARD * 2
     assert storage.get_player_votes(0, 456) == 2
+    assert _count_vote_events(user_id=456, provider="topgg") == 2
 
 
 async def test_rejects_non_json_content_type_when_enforced(webhook_server: TopggWebhookServer) -> None:
@@ -306,3 +370,45 @@ async def test_rejects_unexpected_project_platform_id() -> None:
     finally:
         storage.DB_PATH = original_db_path
         tmp_dir.cleanup()
+
+
+async def test_discordbotlist_rejects_invalid_authorization(webhook_server: TopggWebhookServer) -> None:
+    body = _discordbotlist_vote_body("123")
+    request = _mocked_discordbotlist_post(
+        "/noodswap/discordbotlist-vote-webhook",
+        body,
+        secret="not-the-secret",
+    )
+
+    response = await webhook_server._handle_discordbotlist_vote(request)
+
+    assert response.status == 401
+
+
+async def test_discordbotlist_rejects_missing_user_id(webhook_server: TopggWebhookServer) -> None:
+    body = json_module.dumps({"username": "tester"}).encode()
+    request = _mocked_discordbotlist_post(
+        "/noodswap/discordbotlist-vote-webhook",
+        body,
+        secret="dbl-secret",
+    )
+
+    response = await webhook_server._handle_discordbotlist_vote(request)
+
+    assert response.status == 400
+
+
+async def test_discordbotlist_claims_vote_reward_on_valid_payload(webhook_server: TopggWebhookServer) -> None:
+    body = _discordbotlist_vote_body("789")
+    response = await webhook_server._handle_discordbotlist_vote(
+        _mocked_discordbotlist_post(
+            "/noodswap/discordbotlist-vote-webhook",
+            body,
+            secret="dbl-secret",
+        )
+    )
+
+    assert response.status == 200
+    assert storage.get_player_starter(0, 789) == VOTE_STARTER_REWARD
+    assert storage.get_player_votes(0, 789) == 1
+    assert _count_vote_events(user_id=789, provider="discordbotlist") == 1
