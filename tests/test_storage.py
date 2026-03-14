@@ -524,6 +524,33 @@ class StorageTests:
         assert before_last_pull_at == after_last_pull_at
         assert storage.get_player_pull_tickets(guild_id, user_id) == 0
 
+    def test_consume_pull_cooldown_or_ticket_does_not_use_ticket_when_ready(self) -> None:
+        guild_id = 1
+        user_id = 2246
+
+        storage.init_db()
+        storage.add_starter(guild_id, user_id, 1)
+        storage.buy_pull_tickets_with_starter(guild_id, user_id, 1)
+
+        now = 4_000.0
+        with storage.get_db_connection() as conn:
+            players = storage.PlayerRepository(conn, storage.STARTING_DOUGH)
+            players.ensure_player(storage._scope_guild_id(guild_id), user_id)
+            players.set_last_pull_at(storage._scope_guild_id(guild_id), user_id, now - 360.0)
+
+        used_ticket, remaining = storage.consume_pull_cooldown_or_ticket(
+            guild_id,
+            user_id,
+            now=now,
+            cooldown_seconds=360.0,
+        )
+        _last_drop_at, updated_last_pull_at = storage.get_player_cooldown_timestamps(guild_id, user_id)
+
+        assert not used_ticket
+        assert remaining == 0.0
+        assert updated_last_pull_at == now
+        assert storage.get_player_pull_tickets(guild_id, user_id) == 1
+
     def test_consume_drop_cooldown_or_ticket_bypasses_without_changing_timestamp(
         self,
     ) -> None:
@@ -549,6 +576,30 @@ class StorageTests:
         assert remaining == 0.0
         assert before_last_drop_at == after_last_drop_at
         assert storage.get_player_drop_tickets(guild_id, user_id) == 0
+
+    def test_consume_drop_cooldown_or_ticket_does_not_use_ticket_when_ready(self) -> None:
+        guild_id = 1
+        user_id = 1246
+
+        storage.init_db()
+        storage.add_starter(guild_id, user_id, 1)
+        storage.buy_drop_tickets_with_starter(guild_id, user_id, 1)
+
+        now = 4_000.0
+        storage.set_last_drop_at(guild_id, user_id, now - 360.0)
+
+        used_ticket, remaining = storage.consume_drop_cooldown_or_ticket(
+            guild_id,
+            user_id,
+            now=now,
+            cooldown_seconds=360.0,
+        )
+        updated_last_drop_at, _ = storage.get_player_cooldown_timestamps(guild_id, user_id)
+
+        assert not used_ticket
+        assert remaining == 0.0
+        assert updated_last_drop_at == now
+        assert storage.get_player_drop_tickets(guild_id, user_id) == 1
 
     def test_flip_cooldown_helper_and_timestamp(self) -> None:
         guild_id = 1

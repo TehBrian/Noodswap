@@ -2528,7 +2528,8 @@ def consume_drop_cooldown_or_ticket(
 
         last_drop_at = players.get_last_drop_at(guild_id, user_id)
         elapsed = now - last_drop_at
-        if elapsed >= cooldown_seconds:
+        cooldown_remaining = max(0.0, cooldown_seconds - elapsed)
+        if cooldown_remaining <= 0.0:
             players.set_last_drop_at(guild_id, user_id, now)
             return False, 0.0
 
@@ -2538,7 +2539,7 @@ def consume_drop_cooldown_or_ticket(
             players.add_drop_tickets(guild_id, user_id, -1)
             return True, 0.0
 
-        return False, cooldown_seconds - elapsed
+        return False, cooldown_remaining
 
 
 def consume_pull_cooldown_if_ready(
@@ -2577,7 +2578,8 @@ def consume_pull_cooldown_or_ticket(
 
         last_pull_at = players.get_last_pull_at(guild_id, user_id)
         elapsed = now - last_pull_at
-        if elapsed >= cooldown_seconds:
+        cooldown_remaining = max(0.0, cooldown_seconds - elapsed)
+        if cooldown_remaining <= 0.0:
             players.set_last_pull_at(guild_id, user_id, now)
             return False, 0.0
 
@@ -2587,7 +2589,7 @@ def consume_pull_cooldown_or_ticket(
             players.add_pull_tickets(guild_id, user_id, -1)
             return True, 0.0
 
-        return False, cooldown_seconds - elapsed
+        return False, cooldown_remaining
 
 
 def get_card_quantity(guild_id: int, user_id: int, card_type_id: str) -> int:

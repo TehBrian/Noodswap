@@ -79,6 +79,22 @@ class ServicesTests:
         assert prepared.used_drop_ticket
         assert storage.get_player_drop_tickets(guild_id, user_id) == 0
 
+    def test_prepare_drop_does_not_use_drop_ticket_when_ready(self) -> None:
+        guild_id = 1
+        user_id = 113
+        now = time.time()
+
+        storage.add_starter(guild_id, user_id, 1)
+        purchased, _, tickets, spent = storage.buy_drop_tickets_with_starter(guild_id, user_id, 1)
+        assert purchased
+        assert tickets == 1
+        assert spent == 1
+
+        prepared = services.prepare_drop(guild_id, user_id, now)
+        assert not prepared.is_cooldown
+        assert not prepared.used_drop_ticket
+        assert storage.get_player_drop_tickets(guild_id, user_id) == 1
+
     def test_prepare_burn_errors_without_last_pulled(self) -> None:
         prepared = services.prepare_burn(guild_id=1, user_id=20, card_id=None)
         assert prepared.is_error
@@ -779,6 +795,29 @@ class ServicesTests:
         )
         assert second_claim.is_error
         assert second_claim.cooldown_remaining_seconds or 0.0 > 0.0
+
+    def test_execute_drop_claim_does_not_use_pull_ticket_when_ready(self) -> None:
+        guild_id = 1
+        user_id = 602
+        now = time.time()
+
+        storage.add_starter(guild_id, user_id, 1)
+        purchased, _, tickets, spent = storage.buy_pull_tickets_with_starter(guild_id, user_id, 1)
+        assert purchased
+        assert tickets == 1
+        assert spent == 1
+
+        claim = services.execute_drop_claim(
+            guild_id,
+            user_id,
+            "SPG",
+            777,
+            now=now,
+            pull_cooldown_seconds=240,
+        )
+
+        assert not claim.is_error
+        assert storage.get_player_pull_tickets(guild_id, user_id) == 1
 
     def test_execute_drop_claim_returns_resolved_card_id(self) -> None:
         guild_id = 1
