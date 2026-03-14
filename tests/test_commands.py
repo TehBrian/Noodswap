@@ -2542,9 +2542,8 @@ class CommandsOvenTests:
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
         assert sent_embed.title == "Deposit"
-        assert "Item: **Starter**" in sent_embed.description
-        assert "Fee (3%): **3**" in sent_embed.description
-        assert "Moved to Oven: **97**" in sent_embed.description
+        assert "Fee (3%): **3 starter**" in sent_embed.description
+        assert "Moved to Oven: **97 starter**" in sent_embed.description
 
     async def test_oven_withdraw_rejects_insufficient_oven_balance(self) -> None:
         oven_withdraw_command = _get_group_command(self.bot, "oven", "withdraw")

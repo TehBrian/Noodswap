@@ -946,14 +946,12 @@ def register_economy_commands(bot: commands.Bot) -> None:
                 "Deposit",
                 multiline_text(
                     [
-                        f"Item: **{item_label.title()}**",
-                        f"Requested: **{result.amount}**",
+                        f"Requested: **{result.amount} {item_label}**",
+                        f"Fee (3%): **{result.fee} {item_label}**",
+                        f"Moved to Oven: **{result.net_amount} {item_label}**",
                         "",
-                        f"Fee (3%): **{result.fee}**",
-                        f"Moved to Oven: **{result.net_amount}**",
-                        "",
-                        f"Wallet {item_label.title()}: **{result.spendable_balance}**",
-                        f"Oven {item_label.title()}: **{result.oven_balance}**",
+                        f"Wallet: **{result.spendable_balance} {item_label}**",
+                        f"Oven: **{result.oven_balance} {item_label}**",
                     ]
                 ),
             ),
@@ -997,14 +995,12 @@ def register_economy_commands(bot: commands.Bot) -> None:
                 "Withdraw",
                 multiline_text(
                     [
-                        f"Item: **{item_label.title()}**",
-                        f"Requested: **{result.amount}**",
+                        f"Requested: **{result.amount} {item_label}**",
+                        f"Fee (3%): **{result.fee} {item_label}**",
+                        f"Moved to Wallet: **{result.net_amount} {item_label}**",
                         "",
-                        f"Fee (3%): **{result.fee}**",
-                        f"Moved to Wallet: **{result.net_amount}**",
-                        "",
-                        f"Wallet {item_label.title()}: **{result.spendable_balance}**",
-                        f"Oven {item_label.title()}: **{result.oven_balance}**",
+                        f"Wallet: **{result.spendable_balance} {item_label}**",
+                        f"Oven: **{result.oven_balance} {item_label}**",
                     ]
                 ),
             ),
