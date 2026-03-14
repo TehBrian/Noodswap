@@ -411,22 +411,17 @@ def register_catalog_commands(bot: commands.Bot) -> None:
         no_emoji = "❌"
         topgg_vote_status = yes_emoji if voted_topgg_recent else no_emoji
         dbl_vote_status = yes_emoji if voted_dbl_recent else no_emoji
-        seconds_until_month_reset = max(0, int(next_month_reset_unix - now))
-        days_until_month_reset = max(1, (seconds_until_month_reset + 86_399) // 86_400)
-        day_label = "day" if days_until_month_reset == 1 else "days"
         lines: list[str] = [
             "Earn rewards and support Noodswap by voting!",
             "",
             f"Reward: **+{TOPGG_VOTE_REWARD_STARTER} starter** and **+{TOPGG_VOTE_REWARD_DOUGH} dough** per **vote** on [Top.gg]({TOPGG_VOTE_URL})",
-            "",
             f"> Voted on [Top.gg]({TOPGG_VOTE_URL}) yet: {topgg_vote_status}",
             "",
             f"Reward: **+{DISCORDBOTLIST_VOTE_REWARD_DROP_TICKETS} drop tickets** and **+{DISCORDBOTLIST_VOTE_REWARD_PULL_TICKETS} pull ticket** per **vote** on [DiscordBotList]({DISCORDBOTLIST_VOTE_URL})",
-            "",
             f"> Voted on [DiscordBotList]({DISCORDBOTLIST_VOTE_URL}) yet: {dbl_vote_status}",
             "",
             f"- **Total** Votes: **{total_votes}**",
-            f"- **Monthly** Votes: **{monthly_votes}** (resets in <t:{next_month_reset_unix}:R> {days_until_month_reset} {day_label})",
+            f"- **Monthly** Votes: **{monthly_votes}** (resets <t:{next_month_reset_unix}:R>)",
         ]
 
         await _reply(
