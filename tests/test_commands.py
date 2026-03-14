@@ -2433,18 +2433,18 @@ class CommandsInfoTests:
         assert field_values.get("Cards") == "7"
         assert field_values.get("**Wallet Items**") == "\n".join(
             [
-                "Dough: 123",
-                "Starter: 9",
-                "Drop Tickets: 4",
-                "Pull Tickets: 6",
+                "- 123 dough",
+                "- 9 starter",
+                "- 4 drop tickets",
+                "- 6 pull tickets",
             ]
         )
         assert field_values.get("**Oven Items**") == "\n".join(
             [
-                "Dough: 21",
-                "Starter: 3",
-                "Drop Tickets: 2",
-                "Pull Tickets: 1",
+                "- 21 dough",
+                "- 3 starter",
+                "- 2 drop tickets",
+                "- 1 pull tickets",
             ]
         )
         assert field_values.get("Wishes") == "3"
