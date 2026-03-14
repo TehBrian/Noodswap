@@ -79,6 +79,12 @@ The live model is instance-based:
 - Every copy has a `generation`
 - `generation` is not part of card catalog metadata; it is per-instance state
 
+## Catalog and drop odds
+
+- Card drop weights in `bot/rarities.py` are defined per-rarity, not per-card.
+- When building drop candidates, per-card weights are normalized by the count of cards within each rarity so that adding more cards to a rarity does not change that rarity's effective pull odds — each individual card in a larger rarity bucket becomes proportionally less likely to appear.
+- As a result, tuning `RARITY_WEIGHTS` purely controls rarity-tier odds regardless of catalog size imbalances.
+
 Selection rules currently implemented:
 
 - `marry <card_id>` targets the exact referenced dupe

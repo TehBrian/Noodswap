@@ -71,7 +71,7 @@ This document defines behavior and presentation for commands and interaction flo
 
 - `help` / `h` opens a brief bot overview embed instead of a full command dump
 - Help embed includes a category dropdown for command pages
-- Categories are: `Overview`, `Economy`, `Traits`, `Wishlist`, `Tags`, `Relationship`, `Owner-only`
+- Categories are: `Overview`, `Economy`, `Gambling`, `Battle`, `Traits`, `Wishlist`, `Tags`, `Folders`, `Relationship`, `Owner-only`
 - Selecting a category edits the same message to show that category's commands
 - Help dropdown interactions are restricted to the command invoker
 
@@ -337,7 +337,7 @@ Shows:
 ## Leaderboard UX
 
 - `leaderboard` / `le` shows a paginated leaderboard of players
-- Includes criteria dropdown options: `Cards`, `Wishes`, `Dough`, `Starter`, `Collection Value`
+- Includes criteria dropdown options: `Cards`, `Wishes`, `Dough`, `Starter`, `Collection Value`, `Votes`
 - Each leaderboard row shows the selected criterion value for the ranked player
 - Footer format: `Page X/Y • Ranked by <Criterion>`
 - Leaderboard interactions are restricted to the command invoker
@@ -402,6 +402,22 @@ Shows:
 - Folder assignment is per-instance and one-to-one (a card instance can belong to at most one folder).
 - Assigning a card to a different folder moves it from its previous folder.
 - Locked folders apply burn protection the same as locked tags.
+
+## Oven UX
+
+- `oven deposit <amount>` locks funds into the oven and charges a `3%` fee (rounded up)
+- `oven withdraw <amount>` releases funds from the oven and charges a `3%` fee (rounded up)
+- Oven balances are excluded from standard spend/tax/rent flows until explicitly withdrawn
+- `20%` of every oven fee (rounded up) is added to the Monopoly pot
+- Supports `dough`, `starter`, `drop`, and `pull` currency types
+
+## Ship UX
+
+- `ship <user> [other_user]` computes a compatibility score between two players
+- Score is in range `0..100` and is deterministic: the same pair of users always produces the same result regardless of argument order
+- Score is derived from a hash of both user IDs (order-independent)
+- Response embed composites both users' Discord avatars with a percentage overlay backed by `runtime/images/ship_chocolate.png`
+- If `other_user` is omitted, the invoker is used as the second user
 
 ## Interaction constraints
 

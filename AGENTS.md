@@ -100,20 +100,18 @@ When making non-trivial changes:
 
 ## 9) Current Known Gaps
 
-- Migration framework is minimal (in-code steps only; no standalone migration files or downgrade path yet).
+- Migration ergonomics: in-code step migrations exist (35 versioned steps), but no downgrade path, standalone migration files, or startup integrity validation tooling yet.
 - Concurrency is improved with `BEGIN IMMEDIATE`, but further hardening/retry strategy is still valuable under heavy contention.
 - Prefix commands only; no slash command migration yet.
 - Tests exist, but coverage is still partial and focused on storage/services/views hot paths.
 
 ## 10) Deferred Refactor Stages (To-Do)
 
-Stages 1 and 3 are complete. Remaining deferred stages are:
+Stages 1, 2, and 3 are complete. Remaining deferred stage:
 
-1. **Stage 2 — Storage boundary split**
-   - Separate migration logic from general data access.
-   - Add repository-style boundaries with stable call surface.
-2. **Stage 4 — Presentation expansion**
-   - Continue centralizing repeated embed/description assembly and add formatter tests.
+1. **Stage 4 — Presentation expansion**
+   - Continue centralizing repeated embed/description assembly into `presentation.py` helpers (15 helpers exist; command-inline assembly still scattered).
+   - Add small formatter unit tests for deterministic formatting of high-use descriptions.
 
 ## 11) If You Are the Next Agent
 

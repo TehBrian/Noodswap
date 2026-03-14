@@ -80,6 +80,9 @@ Columns:
 - `morph_key TEXT` (optional per-instance visual modifier)
 - `frame_key TEXT` (optional per-instance frame modifier)
 - `font_key TEXT` (optional per-instance font modifier)
+- `dropped_by_user_id INTEGER` (user who triggered the drop offer; backfilled from `user_id` for legacy rows via migration v28)
+- `pulled_by_user_id INTEGER` (user who claimed the card; backfilled from `user_id` for legacy rows via migration v28)
+- `pulled_at REAL` (Unix timestamp of when the card was claimed; `NULL` for legacy rows)
 
 Purpose:
 - Tracks each owned copy as a distinct instance
