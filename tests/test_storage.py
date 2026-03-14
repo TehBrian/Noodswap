@@ -2,6 +2,7 @@ import math
 import json
 import sqlite3
 import tempfile
+from datetime import datetime, timezone
 from contextlib import closing
 from pathlib import Path
 from types import SimpleNamespace
@@ -237,6 +238,53 @@ class StorageTests:
         assert float(row["received_at"]) == 1_700_000_000.5
         payload = json.loads(str(row["payload_json"]))
         assert payload["id"] == str(user_id)
+
+    def test_get_player_vote_snapshot_counts_monthly_and_recent_by_provider(self) -> None:
+        guild_id = 1
+        user_id = 999
+        now_dt = datetime(2026, 3, 14, 12, 0, 0, tzinfo=timezone.utc)
+        now = now_dt.timestamp()
+
+        storage.init_db()
+
+        # Recent top.gg vote (inside 12h).
+        storage.claim_vote_reward(
+            guild_id=guild_id,
+            user_id=user_id,
+            reward_amount=3,
+            vote_provider="topgg",
+            received_at=now - (2 * 60 * 60),
+        )
+        # Current-month DiscordBotList vote but outside 12h.
+        storage.claim_vote_reward(
+            guild_id=guild_id,
+            user_id=user_id,
+            reward_amount=0,
+            reward_drop_tickets=2,
+            reward_pull_tickets=1,
+            vote_provider="discordbotlist",
+            received_at=now - (13 * 60 * 60),
+        )
+        # Prior-month vote should not count toward monthly.
+        storage.claim_vote_reward(
+            guild_id=guild_id,
+            user_id=user_id,
+            reward_amount=3,
+            vote_provider="topgg",
+            received_at=datetime(2026, 2, 20, 9, 0, 0, tzinfo=timezone.utc).timestamp(),
+        )
+
+        total_votes, monthly_votes, topgg_recent, dbl_recent, next_month_reset_unix = storage.get_player_vote_snapshot(
+            guild_id,
+            user_id,
+            now=now,
+        )
+
+        assert total_votes == 3
+        assert monthly_votes == 2
+        assert topgg_recent
+        assert not dbl_recent
+        assert next_month_reset_unix == int(datetime(2026, 4, 1, 0, 0, 0, tzinfo=timezone.utc).timestamp())
 
     def test_slots_cooldown_and_starter_award(self) -> None:
         guild_id = 1

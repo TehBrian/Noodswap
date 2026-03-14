@@ -2,6 +2,7 @@ import sqlite3
 import time
 import random
 import json
+from datetime import datetime, timezone
 from dataclasses import dataclass
 from collections.abc import Iterator
 from contextlib import contextmanager
@@ -1427,6 +1428,66 @@ def get_player_votes(guild_id: int, user_id: int) -> int:
         return players.get_votes(guild_id, user_id)
 
 
+def get_player_vote_snapshot(
+    guild_id: int,
+    user_id: int,
+    *,
+    now: float | None = None,
+    recent_window_seconds: float = 12 * 60 * 60,
+) -> tuple[int, int, bool, bool, int]:
+    guild_id = _scope_guild_id(guild_id)
+    now_ts = float(now) if now is not None else float(time.time())
+    recent_threshold = now_ts - max(0.0, float(recent_window_seconds))
+
+    now_dt = datetime.fromtimestamp(now_ts, tz=timezone.utc)
+    month_start_dt = datetime(now_dt.year, now_dt.month, 1, tzinfo=timezone.utc)
+    if now_dt.month == 12:
+        next_month_start_dt = datetime(now_dt.year + 1, 1, 1, tzinfo=timezone.utc)
+    else:
+        next_month_start_dt = datetime(now_dt.year, now_dt.month + 1, 1, tzinfo=timezone.utc)
+
+    month_start_ts = float(month_start_dt.timestamp())
+    next_month_start_ts = float(next_month_start_dt.timestamp())
+
+    with get_db_connection() as conn:
+        players = PlayerRepository(conn, STARTING_DOUGH)
+        players.ensure_player(guild_id, user_id)
+        total_votes = players.get_votes(guild_id, user_id)
+
+        monthly_row = conn.execute(
+            """
+            SELECT COUNT(*) AS c
+            FROM vote_events
+            WHERE guild_id = ?
+              AND user_id = ?
+              AND received_at >= ?
+              AND received_at < ?
+            """,
+            (guild_id, user_id, month_start_ts, next_month_start_ts),
+        ).fetchone()
+        monthly_votes = int(monthly_row["c"]) if monthly_row is not None else 0
+
+        recent_rows = conn.execute(
+            """
+            SELECT provider
+            FROM vote_events
+            WHERE guild_id = ?
+              AND user_id = ?
+              AND received_at >= ?
+            """,
+            (guild_id, user_id, recent_threshold),
+        ).fetchall()
+        recent_providers = {str(row["provider"]).strip().lower() for row in recent_rows}
+
+    return (
+        total_votes,
+        monthly_votes,
+        "topgg" in recent_providers,
+        "discordbotlist" in recent_providers,
+        int(next_month_start_ts),
+    )
+
+
 def get_instance_by_id(guild_id: int, instance_id: int) -> Optional[tuple[int, str, int, str]]:
     guild_id = _scope_guild_id(guild_id)
     with get_db_connection() as conn:
@@ -2237,6 +2298,9 @@ def claim_vote_reward(
     guild_id: int,
     user_id: int,
     reward_amount: int,
+    reward_dough: int = 0,
+    reward_drop_tickets: int = 0,
+    reward_pull_tickets: int = 0,
     vote_provider: str = "",
     remote_ip: str | None = None,
     webhook_path: str = "",
@@ -2259,6 +2323,12 @@ def claim_vote_reward(
         players = PlayerRepository(conn, STARTING_DOUGH)
         players.ensure_player(guild_id, user_id)
         players.add_starter(guild_id, user_id, reward_amount)
+        if reward_dough > 0:
+            players.add_dough(guild_id, user_id, reward_dough)
+        if reward_drop_tickets > 0:
+            players.add_drop_tickets(guild_id, user_id, reward_drop_tickets)
+        if reward_pull_tickets > 0:
+            players.add_pull_tickets(guild_id, user_id, reward_pull_tickets)
         players.add_votes(guild_id, user_id, 1)
         conn.execute(
             """

@@ -35,8 +35,13 @@ from .command_utils import (
     SLOTS_SPIN_MIN_STEPS as SLOTS_SPIN_MIN_STEPS,
     SortableCardListView as SortableCardListView,
     SortableCollectionView as SortableCollectionView,
+    TOPGG_VOTE_REWARD_DOUGH as TOPGG_VOTE_REWARD_DOUGH,
+    TOPGG_VOTE_REWARD_STARTER as TOPGG_VOTE_REWARD_STARTER,
+    TOPGG_VOTE_URL as TOPGG_VOTE_URL,
     TradeView as TradeView,
-    VOTE_STARTER_REWARD as VOTE_STARTER_REWARD,
+    DISCORDBOTLIST_VOTE_REWARD_DROP_TICKETS as DISCORDBOTLIST_VOTE_REWARD_DROP_TICKETS,
+    DISCORDBOTLIST_VOTE_REWARD_PULL_TICKETS as DISCORDBOTLIST_VOTE_REWARD_PULL_TICKETS,
+    DISCORDBOTLIST_VOTE_URL as DISCORDBOTLIST_VOTE_URL,
     add_card_to_wishlist as add_card_to_wishlist,
     add_starter as add_starter,
     aiohttp as aiohttp,
@@ -104,6 +109,7 @@ from .command_utils import (
     get_player_flip_timestamp as get_player_flip_timestamp,
     get_player_info as get_player_info,
     get_player_leaderboard_info as get_player_leaderboard_info,
+    get_player_vote_snapshot as get_player_vote_snapshot,
     get_player_slots_timestamp as get_player_slots_timestamp,
     get_player_starter as get_player_starter,
     get_total_cards as get_total_cards,
@@ -123,7 +129,6 @@ from .command_utils import (
     multiline_text as multiline_text,
     normalize_card_id as normalize_card_id,
     normalize_trade_mode as normalize_trade_mode,
-    os as os,
     prepare_battle_offer as prepare_battle_offer,
     prepare_burn as prepare_burn,
     prepare_burn_batch as prepare_burn_batch,
@@ -395,26 +400,39 @@ def register_catalog_commands(bot: commands.Bot) -> None:
         if not await _require_guild(ctx, "Vote"):
             return
 
-        bot_user = bot.user
-        bot_id = bot_user.id if bot_user is not None else None
-        if bot_id is None:
-            env_bot_id = os.getenv("TOPGG_BOT_ID", "").strip()
-            if env_bot_id.isdigit():
-                bot_id = int(env_bot_id)
-
-        vote_url = "https://top.gg/"
-        if bot_id is not None:
-            vote_url = f"https://top.gg/bot/{bot_id}/vote"
-
+        now = time.time()
+        total_votes, monthly_votes, voted_topgg_recent, voted_dbl_recent, next_month_reset_unix = get_player_vote_snapshot(
+            _guild_id(ctx),
+            ctx.author.id,
+            now=now,
+            recent_window_seconds=12 * 60 * 60,
+        )
+        yes_emoji = "<:ns_yes:1481805623115907202>"
+        no_emoji = "<:ns_no:1481805593533481093>"
+        topgg_vote_status = yes_emoji if voted_topgg_recent else no_emoji
+        dbl_vote_status = yes_emoji if voted_dbl_recent else no_emoji
+        seconds_until_month_reset = max(0, int(next_month_reset_unix - now))
+        days_until_month_reset = max(1, (seconds_until_month_reset + 86_399) // 86_400)
+        day_label = "day" if days_until_month_reset == 1 else "days"
         lines: list[str] = [
-            "Support Noodswap by voting on Top.gg!",
-            f"Reward: **+{VOTE_STARTER_REWARD} starter**",
+            "Earn rewards and support Noodswap by voting!",
+            "",
+            f"Reward: **+{TOPGG_VOTE_REWARD_STARTER} starter** and **+{TOPGG_VOTE_REWARD_DOUGH} dough** per **vote** on [Top.gg]({TOPGG_VOTE_URL})",
+            "",
+            f"> Voted on [Top.gg]({TOPGG_VOTE_URL}) yet: {topgg_vote_status}",
+            "",
+            f"Reward: **+{DISCORDBOTLIST_VOTE_REWARD_DROP_TICKETS} drop tickets** and **+{DISCORDBOTLIST_VOTE_REWARD_PULL_TICKETS} pull ticket** per **vote** on [DiscordBotList]({DISCORDBOTLIST_VOTE_URL})",
+            "",
+            f"> Voted on [DiscordBotList]({DISCORDBOTLIST_VOTE_URL}) yet: {dbl_vote_status}",
+            "",
+            f"- **Total** Votes: **{total_votes}**",
+            f"- **Monthly** Votes: **{monthly_votes}** (resets in <t:{next_month_reset_unix}:R> {days_until_month_reset} {day_label})",
         ]
 
         await _reply(
             ctx,
-            embed=italy_embed("Vote", multiline_text(lines)),
-            view=_vote_link_view(vote_url),
+            embed=italy_embed("Vote for Noodswap", multiline_text(lines)),
+            view=_vote_link_view(TOPGG_VOTE_URL, DISCORDBOTLIST_VOTE_URL),
         )
 
     @bot.command(name="help", aliases=["h"])

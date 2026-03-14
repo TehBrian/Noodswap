@@ -9,7 +9,12 @@ import pytest
 from aiohttp.test_utils import make_mocked_request
 
 from bot import storage
-from bot.settings import VOTE_STARTER_REWARD
+from bot.settings import (
+    DISCORDBOTLIST_VOTE_REWARD_DROP_TICKETS,
+    DISCORDBOTLIST_VOTE_REWARD_PULL_TICKETS,
+    TOPGG_VOTE_REWARD_DOUGH,
+    TOPGG_VOTE_REWARD_STARTER,
+)
 from bot.topgg_webhook import (
     TopggWebhookConfig,
     TopggWebhookServer,
@@ -292,7 +297,8 @@ async def test_claims_vote_reward_on_valid_payload(webhook_server: TopggWebhookS
     response = await webhook_server._handle_vote(_mocked_post("/noodswap/topgg-vote-webhook", body))
 
     assert response.status == 200
-    assert storage.get_player_starter(0, 123) == VOTE_STARTER_REWARD
+    assert storage.get_player_starter(0, 123) == TOPGG_VOTE_REWARD_STARTER
+    assert storage.get_player_info(0, 123)[0] == TOPGG_VOTE_REWARD_DOUGH
     assert storage.get_player_votes(0, 123) == 1
     assert _count_vote_events(user_id=123, provider="topgg") == 1
 
@@ -304,7 +310,8 @@ async def test_duplicate_vote_claims_reward_each_time(webhook_server: TopggWebho
 
     assert first_response.status == 200
     assert second_response.status == 200
-    assert storage.get_player_starter(0, 456) == VOTE_STARTER_REWARD * 2
+    assert storage.get_player_starter(0, 456) == TOPGG_VOTE_REWARD_STARTER * 2
+    assert storage.get_player_info(0, 456)[0] == TOPGG_VOTE_REWARD_DOUGH * 2
     assert storage.get_player_votes(0, 456) == 2
     assert _count_vote_events(user_id=456, provider="topgg") == 2
 
@@ -409,6 +416,8 @@ async def test_discordbotlist_claims_vote_reward_on_valid_payload(webhook_server
     )
 
     assert response.status == 200
-    assert storage.get_player_starter(0, 789) == VOTE_STARTER_REWARD
+    assert storage.get_player_starter(0, 789) == 0
+    assert storage.get_player_drop_tickets(0, 789) == DISCORDBOTLIST_VOTE_REWARD_DROP_TICKETS
+    assert storage.get_player_pull_tickets(0, 789) == DISCORDBOTLIST_VOTE_REWARD_PULL_TICKETS
     assert storage.get_player_votes(0, 789) == 1
     assert _count_vote_events(user_id=789, provider="discordbotlist") == 1

@@ -62,6 +62,9 @@ from .services import (
 )
 from .settings import (
     DB_PATH,
+    DISCORDBOTLIST_VOTE_REWARD_DROP_TICKETS,
+    DISCORDBOTLIST_VOTE_REWARD_PULL_TICKETS,
+    DISCORDBOTLIST_VOTE_URL,
     DROP_COOLDOWN_SECONDS,
     DROP_TIMEOUT_SECONDS,
     FLIP_COOLDOWN_SECONDS,
@@ -75,6 +78,9 @@ from .settings import (
     PULL_COOLDOWN_SECONDS,
     SLOTS_COOLDOWN_SECONDS,
     SHIP_CHOCOLATE_IMAGE_PATH,
+    TOPGG_VOTE_REWARD_DOUGH,
+    TOPGG_VOTE_REWARD_STARTER,
+    TOPGG_VOTE_URL,
     VOTE_STARTER_REWARD,
 )
 from .storage import (
@@ -130,6 +136,7 @@ from .storage import (
     get_player_leaderboard_info,
     get_player_oven_balance,
     get_player_oven_balances,
+    get_player_vote_snapshot,
     get_player_slots_timestamp,
     get_player_starter,
     get_total_cards,
@@ -574,9 +581,10 @@ def _cooldown_status_line(label: str, elapsed_seconds: float, cooldown_seconds: 
     return f"{label}: **Ready** (can use now)"
 
 
-def _vote_link_view(vote_url: str) -> discord.ui.View:
+def _vote_link_view(topgg_vote_url: str, discordbotlist_vote_url: str) -> discord.ui.View:
     view = discord.ui.View(timeout=None)
-    view.add_item(discord.ui.Button(label="Vote on Top.gg", style=discord.ButtonStyle.link, url=vote_url))
+    view.add_item(discord.ui.Button(label="Vote on Top.gg", style=discord.ButtonStyle.link, url=topgg_vote_url))
+    view.add_item(discord.ui.Button(label="Vote on DiscordBotList", style=discord.ButtonStyle.link, url=discordbotlist_vote_url))
     return view
 
 

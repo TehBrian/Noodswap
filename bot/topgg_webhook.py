@@ -8,7 +8,12 @@ from typing import Any
 
 from aiohttp import web
 
-from .settings import VOTE_STARTER_REWARD
+from .settings import (
+    DISCORDBOTLIST_VOTE_REWARD_DROP_TICKETS,
+    DISCORDBOTLIST_VOTE_REWARD_PULL_TICKETS,
+    TOPGG_VOTE_REWARD_DOUGH,
+    TOPGG_VOTE_REWARD_STARTER,
+)
 from .storage import claim_vote_reward
 
 logger = logging.getLogger(__name__)
@@ -256,7 +261,8 @@ class TopggWebhookServer:
         starter_total = claim_vote_reward(
             guild_id=0,
             user_id=user_id,
-            reward_amount=VOTE_STARTER_REWARD,
+            reward_amount=TOPGG_VOTE_REWARD_STARTER,
+            reward_dough=TOPGG_VOTE_REWARD_DOUGH,
             vote_provider="topgg",
             remote_ip=request.remote,
             webhook_path=_normalize_route_path(self._config.path),
@@ -318,7 +324,9 @@ class TopggWebhookServer:
         starter_total = claim_vote_reward(
             guild_id=0,
             user_id=user_id,
-            reward_amount=VOTE_STARTER_REWARD,
+            reward_amount=0,
+            reward_drop_tickets=DISCORDBOTLIST_VOTE_REWARD_DROP_TICKETS,
+            reward_pull_tickets=DISCORDBOTLIST_VOTE_REWARD_PULL_TICKETS,
             vote_provider="discordbotlist",
             remote_ip=request.remote,
             webhook_path=_normalize_route_path_with_default(

@@ -2781,9 +2781,7 @@ class CommandsVoteTests:
         self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)
         register_commands(self.bot)
 
-    async def test_vote_shows_configuration_message_when_topgg_token_missing(
-        self,
-    ) -> None:
+    async def test_vote_embed_shows_dual_provider_rewards_and_status(self) -> None:
         vote_command = _get_command(self.bot, "vote")
 
         ctx = AsyncMock()
@@ -2792,15 +2790,27 @@ class CommandsVoteTests:
         ctx.send = AsyncMock()
         ctx.reply = ctx.send
 
-        with patch.dict("os.environ", {}, clear=True):
+        with patch(
+            "bot.commands_catalog.get_player_vote_snapshot",
+            return_value=(12, 4, True, False, 1_900_000_000),
+        ):
             await vote_command.callback(ctx)
 
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
         sent_view = ctx.send.await_args.kwargs["view"]
-        assert sent_embed.title == "Vote"
-        assert "Support Noodswap by voting on Top.gg!" in sent_embed.description
+        assert sent_embed.title == "Vote for Noodswap"
+        assert "Earn rewards and support Noodswap by voting!" in sent_embed.description
+        assert "Reward: **+3 starter** and **+500 dough**" in sent_embed.description
+        assert "Reward: **+2 drop tickets** and **+1 pull ticket**" in sent_embed.description
+        assert "Voted on [Top.gg](https://top.gg/bot/1478727078286196909/vote) yet: <:ns_yes:1481805623115907202>" in sent_embed.description
+        assert "Voted on [DiscordBotList](https://discordbotlist.com/bots/noodswap/upvote) yet: <:ns_no:1481805593533481093>" in sent_embed.description
+        assert "- **Total** Votes: **12**" in sent_embed.description
+        assert "- **Monthly** Votes: **4**" in sent_embed.description
         assert isinstance(sent_view, discord.ui.View)
+        assert len(sent_view.children) == 2
+        assert sent_view.children[0].label == "Vote on Top.gg"
+        assert sent_view.children[1].label == "Vote on DiscordBotList"
 
 
 class CommandsBurnTests:
