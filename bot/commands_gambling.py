@@ -129,6 +129,11 @@ from .command_utils import (
     morph_rarity as morph_rarity,
     morph_transition_image_payload as morph_transition_image_payload,
     multiline_text as multiline_text,
+    flip_result_description as flip_result_description,
+    flip_suspense_description as flip_suspense_description,
+    monopoly_board_description as monopoly_board_description,
+    monopoly_pot_description as monopoly_pot_description,
+    monopoly_usage_description as monopoly_usage_description,
     normalize_card_id as normalize_card_id,
     normalize_trade_mode as normalize_trade_mode,
     os as os,
@@ -153,6 +158,9 @@ from .command_utils import (
     set_player_folder_emoji as set_player_folder_emoji,
     set_player_folder_locked as set_player_folder_locked,
     set_player_tag_locked as set_player_tag_locked,
+    slots_jackpot_lines as slots_jackpot_lines,
+    slots_no_match_lines as slots_no_match_lines,
+    slots_partial_win_lines as slots_partial_win_lines,
     time as time,
     trade_offer_description as trade_offer_description,
     trait_rarity_multiplier as trait_rarity_multiplier,
@@ -224,12 +232,7 @@ def register_gambling_commands(bot: commands.Bot) -> None:
                 add_dough(_guild_id(ctx), ctx.author.id, dough_reward)
                 dough_total, _, _ = get_player_info(_guild_id(ctx), ctx.author.id)
                 starter_total = add_starter(_guild_id(ctx), ctx.author.id, starter_reward)
-                final_lines = [
-                    "Jackpot! All three matched.",
-                    f"Reward: **+{dough_reward} dough** and **+{starter_reward} starter**",
-                    f"Dough Balance: **{dough_total}** dough",
-                    f"Starter Balance: **{starter_total}**",
-                ]
+                final_lines = slots_jackpot_lines(dough_reward, starter_reward, dough_total, starter_total)
             elif is_partial_win:
                 dough_reward = random.randint(
                     SLOTS_TWO_MATCH_MIN_DOUGH_REWARD,
@@ -237,16 +240,9 @@ def register_gambling_commands(bot: commands.Bot) -> None:
                 )
                 add_dough(_guild_id(ctx), ctx.author.id, dough_reward)
                 dough_total, _, _ = get_player_info(_guild_id(ctx), ctx.author.id)
-                final_lines = [
-                    "Two matched.",
-                    f"Reward: **+{dough_reward} dough**",
-                    f"Dough Balance: **{dough_total}** dough",
-                ]
+                final_lines = slots_partial_win_lines(dough_reward, dough_total)
             else:
-                final_lines = [
-                    "No match this time.",
-                    f"Try again in **{format_cooldown(SLOTS_COOLDOWN_SECONDS)}**.",
-                ]
+                final_lines = slots_no_match_lines(format_cooldown(SLOTS_COOLDOWN_SECONDS))
 
             await message.edit(
                 content=_slots_reel_content(
@@ -324,28 +320,22 @@ def register_gambling_commands(bot: commands.Bot) -> None:
 
             did_player_win = status == "won"
             result_side = _revealed_flip_side(did_player_win, selected_side)
-            suspense_lines = [f"The coin is **{random.choice(FLIP_ACTIVITY_PHRASES)}**..."]
-            if selected_side is not None:
-                suspense_lines.append(f"Call: **{selected_side.capitalize()}**")
-
-            message = await _reply(ctx, embed=italy_embed("Flip", multiline_text(suspense_lines)))
+            message = await _reply(
+                ctx,
+                embed=italy_embed(
+                    "Flip",
+                    flip_suspense_description(random.choice(FLIP_ACTIVITY_PHRASES), selected_side),
+                ),
+            )
             await asyncio.sleep(FLIP_REVEAL_DELAY_SECONDS)
 
             if did_player_win:
                 payout = (stake * FLIP_WIN_PAYOUT_MULTIPLIER_NUMERATOR) // FLIP_WIN_PAYOUT_MULTIPLIER_DENOMINATOR
-                final_lines = [
-                    f"Result: **{result_side.capitalize()}**",
-                    f"Payout: **+{payout}** dough",
-                    f"Balance: **{dough_total}** dough",
-                ]
+                final_description = flip_result_description(result_side, did_win=True, payout_or_stake=payout, dough_total=dough_total)
             else:
-                final_lines = [
-                    f"Result: **{result_side.capitalize()}**",
-                    f"Lost: **-{stake}** dough",
-                    f"Balance: **{dough_total}** dough",
-                ]
+                final_description = flip_result_description(result_side, did_win=False, payout_or_stake=stake, dough_total=dough_total)
 
-            await message.edit(embed=italy_embed("Flip", multiline_text(final_lines)))
+            await message.edit(embed=italy_embed("Flip", final_description))
 
     @bot.group(name="monopoly", aliases=["mp"], invoke_without_command=True)
     async def monopoly(ctx: commands.Context):
@@ -353,15 +343,7 @@ def register_gambling_commands(bot: commands.Bot) -> None:
             ctx,
             embed=italy_embed(
                 "Monopoly",
-                multiline_text(
-                    [
-                        "Usage:",
-                        "`ns monopoly roll`",
-                        "`ns monopoly fine`",
-                        "`ns monopoly board`",
-                        "`ns monopoly pot`",
-                    ]
-                ),
+                monopoly_usage_description(),
             ),
         )
 
@@ -445,16 +427,7 @@ def register_gambling_commands(bot: commands.Bot) -> None:
             ctx,
             embed=italy_embed(
                 "Monopoly Board",
-                multiline_text(
-                    [
-                        f"Position: **{position}**",
-                        f"In Jail: **{'Yes' if in_jail else 'No'}**",
-                        f"Jail Failed Rolls: **{jail_attempts}/3**",
-                        f"Consecutive Doubles: **{doubles_count}**",
-                        "",
-                        f"```\n{board_render}\n```",
-                    ]
-                ),
+                monopoly_board_description(position, in_jail, jail_attempts, doubles_count, board_render),
             ),
         )
 
@@ -468,13 +441,6 @@ def register_gambling_commands(bot: commands.Bot) -> None:
             ctx,
             embed=italy_embed(
                 "Monopoly Pot",
-                multiline_text(
-                    [
-                        f"Dough: **{pot_dough}**",
-                        f"Starter: **{pot_starter}**",
-                        f"Drop Tickets: **{pot_drop_tickets}**",
-                        f"Pull Tickets: **{pot_pull_tickets}**",
-                    ]
-                ),
+                monopoly_pot_description(pot_dough, pot_starter, pot_drop_tickets, pot_pull_tickets),
             ),
         )

@@ -53,6 +53,8 @@ from .command_utils import (
     build_drop_preview_file as build_drop_preview_file,
     buy_pull_tickets_with_starter as buy_pull_tickets_with_starter,
     buy_drop_tickets_with_starter as buy_drop_tickets_with_starter,
+    buy_insufficient_description as buy_insufficient_description,
+    buy_ticket_success_description as buy_ticket_success_description,
     card_base_display as card_base_display,
     card_base_value as card_base_value,
     card_display as card_display,
@@ -119,6 +121,7 @@ from .command_utils import (
     is_instance_assigned_to_team as is_instance_assigned_to_team,
     is_tag_assigned_to_instance as is_tag_assigned_to_instance,
     italy_embed as italy_embed,
+    vote_status_description as vote_status_description,
     italy_marry_embed as italy_marry_embed,
     list_player_folders as list_player_folders,
     list_player_tags as list_player_tags,
@@ -192,13 +195,7 @@ def register_catalog_commands(bot: commands.Bot) -> None:
                 ctx,
                 embed=italy_embed(
                     "Buy",
-                    multiline_text(
-                        [
-                            f"Cost: **{quantity} starter**",
-                            f"Starter Balance: **{starter_balance}**",
-                            "You do not have enough starter.",
-                        ]
-                    ),
+                    buy_insufficient_description(quantity, starter_balance),
                 ),
             )
             return
@@ -207,15 +204,7 @@ def register_catalog_commands(bot: commands.Bot) -> None:
             ctx,
             embed=italy_embed(
                 "Buy",
-                multiline_text(
-                    [
-                        f"Purchased: **{spent} drop ticket{'s' if spent != 1 else ''}**",
-                        f"Cost: **{spent} starter**",
-                        "",
-                        f"Starter: **{starter_balance}**",
-                        f"Drop Tickets: **{drop_tickets}**",
-                    ]
-                ),
+                buy_ticket_success_description("drop", spent, starter_balance, drop_tickets),
             ),
         )
 
@@ -234,13 +223,7 @@ def register_catalog_commands(bot: commands.Bot) -> None:
                 ctx,
                 embed=italy_embed(
                     "Buy",
-                    multiline_text(
-                        [
-                            f"Cost: **{quantity} starter**",
-                            f"Starter Balance: **{starter_balance}**",
-                            "You do not have enough starter.",
-                        ]
-                    ),
+                    buy_insufficient_description(quantity, starter_balance),
                 ),
             )
             return
@@ -249,15 +232,7 @@ def register_catalog_commands(bot: commands.Bot) -> None:
             ctx,
             embed=italy_embed(
                 "Buy",
-                multiline_text(
-                    [
-                        f"Purchased: **{spent} pull ticket{'s' if spent != 1 else ''}**",
-                        f"Spent: **{spent} starter**",
-                        "",
-                        f"Starter: **{starter_balance}**",
-                        f"Pull Tickets: **{pull_tickets}**",
-                    ]
-                ),
+                buy_ticket_success_description("pull", spent, starter_balance, pull_tickets, spent_label="Spent"),
             ),
         )
 
@@ -407,26 +382,24 @@ def register_catalog_commands(bot: commands.Bot) -> None:
             now=now,
             recent_window_seconds=12 * 60 * 60,
         )
-        yes_emoji = "✅"
-        no_emoji = "❌"
-        topgg_vote_status = yes_emoji if voted_topgg_recent else no_emoji
-        dbl_vote_status = yes_emoji if voted_dbl_recent else no_emoji
-        lines: list[str] = [
-            "Earn rewards and support Noodswap by voting!",
-            "",
-            f"Reward: **+{TOPGG_VOTE_REWARD_STARTER} starter** and **+{TOPGG_VOTE_REWARD_DOUGH} dough** per **vote** on [Top.gg]({TOPGG_VOTE_URL})",
-            f"> Voted on [Top.gg]({TOPGG_VOTE_URL}) yet: {topgg_vote_status}",
-            "",
-            f"Reward: **+{DISCORDBOTLIST_VOTE_REWARD_DROP_TICKETS} drop tickets** and **+{DISCORDBOTLIST_VOTE_REWARD_PULL_TICKETS} pull ticket** per **vote** on [DiscordBotList]({DISCORDBOTLIST_VOTE_URL})",
-            f"> Voted on [DiscordBotList]({DISCORDBOTLIST_VOTE_URL}) yet: {dbl_vote_status}",
-            "",
-            f"- **Total** Votes: **{total_votes}**",
-            f"- **Monthly** Votes: **{monthly_votes}** (resets <t:{next_month_reset_unix}:R>)",
-        ]
-
         await _reply(
             ctx,
-            embed=italy_embed("Vote for Noodswap", multiline_text(lines)),
+            embed=italy_embed(
+                "Vote for Noodswap",
+                vote_status_description(
+                    TOPGG_VOTE_URL,
+                    TOPGG_VOTE_REWARD_STARTER,
+                    TOPGG_VOTE_REWARD_DOUGH,
+                    voted_topgg_recent,
+                    DISCORDBOTLIST_VOTE_URL,
+                    DISCORDBOTLIST_VOTE_REWARD_DROP_TICKETS,
+                    DISCORDBOTLIST_VOTE_REWARD_PULL_TICKETS,
+                    voted_dbl_recent,
+                    total_votes,
+                    monthly_votes,
+                    next_month_reset_unix,
+                ),
+            ),
             view=_vote_link_view(TOPGG_VOTE_URL, DISCORDBOTLIST_VOTE_URL),
         )
 

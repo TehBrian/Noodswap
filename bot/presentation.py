@@ -404,3 +404,319 @@ def help_category_content(category_key: str) -> tuple[str, str] | None:
         if key == category_key:
             return label, description
     return None
+
+
+# ---------------------------------------------------------------------------
+# Economy — cosmetic rolls (morph / frame / font confirmations)
+# ---------------------------------------------------------------------------
+
+
+def cosmetic_roll_confirmation_description(
+    card_display_str: str,
+    trait_name: str,
+    current_trait_label: str,
+    cost: int,
+) -> str:
+    return f"{card_display_str}\n\nCurrent {trait_name}: **{current_trait_label}**\nRoll Cost: **{cost}** dough"
+
+
+# ---------------------------------------------------------------------------
+# Economy — oven
+# ---------------------------------------------------------------------------
+
+
+def oven_balance_description(dough: int, starter: int, drop_tickets: int, pull_tickets: int) -> str:
+    return multiline_text(
+        [
+            f"Oven Dough: **{dough}**",
+            f"Oven Starter: **{starter}**",
+            f"Oven Drop Tickets: **{drop_tickets}**",
+            f"Oven Pull Tickets: **{pull_tickets}**",
+        ]
+    )
+
+
+def oven_transaction_description(
+    direction: str,  # "deposit" or "withdraw"
+    item_label: str,
+    amount: int,
+    fee: int,
+    net_amount: int,
+    spendable_balance: int,
+    oven_balance: int,
+) -> str:
+    moved_label = "Moved to Oven" if direction == "deposit" else "Moved to Wallet"
+    return multiline_text(
+        [
+            f"Requested: **{amount} {item_label}**",
+            f"Fee (3%): **{fee} {item_label}**",
+            f"{moved_label}: **{net_amount} {item_label}**",
+            "",
+            f"Wallet: **{spendable_balance} {item_label}**",
+            f"Oven: **{oven_balance} {item_label}**",
+        ]
+    )
+
+
+# ---------------------------------------------------------------------------
+# Economy — gifts
+# ---------------------------------------------------------------------------
+
+
+def gift_currency_description(
+    item_label: str,
+    balance_noun: str,
+    amount: int,
+    recipient_id: int,
+    recipient_name: str,
+    sender_balance: int,
+    recipient_balance: int,
+) -> str:
+    # When balance_noun differs from the item label (e.g. "Balance" vs "dough"),
+    # the unit is appended after the balance value; otherwise the noun already
+    # serves as the unit label and no suffix is needed.
+    balance_unit = f" {item_label}" if balance_noun.lower() != item_label.lower() else ""
+    return multiline_text(
+        [
+            f"Sent: **{amount}** {item_label} to <@{recipient_id}>",
+            f"Your {balance_noun}: **{sender_balance}**{balance_unit}",
+            f"{recipient_name}'s {balance_noun}: **{recipient_balance}**{balance_unit}",
+        ]
+    )
+
+
+def gift_card_result_description(
+    recipient_mention: str,
+    sender_mention: str,
+    card_display_str: str,
+) -> str:
+    return multiline_text(
+        [
+            f"Recipient: {recipient_mention}",
+            f"Sender: {sender_mention}",
+            "",
+            f"Card: {card_display_str}",
+        ]
+    )
+
+
+# ---------------------------------------------------------------------------
+# Catalog — buy tickets
+# ---------------------------------------------------------------------------
+
+
+def buy_insufficient_description(quantity: int, starter_balance: int) -> str:
+    return multiline_text(
+        [
+            f"Cost: **{quantity} starter**",
+            f"Starter Balance: **{starter_balance}**",
+            "You do not have enough starter.",
+        ]
+    )
+
+
+def buy_ticket_success_description(
+    ticket_type: str,  # "drop" or "pull"
+    spent: int,
+    starter_balance: int,
+    ticket_balance: int,
+    spent_label: str = "Cost",
+) -> str:
+    plural = "s" if spent != 1 else ""
+    ticket_label = "Drop Tickets" if ticket_type == "drop" else "Pull Tickets"
+    return multiline_text(
+        [
+            f"Purchased: **{spent} {ticket_type} ticket{plural}**",
+            f"{spent_label}: **{spent} starter**",
+            "",
+            f"Starter: **{starter_balance}**",
+            f"{ticket_label}: **{ticket_balance}**",
+        ]
+    )
+
+
+def player_cooldowns_description(cooldown_lines: list[str]) -> str:
+    return multiline_text(cooldown_lines)
+
+
+# ---------------------------------------------------------------------------
+# Catalog — vote
+# ---------------------------------------------------------------------------
+
+
+def vote_status_description(
+    topgg_url: str,
+    topgg_reward_starter: int,
+    topgg_reward_dough: int,
+    voted_topgg_recent: bool,
+    dbl_url: str,
+    dbl_reward_drop: int,
+    dbl_reward_pull: int,
+    voted_dbl_recent: bool,
+    total_votes: int,
+    monthly_votes: int,
+    next_month_reset_unix: int,
+) -> str:
+    yes_emoji = "✅"
+    no_emoji = "❌"
+    topgg_status = yes_emoji if voted_topgg_recent else no_emoji
+    dbl_status = yes_emoji if voted_dbl_recent else no_emoji
+    return multiline_text(
+        [
+            "Earn rewards and support Noodswap by voting!",
+            "",
+            f"Reward: **+{topgg_reward_starter} starter** and **+{topgg_reward_dough} dough** per **vote** on [Top.gg]({topgg_url})",
+            f"> Voted on [Top.gg]({topgg_url}) yet: {topgg_status}",
+            "",
+            f"Reward: **+{dbl_reward_drop} drop tickets** and **+{dbl_reward_pull} pull ticket** per **vote** on [DiscordBotList]({dbl_url})",
+            f"> Voted on [DiscordBotList]({dbl_url}) yet: {dbl_status}",
+            "",
+            f"- **Total** Votes: **{total_votes}**",
+            f"- **Monthly** Votes: **{monthly_votes}** (resets <t:{next_month_reset_unix}:R>)",
+        ]
+    )
+
+
+# ---------------------------------------------------------------------------
+# Social — ship
+# ---------------------------------------------------------------------------
+
+
+def ship_result_description(left_name: str, right_name: str, compatibility_percent: int) -> str:
+    return multiline_text(
+        [
+            f"Left: **{left_name}**",
+            f"Right: **{right_name}**",
+            f"Compatibility: **{compatibility_percent}%**",
+        ]
+    )
+
+
+# ---------------------------------------------------------------------------
+# Gambling — flip
+# ---------------------------------------------------------------------------
+
+
+def flip_suspense_description(activity_phrase: str, selected_side: str | None) -> str:
+    lines = [f"The coin is **{activity_phrase}**..."]
+    if selected_side is not None:
+        lines.append(f"Call: **{selected_side.capitalize()}**")
+    return multiline_text(lines)
+
+
+def flip_result_description(
+    result_side: str,
+    did_win: bool,
+    payout_or_stake: int,
+    dough_total: int,
+) -> str:
+    second_line = (
+        f"Payout: **+{payout_or_stake}** dough"
+        if did_win
+        else f"Lost: **-{payout_or_stake}** dough"
+    )
+    return multiline_text(
+        [
+            f"Result: **{result_side.capitalize()}**",
+            second_line,
+            f"Balance: **{dough_total}** dough",
+        ]
+    )
+
+
+# ---------------------------------------------------------------------------
+# Gambling — monopoly
+# ---------------------------------------------------------------------------
+
+
+def monopoly_board_description(
+    position: int,
+    in_jail: bool,
+    jail_attempts: int,
+    doubles_count: int,
+    board_render: str,
+) -> str:
+    return multiline_text(
+        [
+            f"Position: **{position}**",
+            f"In Jail: **{'Yes' if in_jail else 'No'}**",
+            f"Jail Failed Rolls: **{jail_attempts}/3**",
+            f"Consecutive Doubles: **{doubles_count}**",
+            "",
+            f"```\n{board_render}\n```",
+        ]
+    )
+
+
+def monopoly_pot_description(dough: int, starter: int, drop_tickets: int, pull_tickets: int) -> str:
+    return multiline_text(
+        [
+            f"Dough: **{dough}**",
+            f"Starter: **{starter}**",
+            f"Drop Tickets: **{drop_tickets}**",
+            f"Pull Tickets: **{pull_tickets}**",
+        ]
+    )
+
+
+def monopoly_usage_description() -> str:
+    return multiline_text(
+        [
+            "Usage:",
+            "`ns monopoly roll`",
+            "`ns monopoly fine`",
+            "`ns monopoly board`",
+            "`ns monopoly pot`",
+        ]
+    )
+
+
+def slots_jackpot_lines(
+    dough_reward: int,
+    starter_reward: int,
+    dough_total: int,
+    starter_total: int,
+) -> list[str]:
+    return [
+        "Jackpot! All three matched.",
+        f"Reward: **+{dough_reward} dough** and **+{starter_reward} starter**",
+        f"Dough Balance: **{dough_total}** dough",
+        f"Starter Balance: **{starter_total}**",
+    ]
+
+
+def slots_partial_win_lines(dough_reward: int, dough_total: int) -> list[str]:
+    return [
+        "Two matched.",
+        f"Reward: **+{dough_reward} dough**",
+        f"Dough Balance: **{dough_total}** dough",
+    ]
+
+
+def slots_no_match_lines(cooldown_text: str) -> list[str]:
+    return [
+        "No match this time.",
+        f"Try again in **{cooldown_text}**.",
+    ]
+
+
+def player_wallet_items_value(dough: int, starter: int, drop_tickets: int, pull_tickets: int) -> str:
+    return "\n".join(
+        [
+            f"- {dough} dough",
+            f"- {starter} starter",
+            f"- {drop_tickets} drop tickets",
+            f"- {pull_tickets} pull tickets",
+        ]
+    )
+
+
+def player_oven_items_value(oven_dough: int, oven_starter: int, oven_drop_tickets: int, oven_pull_tickets: int) -> str:
+    return "\n".join(
+        [
+            f"- {oven_dough} dough",
+            f"- {oven_starter} starter",
+            f"- {oven_drop_tickets} drop tickets",
+            f"- {oven_pull_tickets} pull tickets",
+        ]
+    )

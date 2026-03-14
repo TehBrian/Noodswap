@@ -47,6 +47,28 @@ from .presentation import (
     italy_marry_embed,
     trade_offer_description,
 )
+from .presentation import (
+    buy_insufficient_description,
+    buy_ticket_success_description,
+    cosmetic_roll_confirmation_description,
+    flip_result_description,
+    flip_suspense_description,
+    gift_card_result_description,
+    gift_currency_description,
+    monopoly_board_description,
+    monopoly_pot_description,
+    monopoly_usage_description,
+    oven_balance_description,
+    oven_transaction_description,
+    player_oven_items_value,
+    player_cooldowns_description,
+    player_wallet_items_value,
+    ship_result_description,
+    slots_jackpot_lines,
+    slots_no_match_lines,
+    slots_partial_win_lines,
+    vote_status_description,
+)
 from .services import (
     execute_divorce,
     execute_marry,

@@ -47,12 +47,3 @@
 5. Deploy-state automation
 - Add automated SQLite backup/restore workflow (scheduled backup to remote object storage + restore-on-empty bootstrap for `runtime/db/noodswap.db`).
 - Publish/import a versioned card-image cache artifact so new hosts can bootstrap `runtime/card_images` without manual copy steps.
-
-## Refactor backlog (staged)
-
-Status: Stages 1, 2, and 3 are complete. Stage 4 remains.
-
-### Stage 4 — Presentation expansion and consistency
-- Continue centralizing repeated embed description assembly into `presentation.py` helpers; 15 helpers are already in place, but several command handlers still assemble embeds inline.
-- Add small presenter unit tests for deterministic formatting of high-use descriptions.
-- Keep command handlers thin and primarily responsible for routing and dependency wiring.

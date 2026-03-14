@@ -122,6 +122,10 @@ from .command_utils import (
     morph_rarity as morph_rarity,
     morph_transition_image_payload as morph_transition_image_payload,
     multiline_text as multiline_text,
+    player_oven_items_value as player_oven_items_value,
+    player_cooldowns_description as player_cooldowns_description,
+    player_wallet_items_value as player_wallet_items_value,
+    ship_result_description as ship_result_description,
     normalize_card_id as normalize_card_id,
     normalize_trade_mode as normalize_trade_mode,
     os as os,
@@ -406,7 +410,7 @@ def register_social_commands(bot: commands.Bot) -> None:
             target_member.id,
         )
         now = time.time()
-        description = multiline_text(
+        description = player_cooldowns_description(
             [
                 _cooldown_status_line("Drop", now - last_drop_at, DROP_COOLDOWN_SECONDS),
                 _cooldown_status_line("Pull", now - last_pull_at, PULL_COOLDOWN_SECONDS),
@@ -487,12 +491,10 @@ def register_social_commands(bot: commands.Bot) -> None:
 
         embed = italy_embed(
             "Ship",
-            multiline_text(
-                [
-                    f"Left: **{target_other_user.display_name}**",
-                    f"Right: **{target_user.display_name}**",
-                    f"Compatibility: **{compatibility_percent}%**",
-                ]
+            ship_result_description(
+                target_other_user.display_name,
+                target_user.display_name,
+                compatibility_percent,
             ),
         )
         embed.set_image(url="attachment://ship_result.png")
@@ -561,25 +563,21 @@ def register_social_commands(bot: commands.Bot) -> None:
                 )
 
         embed = italy_embed(f"{target_member.display_name}'s Info")
-        wallet_lines = [
-            f"- {dough} dough",
-            f"- {starter} starter",
-            f"- {drop_tickets} drop tickets",
-            f"- {pull_tickets} pull tickets",
-        ]
-        oven_lines = [
-            f"- {oven_dough} dough",
-            f"- {oven_starter} starter",
-            f"- {oven_drop_tickets} drop tickets",
-            f"- {oven_pull_tickets} pull tickets",
-        ]
         embed.add_field(
             name="Cards",
             value=str(get_total_cards(_guild_id(ctx), target_member.id)),
             inline=True,
         )
-        embed.add_field(name="**Wallet Items**", value="\n".join(wallet_lines), inline=True)
-        embed.add_field(name="**Oven Items**", value="\n".join(oven_lines), inline=True)
+        embed.add_field(
+            name="**Wallet Items**",
+            value=player_wallet_items_value(dough, starter, drop_tickets, pull_tickets),
+            inline=True,
+        )
+        embed.add_field(
+            name="**Oven Items**",
+            value=player_oven_items_value(oven_dough, oven_starter, oven_drop_tickets, oven_pull_tickets),
+            inline=True,
+        )
         embed.add_field(name="Wishes", value=str(wishes_count), inline=True)
         embed.add_field(name="Married Card", value=married, inline=False)
         if married_image_url is not None:

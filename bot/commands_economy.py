@@ -47,6 +47,7 @@ from .command_utils import (
     battle_offer_description as battle_offer_description,
     build_drop_preview_file as build_drop_preview_file,
     buy_drop_tickets_with_starter as buy_drop_tickets_with_starter,
+    cosmetic_roll_confirmation_description as cosmetic_roll_confirmation_description,
     card_base_display as card_base_display,
     card_base_value as card_base_value,
     card_display as card_display,
@@ -91,6 +92,8 @@ from .command_utils import (
     get_card_wish_counts as get_card_wish_counts,
     get_folder_emojis_for_instances as get_folder_emojis_for_instances,
     get_gambling_pot as get_gambling_pot,
+    gift_card_result_description as gift_card_result_description,
+    gift_currency_description as gift_currency_description,
     get_instance_by_code as get_instance_by_code,
     get_instance_by_card_id as get_instance_by_card_id,
     get_instance_by_id as get_instance_by_id,
@@ -125,6 +128,8 @@ from .command_utils import (
     list_player_tags as list_player_tags,
     list_player_teams as list_player_teams,
     morph_label as morph_label,
+    oven_balance_description as oven_balance_description,
+    oven_transaction_description as oven_transaction_description,
     morph_rarity as morph_rarity,
     multiline_text as multiline_text,
     normalize_card_id as normalize_card_id,
@@ -590,10 +595,18 @@ def register_economy_commands(bot: commands.Bot) -> None:
 
         confirm_embed = italy_embed(
             "Morph Confirmation",
-            (
-                f"{card_display(prepared.card_type_id, prepared.generation, card_id=prepared.card_id, morph_key=prepared.current_morph_key, frame_key=before_frame_key, font_key=before_font_key)}\n\n"
-                f"Current Morph: **{morph_label(prepared.current_morph_key)}**\n"
-                f"Roll Cost: **{prepared.cost}** dough"
+            cosmetic_roll_confirmation_description(
+                card_display(
+                    prepared.card_type_id,
+                    prepared.generation,
+                    card_id=prepared.card_id,
+                    morph_key=prepared.current_morph_key,
+                    frame_key=before_frame_key,
+                    font_key=before_font_key,
+                ),
+                "Morph",
+                morph_label(prepared.current_morph_key),
+                prepared.cost,
             ),
         )
         image_url, image_file = morph_transition_image_payload(
@@ -657,10 +670,18 @@ def register_economy_commands(bot: commands.Bot) -> None:
 
         confirm_embed = italy_embed(
             "Frame Confirmation",
-            (
-                f"{card_display(prepared.card_type_id, prepared.generation, card_id=prepared.card_id, morph_key=current_morph_key, frame_key=prepared.current_frame_key, font_key=current_font_key)}\n\n"
-                f"Current Frame: **{frame_label(prepared.current_frame_key)}**\n"
-                f"Roll Cost: **{prepared.cost}** dough"
+            cosmetic_roll_confirmation_description(
+                card_display(
+                    prepared.card_type_id,
+                    prepared.generation,
+                    card_id=prepared.card_id,
+                    morph_key=current_morph_key,
+                    frame_key=prepared.current_frame_key,
+                    font_key=current_font_key,
+                ),
+                "Frame",
+                frame_label(prepared.current_frame_key),
+                prepared.cost,
             ),
         )
         image_url, image_file = morph_transition_image_payload(
@@ -721,10 +742,18 @@ def register_economy_commands(bot: commands.Bot) -> None:
 
         confirm_embed = italy_embed(
             "Font Confirmation",
-            (
-                f"{card_display(prepared.card_type_id, prepared.generation, card_id=prepared.card_id, morph_key=current_morph_key, frame_key=current_frame_key, font_key=prepared.current_font_key)}\n\n"
-                f"Current Font: **{font_label(prepared.current_font_key)}**\n"
-                f"Roll Cost: **{prepared.cost}** dough"
+            cosmetic_roll_confirmation_description(
+                card_display(
+                    prepared.card_type_id,
+                    prepared.generation,
+                    card_id=prepared.card_id,
+                    morph_key=current_morph_key,
+                    frame_key=current_frame_key,
+                    font_key=prepared.current_font_key,
+                ),
+                "Font",
+                font_label(prepared.current_font_key),
+                prepared.cost,
             ),
         )
         image_url, image_file = morph_transition_image_payload(
@@ -897,14 +926,7 @@ def register_economy_commands(bot: commands.Bot) -> None:
             ctx,
             embed=italy_embed(
                 "Oven",
-                multiline_text(
-                    [
-                        f"Oven Dough: **{oven_dough}**",
-                        f"Oven Starter: **{oven_starter}**",
-                        f"Oven Drop Tickets: **{oven_drop_tickets}**",
-                        f"Oven Pull Tickets: **{oven_pull_tickets}**",
-                    ]
-                ),
+                oven_balance_description(oven_dough, oven_starter, oven_drop_tickets, oven_pull_tickets),
             ),
         )
 
@@ -944,15 +966,14 @@ def register_economy_commands(bot: commands.Bot) -> None:
             ctx,
             embed=italy_embed(
                 "Deposit",
-                multiline_text(
-                    [
-                        f"Requested: **{result.amount} {item_label}**",
-                        f"Fee (3%): **{result.fee} {item_label}**",
-                        f"Moved to Oven: **{result.net_amount} {item_label}**",
-                        "",
-                        f"Wallet: **{result.spendable_balance} {item_label}**",
-                        f"Oven: **{result.oven_balance} {item_label}**",
-                    ]
+                oven_transaction_description(
+                    "deposit",
+                    item_label,
+                    result.amount,
+                    result.fee,
+                    result.net_amount,
+                    result.spendable_balance,
+                    result.oven_balance,
                 ),
             ),
         )
@@ -993,15 +1014,14 @@ def register_economy_commands(bot: commands.Bot) -> None:
             ctx,
             embed=italy_embed(
                 "Withdraw",
-                multiline_text(
-                    [
-                        f"Requested: **{result.amount} {item_label}**",
-                        f"Fee (3%): **{result.fee} {item_label}**",
-                        f"Moved to Wallet: **{result.net_amount} {item_label}**",
-                        "",
-                        f"Wallet: **{result.spendable_balance} {item_label}**",
-                        f"Oven: **{result.oven_balance} {item_label}**",
-                    ]
+                oven_transaction_description(
+                    "withdraw",
+                    item_label,
+                    result.amount,
+                    result.fee,
+                    result.net_amount,
+                    result.spendable_balance,
+                    result.oven_balance,
                 ),
             ),
         )
@@ -1053,12 +1073,14 @@ def register_economy_commands(bot: commands.Bot) -> None:
             ctx,
             embed=italy_embed(
                 "Gift",
-                multiline_text(
-                    [
-                        f"Sent: **{amount}** dough to <@{resolved_member.id}>",
-                        f"Your Balance: **{sender_balance}** dough",
-                        f"{resolved_member.display_name}'s Balance: **{recipient_balance}** dough",
-                    ]
+                gift_currency_description(
+                    item_label="dough",
+                    balance_noun="Balance",
+                    amount=amount,
+                    recipient_id=resolved_member.id,
+                    recipient_name=resolved_member.display_name,
+                    sender_balance=sender_balance,
+                    recipient_balance=recipient_balance,
                 ),
             ),
         )
@@ -1094,12 +1116,14 @@ def register_economy_commands(bot: commands.Bot) -> None:
             ctx,
             embed=italy_embed(
                 "Gift",
-                multiline_text(
-                    [
-                        f"Sent: **{amount}** starter to <@{resolved_member.id}>",
-                        f"Your Starter: **{sender_balance}**",
-                        f"{resolved_member.display_name}'s Starter: **{recipient_balance}**",
-                    ]
+                gift_currency_description(
+                    item_label="starter",
+                    balance_noun="Starter",
+                    amount=amount,
+                    recipient_id=resolved_member.id,
+                    recipient_name=resolved_member.display_name,
+                    sender_balance=sender_balance,
+                    recipient_balance=recipient_balance,
                 ),
             ),
         )
@@ -1135,12 +1159,14 @@ def register_economy_commands(bot: commands.Bot) -> None:
             ctx,
             embed=italy_embed(
                 "Gift",
-                multiline_text(
-                    [
-                        f"Sent: **{amount}** drop tickets to <@{resolved_member.id}>",
-                        f"Your Drop Tickets: **{sender_balance}**",
-                        f"{resolved_member.display_name}'s Drop Tickets: **{recipient_balance}**",
-                    ]
+                gift_currency_description(
+                    item_label="drop tickets",
+                    balance_noun="Drop Tickets",
+                    amount=amount,
+                    recipient_id=resolved_member.id,
+                    recipient_name=resolved_member.display_name,
+                    sender_balance=sender_balance,
+                    recipient_balance=recipient_balance,
                 ),
             ),
         )
@@ -1176,12 +1202,14 @@ def register_economy_commands(bot: commands.Bot) -> None:
             ctx,
             embed=italy_embed(
                 "Gift",
-                multiline_text(
-                    [
-                        f"Sent: **{amount}** pull tickets to <@{resolved_member.id}>",
-                        f"Your Pull Tickets: **{sender_balance}**",
-                        f"{resolved_member.display_name}'s Pull Tickets: **{recipient_balance}**",
-                    ]
+                gift_currency_description(
+                    item_label="pull tickets",
+                    balance_noun="Pull Tickets",
+                    amount=amount,
+                    recipient_id=resolved_member.id,
+                    recipient_name=resolved_member.display_name,
+                    sender_balance=sender_balance,
+                    recipient_balance=recipient_balance,
                 ),
             ),
         )
@@ -1255,13 +1283,10 @@ def register_economy_commands(bot: commands.Bot) -> None:
 
         gift_embed = italy_embed(
             "Gift",
-            multiline_text(
-                [
-                    f"Recipient: <@{resolved_member.id}>",
-                    f"Sender: <@{ctx.author.id}>",
-                    "",
-                    f"Card: {gifted_card_text}",
-                ]
+            gift_card_result_description(
+                recipient_mention=f"<@{resolved_member.id}>",
+                sender_mention=f"<@{ctx.author.id}>",
+                card_display_str=gifted_card_text,
             ),
         )
         if image_url is not None:

@@ -105,15 +105,7 @@ When making non-trivial changes:
 - Prefix commands only; no slash command migration yet.
 - Tests exist, but coverage is still partial and focused on storage/services/views hot paths.
 
-## 10) Deferred Refactor Stages (To-Do)
-
-Stages 1, 2, and 3 are complete. Remaining deferred stage:
-
-1. **Stage 4 — Presentation expansion**
-   - Continue centralizing repeated embed/description assembly into `presentation.py` helpers (15 helpers exist; command-inline assembly still scattered).
-   - Add small formatter unit tests for deterministic formatting of high-use descriptions.
-
-## 11) If You Are the Next Agent
+## 10) If You Are the Next Agent
 
 Start with:
 - `docs/README.md`
