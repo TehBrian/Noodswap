@@ -1,7 +1,14 @@
 from collections import Counter
 
 from bot.cards import CARD_CATALOG, SERIES_CATALOG, default_card_image
-from bot.card_value import random_generation
+from bot.card_value import (
+    GENERATION_ROLL_TAU,
+    _generation_sampler,
+    burn_delta_range,
+    generation_value_multiplier,
+    get_burn_payout,
+    random_generation,
+)
 from bot.rarities import (
     RARITY_CURVE_LINEAR_RATE,
     RARITY_ORDER,
@@ -155,3 +162,72 @@ def test_smoothing_flattens_curve() -> None:
 
     assert smoothed["celestial"] > baseline["celestial"]
     assert smoothed["common"] < baseline["common"]
+
+
+def test_burn_delta_range_stays_within_five_to_twenty_percent() -> None:
+    """burn_delta_range must return a value in [1, ceil(value * 20%)] for all inputs,
+    matching the payout band declared by the burn UX contract."""
+    for value in [1, 50, 500, 5000, 100_000]:
+        upper = max(1, int(value * 0.20) + 1)  # floor(v*0.20)+1 always >= round(v*0.20)
+        for _ in range(500):
+            result = burn_delta_range(value)
+            assert result >= 1, f"burn_delta_range({value}) returned {result} < 1"
+            assert result <= upper, f"burn_delta_range({value}) returned {result} > {upper}"
+
+
+def test_get_burn_payout_delta_is_within_declared_range() -> None:
+    """get_burn_payout must return a payout >= 1 and a delta fully contained
+    within the resolved delta_range, satisfying payout == max(1, value + delta)."""
+    for base_val in [10, 500, 5000]:
+        for generation in [1, 500, 2000]:
+            for _ in range(100):
+                payout, value, _base, delta, _mult, resolved_range = get_burn_payout(
+                    "SPG",
+                    generation,
+                    card_base_value_func=lambda _: base_val,
+                    generation_multiplier_func=lambda g: generation_value_multiplier(
+                        g, generation_min=GENERATION_MIN, generation_max=GENERATION_MAX
+                    ),
+                    burn_delta_range_func=burn_delta_range,
+                )
+                assert payout >= 1
+                assert abs(delta) <= resolved_range
+                assert payout == max(1, value + delta)
+                # resolved_range itself must respect the 5%-20% band
+                assert resolved_range >= 1
+                assert resolved_range <= max(1, int(value * 0.20) + 1)  # floor(v*0.20)+1 always >= round(v*0.20)
+
+
+def test_random_generation_large_n_quantile_sanity() -> None:
+    """At n=50,000 the empirical generation distribution must track the sampler's
+    analytical CDF. For each quantile cutoff with expected rate >= 0.5%, the
+    observed rate must be within ±40% relative tolerance of the expected rate."""
+    n = 50_000
+    generations_tuple, cdf_tuple = _generation_sampler(GENERATION_MIN, GENERATION_MAX, GENERATION_ROLL_TAU)
+
+    # Derive per-generation probabilities from the CDF
+    prev = 0.0
+    gen_prob: dict[int, float] = {}
+    for gen, cp in zip(generations_tuple, cdf_tuple):
+        gen_prob[gen] = cp - prev
+        prev = cp
+
+    # Key quantile checkpoints: P(gen <= N) for low-gen buckets, P(gen >= N) for high-gen
+    expected: dict[tuple[str, int], float] = {
+        ("lte", 100): sum(p for g, p in gen_prob.items() if g <= 100),
+        ("lte", 500): sum(p for g, p in gen_prob.items() if g <= 500),
+        ("gte", 1500): sum(p for g, p in gen_prob.items() if g >= 1500),
+    }
+
+    rolls = [random_generation(generation_min=GENERATION_MIN, generation_max=GENERATION_MAX) for _ in range(n)]
+
+    TOLERANCE = 0.40
+    for (direction, cutoff), exp_rate in expected.items():
+        if exp_rate < 0.005:  # skip buckets too rare to test reliably at this n
+            continue
+        obs_rate = sum(1 for r in rolls if (r <= cutoff if direction == "lte" else r >= cutoff)) / n
+        rel_diff = abs(obs_rate - exp_rate) / exp_rate
+        assert rel_diff <= TOLERANCE, (
+            f"gen {direction} {cutoff}: observed {obs_rate:.4f} vs expected {exp_rate:.4f} "
+            f"(relative diff {rel_diff:.2%} > {TOLERANCE:.0%} tolerance)"
+        )

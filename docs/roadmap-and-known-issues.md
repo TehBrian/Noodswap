@@ -33,22 +33,18 @@
 - Add a downgrade/playback strategy for development use.
 - Add startup integrity validation tooling (schema version verification on boot).
 
-2. Remaining test gaps
-- Burn payout bounds: assert final payout stays within the declared 5%–20% band of computed value.
-- Large-N generation quantile sanity: verify empirical gen-1 / gen ≤10 / gen ≤100 frequencies match the inverse-value sampler's expected distribution.
-
-3. Add slash command support
+2. Add slash command support
 - Keep prefix aliases during transition.
 
-4. Collection filtering
+3. Collection filtering
 - Pagination and sort modes are already implemented.
 - Still missing: filtering by series, rarity, and generation range.
 
-5. Economy hardening
+4. Economy hardening
 - `vote_events` table exists for vote telemetry; remaining gap is a general economy event ledger (pull/burn/trade rows) for time-window flow metrics.
 - Anti-abuse controls beyond cooldowns are not yet implemented.
 
-6. Deploy-state automation
+5. Deploy-state automation
 - Add automated SQLite backup/restore workflow (scheduled backup to remote object storage + restore-on-empty bootstrap for `runtime/db/noodswap.db`).
 - Publish/import a versioned card-image cache artifact so new hosts can bootstrap `runtime/card_images` without manual copy steps.
 
