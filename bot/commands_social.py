@@ -562,16 +562,16 @@ def register_social_commands(bot: commands.Bot) -> None:
 
         embed = italy_embed(f"{target_member.display_name}'s Info")
         wallet_lines = [
-            f"Dough: {dough}",
-            f"Starter: {starter}",
-            f"Drop Tickets: {drop_tickets}",
-            f"Pull Tickets: {pull_tickets}",
+            f"- {dough} dough",
+            f"- {starter} starter",
+            f"- {drop_tickets} drop tickets",
+            f"- {pull_tickets} pull tickets",
         ]
         oven_lines = [
-            f"Dough: {oven_dough}",
-            f"Starter: {oven_starter}",
-            f"Drop Tickets: {oven_drop_tickets}",
-            f"Pull Tickets: {oven_pull_tickets}",
+            f"- {oven_dough} dough",
+            f"- {oven_starter} starter",
+            f"- {oven_drop_tickets} drop tickets",
+            f"- {oven_pull_tickets} pull tickets",
         ]
         embed.add_field(
             name="Cards",
