@@ -141,8 +141,8 @@ def test_vote_status_description() -> None:
         monthly_votes=45,
         next_month_reset_unix=1_700_000_000,
     )
-    assert "Voted on [Top.gg](https://top.gg/bot/abc) yet: ✅" in description
-    assert "Voted on [DiscordBotList](https://discordbotlist.com/bots/abc) yet: ❌" in description
+    assert "Voted on [Top.gg](https://top.gg/bot/abc): ✅" in description
+    assert "Voted on [DiscordBotList](https://discordbotlist.com/bots/abc): ❌" in description
     assert "- **Monthly** Votes: **45** (resets <t:1700000000:R>)" in description
 
 
