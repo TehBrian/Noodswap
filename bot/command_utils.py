@@ -103,6 +103,7 @@ from .settings import (
     TOPGG_VOTE_REWARD_DOUGH,
     TOPGG_VOTE_REWARD_STARTER,
     TOPGG_VOTE_URL,
+    VOTE_COOLDOWN_SECONDS,
     VOTE_STARTER_REWARD,
 )
 from .storage import (
@@ -159,6 +160,7 @@ from .storage import (
     get_player_oven_balance,
     get_player_oven_balances,
     get_player_vote_snapshot,
+    get_player_vote_last_at,
     get_player_slots_timestamp,
     get_player_starter,
     get_total_cards,
@@ -601,6 +603,15 @@ def _cooldown_status_line(label: str, elapsed_seconds: float, cooldown_seconds: 
     if remaining > 0:
         return f"{label}: **Cooling Down** (ready in **{format_cooldown(remaining)}**)"
     return f"{label}: **Ready** (can use now)"
+
+
+def _vote_cooldown_status_line(topgg_last_at: float, dbl_last_at: float, now: float) -> str:
+    topgg_remaining = max(0.0, VOTE_COOLDOWN_SECONDS - (now - topgg_last_at))
+    dbl_remaining = max(0.0, VOTE_COOLDOWN_SECONDS - (now - dbl_last_at))
+    if topgg_remaining <= 0 or dbl_remaining <= 0:
+        return "Vote: **Ready** (can use now)"
+    soonest = min(topgg_remaining, dbl_remaining)
+    return f"Vote: **Cooling Down** (ready in **{format_cooldown(soonest)}**)"
 
 
 def _vote_link_view(topgg_vote_url: str, discordbotlist_vote_url: str) -> discord.ui.View:

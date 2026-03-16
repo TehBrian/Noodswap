@@ -102,6 +102,7 @@ from .command_utils import (
     get_player_pull_tickets as get_player_pull_tickets,
     get_player_drop_tickets as get_player_drop_tickets,
     get_player_flip_timestamp as get_player_flip_timestamp,
+    get_player_vote_last_at as get_player_vote_last_at,
     get_player_info as get_player_info,
     get_player_leaderboard_info as get_player_leaderboard_info,
     get_player_oven_balances as get_player_oven_balances,
@@ -164,6 +165,7 @@ from .command_utils import (
     build_ship_image_file as build_ship_image_file,
     _battle as _battle,
     _cooldown_status_line as _cooldown_status_line,
+    _vote_cooldown_status_line as _vote_cooldown_status_line,
     _folder_add as _folder_add,
     _folder_assign as _folder_assign,
     _folder_cards as _folder_cards,
@@ -409,6 +411,7 @@ def register_social_commands(bot: commands.Bot) -> None:
             _guild_id(ctx),
             target_member.id,
         )
+        topgg_last_at, dbl_last_at = get_player_vote_last_at(_guild_id(ctx), target_member.id)
         now = time.time()
         description = player_cooldowns_description(
             [
@@ -421,6 +424,7 @@ def register_social_commands(bot: commands.Bot) -> None:
                     now - last_monopoly_roll_at,
                     MONOPOLY_ROLL_COOLDOWN_SECONDS,
                 ),
+                _vote_cooldown_status_line(topgg_last_at, dbl_last_at, now),
             ]
         )
         await _reply(

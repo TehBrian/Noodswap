@@ -1488,6 +1488,30 @@ def get_player_vote_snapshot(
     )
 
 
+def get_player_vote_last_at(
+    guild_id: int,
+    user_id: int,
+) -> tuple[float, float]:
+    """Return (topgg_last_at, dbl_last_at) as Unix timestamps (0.0 if never voted)."""
+    guild_id = _scope_guild_id(guild_id)
+    with get_db_connection() as conn:
+        def _latest(provider: str) -> float:
+            row = conn.execute(
+                """
+                SELECT MAX(received_at) AS last_at
+                FROM vote_events
+                WHERE guild_id = ? AND user_id = ? AND provider = ?
+                """,
+                (guild_id, user_id, provider),
+            ).fetchone()
+            if row is None:
+                return 0.0
+            val = row["last_at"]
+            return float(val) if val is not None else 0.0
+
+        return _latest("topgg"), _latest("discordbotlist")
+
+
 def get_instance_by_id(guild_id: int, instance_id: int) -> Optional[tuple[int, str, int, str]]:
     guild_id = _scope_guild_id(guild_id)
     with get_db_connection() as conn:
