@@ -602,14 +602,14 @@ def _cooldown_status_line(label: str, elapsed_seconds: float, cooldown_seconds: 
     remaining = max(0.0, cooldown_seconds - elapsed_seconds)
     if remaining > 0:
         return f"{label}: **Cooling Down** (ready in **{format_cooldown(remaining)}**)"
-    return f"{label}: **Ready** (can use now)"
+    return f"{label}: **Ready**"
 
 
 def _vote_cooldown_status_line(topgg_last_at: float, dbl_last_at: float, now: float) -> str:
     topgg_remaining = max(0.0, VOTE_COOLDOWN_SECONDS - (now - topgg_last_at))
     dbl_remaining = max(0.0, VOTE_COOLDOWN_SECONDS - (now - dbl_last_at))
     if topgg_remaining <= 0 or dbl_remaining <= 0:
-        return "Vote: **Ready** (can use now)"
+        return "Vote: **Ready**"
     soonest = min(topgg_remaining, dbl_remaining)
     return f"Vote: **Cooling Down** (ready in **{format_cooldown(soonest)}**)"
 
