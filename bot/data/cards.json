@@ -1,4 +1,10 @@
 {
+  "AEB": {
+    "image": "runtime/card_images/AEB.jpg",
+    "name": "Æbleskivers",
+    "rarity": "rare",
+    "series": "dessert"
+  },
   "AER": {
     "image": "runtime/card_images/AER.img",
     "name": "Aether Truffle Relic",
@@ -299,6 +305,12 @@
     "rarity": "uncommon",
     "series": "dessert"
   },
+  "CBE": {
+    "image": "runtime/card_images/CBE.jpg",
+    "name": "Chocolate Beignet",
+    "rarity": "epic",
+    "series": "dessert"
+  },
   "CBR": {
     "image": "runtime/card_images/CBR.jpg",
     "name": "Creme Brulee",
@@ -592,6 +604,12 @@
     "name": "Franciacorta",
     "rarity": "epic",
     "series": "wine"
+  },
+  "FRI": {
+    "image": "runtime/card_images/FRI.jpg",
+    "name": "Fritters",
+    "rarity": "uncommon",
+    "series": "dessert"
   },
   "FRZ": {
     "image": "runtime/card_images/FRZ.jpg",
