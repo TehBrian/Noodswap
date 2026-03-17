@@ -166,7 +166,7 @@ def _choose_lootbox_card_type_id(wishlist_card_ids: set[str]) -> Optional[str]:
 
     for card_type_id, card in CARD_CATALOG.items():
         rarity = str(card.get("rarity", "")).strip().lower()
-        if rarity == "common":
+        if rarity in {"common", "uncommon"}:
             continue
 
         base_weight = float(NORMALIZED_RARITY_WEIGHTS.get(rarity, 1.0))

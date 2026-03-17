@@ -103,13 +103,14 @@ class ServicesTests:
         assert result.is_error
         assert result.error_message == "You need at least 1 lootbox key to open a lootbox."
 
-    def test_choose_lootbox_card_excludes_common_and_boosts_wishlist_weights(self) -> None:
+    def test_choose_lootbox_card_excludes_common_and_uncommon_and_boosts_wishlist_weights(self) -> None:
         fake_catalog = {
             "COMMON": {"rarity": "common"},
+            "RARE": {"rarity": "rare"},
             "UNCOMMON": {"rarity": "uncommon"},
             "EPIC": {"rarity": "epic"},
         }
-        fake_weights = {"common": 1.0, "uncommon": 2.0, "epic": 3.0}
+        fake_weights = {"common": 1.0, "uncommon": 2.0, "rare": 4.0, "epic": 3.0}
 
         with (
             patch("bot.services.CARD_CATALOG", fake_catalog),
@@ -122,8 +123,8 @@ class ServicesTests:
         chooser.assert_called_once()
         args = chooser.call_args.args
         kwargs = chooser.call_args.kwargs
-        assert args[0] == ["UNCOMMON", "EPIC"]
-        assert kwargs["weights"] == [2.0, 12.0]
+        assert args[0] == ["RARE", "EPIC"]
+        assert kwargs["weights"] == [4.0, 12.0]
 
     def test_execute_lootbox_open_consumes_key_and_awards_card(self) -> None:
         guild_id = 1

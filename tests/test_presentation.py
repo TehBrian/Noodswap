@@ -177,7 +177,7 @@ def test_flip_result_description_win_and_loss() -> None:
 def test_lootbox_suspense_and_result_descriptions() -> None:
     suspense = lootbox_suspense_description("crackling with energy")
     result = lootbox_result_description("**Pasta Hero** • (ID: 1)", 7)
-    assert suspense == "The lootbox is **crackling with energy**...\nNo common cards inside. Good luck."
+    assert suspense == "The lootbox is **crackling with energy**...\nRare or better cards only. Good luck."
     assert result == "You pulled: **Pasta Hero** • (ID: 1)\nLootbox Keys Left: **7**"
 
 

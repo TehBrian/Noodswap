@@ -632,7 +632,7 @@ def lootbox_suspense_description(activity_phrase: str) -> str:
     return multiline_text(
         [
             f"The lootbox is **{activity_phrase}**...",
-            "No common cards inside. Good luck.",
+            "Rare or better cards only. Good luck.",
         ]
     )
 

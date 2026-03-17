@@ -164,7 +164,7 @@ This bot uses privileged intents. Enable these for your application in Discord D
 - `ns lookuphd <card_type_id|card_id|query>` / `ns lhd <card_type_id|card_id|query>` — same as lookup, but renders the card image at `1000x1400`.
 - `ns help` / `ns h` — show command help.
 - `ns drop` / `ns d` — open a drop with 3 random cards; anyone can claim unclaimed cards via buttons. If drop cooldown is active, one `drop ticket` is auto-consumed instead.
-- `ns lootbox` — consume 1 lootbox key to open 1 card with delayed reveal. Lootboxes never roll common cards, and wishlisted cards are weighted 4x.
+- `ns lootbox` — consume 1 lootbox key to open 1 card with delayed reveal. Lootboxes roll rare or better cards only, and wishlisted cards are weighted 4x.
 - `ns buy drop [quantity]` — buy drop tickets using `starter` (cost: 1 starter per ticket; default quantity is 1).
 - `ns slots` / `ns sl` — spin 3 food reels; 2 matches award 200-400 dough, and 3 matches award 800-1200 dough plus 1-3 `starter`.
 - `ns flip <stake>` / `ns f <stake>` — coin flip wager with 46% win / 54% lose odds; heads wins `+1.8x stake`, tails loses `-stake` (2m cooldown). On tails, `0.2x stake` is added to the Monopoly pot.

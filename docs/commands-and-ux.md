@@ -139,7 +139,7 @@ This includes:
 - `lootbox` consumes exactly 1 `lootbox key`
 - lootbox open uses delayed reveal UX: an initial suspense embed, then an edited result embed after a short delay
 - if the same user triggers `lootbox` while one is already in flight, the second attempt is rejected immediately
-- lootbox pulls always exclude `common` rarity cards
+- lootbox pulls are `rare` rarity or better (`common` and `uncommon` are excluded)
 - if a pulled card is on the opener's wishlist, that card receives a 4x selection weight multiplier
 - successful result embeds include remaining lootbox key count
 
