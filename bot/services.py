@@ -912,19 +912,6 @@ def prepare_morph(guild_id: int, user_id: int, card_id: Optional[str]) -> MorphP
         font_key=font_key,
     )
     cost = max(1, int(math.ceil(value * MORPH_COST_FRACTION)))
-    dough_before, _, _ = get_player_info(guild_id, user_id)
-    if dough_before < cost:
-        return MorphPreparation(
-            error_message="You do not have enough dough.",
-            instance_id=None,
-            card_type_id=None,
-            generation=None,
-            card_id=None,
-            current_morph_key=None,
-            morph_key=None,
-            morph_name=None,
-            cost=None,
-        )
 
     return MorphPreparation(
         error_message=None,
@@ -1333,19 +1320,6 @@ def prepare_frame(guild_id: int, user_id: int, card_id: Optional[str]) -> FrameP
         font_key=font_key,
     )
     cost = max(1, int(math.ceil(value * FRAME_COST_FRACTION)))
-    dough_before, _, _ = get_player_info(guild_id, user_id)
-    if dough_before < cost:
-        return FramePreparation(
-            error_message="You do not have enough dough.",
-            instance_id=None,
-            card_type_id=None,
-            generation=None,
-            card_id=None,
-            current_frame_key=None,
-            frame_key=None,
-            frame_name=None,
-            cost=None,
-        )
 
     return FramePreparation(
         error_message=None,
@@ -1756,19 +1730,6 @@ def prepare_font(guild_id: int, user_id: int, card_id: Optional[str]) -> FontPre
         font_key=current_font_key,
     )
     cost = max(1, int(math.ceil(value * FONT_COST_FRACTION)))
-    dough_before, _, _ = get_player_info(guild_id, user_id)
-    if dough_before < cost:
-        return FontPreparation(
-            error_message="You do not have enough dough.",
-            instance_id=None,
-            card_type_id=None,
-            generation=None,
-            card_id=None,
-            current_font_key=None,
-            font_key=None,
-            font_name=None,
-            cost=None,
-        )
 
     return FontPreparation(
         error_message=None,

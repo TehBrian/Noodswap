@@ -784,6 +784,41 @@ class ViewTests:
         assert interaction.response.sent_messages[0].get("ephemeral")
         assert "Only the command user" in interaction.response.sent_messages[0]["embed"].description
 
+    async def test_morph_roll_shows_ephemeral_when_dough_is_insufficient(self) -> None:
+        view = MorphConfirmView(
+            guild_id=1,
+            user_id=10,
+            instance_id=77,
+            card_type_id="SPG",
+            generation=321,
+            card_id="a",
+            before_morph_key=None,
+            before_frame_key=None,
+            before_font_key=None,
+            cost=9,
+        )
+        interaction = _FakeInteraction(user_id=10)
+
+        with patch(
+            "bot.view_confirmations.roll_morph_preview_paid",
+            return_value=type(
+                "MorphResult",
+                (),
+                {
+                    "is_error": True,
+                    "error_message": "You do not have enough dough.",
+                },
+            )(),
+        ) as roll_morph:
+            await view.roll_button.callback(interaction)
+
+        roll_morph.assert_called_once()
+        assert len(interaction.response.sent_messages) == 1
+        sent = interaction.response.sent_messages[0]
+        assert sent.get("ephemeral")
+        assert sent["embed"].title == "Morph Failed"
+        assert "enough dough" in sent["embed"].description
+
     async def test_morph_timeout_clears_attachments_and_edits_embed(self) -> None:
         view = MorphConfirmView(
             guild_id=1,
@@ -894,6 +929,41 @@ class ViewTests:
         assert edit_kwargs["embed"].title == "Frame Expired"
         assert edit_kwargs["attachments"] == []
 
+    async def test_frame_roll_shows_ephemeral_when_dough_is_insufficient(self) -> None:
+        view = FrameConfirmView(
+            guild_id=1,
+            user_id=10,
+            instance_id=77,
+            card_type_id="SPG",
+            generation=321,
+            card_id="a",
+            before_morph_key=None,
+            before_frame_key=None,
+            before_font_key=None,
+            cost=9,
+        )
+        interaction = _FakeInteraction(user_id=10)
+
+        with patch(
+            "bot.view_confirmations.roll_frame_preview_paid",
+            return_value=type(
+                "FrameResult",
+                (),
+                {
+                    "is_error": True,
+                    "error_message": "You do not have enough dough.",
+                },
+            )(),
+        ) as roll_frame:
+            await view.roll_button.callback(interaction)
+
+        roll_frame.assert_called_once()
+        assert len(interaction.response.sent_messages) == 1
+        sent = interaction.response.sent_messages[0]
+        assert sent.get("ephemeral")
+        assert sent["embed"].title == "Frame Failed"
+        assert "enough dough" in sent["embed"].description
+
     async def test_font_roll_then_apply_edits_message_without_reply(self) -> None:
         view = FontConfirmView(
             guild_id=1,
@@ -978,6 +1048,41 @@ class ViewTests:
         assert edit_kwargs["view"] == view
         assert edit_kwargs["embed"].title == "Font Expired"
         assert edit_kwargs["attachments"] == []
+
+    async def test_font_roll_shows_ephemeral_when_dough_is_insufficient(self) -> None:
+        view = FontConfirmView(
+            guild_id=1,
+            user_id=10,
+            instance_id=77,
+            card_type_id="SPG",
+            generation=321,
+            card_id="a",
+            before_morph_key=None,
+            before_frame_key=None,
+            before_font_key=None,
+            cost=9,
+        )
+        interaction = _FakeInteraction(user_id=10)
+
+        with patch(
+            "bot.view_confirmations.roll_font_preview_paid",
+            return_value=type(
+                "FontResult",
+                (),
+                {
+                    "is_error": True,
+                    "error_message": "You do not have enough dough.",
+                },
+            )(),
+        ) as roll_font:
+            await view.roll_button.callback(interaction)
+
+        roll_font.assert_called_once()
+        assert len(interaction.response.sent_messages) == 1
+        sent = interaction.response.sent_messages[0]
+        assert sent.get("ephemeral")
+        assert sent["embed"].title == "Font Failed"
+        assert "enough dough" in sent["embed"].description
 
     async def test_card_catalog_pagination_buttons_update_page(self) -> None:
         entries = [

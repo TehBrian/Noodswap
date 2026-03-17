@@ -295,8 +295,9 @@ class ServicesTests:
     def test_prepare_morph_returns_preview_without_applying(self) -> None:
         guild_id = 1
         user_id = 24
-        storage.add_dough(guild_id, user_id, 200)
         instance_id = storage.add_card_to_player(guild_id, user_id, "SPG", 333)
+        dough_before, _, _ = storage.get_player_info(guild_id, user_id)
+        storage.add_dough(guild_id, user_id, -dough_before)
 
         result = services.prepare_morph(guild_id=guild_id, user_id=user_id, card_id=None)
         assert not (result.is_error)
@@ -385,8 +386,9 @@ class ServicesTests:
     def test_prepare_frame_returns_preview_without_applying(self) -> None:
         guild_id = 1
         user_id = 26
-        storage.add_dough(guild_id, user_id, 200)
         instance_id = storage.add_card_to_player(guild_id, user_id, "SPG", 333)
+        dough_before, _, _ = storage.get_player_info(guild_id, user_id)
+        storage.add_dough(guild_id, user_id, -dough_before)
 
         with patch(
             "bot.services.available_frame_keys",
@@ -441,8 +443,9 @@ class ServicesTests:
     def test_prepare_font_returns_preview_without_applying(self) -> None:
         guild_id = 1
         user_id = 28
-        storage.add_dough(guild_id, user_id, 200)
         instance_id = storage.add_card_to_player(guild_id, user_id, "SPG", 333)
+        dough_before, _, _ = storage.get_player_info(guild_id, user_id)
+        storage.add_dough(guild_id, user_id, -dough_before)
 
         result = services.prepare_font(guild_id=guild_id, user_id=user_id, card_id=None)
         assert not (result.is_error)

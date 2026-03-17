@@ -199,7 +199,10 @@ Burn result format should remain:
 - card ID format is standalone base36 with optional leading `#` (examples: `0`, `a`, `10`, `#10`)
 - morph selection is random from available morphs
 - morph cost is `20%` of the target card's computed value (`card_value`), rounded up to the nearest whole dough
-- morph uses a hidden-roll confirmation step: initial response shows current style and `before -> ?` preview, and only `Confirm Morph` rolls and applies the result
+- `morph` always opens the confirmation flow when the target card is valid, even if current dough is below reroll cost
+- dough is only charged when `Roll` is clicked
+- if dough is insufficient at roll time, the interaction sends an ephemeral error embed and no dough is deducted
+- morph uses a hidden-roll confirmation step: initial response shows current style and `before -> ?` preview, `Roll` reveals a candidate morph, and `Apply` commits the pending result
 - successful morph confirmations reveal the rolled style and display the final `before -> after` image plus cost + remaining dough
 - if no different morph outcome is available for that instance, preparation returns an error and no confirmation is shown
 - morph confirmation timeout only disables buttons; the original confirmation embed is not replaced
@@ -211,7 +214,10 @@ Burn result format should remain:
 - card ID format is standalone base36 with optional leading `#` (examples: `0`, `a`, `10`, `#10`)
 - frame selection is random from available frames
 - frame cost is `20%` of the target card's computed value (`card_value`), rounded up to the nearest whole dough
-- frame uses a hidden-roll confirmation step: initial response shows current style and `before -> ?` preview, and only `Confirm Frame` rolls and applies the result
+- `frame` always opens the confirmation flow when the target card is valid, even if current dough is below reroll cost
+- dough is only charged when `Roll` is clicked
+- if dough is insufficient at roll time, the interaction sends an ephemeral error embed and no dough is deducted
+- frame uses a hidden-roll confirmation step: initial response shows current style and `before -> ?` preview, `Roll` reveals a candidate frame, and `Apply` commits the pending result
 - successful frame confirmations reveal the rolled style and display the final `before -> after` image plus cost + remaining dough
 - if no different frame outcome is available for that instance, preparation returns an error and no confirmation is shown
 - frame confirmation timeout only disables buttons; the original confirmation embed is not replaced
@@ -223,7 +229,10 @@ Burn result format should remain:
 - card ID format is standalone base36 with optional leading `#` (examples: `0`, `a`, `10`, `#10`)
 - font selection is random from available fonts
 - font cost is `20%` of the target card's computed value (`card_value`), rounded up to the nearest whole dough
-- font uses a hidden-roll confirmation step: initial response shows current style and `before -> ?` preview, and only `Confirm Font` rolls and applies the result
+- `font` always opens the confirmation flow when the target card is valid, even if current dough is below reroll cost
+- dough is only charged when `Roll` is clicked
+- if dough is insufficient at roll time, the interaction sends an ephemeral error embed and no dough is deducted
+- font uses a hidden-roll confirmation step: initial response shows current style and `before -> ?` preview, `Roll` reveals a candidate font, and `Apply` commits the pending result
 - successful font confirmations reveal the rolled style and display the final `before -> after` image plus cost + remaining dough
 - if no different font outcome is available for that instance, preparation returns an error and no confirmation is shown
 - font confirmation timeout only disables buttons; the original confirmation embed is not replaced
