@@ -37,8 +37,11 @@ Columns:
 
 Purpose:
 - Player economy and cooldown state in the global Noodswap scope
-- Includes standard spendable currencies (`dough`, `starter`, `drop_tickets`, `pull_tickets`) plus segregated oven balances (`oven_dough`, `oven_starter`, `oven_drop_tickets`, `oven_pull_tickets`)
+- Includes standard wallet currencies (`dough`, `starter`, `drop_tickets`, `pull_tickets`) plus segregated oven balances (`oven_dough`, `oven_starter`, `oven_drop_tickets`, `oven_pull_tickets`)
+- Wallet balances are gameplay-active and may be modified by game systems (for example Monopoly, battles, and gambling)
+- Oven balances are player-safe storage and are only modified by player-initiated oven deposit/withdraw actions
 - Oven balances are excluded from spend/tax/rent flows until explicitly withdrawn
+- Oven deposit/withdraw fees use rounded-up arithmetic, guaranteeing a minimum fee on all non-zero transfers
 - Tracks cumulative successful webhook vote rewards across all providers (`votes`)
 - Marriage linkage to a specific owned card instance
 

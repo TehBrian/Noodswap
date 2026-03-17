@@ -405,8 +405,10 @@ Shows:
 
 ## Oven UX
 
-- `oven deposit <amount>` locks funds into the oven and charges a `3%` fee (rounded up)
-- `oven withdraw <amount>` releases funds from the oven and charges a `3%` fee (rounded up)
+- Wallet balances are fair game for gameplay systems (Monopoly, battles, gambling, and similar mechanics) and can change outside direct player actions
+- Oven balances are safe storage: only the owning player can change them via oven commands
+- `oven deposit <amount>` locks funds into the oven and charges a `3%` fee (rounded up, always at least the minimum fee for non-zero transfers)
+- `oven withdraw <amount>` releases funds from the oven and charges a `3%` fee (rounded up, always at least the minimum fee for non-zero transfers)
 - Oven balances are excluded from standard spend/tax/rent flows until explicitly withdrawn
 - `20%` of every oven fee (rounded up) is added to the Monopoly pot
 - Supports `dough`, `starter`, `drop`, and `pull` currency types

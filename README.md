@@ -177,8 +177,10 @@ This bot uses privileged intents. Enable these for your application in Discord D
 - `ns deposit <amount> [dough|starter|drop|pull]` — alias for `ns oven deposit`.
 - `ns withdraw <amount> [dough|starter|drop|pull]` — alias for `ns oven withdraw`.
 - `ns oven balance` — show all oven balances and wallet balances.
-- `ns oven deposit <amount> [item]` — move an item from your wallet into the oven (default item: `dough`) with 3% fee (rounded up).
-- `ns oven withdraw <amount> [item]` — move an item out of the oven and back to your wallet (default item: `dough`) with 3% fee (rounded up).
+- Wallet balances are fair game for game systems (for example: Monopoly, battles, and gambling) and may change outside direct player actions.
+- Oven balances are player-safe storage: no game system modifies them directly; balances only change when the player uses oven commands.
+- `ns oven deposit <amount> [item]` — move an item from your wallet into the oven (default item: `dough`) with a 3% fee rounded up (so every non-zero transfer pays at least the minimum fee).
+- `ns oven withdraw <amount> [item]` — move an item out of the oven and back to your wallet (default item: `dough`) with a 3% fee rounded up (so every non-zero transfer pays at least the minimum fee).
 - `ns morph [card_id]` / `ns mo [card_id]` — pay 20% of card value (rounded up) to apply a random morph; currently supports `black_and_white`.
 - `ns frame [card_id]` / `ns fr [card_id]` — pay 20% of card value (rounded up) to apply a random frame from available frames (`buttery`, `gilded`, `drizzled`) in `assets/frames/`.
 - `ns font [card_id]` / `ns fo [card_id]` — pay 20% of card value (rounded up) to apply a random font (`serif`, `mono`, `storybook`, `spooky`, `pixel`, `playful`). `Classic` is now the default baseline style (not a trait modifier).
