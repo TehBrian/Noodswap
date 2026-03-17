@@ -389,6 +389,10 @@ def register_economy_commands(bot: commands.Bot) -> None:
             instance_id: (morph_key, frame_key, font_key)
             for instance_id, _owner_id, _card_type_id, _generation, _card_id, _pulled_at, morph_key, frame_key, font_key in instance_rows
         }
+        owner_mentions_by_instance = {
+            instance_id: f"<@{owner_id}>"
+            for instance_id, owner_id, _card_type_id, _generation, _card_id, _pulled_at, _morph_key, _frame_key, _font_key in instance_rows
+        }
         instance_ids_by_owner: dict[int, list[int]] = {}
         for instance_id, owner_id, _card_type_id, _generation, _card_id, _pulled_at, _morph_key, _frame_key, _font_key in instance_rows:
             instance_ids_by_owner.setdefault(owner_id, []).append(instance_id)
@@ -409,7 +413,7 @@ def register_economy_commands(bot: commands.Bot) -> None:
             frame_key: str | None = None,
             font_key: str | None = None,
         ) -> str:
-            return card_display_concise(
+            line = card_display_concise(
                 card_type_id,
                 generation,
                 card_id,
@@ -417,6 +421,12 @@ def register_economy_commands(bot: commands.Bot) -> None:
                 frame_key=frame_key,
                 font_key=font_key,
             )
+            if instance_id is None:
+                return line
+            owner_mention = owner_mentions_by_instance.get(instance_id)
+            if owner_mention is None:
+                return line
+            return f"{line} • {owner_mention}"
 
         view = SortableCollectionView(
             user_id=ctx.author.id,
