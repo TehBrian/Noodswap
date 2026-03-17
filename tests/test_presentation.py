@@ -6,6 +6,8 @@ from bot.presentation import (
     flip_suspense_description,
     gift_card_result_description,
     gift_currency_description,
+    lootbox_result_description,
+    lootbox_suspense_description,
     monopoly_board_description,
     monopoly_pot_description,
     monopoly_usage_description,
@@ -28,12 +30,13 @@ def test_cosmetic_roll_confirmation_description() -> None:
 
 
 def test_oven_balance_description() -> None:
-    description = oven_balance_description(11, 22, 3, 4)
+    description = oven_balance_description(11, 22, 3, 4, 5)
     assert description == (
         "Oven Dough: **11**\n"
         "Oven Starter: **22**\n"
         "Oven Drop Tickets: **3**\n"
-        "Oven Pull Tickets: **4**"
+        "Oven Pull Tickets: **4**\n"
+        "Oven Lootbox Keys: **5**"
     )
 
 
@@ -132,6 +135,7 @@ def test_vote_status_description() -> None:
         "https://top.gg/bot/abc",
         10,
         25,
+        1,
         voted_topgg_recent=True,
         dbl_url="https://discordbotlist.com/bots/abc",
         dbl_reward_drop=2,
@@ -168,6 +172,13 @@ def test_flip_result_description_win_and_loss() -> None:
     loss = flip_result_description("tails", did_win=False, payout_or_stake=25, dough_total=145)
     assert win == "Result: **Heads**\nPayout: **+40** dough\nBalance: **210** dough"
     assert loss == "Result: **Tails**\nLost: **-25** dough\nBalance: **145** dough"
+
+
+def test_lootbox_suspense_and_result_descriptions() -> None:
+    suspense = lootbox_suspense_description("crackling with energy")
+    result = lootbox_result_description("**Pasta Hero** • (ID: 1)", 7)
+    assert suspense == "The lootbox is **crackling with energy**...\nNo common cards inside. Good luck."
+    assert result == "You pulled: **Pasta Hero** • (ID: 1)\nLootbox Keys Left: **7**"
 
 
 def test_monopoly_board_description() -> None:
@@ -220,7 +231,7 @@ def test_slots_result_lines_helpers() -> None:
 
 
 def test_player_info_field_value_helpers() -> None:
-    wallet = player_wallet_items_value(20, 10, 2, 1)
-    oven = player_oven_items_value(5, 4, 3, 2)
-    assert wallet == "- 20 dough\n- 10 starter\n- 2 drop tickets\n- 1 pull tickets"
-    assert oven == "- 5 dough\n- 4 starter\n- 3 drop tickets\n- 2 pull tickets"
+    wallet = player_wallet_items_value(20, 10, 2, 1, 9)
+    oven = player_oven_items_value(5, 4, 3, 2, 8)
+    assert wallet == "- 20 dough\n- 10 starter\n- 2 drop tickets\n- 1 pull tickets\n- 9 lootbox keys"
+    assert oven == "- 5 dough\n- 4 starter\n- 3 drop tickets\n- 2 pull tickets\n- 8 lootbox keys"

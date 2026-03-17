@@ -215,6 +215,7 @@ COMMAND_SYNTAX_BY_KEY: dict[str, str] = {
     "leaderboard": "ns leaderboard",
     "lookup": "ns lookup <card_type_id|card_id|query>",
     "lookuphd": "ns lookuphd <card_type_id|card_id|query>",
+    "lootbox": "ns lootbox",
     "marry": "ns marry [card_id]",
     "monopoly": "ns monopoly <roll|fine|board|pot>",
     "monopoly board": "ns monopoly board",
@@ -290,6 +291,7 @@ HELP_CATEGORY_PAGES: tuple[tuple[str, str, str], ...] = (
         """- `drop` (`d`) — Drop 3 cards.
 - `buy drop [quantity]` — Buy drop tickets for 1 starter each. Defaults to 1.
 - `buy pull [quantity]` — Buy pull tickets for 1 starter each. Defaults to 1.
+- `lootbox` — Open one lootbox using 1 lootbox key.
 - `cooldown [player]` (`cd`) — Check a player's cooldowns. Defaults to yourself or the replied user.
 - `vote` (`v`) — Vote for the bot to claim rewards.
 - `burn [target...]` (`b`) — Burn targets for dough. Supports card IDs plus
@@ -301,8 +303,8 @@ HELP_CATEGORY_PAGES: tuple[tuple[str, str, str], ...] = (
 - `gift pull <player> <tickets>` — Send pull tickets to a player.
 - `gift card <player> <card_id>` (`gift c`) — Send a card to a player.
 - `oven balance` — Show all oven balances and wallet balances.
-- `oven deposit <amount> [dough|starter|drop|pull]` — Move an item from your wallet into the oven (default: dough).
-- `oven withdraw <amount> [dough|starter|drop|pull]` — Move an item out of the oven and back to your wallet (default: dough).
+- `oven deposit <amount> [dough|starter|drop|pull|key]` — Move an item from your wallet into the oven (default: dough).
+- `oven withdraw <amount> [dough|starter|drop|pull|key]` — Move an item out of the oven and back to your wallet (default: dough).
 - `deposit` — Alias for `oven deposit`.
 - `withdraw` — Alias for `oven withdraw`.
 - `trade <player> <card_id> <mode> <amount|req_code>` (`t`) — Offer a trade. Mode: `dough`, `starter`, `drop`, `pull`, or `card`.""",
@@ -425,13 +427,14 @@ def cosmetic_roll_confirmation_description(
 # ---------------------------------------------------------------------------
 
 
-def oven_balance_description(dough: int, starter: int, drop_tickets: int, pull_tickets: int) -> str:
+def oven_balance_description(dough: int, starter: int, drop_tickets: int, pull_tickets: int, lootbox_keys: int) -> str:
     return multiline_text(
         [
             f"Oven Dough: **{dough}**",
             f"Oven Starter: **{starter}**",
             f"Oven Drop Tickets: **{drop_tickets}**",
             f"Oven Pull Tickets: **{pull_tickets}**",
+            f"Oven Lootbox Keys: **{lootbox_keys}**",
         ]
     )
 
@@ -548,6 +551,7 @@ def vote_status_description(
     topgg_url: str,
     topgg_reward_starter: int,
     topgg_reward_dough: int,
+    topgg_reward_lootbox_keys: int,
     voted_topgg_recent: bool,
     dbl_url: str,
     dbl_reward_drop: int,
@@ -565,7 +569,7 @@ def vote_status_description(
         [
             "Earn rewards and support Noodswap by voting!",
             "",
-            f"Reward: **+{topgg_reward_starter} starter** and **+{topgg_reward_dough} dough** per **vote** on [Top.gg]({topgg_url})",
+            f"Reward: **+{topgg_reward_starter} starter**, **+{topgg_reward_dough} dough**, and **+{topgg_reward_lootbox_keys} lootbox key** per **vote** on [Top.gg]({topgg_url})",
             f"> Voted on [Top.gg]({topgg_url}): {topgg_status}",
             "",
             f"Reward: **+{dbl_reward_drop} drop tickets** and **+{dbl_reward_pull} pull ticket** per **vote** on [DiscordBotList]({dbl_url})",
@@ -620,6 +624,24 @@ def flip_result_description(
             f"Result: **{result_side.capitalize()}**",
             second_line,
             f"Balance: **{dough_total}** dough",
+        ]
+    )
+
+
+def lootbox_suspense_description(activity_phrase: str) -> str:
+    return multiline_text(
+        [
+            f"The lootbox is **{activity_phrase}**...",
+            "No common cards inside. Good luck.",
+        ]
+    )
+
+
+def lootbox_result_description(card_display_str: str, remaining_keys: int) -> str:
+    return multiline_text(
+        [
+            f"You pulled: {card_display_str}",
+            f"Lootbox Keys Left: **{remaining_keys}**",
         ]
     )
 
@@ -700,23 +722,31 @@ def slots_no_match_lines(cooldown_text: str) -> list[str]:
     ]
 
 
-def player_wallet_items_value(dough: int, starter: int, drop_tickets: int, pull_tickets: int) -> str:
+def player_wallet_items_value(dough: int, starter: int, drop_tickets: int, pull_tickets: int, lootbox_keys: int) -> str:
     return "\n".join(
         [
             f"- {dough} dough",
             f"- {starter} starter",
             f"- {drop_tickets} drop tickets",
             f"- {pull_tickets} pull tickets",
+            f"- {lootbox_keys} lootbox keys",
         ]
     )
 
 
-def player_oven_items_value(oven_dough: int, oven_starter: int, oven_drop_tickets: int, oven_pull_tickets: int) -> str:
+def player_oven_items_value(
+    oven_dough: int,
+    oven_starter: int,
+    oven_drop_tickets: int,
+    oven_pull_tickets: int,
+    oven_lootbox_keys: int,
+) -> str:
     return "\n".join(
         [
             f"- {oven_dough} dough",
             f"- {oven_starter} starter",
             f"- {oven_drop_tickets} drop tickets",
             f"- {oven_pull_tickets} pull tickets",
+            f"- {oven_lootbox_keys} lootbox keys",
         ]
     )

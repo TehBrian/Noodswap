@@ -95,6 +95,60 @@ class ServicesTests:
         assert not prepared.used_drop_ticket
         assert storage.get_player_drop_tickets(guild_id, user_id) == 1
 
+    def test_execute_lootbox_open_requires_key(self) -> None:
+        guild_id = 1
+        user_id = 114
+
+        result = services.execute_lootbox_open(guild_id, user_id, time.time())
+        assert result.is_error
+        assert result.error_message == "You need at least 1 lootbox key to open a lootbox."
+
+    def test_choose_lootbox_card_excludes_common_and_boosts_wishlist_weights(self) -> None:
+        fake_catalog = {
+            "COMMON": {"rarity": "common"},
+            "UNCOMMON": {"rarity": "uncommon"},
+            "EPIC": {"rarity": "epic"},
+        }
+        fake_weights = {"common": 1.0, "uncommon": 2.0, "epic": 3.0}
+
+        with (
+            patch("bot.services.CARD_CATALOG", fake_catalog),
+            patch("bot.services.NORMALIZED_RARITY_WEIGHTS", fake_weights),
+            patch("bot.services.random.choices", return_value=["EPIC"]) as chooser,
+        ):
+            selected = services._choose_lootbox_card_type_id({"EPIC"})
+
+        assert selected == "EPIC"
+        chooser.assert_called_once()
+        args = chooser.call_args.args
+        kwargs = chooser.call_args.kwargs
+        assert args[0] == ["UNCOMMON", "EPIC"]
+        assert kwargs["weights"] == [2.0, 12.0]
+
+    def test_execute_lootbox_open_consumes_key_and_awards_card(self) -> None:
+        guild_id = 1
+        user_id = 115
+        now = time.time()
+
+        with storage.get_db_connection() as conn:
+            players = storage.PlayerRepository(conn, storage.STARTING_DOUGH)
+            players.ensure_player(storage._scope_guild_id(guild_id), user_id)
+            players.add_lootbox_keys(storage._scope_guild_id(guild_id), user_id, 1)
+
+        with (
+            patch("bot.services._choose_lootbox_card_type_id", return_value="SPG"),
+            patch("bot.services.random_generation", return_value=321),
+        ):
+            result = services.execute_lootbox_open(guild_id, user_id, now)
+
+        assert not result.is_error
+        assert result.card_type_id == "SPG"
+        assert result.generation == 321
+        assert result.instance_id is not None
+        assert result.card_id is not None
+        assert result.remaining_keys == 0
+        assert storage.get_player_lootbox_keys(guild_id, user_id) == 0
+
     def test_prepare_burn_errors_without_last_pulled(self) -> None:
         prepared = services.prepare_burn(guild_id=1, user_id=20, card_id=None)
         assert prepared.is_error

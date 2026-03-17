@@ -49,6 +49,8 @@ class StorageTests:
             assert "oven_starter" in column_names
             assert "oven_drop_tickets" in column_names
             assert "oven_pull_tickets" in column_names
+            assert "lootbox_keys" in column_names
+            assert "oven_lootbox_keys" in column_names
 
             pot_row = conn.execute("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'gambling_pot'").fetchone()
             assert pot_row is not None
@@ -469,14 +471,16 @@ class StorageTests:
             players.ensure_player(storage._scope_guild_id(guild_id), user_id)
             players.add_drop_tickets(storage._scope_guild_id(guild_id), user_id, 6)
             players.add_pull_tickets(storage._scope_guild_id(guild_id), user_id, 7)
+            players.add_lootbox_keys(storage._scope_guild_id(guild_id), user_id, 8)
 
         storage.execute_oven_deposit(guild_id, user_id, 25)
         storage.execute_oven_deposit(guild_id, user_id, 10, "starter")
         storage.execute_oven_deposit(guild_id, user_id, 5, "drop")
         storage.execute_oven_deposit(guild_id, user_id, 5, "pull")
+        storage.execute_oven_deposit(guild_id, user_id, 5, "key")
 
         oven_balances = storage.get_player_oven_balances(guild_id, user_id)
-        assert oven_balances == (24, 9, 4, 4)
+        assert oven_balances == (24, 9, 4, 4, 4)
 
     def test_monopoly_fine_ignores_oven_balance(self) -> None:
         guild_id = 1

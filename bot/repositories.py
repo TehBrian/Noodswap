@@ -453,6 +453,48 @@ class PlayerRepository:
             (amount, guild_id, user_id),
         )
 
+    def get_lootbox_keys(self, guild_id: int, user_id: int) -> int:
+        row = self.conn.execute(
+            """
+            SELECT lootbox_keys
+            FROM players
+            WHERE guild_id = ? AND user_id = ?
+            """,
+            (guild_id, user_id),
+        ).fetchone()
+        return int(row["lootbox_keys"]) if row is not None else 0
+
+    def add_lootbox_keys(self, guild_id: int, user_id: int, amount: int) -> None:
+        self.conn.execute(
+            """
+            UPDATE players
+            SET lootbox_keys = lootbox_keys + ?
+            WHERE guild_id = ? AND user_id = ?
+            """,
+            (amount, guild_id, user_id),
+        )
+
+    def get_oven_lootbox_keys(self, guild_id: int, user_id: int) -> int:
+        row = self.conn.execute(
+            """
+            SELECT oven_lootbox_keys
+            FROM players
+            WHERE guild_id = ? AND user_id = ?
+            """,
+            (guild_id, user_id),
+        ).fetchone()
+        return int(row["oven_lootbox_keys"]) if row is not None else 0
+
+    def add_oven_lootbox_keys(self, guild_id: int, user_id: int, amount: int) -> None:
+        self.conn.execute(
+            """
+            UPDATE players
+            SET oven_lootbox_keys = oven_lootbox_keys + ?
+            WHERE guild_id = ? AND user_id = ?
+            """,
+            (amount, guild_id, user_id),
+        )
+
     def list_balances(self, guild_id: int) -> list[tuple[int, int, int, int]]:
         rows = self.conn.execute(
             """

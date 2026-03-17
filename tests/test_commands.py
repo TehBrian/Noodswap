@@ -1074,6 +1074,7 @@ class CommandsAliasRegistrationTests:
         assert "v" in _get_command(self.bot, "vote").aliases
         assert "sl" in _get_command(self.bot, "slots").aliases
         assert "f" in _get_command(self.bot, "flip").aliases
+        assert _get_command(self.bot, "lootbox") is not None
         assert "g" in _get_command(self.bot, "gift").aliases
         assert _get_command(self.bot, "oven") is not None
         assert _get_command(self.bot, "deposit") is not None
@@ -2395,6 +2396,73 @@ class CommandsSlotsAnimationTests:
         assert all("✅" not in text and "❌" not in text and "🎉" not in text for text in intermediate_contents)
 
 
+class CommandsLootboxTests:
+    def setup_method(self) -> None:
+        self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)
+        register_commands(self.bot)
+
+    async def test_lootbox_rejects_when_in_flight(self) -> None:
+        lootbox_command = _get_command(self.bot, "lootbox")
+
+        ctx = AsyncMock()
+        ctx.guild = _FakeGuild(1)
+        ctx.author = _FakeMember(100, "Caller")
+        ctx.send = AsyncMock()
+        ctx.reply = ctx.send
+
+        with (
+            patch(
+                "bot.commands_economy.command_execution_gate",
+                side_effect=lambda *_args, **_kwargs: _gate_result(False),
+            ),
+            patch("bot.commands_economy.execute_lootbox_open") as execute_lootbox,
+        ):
+            await lootbox_command.callback(ctx)
+
+        execute_lootbox.assert_not_called()
+        sent_embed = ctx.send.await_args.kwargs["embed"]
+        assert sent_embed.title == "Lootbox"
+        assert "already opening" in sent_embed.description
+
+    async def test_lootbox_shows_suspense_then_result_after_delay(self) -> None:
+        lootbox_command = _get_command(self.bot, "lootbox")
+
+        message = AsyncMock()
+        ctx = AsyncMock()
+        ctx.guild = _FakeGuild(1)
+        ctx.author = _FakeMember(100, "Caller")
+        ctx.send = AsyncMock(return_value=message)
+        ctx.reply = ctx.send
+
+        result = SimpleNamespace(
+            is_error=False,
+            error_message=None,
+            remaining_keys=4,
+            instance_id=11,
+            card_type_id="SPG",
+            generation=222,
+            card_id="abc",
+        )
+
+        with (
+            patch("bot.commands_economy.execute_lootbox_open", return_value=result),
+            patch("bot.commands_economy.random.choice", return_value="shimmering"),
+            patch("bot.commands_economy.asyncio.sleep", new=AsyncMock()) as sleep_mock,
+            patch("bot.commands_economy.embed_image_payload", return_value=(None, None)),
+        ):
+            await lootbox_command.callback(ctx)
+
+        first_embed = ctx.send.await_args.kwargs["embed"]
+        assert first_embed.title == "Lootbox"
+        assert "lootbox is" in first_embed.description
+        sleep_mock.assert_awaited_once_with(3.0)
+
+        message.edit.assert_awaited_once()
+        final_embed = message.edit.await_args.kwargs["embed"]
+        assert "You pulled:" in final_embed.description
+        assert "Lootbox Keys Left: **4**" in final_embed.description
+
+
 class CommandsInfoTests:
     def setup_method(self) -> None:
         self.bot = commands.Bot(command_prefix="ns ", intents=discord.Intents.none(), help_command=None)
@@ -2417,7 +2485,8 @@ class CommandsInfoTests:
             patch("bot.commands_social.get_player_starter", return_value=9),
             patch("bot.commands_social.get_player_drop_tickets", return_value=4),
             patch("bot.commands_social.get_player_pull_tickets", return_value=6),
-            patch("bot.commands_social.get_player_oven_balances", return_value=(21, 3, 2, 1)),
+            patch("bot.commands_social.get_player_lootbox_keys", return_value=6),
+            patch("bot.commands_social.get_player_oven_balances", return_value=(21, 3, 2, 1, 5)),
             patch("bot.commands_social.get_total_cards", return_value=7),
             patch(
                 "bot.commands_social.get_wishlist_cards",
@@ -2436,6 +2505,7 @@ class CommandsInfoTests:
                 "- 9 starter",
                 "- 4 drop tickets",
                 "- 6 pull tickets",
+                "- 6 lootbox keys",
             ]
         )
         assert field_values.get("**Oven Items**") == "\n".join(
@@ -2444,6 +2514,7 @@ class CommandsInfoTests:
                 "- 3 starter",
                 "- 2 drop tickets",
                 "- 1 pull tickets",
+                "- 5 lootbox keys",
             ]
         )
         assert field_values.get("Wishes") == "3"
@@ -2472,7 +2543,8 @@ class CommandsInfoTests:
             patch("bot.commands_social.get_player_starter", return_value=2),
             patch("bot.commands_social.get_player_drop_tickets", return_value=0),
             patch("bot.commands_social.get_player_pull_tickets", return_value=0),
-            patch("bot.commands_social.get_player_oven_balances", return_value=(0, 0, 0, 0)),
+            patch("bot.commands_social.get_player_lootbox_keys", return_value=0),
+            patch("bot.commands_social.get_player_oven_balances", return_value=(0, 0, 0, 0, 0)),
             patch("bot.commands_social.get_total_cards", return_value=4),
             patch("bot.commands_social.get_wishlist_cards", return_value=["SPG"]),
         ):
@@ -2502,7 +2574,7 @@ class CommandsOvenTests:
             patch("bot.commands_economy.get_player_starter", return_value=8),
             patch("bot.commands_economy.get_player_drop_tickets", return_value=7),
             patch("bot.commands_economy.get_player_pull_tickets", return_value=6),
-            patch("bot.commands_economy.get_player_oven_balances", return_value=(125, 4, 3, 2)),
+            patch("bot.commands_economy.get_player_oven_balances", return_value=(125, 4, 3, 2, 9)),
         ):
             await oven_balance_command.callback(ctx)
 
@@ -2513,6 +2585,7 @@ class CommandsOvenTests:
         assert "Oven Starter: **4**" in sent_embed.description
         assert "Oven Drop Tickets: **3**" in sent_embed.description
         assert "Oven Pull Tickets: **2**" in sent_embed.description
+        assert "Oven Lootbox Keys: **9**" in sent_embed.description
 
     async def test_oven_deposit_success_shows_fee_breakdown(self) -> None:
         oven_deposit_command = _get_group_command(self.bot, "oven", "deposit")
@@ -2800,7 +2873,7 @@ class CommandsVoteTests:
         sent_view = ctx.send.await_args.kwargs["view"]
         assert sent_embed.title == "Vote for Noodswap"
         assert "Earn rewards and support Noodswap by voting!" in sent_embed.description
-        assert "Reward: **+3 starter** and **+500 dough**" in sent_embed.description
+        assert "Reward: **+3 starter**, **+500 dough**, and **+1 lootbox key**" in sent_embed.description
         assert "Reward: **+2 drop tickets** and **+1 pull ticket**" in sent_embed.description
         assert "Voted on [Top.gg](https://top.gg/bot/1478727078286196909/vote): ✅" in sent_embed.description
         assert "Voted on [DiscordBotList](https://discordbotlist.com/bots/noodswap/upvote): ❌" in sent_embed.description

@@ -12,6 +12,7 @@ from .settings import (
     DISCORDBOTLIST_VOTE_REWARD_DROP_TICKETS,
     DISCORDBOTLIST_VOTE_REWARD_PULL_TICKETS,
     TOPGG_VOTE_REWARD_DOUGH,
+    TOPGG_VOTE_REWARD_LOOTBOX_KEYS,
     TOPGG_VOTE_REWARD_STARTER,
 )
 from .storage import claim_vote_reward
@@ -263,6 +264,7 @@ class TopggWebhookServer:
             user_id=user_id,
             reward_amount=TOPGG_VOTE_REWARD_STARTER,
             reward_dough=TOPGG_VOTE_REWARD_DOUGH,
+            reward_lootbox_keys=TOPGG_VOTE_REWARD_LOOTBOX_KEYS,
             vote_provider="topgg",
             remote_ip=request.remote,
             webhook_path=_normalize_route_path(self._config.path),

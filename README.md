@@ -93,7 +93,7 @@ Top.gg webhook checklist:
 - If you use the included production compose file directly, the container listens on `8080` and is published as host port `14151`, so your external route must forward to that port.
 - In top.gg Integrations, use the same webhook secret value as `TOPGG_WEBHOOK_SECRET` in `deploy/runtime.env`.
 - Rewards are webhook-driven only. `ns vote` opens the vote page, but it does not poll top.gg or claim rewards by itself.
-- Top.gg test webhooks should return `200` without granting a reward (`type=webhook.test`); real votes arrive as `type=vote.create` and grant `starter` automatically.
+- Top.gg test webhooks should return `200` without granting a reward (`type=webhook.test`); real votes arrive as `type=vote.create` and grant `starter`, `dough`, and `lootbox keys` automatically.
 - Signature verification uses the `x-topgg-signature` header (`t=...,v1=...`) over the exact raw request body; avoid proxy/body middleware that rewrites payload bytes.
 - If you are behind a reverse proxy, keep `TOPGG_WEBHOOK_ALLOWED_IPS` empty unless you have explicitly arranged real client IP forwarding all the way to the app.
 
@@ -102,7 +102,7 @@ DiscordBotList webhook checklist:
 - In DiscordBotList bot settings, set the webhook URL to your public endpoint, for example `https://your-domain.example/noodswap/discordbotlist-vote-webhook`.
 - Set the DiscordBotList webhook secret to the same value as `DISCORDBOTLIST_WEBHOOK_SECRET`.
 - DiscordBotList authorization uses the `Authorization` header and must exactly match the configured secret.
-- Successful DiscordBotList webhooks grant `starter` automatically, matching top.gg behavior.
+- Successful DiscordBotList webhooks grant `drop tickets` and `pull tickets` automatically.
 
 ### Manual deploy/update
 
@@ -164,18 +164,19 @@ This bot uses privileged intents. Enable these for your application in Discord D
 - `ns lookuphd <card_type_id|card_id|query>` / `ns lhd <card_type_id|card_id|query>` — same as lookup, but renders the card image at `1000x1400`.
 - `ns help` / `ns h` — show command help.
 - `ns drop` / `ns d` — open a drop with 3 random cards; anyone can claim unclaimed cards via buttons. If drop cooldown is active, one `drop ticket` is auto-consumed instead.
+- `ns lootbox` — consume 1 lootbox key to open 1 card with delayed reveal. Lootboxes never roll common cards, and wishlisted cards are weighted 4x.
 - `ns buy drop [quantity]` — buy drop tickets using `starter` (cost: 1 starter per ticket; default quantity is 1).
 - `ns slots` / `ns sl` — spin 3 food reels; 2 matches award 200-400 dough, and 3 matches award 800-1200 dough plus 1-3 `starter`.
 - `ns flip <stake>` / `ns f <stake>` — coin flip wager with 46% win / 54% lose odds; heads wins `+1.8x stake`, tails loses `-stake` (2m cooldown). On tails, `0.2x stake` is added to the Monopoly pot.
-- `ns vote` / `ns v` — open the vote page and claim `starter` reward automatically when top.gg or DiscordBotList webhook events are detected.
+- `ns vote` / `ns v` — open the vote page and claim rewards automatically when webhook events are detected (`top.gg`: starter+dough+lootbox key, `DiscordBotList`: drop/pull tickets).
 - `ns cooldown [player]` / `ns cd [player]` — show drop (6m), pull (4m), flip (2m), slots (22m), and monopoly (2.5m) cooldowns for yourself or another player.
 - `ns burn [targets...]` / `ns b [targets...]` — burn one or more targets for dough. Supports card IDs/IDs plus selectors `t:<tag_name>` and `f:<folder_name>`. If any selected card is in a locked tag or locked folder, the entire burn is blocked.
 - `ns gift dough <player> <dough>` / `ns gift d <player> <dough>` — send dough directly to another player.
 - `ns gift starter <player> <starter>` / `ns gift s <player> <starter>` — send starter directly to another player.
 - `ns gift drop <player> <tickets>` — send drop tickets directly to another player.
 - `ns gift card <player> <card_id>` / `ns gift c <player> <card_id>` — send one owned card copy directly to another player.
-- `ns deposit <amount> [dough|starter|drop|pull]` — alias for `ns oven deposit`.
-- `ns withdraw <amount> [dough|starter|drop|pull]` — alias for `ns oven withdraw`.
+- `ns deposit <amount> [dough|starter|drop|pull|key]` — alias for `ns oven deposit`.
+- `ns withdraw <amount> [dough|starter|drop|pull|key]` — alias for `ns oven withdraw`.
 - `ns oven balance` — show all oven balances and wallet balances.
 - Wallet balances are fair game for game systems (for example: Monopoly, battles, and gambling) and may change outside direct player actions.
 - Oven balances are player-safe storage: no game system modifies them directly; balances only change when the player uses oven commands.

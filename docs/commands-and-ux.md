@@ -17,6 +17,7 @@ This document defines behavior and presentation for commands and interaction flo
 - `lookuphd <card_type_id|card_id|query>` / `lhd <card_type_id|card_id|query>`
 - `help` / `h`
 - `drop` / `d`
+- `lootbox`
 - `buy drop [quantity]`
 - `buy pull [quantity]`
 - `slots` / `sl`
@@ -30,11 +31,11 @@ This document defines behavior and presentation for commands and interaction flo
 - `gift drop <player> <tickets>`
 - `gift pull <player> <tickets>`
 - `gift card <player> <card_id>` / `gift c <player> <card_id>`
-- `deposit <amount> [dough|starter|drop|pull]`
-- `withdraw <amount> [dough|starter|drop|pull]`
+- `deposit <amount> [dough|starter|drop|pull|key]`
+- `withdraw <amount> [dough|starter|drop|pull|key]`
 - `oven`
-- `oven deposit <amount> [dough|starter|drop|pull]`
-- `oven withdraw <amount> [dough|starter|drop|pull]`
+- `oven deposit <amount> [dough|starter|drop|pull|key]`
+- `oven withdraw <amount> [dough|starter|drop|pull|key]`
 - `oven balance`
 - `morph [card_id]` / `mo [card_id]`
 - `frame [card_id]` / `fr [card_id]`
@@ -132,6 +133,15 @@ This includes:
 - A drop remains active until timeout or until all cards are claimed
 - Each successful claim posts a separate pulled-card embed
 - On timeout, buttons are disabled and a separate expiry embed is posted
+
+## Lootbox UX
+
+- `lootbox` consumes exactly 1 `lootbox key`
+- lootbox open uses delayed reveal UX: an initial suspense embed, then an edited result embed after a short delay
+- if the same user triggers `lootbox` while one is already in flight, the second attempt is rejected immediately
+- lootbox pulls always exclude `common` rarity cards
+- if a pulled card is on the opener's wishlist, that card receives a 4x selection weight multiplier
+- successful result embeds include remaining lootbox key count
 
 ## Burn UX
 

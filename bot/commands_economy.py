@@ -19,6 +19,8 @@ from .command_utils import (
     FrameConfirmView as FrameConfirmView,
     HD_CARD_RENDER_SIZE as HD_CARD_RENDER_SIZE,
     HelpView as HelpView,
+    LOOTBOX_ACTIVITY_PHRASES as LOOTBOX_ACTIVITY_PHRASES,
+    LOOTBOX_REVEAL_DELAY_SECONDS as LOOTBOX_REVEAL_DELAY_SECONDS,
     MONOPOLY_JAIL_FINE_DOUGH as MONOPOLY_JAIL_FINE_DOUGH,
     MONOPOLY_ROLL_COOLDOWN_SECONDS as MONOPOLY_ROLL_COOLDOWN_SECONDS,
     MorphConfirmView as MorphConfirmView,
@@ -75,6 +77,7 @@ from .command_utils import (
     execute_gift_drop_tickets as execute_gift_drop_tickets,
     execute_gift_pull_tickets as execute_gift_pull_tickets,
     execute_gift_starter as execute_gift_starter,
+    execute_lootbox_open as execute_lootbox_open,
     execute_marry as execute_marry,
     execute_monopoly_fine as execute_monopoly_fine,
     execute_monopoly_roll as execute_monopoly_roll,
@@ -127,6 +130,8 @@ from .command_utils import (
     list_player_folders as list_player_folders,
     list_player_tags as list_player_tags,
     list_player_teams as list_player_teams,
+    lootbox_result_description as lootbox_result_description,
+    lootbox_suspense_description as lootbox_suspense_description,
     morph_label as morph_label,
     oven_balance_description as oven_balance_description,
     oven_transaction_description as oven_transaction_description,
@@ -215,6 +220,56 @@ def register_economy_commands(bot: commands.Bot) -> None:
             view = DropView(_guild_id(ctx), ctx.author.id, choices)
             message = await _reply(ctx, view=view, **send_kwargs)
             view.message = message
+
+    @bot.command(name="lootbox")
+    async def lootbox(ctx: commands.Context):
+        if not await _require_guild(ctx, "Lootbox"):
+            return
+
+        async with command_execution_gate(ctx.author.id, "lootbox") as entered:
+            if not entered:
+                await _reply(
+                    ctx,
+                    embed=italy_embed("Lootbox", "A lootbox is already opening."),
+                )
+                return
+
+            opened = execute_lootbox_open(_guild_id(ctx), ctx.author.id, time.time())
+            if opened.is_error:
+                await _reply(
+                    ctx,
+                    embed=italy_embed("Lootbox", opened.error_message or "Lootbox failed."),
+                )
+                return
+
+            if opened.card_type_id is None or opened.generation is None:
+                await _reply(ctx, embed=italy_embed("Lootbox", "Lootbox failed."))
+                return
+
+            suspense_message = await _reply(
+                ctx,
+                embed=italy_embed("Lootbox", lootbox_suspense_description(random.choice(LOOTBOX_ACTIVITY_PHRASES))),
+            )
+            await asyncio.sleep(LOOTBOX_REVEAL_DELAY_SECONDS)
+
+            image_url, image_file = embed_image_payload(
+                opened.card_type_id,
+                generation=opened.generation,
+            )
+            result_embed = italy_embed(
+                "Lootbox",
+                lootbox_result_description(
+                    card_display(opened.card_type_id, opened.generation, card_id=opened.card_id),
+                    opened.remaining_keys,
+                ),
+            )
+            if image_url is not None:
+                result_embed.set_image(url=image_url)
+
+            if image_file is not None:
+                await suspense_message.edit(embed=result_embed, attachments=[image_file])
+            else:
+                await suspense_message.edit(embed=result_embed)
 
     @bot.command(name="marry", aliases=["m"])
     async def marry(ctx: commands.Context, card_id: str | None = None):
@@ -911,6 +966,8 @@ def register_economy_commands(bot: commands.Bot) -> None:
             return "drop tickets"
         if item_key == "pull":
             return "pull tickets"
+        if item_key == "key":
+            return "lootbox keys"
         return "dough"
 
     @bot.group(name="oven", invoke_without_command=True)
@@ -919,7 +976,7 @@ def register_economy_commands(bot: commands.Bot) -> None:
             ctx,
             embed=italy_embed(
                 "Oven",
-                "Usage: `ns oven deposit <amount> [dough|starter|drop|pull]`, `ns oven withdraw <amount> [dough|starter|drop|pull]`, or `ns oven balance`. Aliases: `ns deposit`, `ns withdraw`.",
+                "Usage: `ns oven deposit <amount> [dough|starter|drop|pull|key]`, `ns oven withdraw <amount> [dough|starter|drop|pull|key]`, or `ns oven balance`. Aliases: `ns deposit`, `ns withdraw`.",
             ),
         )
 
@@ -928,7 +985,7 @@ def register_economy_commands(bot: commands.Bot) -> None:
         if not await _require_guild(ctx, "Oven"):
             return
 
-        oven_dough, oven_starter, oven_drop_tickets, oven_pull_tickets = get_player_oven_balances(
+        oven_dough, oven_starter, oven_drop_tickets, oven_pull_tickets, oven_lootbox_keys = get_player_oven_balances(
             _guild_id(ctx),
             ctx.author.id,
         )
@@ -936,7 +993,13 @@ def register_economy_commands(bot: commands.Bot) -> None:
             ctx,
             embed=italy_embed(
                 "Oven",
-                oven_balance_description(oven_dough, oven_starter, oven_drop_tickets, oven_pull_tickets),
+                oven_balance_description(
+                    oven_dough,
+                    oven_starter,
+                    oven_drop_tickets,
+                    oven_pull_tickets,
+                    oven_lootbox_keys,
+                ),
             ),
         )
 
@@ -949,7 +1012,7 @@ def register_economy_commands(bot: commands.Bot) -> None:
         if result.status == "invalid_item":
             await _reply(
                 ctx,
-                embed=italy_embed("Oven", "Item must be one of: `dough`, `starter`, `drop`, `pull`."),
+                embed=italy_embed("Oven", "Item must be one of: `dough`, `starter`, `drop`, `pull`, `key`."),
             )
             return
         if result.status == "invalid_amount":
@@ -997,7 +1060,7 @@ def register_economy_commands(bot: commands.Bot) -> None:
         if result.status == "invalid_item":
             await _reply(
                 ctx,
-                embed=italy_embed("Oven", "Item must be one of: `dough`, `starter`, `drop`, `pull`."),
+                embed=italy_embed("Oven", "Item must be one of: `dough`, `starter`, `drop`, `pull`, `key`."),
             )
             return
         if result.status == "invalid_amount":

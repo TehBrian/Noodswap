@@ -3,7 +3,7 @@
 ## Current known issues / gaps
 
 1. Migration framework ergonomics are limited
-- Schema versioning, 35 ordered in-code migration steps, and a startup recovery migration all exist and work.
+- Schema versioning, 36 ordered in-code migration steps, and a startup recovery migration all exist and work.
 - Still missing: a downgrade/playback strategy, standalone migration files, and startup integrity validation tooling.
 
 2. Concurrency/race handling is basic
@@ -26,6 +26,10 @@
 6. Battle system is in staged rollout
 - Team persistence, battle proposal lifecycle, and core turn loop are implemented (`team` commands, proposal accept/deny, attack/defend/switch/surrender, timeout skip).
 - Remaining work is primarily UX polish and balancing (action logs, richer visuals, expanded matchup tuning).
+
+7. Lootbox weighting/race constraints are now explicit
+- `ns lootbox` consumes exactly one `lootbox key` per open, uses delayed reveal messaging, and blocks duplicate in-flight opens per user.
+- Lootbox card selection excludes `common` rarity and applies a 4x multiplier to cards that appear in the opener's wishlist.
 
 ## Near-term roadmap
 

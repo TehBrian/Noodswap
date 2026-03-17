@@ -105,6 +105,7 @@ from .command_utils import (
     get_player_vote_last_at as get_player_vote_last_at,
     get_player_info as get_player_info,
     get_player_leaderboard_info as get_player_leaderboard_info,
+    get_player_lootbox_keys as get_player_lootbox_keys,
     get_player_oven_balances as get_player_oven_balances,
     get_player_slots_timestamp as get_player_slots_timestamp,
     get_player_starter as get_player_starter,
@@ -541,13 +542,14 @@ def register_social_commands(bot: commands.Bot) -> None:
         target_member = resolved_member
 
         dough, _, married_instance_id = get_player_info(_guild_id(ctx), target_member.id)
-        oven_dough, oven_starter, oven_drop_tickets, oven_pull_tickets = get_player_oven_balances(
+        oven_dough, oven_starter, oven_drop_tickets, oven_pull_tickets, oven_lootbox_keys = get_player_oven_balances(
             _guild_id(ctx),
             target_member.id,
         )
         starter = get_player_starter(_guild_id(ctx), target_member.id)
         drop_tickets = get_player_drop_tickets(_guild_id(ctx), target_member.id)
         pull_tickets = get_player_pull_tickets(_guild_id(ctx), target_member.id)
+        lootbox_keys = get_player_lootbox_keys(_guild_id(ctx), target_member.id)
         wishes_count = len(get_wishlist_cards(_guild_id(ctx), target_member.id))
 
         married = "None"
@@ -574,12 +576,18 @@ def register_social_commands(bot: commands.Bot) -> None:
         )
         embed.add_field(
             name="**Wallet Items**",
-            value=player_wallet_items_value(dough, starter, drop_tickets, pull_tickets),
+            value=player_wallet_items_value(dough, starter, drop_tickets, pull_tickets, lootbox_keys),
             inline=True,
         )
         embed.add_field(
             name="**Oven Items**",
-            value=player_oven_items_value(oven_dough, oven_starter, oven_drop_tickets, oven_pull_tickets),
+            value=player_oven_items_value(
+                oven_dough,
+                oven_starter,
+                oven_drop_tickets,
+                oven_pull_tickets,
+                oven_lootbox_keys,
+            ),
             inline=True,
         )
         embed.add_field(name="Wishes", value=str(wishes_count), inline=True)

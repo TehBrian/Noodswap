@@ -55,6 +55,8 @@ from .presentation import (
     flip_suspense_description,
     gift_card_result_description,
     gift_currency_description,
+    lootbox_result_description,
+    lootbox_suspense_description,
     monopoly_board_description,
     monopoly_pot_description,
     monopoly_usage_description,
@@ -71,6 +73,7 @@ from .presentation import (
 )
 from .services import (
     execute_divorce,
+    execute_lootbox_open,
     execute_marry,
     normalize_trade_mode,
     prepare_battle_offer,
@@ -101,6 +104,7 @@ from .settings import (
     SLOTS_COOLDOWN_SECONDS,
     SHIP_CHOCOLATE_IMAGE_PATH,
     TOPGG_VOTE_REWARD_DOUGH,
+    TOPGG_VOTE_REWARD_LOOTBOX_KEYS,
     TOPGG_VOTE_REWARD_STARTER,
     TOPGG_VOTE_URL,
     VOTE_COOLDOWN_SECONDS,
@@ -157,6 +161,7 @@ from .storage import (
     get_player_flip_timestamp,
     get_player_info,
     get_player_leaderboard_info,
+    get_player_lootbox_keys,
     get_player_oven_balance,
     get_player_oven_balances,
     get_player_vote_snapshot,
@@ -751,6 +756,19 @@ MONOPOLY_ROLL_ACTIVITY_PHRASES: tuple[str, ...] = (
     "vibing mid-air",
     "whirling",
     "yeeting itself skyward",
+)
+LOOTBOX_REVEAL_DELAY_SECONDS = 3.0
+LOOTBOX_ACTIVITY_PHRASES: tuple[str, ...] = (
+    "building suspense",
+    "creaking open",
+    "crackling with energy",
+    "humming ominously",
+    "rattling violently",
+    "rumbling",
+    "shaking dramatically",
+    "shimmering",
+    "sparking",
+    "unlocking ancient luck",
 )
 
 

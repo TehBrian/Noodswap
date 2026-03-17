@@ -1,8 +1,9 @@
 from dataclasses import dataclass
 import math
+import random
 from typing import Optional
 
-from .cards import card_value, get_burn_payout, make_drop_choices, split_card_id
+from .cards import CARD_CATALOG, NORMALIZED_RARITY_WEIGHTS, card_value, get_burn_payout, make_drop_choices, random_generation, split_card_id
 from .fonts import AVAILABLE_FONTS, FONT_COST_FRACTION, font_label, font_rarity
 from .frames import FRAME_COST_FRACTION, available_frame_keys, frame_label, frame_rarity
 from .morphs import AVAILABLE_MORPHS, MORPH_COST_FRACTION, morph_label, morph_rarity
@@ -31,6 +32,8 @@ from .storage import (
     get_instance_by_code,
     get_last_pulled_instance,
     get_player_info,
+    get_wishlist_cards,
+    open_lootbox_with_key,
     set_font_on_instance_no_charge,
     set_frame_on_instance_no_charge,
     set_morph_on_instance_no_charge,
@@ -137,6 +140,89 @@ def execute_drop_claim(
         generation=generation,
         card_id=resolved_card_id,
         cooldown_remaining_seconds=0.0,
+    )
+
+
+LOOTBOX_WISHLIST_WEIGHT_MULTIPLIER = 4.0
+
+
+@dataclass(frozen=True)
+class LootboxOpenExecution:
+    error_message: Optional[str]
+    remaining_keys: int
+    instance_id: Optional[int]
+    card_type_id: Optional[str]
+    generation: Optional[int]
+    card_id: Optional[str]
+
+    @property
+    def is_error(self) -> bool:
+        return self.error_message is not None
+
+
+def _choose_lootbox_card_type_id(wishlist_card_ids: set[str]) -> Optional[str]:
+    card_type_ids: list[str] = []
+    weights: list[float] = []
+
+    for card_type_id, card in CARD_CATALOG.items():
+        rarity = str(card.get("rarity", "")).strip().lower()
+        if rarity == "common":
+            continue
+
+        base_weight = float(NORMALIZED_RARITY_WEIGHTS.get(rarity, 1.0))
+        if base_weight <= 0:
+            continue
+
+        if card_type_id in wishlist_card_ids:
+            base_weight *= LOOTBOX_WISHLIST_WEIGHT_MULTIPLIER
+
+        card_type_ids.append(card_type_id)
+        weights.append(base_weight)
+
+    if not card_type_ids:
+        return None
+
+    return random.choices(card_type_ids, weights=weights, k=1)[0]
+
+
+def execute_lootbox_open(guild_id: int, user_id: int, now: float) -> LootboxOpenExecution:
+    wished_cards = set(get_wishlist_cards(guild_id, user_id))
+    card_type_id = _choose_lootbox_card_type_id(wished_cards)
+    if card_type_id is None:
+        return LootboxOpenExecution(
+            error_message="Lootbox configuration error: no eligible cards.",
+            remaining_keys=0,
+            instance_id=None,
+            card_type_id=None,
+            generation=None,
+            card_id=None,
+        )
+
+    generation = random_generation()
+    opened, remaining_keys, instance_id, card_id = open_lootbox_with_key(
+        guild_id,
+        user_id,
+        card_type_id,
+        generation,
+        pulled_at=now,
+    )
+    if not opened:
+        return LootboxOpenExecution(
+            error_message="You need at least 1 lootbox key to open a lootbox.",
+            remaining_keys=0,
+            instance_id=None,
+            card_type_id=None,
+            generation=None,
+            card_id=None,
+        )
+
+    return LootboxOpenExecution(
+        error_message=None,
+        remaining_keys=remaining_keys,
+        instance_id=instance_id,
+        card_type_id=card_type_id,
+        generation=generation,
+        card_id=card_id,
     )
 
 

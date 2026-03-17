@@ -3,7 +3,7 @@ import math
 import sqlite3
 import time
 
-TARGET_SCHEMA_VERSION = 35
+TARGET_SCHEMA_VERSION = 36
 _BASE36_ALPHABET = "0123456789abcdefghijklmnopqrstuvwxyz"
 
 
@@ -1200,6 +1200,46 @@ def _apply_migration_v35(conn: sqlite3.Connection) -> None:
     )
 
 
+def _apply_migration_v36(conn: sqlite3.Connection) -> None:
+    players_table_exists = (
+        conn.execute(
+            """
+        SELECT 1
+        FROM sqlite_master
+        WHERE type = 'table' AND name = 'players'
+        LIMIT 1
+        """
+        ).fetchone()
+        is not None
+    )
+    if not players_table_exists:
+        return
+
+    if not _has_column(conn, "players", "lootbox_keys"):
+        conn.execute("ALTER TABLE players ADD COLUMN lootbox_keys INTEGER NOT NULL DEFAULT 0")
+    if not _has_column(conn, "players", "oven_lootbox_keys"):
+        conn.execute("ALTER TABLE players ADD COLUMN oven_lootbox_keys INTEGER NOT NULL DEFAULT 0")
+
+    conn.executescript("""
+        DROP TRIGGER IF EXISTS prevent_negative_dough;
+        CREATE TRIGGER prevent_negative_dough
+        BEFORE UPDATE OF dough, oven_dough, starter, oven_starter, drop_tickets, oven_drop_tickets, pull_tickets, oven_pull_tickets, lootbox_keys, oven_lootbox_keys ON players
+        WHEN NEW.dough < 0
+            OR NEW.oven_dough < 0
+            OR NEW.starter < 0
+            OR NEW.oven_starter < 0
+            OR NEW.drop_tickets < 0
+            OR NEW.oven_drop_tickets < 0
+            OR NEW.pull_tickets < 0
+            OR NEW.oven_pull_tickets < 0
+            OR NEW.lootbox_keys < 0
+            OR NEW.oven_lootbox_keys < 0
+        BEGIN
+            SELECT RAISE(ABORT, 'balances cannot go negative');
+        END;
+        """)
+
+
 def run_migrations(
     conn: sqlite3.Connection,
     *,
@@ -1383,6 +1423,11 @@ def run_migrations(
         _apply_migration_v35(conn)
         _set_schema_version(conn, 35)
         current_version = 35
+
+    if current_version < 36:
+        _apply_migration_v36(conn)
+        _set_schema_version(conn, 36)
+        current_version = 36
 
     if current_version > target_schema_version:
         raise RuntimeError(f"Database schema version {current_version} is newer than supported {target_schema_version}.")

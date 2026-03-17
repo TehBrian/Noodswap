@@ -26,6 +26,8 @@ Columns:
 - `oven_drop_tickets INTEGER NOT NULL DEFAULT 0`
 - `pull_tickets INTEGER NOT NULL DEFAULT 0`
 - `oven_pull_tickets INTEGER NOT NULL DEFAULT 0`
+- `lootbox_keys INTEGER NOT NULL DEFAULT 0`
+- `oven_lootbox_keys INTEGER NOT NULL DEFAULT 0`
 - `votes INTEGER NOT NULL DEFAULT 0`
 - `last_drop_at REAL NOT NULL DEFAULT 0` (tracks last `drop` command usage timestamp)
 - `last_pull_at REAL NOT NULL DEFAULT 0` (tracks last successful drop-card claim timestamp)
@@ -37,7 +39,7 @@ Columns:
 
 Purpose:
 - Player economy and cooldown state in the global Noodswap scope
-- Includes standard wallet currencies (`dough`, `starter`, `drop_tickets`, `pull_tickets`) plus segregated oven balances (`oven_dough`, `oven_starter`, `oven_drop_tickets`, `oven_pull_tickets`)
+- Includes standard wallet currencies (`dough`, `starter`, `drop_tickets`, `pull_tickets`, `lootbox_keys`) plus segregated oven balances (`oven_dough`, `oven_starter`, `oven_drop_tickets`, `oven_pull_tickets`, `oven_lootbox_keys`)
 - Wallet balances are gameplay-active and may be modified by game systems (for example Monopoly, battles, and gambling)
 - Oven balances are player-safe storage and are only modified by player-initiated oven deposit/withdraw actions
 - Oven balances are excluded from spend/tax/rent flows until explicitly withdrawn

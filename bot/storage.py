@@ -154,7 +154,7 @@ def _oven_fee_pot_contribution(fee: int) -> int:
     )
 
 
-_OVEN_ITEM_KEYS = {"dough", "starter", "drop", "pull"}
+_OVEN_ITEM_KEYS = {"dough", "starter", "drop", "pull", "key"}
 
 
 def _normalize_oven_item(item: str | None) -> str:
@@ -169,6 +169,8 @@ def _normalize_oven_item(item: str | None) -> str:
         return "drop"
     if normalized in {"pull", "pulls", "pull_ticket", "pull_tickets"}:
         return "pull"
+    if normalized in {"key", "keys", "lootbox", "lootbox_key", "lootbox_keys"}:
+        return "key"
     return ""
 
 
@@ -181,6 +183,8 @@ def _get_spendable_balance(players: PlayerRepository, guild_id: int, user_id: in
         return players.get_drop_tickets(guild_id, user_id)
     if item == "pull":
         return players.get_pull_tickets(guild_id, user_id)
+    if item == "key":
+        return players.get_lootbox_keys(guild_id, user_id)
     raise ValueError(f"unsupported oven item: {item}")
 
 
@@ -193,6 +197,8 @@ def _get_oven_balance(players: PlayerRepository, guild_id: int, user_id: int, it
         return players.get_oven_drop_tickets(guild_id, user_id)
     if item == "pull":
         return players.get_oven_pull_tickets(guild_id, user_id)
+    if item == "key":
+        return players.get_oven_lootbox_keys(guild_id, user_id)
     raise ValueError(f"unsupported oven item: {item}")
 
 
@@ -208,6 +214,9 @@ def _add_spendable(players: PlayerRepository, guild_id: int, user_id: int, item:
         return
     if item == "pull":
         players.add_pull_tickets(guild_id, user_id, amount)
+        return
+    if item == "key":
+        players.add_lootbox_keys(guild_id, user_id, amount)
         return
     raise ValueError(f"unsupported oven item: {item}")
 
@@ -225,6 +234,9 @@ def _add_oven(players: PlayerRepository, guild_id: int, user_id: int, item: str,
     if item == "pull":
         players.add_oven_pull_tickets(guild_id, user_id, amount)
         return
+    if item == "key":
+        players.add_oven_lootbox_keys(guild_id, user_id, amount)
+        return
     raise ValueError(f"unsupported oven item: {item}")
 
 
@@ -239,6 +251,8 @@ def _pot_add_for_item(pot: GamblingPotRepository, guild_id: int, item: str, amou
         pot.add(guild_id, drop_tickets=amount)
     elif item == "pull":
         pot.add(guild_id, pull_tickets=amount)
+    elif item == "key":
+        return
 
 
 @contextmanager
@@ -1391,7 +1405,7 @@ def get_player_oven_balance(guild_id: int, user_id: int) -> int:
         return players.get_oven_dough(guild_id, user_id)
 
 
-def get_player_oven_balances(guild_id: int, user_id: int) -> tuple[int, int, int, int]:
+def get_player_oven_balances(guild_id: int, user_id: int) -> tuple[int, int, int, int, int]:
     guild_id = _scope_guild_id(guild_id)
     with get_db_connection() as conn:
         players = PlayerRepository(conn, STARTING_DOUGH)
@@ -1401,6 +1415,7 @@ def get_player_oven_balances(guild_id: int, user_id: int) -> tuple[int, int, int
             players.get_oven_starter(guild_id, user_id),
             players.get_oven_drop_tickets(guild_id, user_id),
             players.get_oven_pull_tickets(guild_id, user_id),
+            players.get_oven_lootbox_keys(guild_id, user_id),
         )
 
 
@@ -1418,6 +1433,14 @@ def get_player_pull_tickets(guild_id: int, user_id: int) -> int:
         players = PlayerRepository(conn, STARTING_DOUGH)
         players.ensure_player(guild_id, user_id)
         return players.get_pull_tickets(guild_id, user_id)
+
+
+def get_player_lootbox_keys(guild_id: int, user_id: int) -> int:
+    guild_id = _scope_guild_id(guild_id)
+    with get_db_connection() as conn:
+        players = PlayerRepository(conn, STARTING_DOUGH)
+        players.ensure_player(guild_id, user_id)
+        return players.get_lootbox_keys(guild_id, user_id)
 
 
 def get_player_votes(guild_id: int, user_id: int) -> int:
@@ -2325,6 +2348,7 @@ def claim_vote_reward(
     reward_dough: int = 0,
     reward_drop_tickets: int = 0,
     reward_pull_tickets: int = 0,
+    reward_lootbox_keys: int = 0,
     vote_provider: str = "",
     remote_ip: str | None = None,
     webhook_path: str = "",
@@ -2353,6 +2377,8 @@ def claim_vote_reward(
             players.add_drop_tickets(guild_id, user_id, reward_drop_tickets)
         if reward_pull_tickets > 0:
             players.add_pull_tickets(guild_id, user_id, reward_pull_tickets)
+        if reward_lootbox_keys > 0:
+            players.add_lootbox_keys(guild_id, user_id, reward_lootbox_keys)
         players.add_votes(guild_id, user_id, 1)
         conn.execute(
             """
@@ -2614,6 +2640,60 @@ def consume_pull_cooldown_or_ticket(
             return True, 0.0
 
         return False, cooldown_remaining
+
+
+def consume_lootbox_key(guild_id: int, user_id: int) -> tuple[bool, int]:
+    guild_id = _scope_guild_id(guild_id)
+    with get_db_connection() as conn:
+        _begin_immediate(conn)
+        players = PlayerRepository(conn, STARTING_DOUGH)
+        players.ensure_player(guild_id, user_id)
+
+        current_keys = players.get_lootbox_keys(guild_id, user_id)
+        if current_keys <= 0:
+            return False, 0
+
+        players.add_lootbox_keys(guild_id, user_id, -1)
+        return True, players.get_lootbox_keys(guild_id, user_id)
+
+
+def open_lootbox_with_key(
+    guild_id: int,
+    user_id: int,
+    card_type_id: str,
+    generation: int,
+    *,
+    pulled_at: float | None = None,
+) -> tuple[bool, int, int | None, str | None]:
+    guild_id = _scope_guild_id(guild_id)
+    if generation < GENERATION_MIN or generation > GENERATION_MAX:
+        raise ValueError("generation out of allowed bounds")
+
+    with get_db_connection() as conn:
+        _begin_immediate(conn)
+        players = PlayerRepository(conn, STARTING_DOUGH)
+        instances = CardInstanceRepository(conn)
+        players.ensure_player(guild_id, user_id)
+
+        keys = players.get_lootbox_keys(guild_id, user_id)
+        if keys <= 0:
+            return False, 0, None, None
+
+        players.add_lootbox_keys(guild_id, user_id, -1)
+        instance_id = instances.create_owned_instance(
+            guild_id,
+            user_id,
+            card_type_id,
+            generation,
+            dropped_by_user_id=user_id,
+            pulled_by_user_id=user_id,
+            pulled_at=pulled_at,
+        )
+        players.set_last_pulled_instance(guild_id, user_id, instance_id)
+
+        persisted = instances.get_by_id(guild_id, instance_id)
+        resolved_card_id = persisted[3] if persisted is not None else None
+        return True, players.get_lootbox_keys(guild_id, user_id), instance_id, resolved_card_id
 
 
 def get_card_quantity(guild_id: int, user_id: int, card_type_id: str) -> int:
