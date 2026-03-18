@@ -755,7 +755,7 @@ class ViewTests:
         assert len(interaction.response.edited_messages) == 2
         rolled_embed = interaction.response.edited_messages[0]["embed"]
         assert rolled_embed.title == "Morph Roll"
-        assert "Trait Rarity: **Common** (x1.00)" in rolled_embed.description
+        assert "Trait rarity: **Common** (x1.00)" in rolled_embed.description
         assert "Current Balance: **41** dough" in rolled_embed.description
         assert "Reroll Cost: **9** dough" in rolled_embed.description
         applied_embed = interaction.response.edited_messages[1]["embed"]
@@ -1016,7 +1016,7 @@ class ViewTests:
         assert len(interaction.response.edited_messages) == 2
         rolled_embed = interaction.response.edited_messages[0]["embed"]
         assert rolled_embed.title == "Font Roll"
-        assert "Trait Rarity: **Uncommon** (x1.02)" in rolled_embed.description
+        assert "Trait rarity: **Uncommon** (x1.02)" in rolled_embed.description
         assert "Current Balance: **41** dough" in rolled_embed.description
         assert "Reroll Cost: **9** dough" in rolled_embed.description
         applied_embed = interaction.response.edited_messages[1]["embed"]

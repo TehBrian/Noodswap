@@ -300,7 +300,7 @@ class CommandsWishlistTests:
 
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
-        assert sent_embed.title == "Wishlist"
+        assert sent_embed.title == "Wishlist Matches"
         assert sent_embed.description == "Added cards to wishlist:\ncard zero\ncard one"
 
     async def test_wish_remove_batch_lists_removed_cards_on_separate_lines(self) -> None:
@@ -327,7 +327,7 @@ class CommandsWishlistTests:
 
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
-        assert sent_embed.title == "Wishlist"
+        assert sent_embed.title == "Wishlist Matches"
         assert sent_embed.description == "Removed cards from wishlist:\ncard zero\ncard one"
 
 
@@ -444,7 +444,7 @@ class CommandsTagTests:
 
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
-        assert sent_embed.title == "Tags"
+        assert sent_embed.title == "Tags Assigned"
         assert sent_embed.description == "Assigned cards to tag `safe`:\ncard zero\ncard one"
 
     async def test_tag_unassign_batch_lists_removed_cards_on_separate_lines(self) -> None:
@@ -474,7 +474,7 @@ class CommandsTagTests:
 
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
-        assert sent_embed.title == "Tags"
+        assert sent_embed.title == "Tags Unassigned"
         assert sent_embed.description == "Removed cards from tag `safe`:\ncard zero\ncard one"
 
     async def test_tag_cards_shows_sortable_collection_view(self) -> None:
@@ -974,7 +974,7 @@ class CommandsTeamTests:
 
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
-        assert sent_embed.title == "Teams"
+        assert sent_embed.title == "Teams Assigned"
         assert sent_embed.description == "Assigned cards to team `alpha`:\ncard zero\ncard one"
 
     async def test_team_unassign_batch_lists_removed_cards_on_separate_lines(self) -> None:
@@ -1004,7 +1004,7 @@ class CommandsTeamTests:
 
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
-        assert sent_embed.title == "Teams"
+        assert sent_embed.title == "Teams Unassigned"
         assert sent_embed.description == "Removed cards from team `alpha`:\ncard zero\ncard one"
 
     async def test_team_cards_shows_hp_atk_def_stats(self) -> None:
@@ -1222,7 +1222,7 @@ class CommandsLookupTests:
         assert "G-101" in sent_embed.description
         assert "dough" in sent_embed.description
         assert "**Value Breakdown**" in sent_embed.description
-        assert "Trait Multiplier" in sent_embed.description
+        assert "Trait multiplier" in sent_embed.description
         assert re.search(r"HP: \*\*\d+\*\* • ATK: \*\*\d+\*\* • DEF: \*\*\d+\*\*", sent_embed.description)
 
     async def test_lookup_shows_card_embed_for_hash_prefixed_card_id(self) -> None:
@@ -1307,7 +1307,7 @@ class CommandsLookupTests:
         assert "Pulled by: <@111>" in sent_embed.description
         assert "dough" in sent_embed.description
         assert "Base:" not in sent_embed.description
-        assert "Trait Multiplier" in sent_embed.description
+        assert "Trait multiplier" in sent_embed.description
 
     async def test_lookup_falls_back_to_exact_card_name(self) -> None:
         lookup_command = _get_command(self.bot, "lookup")
@@ -1883,7 +1883,7 @@ class CommandsBuyTests:
         assert sent_embed.title == "Buy"
         assert "Purchased: **3 drop tickets**" in sent_embed.description
         assert "Starter: **4**" in sent_embed.description
-        assert "Drop Tickets: **7**" in sent_embed.description
+        assert "Drop tickets: **7**" in sent_embed.description
 
     async def test_buy_pull_purchases_with_starter(self) -> None:
         buy_pull_command = _get_group_command(self.bot, "buy", "pull")
@@ -1906,7 +1906,7 @@ class CommandsBuyTests:
         assert sent_embed.title == "Buy"
         assert "Purchased: **3 pull tickets**" in sent_embed.description
         assert "Starter: **4**" in sent_embed.description
-        assert "Pull Tickets: **8**" in sent_embed.description
+        assert "Pull tickets: **8**" in sent_embed.description
 
 
 class CommandsDropTests:
@@ -2505,22 +2505,22 @@ class CommandsInfoTests:
         sent_embed = ctx.send.await_args.kwargs["embed"]
         field_values = {field.name: field.value for field in sent_embed.fields}
         assert field_values.get("Cards") == "7"
-        assert field_values.get("**Wallet Items**") == "\n".join(
+        assert field_values.get("**Wallet Contents**") == "\n".join(
             [
-                "- 123 dough",
-                "- 9 starter",
-                "- 4 drop tickets",
-                "- 6 pull tickets",
-                "- 6 lootbox keys",
+                "Dough: **123**",
+                "Starter: **9**",
+                "Drop tickets: **4**",
+                "Pull tickets: **6**",
+                "Lootbox keys: **6**",
             ]
         )
-        assert field_values.get("**Oven Items**") == "\n".join(
+        assert field_values.get("**Oven Contents**") == "\n".join(
             [
-                "- 21 dough",
-                "- 3 starter",
-                "- 2 drop tickets",
-                "- 1 pull tickets",
-                "- 5 lootbox keys",
+                "Dough: **21**",
+                "Starter: **3**",
+                "Drop tickets: **2**",
+                "Pull tickets: **1**",
+                "Lootbox keys: **5**",
             ]
         )
         assert field_values.get("Wishes") == "3"
@@ -2587,11 +2587,11 @@ class CommandsOvenTests:
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
         assert sent_embed.title == "Oven"
-        assert "Oven Dough: **125**" in sent_embed.description
-        assert "Oven Starter: **4**" in sent_embed.description
-        assert "Oven Drop Tickets: **3**" in sent_embed.description
-        assert "Oven Pull Tickets: **2**" in sent_embed.description
-        assert "Oven Lootbox Keys: **9**" in sent_embed.description
+        assert "Dough: **125**" in sent_embed.description
+        assert "Starter: **4**" in sent_embed.description
+        assert "Drop tickets: **3**" in sent_embed.description
+        assert "Pull tickets: **2**" in sent_embed.description
+        assert "Lootbox keys: **9**" in sent_embed.description
 
     async def test_oven_deposit_success_shows_fee_breakdown(self) -> None:
         oven_deposit_command = _get_group_command(self.bot, "oven", "deposit")
@@ -2619,7 +2619,7 @@ class CommandsOvenTests:
 
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
-        assert sent_embed.title == "Deposit"
+        assert sent_embed.title == "Oven Deposit"
         assert "Fee (3%): **3 starter**" in sent_embed.description
         assert "Moved to Oven: **97 starter**" in sent_embed.description
 
@@ -2649,7 +2649,7 @@ class CommandsOvenTests:
 
         ctx.send.assert_awaited_once()
         sent_embed = ctx.send.await_args.kwargs["embed"]
-        assert sent_embed.title == "Oven"
+        assert sent_embed.title == "Oven Withdraw"
         assert "Current oven balance: **40**" in sent_embed.description
 
 
@@ -2820,8 +2820,8 @@ class CommandsGiftTests:
         sent_embed = ctx.send.await_args.kwargs["embed"]
         assert sent_embed.title == "Gift"
         assert "Sent: **2** drop tickets" in sent_embed.description
-        assert "Your Drop Tickets: **6**" in sent_embed.description
-        assert "Target's Drop Tickets: **2**" in sent_embed.description
+        assert "Your Drop tickets: **6**" in sent_embed.description
+        assert "Target's Drop tickets: **2**" in sent_embed.description
 
     async def test_gift_pull_success_updates_balances(self) -> None:
         gift_pull_command = _get_group_command(self.bot, "gift", "pull")
@@ -2850,8 +2850,8 @@ class CommandsGiftTests:
         sent_embed = ctx.send.await_args.kwargs["embed"]
         assert sent_embed.title == "Gift"
         assert "Sent: **2** pull tickets" in sent_embed.description
-        assert "Your Pull Tickets: **6**" in sent_embed.description
-        assert "Target's Pull Tickets: **2**" in sent_embed.description
+        assert "Your Pull tickets: **6**" in sent_embed.description
+        assert "Target's Pull tickets: **2**" in sent_embed.description
 
 
 class CommandsVoteTests:
@@ -2883,8 +2883,8 @@ class CommandsVoteTests:
         assert "Reward: **+2 drop tickets** and **+1 pull ticket**" in sent_embed.description
         assert "Voted on [Top.gg](https://top.gg/bot/1478727078286196909/vote): ✅" in sent_embed.description
         assert "Voted on [DiscordBotList](https://discordbotlist.com/bots/noodswap/upvote): ❌" in sent_embed.description
-        assert "- **Total** Votes: **12**" in sent_embed.description
-        assert "- **Monthly** Votes: **4**" in sent_embed.description
+        assert "- **Total** votes: **12**" in sent_embed.description
+        assert "- **Monthly** votes: **4**" in sent_embed.description
         assert isinstance(sent_view, discord.ui.View)
         assert len(sent_view.children) == 2
         assert sent_view.children[0].label == "Vote on Top.gg"

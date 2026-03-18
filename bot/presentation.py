@@ -38,8 +38,8 @@ def burn_confirmation_description(
 
 {card_display(card_type_id, generation, card_id=card_id)}
 
-Base Value: **{base_value}**
-Total Multiplier: **x{multiplier:.2f}**
+Base value: **{base_value}**
+Total multiplier: **x{multiplier:.2f}**
 Value: **{value}**
 Payout: **{value}** ± **{delta_range}**"""
 
@@ -433,9 +433,9 @@ def oven_balance_description(dough: int, starter: int, drop_tickets: int, pull_t
         [
             f"Dough: **{dough}**",
             f"Starter: **{starter}**",
-            f"Drop Tickets: **{drop_tickets}**",
-            f"Pull Tickets: **{pull_tickets}**",
-            f"Lootbox Keys: **{lootbox_keys}**",
+            f"Drop tickets: **{drop_tickets}**",
+            f"Pull tickets: **{pull_tickets}**",
+            f"Lootbox keys: **{lootbox_keys}**",
         ]
     )
 
@@ -527,7 +527,7 @@ def buy_ticket_success_description(
     spent_label: str = "Cost",
 ) -> str:
     plural = "s" if spent != 1 else ""
-    ticket_label = "Drop Tickets" if ticket_type == "drop" else "Pull Tickets"
+    ticket_label = "Drop tickets" if ticket_type == "drop" else "Pull tickets"
     return multiline_text(
         [
             f"Purchased: **{spent} {ticket_type} ticket{plural}**",
@@ -576,8 +576,8 @@ def vote_status_description(
             f"Reward: **+{dbl_reward_drop} drop tickets** and **+{dbl_reward_pull} pull ticket** per **vote** on [DiscordBotList]({dbl_url})",
             f"> Voted on [DiscordBotList]({dbl_url}): {dbl_status}",
             "",
-            f"- **Total** Votes: **{total_votes}**",
-            f"- **Monthly** Votes: **{monthly_votes}** (resets <t:{next_month_reset_unix}:R>)",
+            f"- **Total** votes: **{total_votes}**",
+            f"- **Monthly** votes: **{monthly_votes}** (resets <t:{next_month_reset_unix}:R>)",
         ]
     )
 
@@ -791,7 +791,7 @@ def lootbox_result_description(card_display_str: str, remaining_keys: int) -> st
         [
             f"You pulled: {card_display_str}",
             "",
-            f"Lootbox Keys left: **{remaining_keys}**",
+            f"Lootbox keys left: **{remaining_keys}**",
         ]
     )
 
@@ -825,8 +825,8 @@ def monopoly_pot_description(dough: int, starter: int, drop_tickets: int, pull_t
         [
             f"Dough: **{dough}**",
             f"Starter: **{starter}**",
-            f"Drop Tickets: **{drop_tickets}**",
-            f"Pull Tickets: **{pull_tickets}**",
+            f"Drop tickets: **{drop_tickets}**",
+            f"Pull tickets: **{pull_tickets}**",
         ]
     )
 
@@ -875,11 +875,11 @@ def slots_no_match_lines(cooldown_text: str) -> list[str]:
 def player_wallet_items_value(dough: int, starter: int, drop_tickets: int, pull_tickets: int, lootbox_keys: int) -> str:
     return "\n".join(
         [
-            f"- {dough} dough",
-            f"- {starter} starter",
-            f"- {drop_tickets} drop tickets",
-            f"- {pull_tickets} pull tickets",
-            f"- {lootbox_keys} lootbox keys",
+            f"Dough: **{dough}**",
+            f"Starter: **{starter}**",
+            f"Drop tickets: **{drop_tickets}**",
+            f"Pull tickets: **{pull_tickets}**",
+            f"Lootbox keys: **{lootbox_keys}**",
         ]
     )
 
@@ -893,10 +893,10 @@ def player_oven_items_value(
 ) -> str:
     return "\n".join(
         [
-            f"- {oven_dough} dough",
-            f"- {oven_starter} starter",
-            f"- {oven_drop_tickets} drop tickets",
-            f"- {oven_pull_tickets} pull tickets",
-            f"- {oven_lootbox_keys} lootbox keys",
+            f"Dough: **{oven_dough}**",
+            f"Starter: **{oven_starter}**",
+            f"Drop tickets: **{oven_drop_tickets}**",
+            f"Pull tickets: **{oven_pull_tickets}**",
+            f"Lootbox keys: **{oven_lootbox_keys}**",
         ]
     )

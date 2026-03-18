@@ -575,12 +575,12 @@ def register_social_commands(bot: commands.Bot) -> None:
             inline=True,
         )
         embed.add_field(
-            name="**Wallet Items**",
+            name="**Wallet Contents**",
             value=player_wallet_items_value(dough, starter, drop_tickets, pull_tickets, lootbox_keys),
             inline=True,
         )
         embed.add_field(
-            name="**Oven Items**",
+            name="**Oven Contents**",
             value=player_oven_items_value(
                 oven_dough,
                 oven_starter,

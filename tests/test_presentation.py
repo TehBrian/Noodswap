@@ -32,11 +32,11 @@ def test_cosmetic_roll_confirmation_description() -> None:
 def test_oven_balance_description() -> None:
     description = oven_balance_description(11, 22, 3, 4, 5)
     assert description == (
-        "Oven Dough: **11**\n"
-        "Oven Starter: **22**\n"
-        "Oven Drop Tickets: **3**\n"
-        "Oven Pull Tickets: **4**\n"
-        "Oven Lootbox Keys: **5**"
+        "Dough: **11**\n"
+        "Starter: **22**\n"
+        "Drop tickets: **3**\n"
+        "Pull tickets: **4**\n"
+        "Lootbox keys: **5**"
     )
 
 
@@ -125,9 +125,9 @@ def test_buy_ticket_success_description_drop_and_pull_labels() -> None:
     drop = buy_ticket_success_description("drop", 2, 8, 11)
     pull = buy_ticket_success_description("pull", 1, 7, 5, spent_label="Spent")
     assert "Cost: **2 starter**" in drop
-    assert "Drop Tickets: **11**" in drop
+    assert "Drop tickets: **11**" in drop
     assert "Spent: **1 starter**" in pull
-    assert "Pull Tickets: **5**" in pull
+    assert "Pull tickets: **5**" in pull
 
 
 def test_vote_status_description() -> None:
@@ -147,7 +147,7 @@ def test_vote_status_description() -> None:
     )
     assert "Voted on [Top.gg](https://top.gg/bot/abc): ✅" in description
     assert "Voted on [DiscordBotList](https://discordbotlist.com/bots/abc): ❌" in description
-    assert "- **Monthly** Votes: **45** (resets <t:1700000000:R>)" in description
+    assert "- **Monthly** votes: **45** (resets <t:1700000000:R>)" in description
 
 
 def test_player_cooldowns_description() -> None:
@@ -182,7 +182,7 @@ def test_lootbox_suspense_and_result_descriptions() -> None:
         "\n"
         "Rare or better cards only, and your wishes are 4x more likely to occur. Good luck."
     )
-    assert result == "You pulled: **Pasta Hero** • (ID: 1)\n\nLootbox Keys left: **7**"
+    assert result == "You pulled: **Pasta Hero** • (ID: 1)\n\nLootbox keys left: **7**"
 
 
 def test_monopoly_board_description() -> None:
@@ -199,7 +199,7 @@ def test_monopoly_board_description() -> None:
 
 def test_monopoly_pot_description() -> None:
     description = monopoly_pot_description(9, 8, 7, 6)
-    assert description == "Dough: **9**\nStarter: **8**\nDrop Tickets: **7**\nPull Tickets: **6**"
+    assert description == "Dough: **9**\nStarter: **8**\nDrop tickets: **7**\nPull tickets: **6**"
 
 
 def test_monopoly_usage_description() -> None:
@@ -237,5 +237,5 @@ def test_slots_result_lines_helpers() -> None:
 def test_player_info_field_value_helpers() -> None:
     wallet = player_wallet_items_value(20, 10, 2, 1, 9)
     oven = player_oven_items_value(5, 4, 3, 2, 8)
-    assert wallet == "- 20 dough\n- 10 starter\n- 2 drop tickets\n- 1 pull tickets\n- 9 lootbox keys"
-    assert oven == "- 5 dough\n- 4 starter\n- 3 drop tickets\n- 2 pull tickets\n- 8 lootbox keys"
+    assert wallet == "Dough: **20**\nStarter: **10**\nDrop tickets: **2**\nPull tickets: **1**\nLootbox keys: **9**"
+    assert oven == "Dough: **5**\nStarter: **4**\nDrop tickets: **3**\nPull tickets: **2**\nLootbox keys: **8**"

@@ -52,7 +52,7 @@ def _burn_result_has_required_fields(result: object) -> bool:
 
 def _format_trait_roll_details(rolled_rarity: str, rolled_multiplier: float) -> str:
     rarity_label = rolled_rarity.replace("_", " ").title()
-    return f"Trait Rarity: **{rarity_label}** (x{rolled_multiplier:.2f})"
+    return f"Trait rarity: **{rarity_label}** (x{rolled_multiplier:.2f})"
 
 
 def _trait_roll_description(
@@ -220,7 +220,7 @@ Payout: **{burn_result.payout} dough**
         description_blocks: list[str] = []
         if burned_lines:
             description_blocks.append("\n\n".join(burned_lines))
-            description_blocks.append(f"Total Payout: **{total_payout} dough**")
+            description_blocks.append(f"Total payout: **{total_payout} dough**")
 
         if burn_result.skipped_instances:
             skipped_lines = [f"`#{instance_id}`: {_format_skip_reasons(reasons)}" for instance_id, reasons in burn_result.skipped_instances]

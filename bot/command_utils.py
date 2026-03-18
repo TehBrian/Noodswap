@@ -318,9 +318,9 @@ def _lookup_trait_breakdown_description(
         [
             "",
             "**Value Breakdown**",
-            f"Base Value: **{base_value}**",
-            f"Generation Multiplier: **x{generation_multiplier:.2f}**",
-            f"Trait Multiplier: **x{trait_multiplier:.2f}**",
+            f"Base value: **{base_value}**",
+            f"Generation multiplier: **x{generation_multiplier:.2f}**",
+            f"Trait multiplier: **x{trait_multiplier:.2f}**",
             f"Value: **{computed_value}** dough",
         ]
     )
@@ -1031,7 +1031,7 @@ async def _wish_add(ctx: commands.Context, *card_ids: str) -> None:
         lines.append(f"Ambiguous (add individually): {', '.join(ambiguous)}")
     if unknown:
         lines.append(f"Unknown: {', '.join(unknown)}")
-    await _reply(ctx, embed=italy_embed("Wishlist", multiline_text(lines) if lines else "Nothing to update."))
+    await _reply(ctx, embed=italy_embed("Wishlist Matches", multiline_text(lines) if lines else "Nothing to update."))
 
 
 async def _wish_remove(ctx: commands.Context, *card_ids: str) -> None:
@@ -1093,7 +1093,7 @@ async def _wish_remove(ctx: commands.Context, *card_ids: str) -> None:
         lines.append(f"Ambiguous (remove individually): {', '.join(ambiguous)}")
     if unknown:
         lines.append(f"Unknown: {', '.join(unknown)}")
-    await _reply(ctx, embed=italy_embed("Wishlist", multiline_text(lines) if lines else "Nothing to update."))
+    await _reply(ctx, embed=italy_embed("Wishlist Matches", multiline_text(lines) if lines else "Nothing to update."))
 
 
 async def _wish_list(ctx: commands.Context, target_member: discord.abc.User | None = None) -> None:
@@ -1263,7 +1263,7 @@ async def _tag_assign(ctx: commands.Context, tag_name: str, *card_ids: str) -> N
         lines.append(f"Not owned: {', '.join(not_owned)}")
     if failed:
         lines.append(f"Failed: {', '.join(failed)}")
-    await _reply(ctx, embed=italy_embed("Tags", multiline_text(lines) if lines else "Nothing to update."))
+    await _reply(ctx, embed=italy_embed("Tags Assigned", multiline_text(lines) if lines else "Nothing to update."))
 
 
 async def _tag_unassign(ctx: commands.Context, tag_name: str, *card_ids: str) -> None:
@@ -1319,7 +1319,7 @@ async def _tag_unassign(ctx: commands.Context, tag_name: str, *card_ids: str) ->
         lines.append(f"Not tagged: {', '.join(not_tagged)}")
     if not_owned:
         lines.append(f"Not owned: {', '.join(not_owned)}")
-    await _reply(ctx, embed=italy_embed("Tags", multiline_text(lines) if lines else "Nothing to update."))
+    await _reply(ctx, embed=italy_embed("Tags Unassigned", multiline_text(lines) if lines else "Nothing to update."))
 
 
 async def _tag_cards(ctx: commands.Context, tag_name: str) -> None:
@@ -1712,7 +1712,7 @@ async def _team_assign(ctx: commands.Context, team_name: str, *card_ids: str) ->
         lines.append(f"Not owned: {', '.join(not_owned)}")
     if failed:
         lines.append(f"Failed: {', '.join(failed)}")
-    await _reply(ctx, embed=italy_embed("Teams", multiline_text(lines) if lines else "Nothing to update."))
+    await _reply(ctx, embed=italy_embed("Teams Assigned", multiline_text(lines) if lines else "Nothing to update."))
 
 
 async def _team_unassign(ctx: commands.Context, team_name: str, *card_ids: str) -> None:
@@ -1768,7 +1768,7 @@ async def _team_unassign(ctx: commands.Context, team_name: str, *card_ids: str) 
         lines.append(f"Not assigned: {', '.join(not_assigned)}")
     if not_owned:
         lines.append(f"Not owned: {', '.join(not_owned)}")
-    await _reply(ctx, embed=italy_embed("Teams", multiline_text(lines) if lines else "Nothing to update."))
+    await _reply(ctx, embed=italy_embed("Teams Unassigned", multiline_text(lines) if lines else "Nothing to update."))
 
 
 async def _team_cards(ctx: commands.Context, team_name: str) -> None:

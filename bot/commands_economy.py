@@ -1020,23 +1020,23 @@ def register_economy_commands(bot: commands.Bot) -> None:
         if result.status == "invalid_item":
             await _reply(
                 ctx,
-                embed=italy_embed("Oven", "Item must be one of: `dough`, `starter`, `drop`, `pull`, `key`."),
+                embed=italy_embed("Oven Deposit", "Item must be one of: `dough`, `starter`, `drop`, `pull`, `key`."),
             )
             return
         if result.status == "invalid_amount":
-            await _reply(ctx, embed=italy_embed("Oven", "Amount must be at least 1."))
+            await _reply(ctx, embed=italy_embed("Oven Deposit", "Amount must be at least 1."))
             return
         if result.status == "net_too_small":
             await _reply(
                 ctx,
-                embed=italy_embed("Oven", "Amount is too small after the 3% oven fee. Try a larger amount."),
+                embed=italy_embed("Oven Deposit", "Amount is too small after the 3% oven fee. Try a larger amount."),
             )
             return
         if result.status == "insufficient_spendable":
             await _reply(
                 ctx,
                 embed=italy_embed(
-                    "Oven",
+                    "Oven Deposit",
                     f"You do not have enough {_oven_item_label(result.item)}. Current wallet balance: **{result.spendable_balance}**.",
                 ),
             )
@@ -1046,7 +1046,7 @@ def register_economy_commands(bot: commands.Bot) -> None:
         await _reply(
             ctx,
             embed=italy_embed(
-                "Deposit",
+                "Oven Deposit",
                 oven_transaction_description(
                     "deposit",
                     item_label,
@@ -1068,23 +1068,23 @@ def register_economy_commands(bot: commands.Bot) -> None:
         if result.status == "invalid_item":
             await _reply(
                 ctx,
-                embed=italy_embed("Oven", "Item must be one of: `dough`, `starter`, `drop`, `pull`, `key`."),
+                embed=italy_embed("Oven Withdraw", "Item must be one of: `dough`, `starter`, `drop`, `pull`, `key`."),
             )
             return
         if result.status == "invalid_amount":
-            await _reply(ctx, embed=italy_embed("Oven", "Amount must be at least 1."))
+            await _reply(ctx, embed=italy_embed("Oven Withdraw", "Amount must be at least 1."))
             return
         if result.status == "net_too_small":
             await _reply(
                 ctx,
-                embed=italy_embed("Oven", "Amount is too small after the 3% oven fee. Try a larger amount."),
+                embed=italy_embed("Oven Withdraw", "Amount is too small after the 3% oven fee. Try a larger amount."),
             )
             return
         if result.status == "insufficient_oven":
             await _reply(
                 ctx,
                 embed=italy_embed(
-                    "Oven",
+                    "Oven Withdraw",
                     f"You do not have enough {_oven_item_label(result.item)} in the oven. Current oven balance: **{result.oven_balance}**.",
                 ),
             )
@@ -1094,7 +1094,7 @@ def register_economy_commands(bot: commands.Bot) -> None:
         await _reply(
             ctx,
             embed=italy_embed(
-                "Withdraw",
+                "Oven Withdraw",
                 oven_transaction_description(
                     "withdraw",
                     item_label,
@@ -1242,7 +1242,7 @@ def register_economy_commands(bot: commands.Bot) -> None:
                 "Gift",
                 gift_currency_description(
                     item_label="drop tickets",
-                    balance_noun="Drop Tickets",
+                    balance_noun="Drop tickets",
                     amount=amount,
                     recipient_id=resolved_member.id,
                     recipient_name=resolved_member.display_name,
@@ -1285,7 +1285,7 @@ def register_economy_commands(bot: commands.Bot) -> None:
                 "Gift",
                 gift_currency_description(
                     item_label="pull tickets",
-                    balance_noun="Pull Tickets",
+                    balance_noun="Pull tickets",
                     amount=amount,
                     recipient_id=resolved_member.id,
                     recipient_name=resolved_member.display_name,
