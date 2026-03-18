@@ -181,9 +181,6 @@ from .command_utils import (
     _require_guild as _require_guild,
     _resolve_burn_selector_instances as _resolve_burn_selector_instances,
 )
-from .services import execute_lootbox_open
-
-
 def register_economy_commands(bot: commands.Bot) -> None:
     @bot.command(name="drop", aliases=["d"])
     async def drop(ctx: commands.Context):
@@ -240,17 +237,19 @@ def register_economy_commands(bot: commands.Bot) -> None:
                 )
                 return
 
-            opened = execute_lootbox_open(_guild_id(ctx), ctx.author.id, time.time())
-            if opened.is_error:
+            prepared = prepare_lootbox_claim(_guild_id(ctx), ctx.author.id)
+            if prepared.is_error:
                 await _reply(
                     ctx,
-                    embed=italy_embed("Lootbox", opened.error_message or "Lootbox failed."),
+                    embed=italy_embed("Lootbox", prepared.error_message or "Lootbox failed."),
                 )
                 return
 
-            if opened.card_type_id is None or opened.generation is None:
+            if prepared.card_type_id is None or prepared.generation is None:
                 await _reply(ctx, embed=italy_embed("Lootbox", "Lootbox failed."))
                 return
+
+            rarity = str(CARD_CATALOG.get(prepared.card_type_id, {}).get("rarity", "")).strip()
 
             suspense_message = await _reply(
                 ctx,
@@ -258,27 +257,27 @@ def register_economy_commands(bot: commands.Bot) -> None:
             )
             await asyncio.sleep(LOOTBOX_REVEAL_DELAY_SECONDS)
 
-            image_url, image_file = embed_image_payload(
-                opened.card_type_id,
-                generation=opened.generation,
-            )
-            result_embed = italy_embed(
-                "Lootbox",
-                lootbox_result_description(
-                    card_display(opened.card_type_id, opened.generation, card_id=opened.card_id),
-                    opened.remaining_keys,
+            await suspense_message.edit(
+                embed=italy_embed(
+                    "Lootbox",
+                    lootbox_rarity_flavor_description(rarity),
                 ),
             )
-            if image_url is not None:
-                result_embed.set_image(url=image_url)
 
-            if image_file is not None:
-                await suspense_message.edit(
-                    embed=result_embed,
-                    attachments=[image_file],
-                )
-            else:
-                await suspense_message.edit(embed=result_embed)
+            await asyncio.sleep(LOOTBOX_PHASE_DELAY_SECONDS)
+
+            claim_view = LootboxClaimView(
+                _guild_id(ctx),
+                ctx.author.id,
+                prepared.card_type_id,
+                prepared.generation,
+                timeout_seconds=LOOTBOX_CLAIM_TIMEOUT_SECONDS,
+            )
+            updated_message = await suspense_message.edit(
+                embed=italy_embed("Lootbox", lootbox_claim_prompt_description()),
+                view=claim_view,
+            )
+            claim_view.message = updated_message
 
     @bot.command(name="marry", aliases=["m"])
     async def marry(ctx: commands.Context, card_id: str | None = None):

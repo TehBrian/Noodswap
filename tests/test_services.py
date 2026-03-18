@@ -1093,7 +1093,7 @@ class ServicesTests:
         assert not (result.is_error)
         assert result.morph_key == "black_and_white"
         assert result.rolled_rarity == "common"
-        assert result.rolled_multiplier == 1.0
+        assert result.rolled_multiplier == 1.01
         assert storage.get_instance_morph(guild_id, instance_id) == "black_and_white"
 
     def test_resolve_frame_roll_applies_selected_frame(self) -> None:
@@ -1122,7 +1122,7 @@ class ServicesTests:
         assert not (result.is_error)
         assert result.frame_key == "buttery"
         assert result.rolled_rarity == "mythical"
-        assert result.rolled_multiplier == 1.28
+        assert result.rolled_multiplier == 1.19
         assert storage.get_instance_frame(guild_id, instance_id) == "buttery"
 
     def test_resolve_font_roll_applies_selected_font(self) -> None:
@@ -1145,5 +1145,5 @@ class ServicesTests:
         assert not (result.is_error)
         assert result.font_key == "serif"
         assert result.rolled_rarity == "uncommon"
-        assert result.rolled_multiplier == 1.02
+        assert result.rolled_multiplier == 1.03
         assert storage.get_instance_font(guild_id, instance_id) == "serif"

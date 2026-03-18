@@ -2415,16 +2415,16 @@ class CommandsLootboxTests:
                 "bot.commands_economy.command_execution_gate",
                 side_effect=lambda *_args, **_kwargs: _gate_result(False),
             ),
-            patch("bot.commands_economy.execute_lootbox_open") as execute_lootbox,
+            patch("bot.commands_economy.prepare_lootbox_claim") as prepare_lootbox,
         ):
             await lootbox_command.callback(ctx)
 
-        execute_lootbox.assert_not_called()
+        prepare_lootbox.assert_not_called()
         sent_embed = ctx.send.await_args.kwargs["embed"]
         assert sent_embed.title == "Lootbox"
         assert "already opening" in sent_embed.description
 
-    async def test_lootbox_shows_suspense_then_result_after_delay(self) -> None:
+    async def test_lootbox_shows_three_phase_flow_before_claim(self) -> None:
         lootbox_command = _get_command(self.bot, "lootbox")
 
         message = AsyncMock()
@@ -2434,33 +2434,39 @@ class CommandsLootboxTests:
         ctx.send = AsyncMock(return_value=message)
         ctx.reply = ctx.send
 
-        result = SimpleNamespace(
+        prepared = SimpleNamespace(
             is_error=False,
             error_message=None,
-            remaining_keys=4,
-            instance_id=11,
             card_type_id="SPG",
             generation=222,
-            card_id="abc",
         )
 
         with (
-            patch("bot.commands_economy.execute_lootbox_open", return_value=result),
+            patch("bot.commands_economy.prepare_lootbox_claim", return_value=prepared),
+            patch.dict("bot.commands_economy.CARD_CATALOG", {"SPG": {"rarity": "epic"}}, clear=False),
             patch("bot.commands_economy.random.choice", return_value="shimmering"),
+            patch("bot.commands_economy.lootbox_rarity_flavor_description", return_value="phase-two flavor"),
+            patch("bot.commands_economy.lootbox_claim_prompt_description", return_value="phase-three prompt"),
             patch("bot.commands_economy.asyncio.sleep", new=AsyncMock()) as sleep_mock,
-            patch("bot.commands_economy.embed_image_payload", return_value=(None, None)),
         ):
             await lootbox_command.callback(ctx)
 
         first_embed = ctx.send.await_args.kwargs["embed"]
         assert first_embed.title == "Lootbox"
         assert "lootbox is" in first_embed.description
-        sleep_mock.assert_awaited_once_with(3.0)
+        assert [call.args[0] for call in sleep_mock.await_args_list] == [3.0, 1.75]
 
-        message.edit.assert_awaited_once()
-        final_embed = message.edit.await_args.kwargs["embed"]
-        assert "You pulled:" in final_embed.description
-        assert "Lootbox Keys Left: **4**" in final_embed.description
+        assert message.edit.await_count == 2
+        phase_two_embed = message.edit.await_args_list[0].kwargs["embed"]
+        assert "phase-two flavor" in phase_two_embed.description
+
+        phase_three_kwargs = message.edit.await_args_list[1].kwargs
+        phase_three_embed = phase_three_kwargs["embed"]
+        assert "phase-three prompt" in phase_three_embed.description
+        claim_view = phase_three_kwargs["view"]
+        assert getattr(claim_view, "opener_user_id", None) == 100
+        assert getattr(claim_view, "card_type_id", None) == "SPG"
+        assert getattr(claim_view, "generation", None) == 222
 
 
 class CommandsInfoTests:

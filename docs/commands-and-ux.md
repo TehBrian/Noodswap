@@ -136,8 +136,13 @@ This includes:
 
 ## Lootbox UX
 
-- `lootbox` consumes exactly 1 `lootbox key`
-- lootbox open uses delayed reveal UX: an initial suspense embed, then an edited result embed after a short delay
+- `lootbox` consumes exactly 1 `lootbox key` on successful claim (not at command start)
+- lootbox open uses a three-phase UX:
+  - phase 1: suspense embed
+  - phase 2: rarity flavor embed after reveal delay
+  - phase 3: claim prompt embed with a `Claim Reward` button
+- pressing `Claim Reward` reveals the card result and remaining key count
+- if claim is not completed before timeout, the claim prompt expires and no key is consumed
 - if the same user triggers `lootbox` while one is already in flight, the second attempt is rejected immediately
 - lootbox pulls are `rare` rarity or better (`common` and `uncommon` are excluded)
 - if a pulled card is on the opener's wishlist, that card receives a 4x selection weight multiplier
