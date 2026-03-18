@@ -48,10 +48,17 @@
       "group": "test"
     },
     {
-      "label": "report:rarity",
+      "label": "report:card_rarity",
       "type": "shell",
       "command": "${workspaceFolder}/.venv/bin/python",
       "args": ["scripts/rarity_odds.py"],
+      "group": "test"
+    }
+        {
+      "label": "report:trait_rarity",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/bin/python",
+      "args": ["scripts/trait_rarity_odds.py"],
       "group": "test"
     }
   ]

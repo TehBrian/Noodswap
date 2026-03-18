@@ -4,8 +4,8 @@ from typing import TypeVar
 
 from .rarities import RARITY_ORDER, build_rarity_weights
 
-TRAIT_CURVE_LINEAR_RATE = 0.20
-TRAIT_CURVE_TAIL_CURVATURE = 0.0
+TRAIT_CURVE_LINEAR_RATE = 0.25
+TRAIT_CURVE_TAIL_CURVATURE = 0.01
 TRAIT_CURVE_SMOOTHING = 1.5
 TRAIT_TOTAL_WEIGHT = 10_000
 
@@ -19,14 +19,14 @@ TRAIT_RARITY_WEIGHTS = build_rarity_weights(
 # Trait multipliers are intentionally conservative because they stack across
 # morph/frame/font and then multiply with generation value.
 TRAIT_RARITY_MULTIPLIERS: dict[str, float] = {
-    "common": 1.00,
-    "uncommon": 1.02,
+    "common": 1.01,
+    "uncommon": 1.03,
     "rare": 1.05,
-    "epic": 1.12,
-    "legendary": 1.22,
-    "mythical": 1.28,
-    "divine": 1.33,
-    "celestial": 1.38,
+    "epic": 1.09,
+    "legendary": 1.13,
+    "mythical": 1.19,
+    "divine": 1.25,
+    "celestial": 1.33,
 }
 
 _DEFAULT_TRAIT_RARITY = "common"
