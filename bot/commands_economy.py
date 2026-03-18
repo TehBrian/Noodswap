@@ -20,7 +20,10 @@ from .command_utils import (
     HD_CARD_RENDER_SIZE as HD_CARD_RENDER_SIZE,
     HelpView as HelpView,
     LOOTBOX_ACTIVITY_PHRASES as LOOTBOX_ACTIVITY_PHRASES,
+    LOOTBOX_CLAIM_TIMEOUT_SECONDS as LOOTBOX_CLAIM_TIMEOUT_SECONDS,
+    LOOTBOX_PHASE_DELAY_SECONDS as LOOTBOX_PHASE_DELAY_SECONDS,
     LOOTBOX_REVEAL_DELAY_SECONDS as LOOTBOX_REVEAL_DELAY_SECONDS,
+    LootboxClaimView as LootboxClaimView,
     MONOPOLY_JAIL_FINE_DOUGH as MONOPOLY_JAIL_FINE_DOUGH,
     MONOPOLY_ROLL_COOLDOWN_SECONDS as MONOPOLY_ROLL_COOLDOWN_SECONDS,
     MorphConfirmView as MorphConfirmView,
@@ -77,7 +80,6 @@ from .command_utils import (
     execute_gift_drop_tickets as execute_gift_drop_tickets,
     execute_gift_pull_tickets as execute_gift_pull_tickets,
     execute_gift_starter as execute_gift_starter,
-    execute_lootbox_open as execute_lootbox_open,
     execute_marry as execute_marry,
     execute_monopoly_fine as execute_monopoly_fine,
     execute_monopoly_roll as execute_monopoly_roll,
@@ -130,7 +132,9 @@ from .command_utils import (
     list_player_folders as list_player_folders,
     list_player_tags as list_player_tags,
     list_player_teams as list_player_teams,
+    lootbox_claim_prompt_description as lootbox_claim_prompt_description,
     lootbox_result_description as lootbox_result_description,
+    lootbox_rarity_flavor_description as lootbox_rarity_flavor_description,
     lootbox_suspense_description as lootbox_suspense_description,
     morph_label as morph_label,
     oven_balance_description as oven_balance_description,
@@ -146,6 +150,7 @@ from .command_utils import (
     prepare_drop as prepare_drop,
     prepare_font as prepare_font,
     prepare_frame as prepare_frame,
+    prepare_lootbox_claim as prepare_lootbox_claim,
     prepare_morph as prepare_morph,
     prepare_trade_offer as prepare_trade_offer,
     random as random,
@@ -175,7 +180,8 @@ from .command_utils import (
     _reply as _reply,
     _require_guild as _require_guild,
     _resolve_burn_selector_instances as _resolve_burn_selector_instances,
-)  # noqa: F403
+)
+from .services import execute_lootbox_open
 
 
 def register_economy_commands(bot: commands.Bot) -> None:
@@ -267,7 +273,10 @@ def register_economy_commands(bot: commands.Bot) -> None:
                 result_embed.set_image(url=image_url)
 
             if image_file is not None:
-                await suspense_message.edit(embed=result_embed, attachments=[image_file])
+                await suspense_message.edit(
+                    embed=result_embed,
+                    attachments=[image_file],
+                )
             else:
                 await suspense_message.edit(embed=result_embed)
 

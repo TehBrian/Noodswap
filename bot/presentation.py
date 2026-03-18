@@ -1,4 +1,5 @@
 import discord
+import random
 
 from .cards import card_display
 from .utils import multiline_text
@@ -632,7 +633,155 @@ def lootbox_suspense_description(activity_phrase: str) -> str:
     return multiline_text(
         [
             f"The lootbox is **{activity_phrase}**...",
-            "Rare or better cards only. Good luck.",
+            "",
+            "Rare or better cards only, and your wishes are 4x more likely to occur. Good luck.",
+        ]
+    )
+
+
+def lootbox_rarity_flavor_description(rarity: str) -> str:
+    rarity_flavor_lines: dict[str, tuple[str, ...]] = {
+        "rare": (
+            "A **Rare** signal locks in through crackling static.",
+            "The chamber hum drops into a **Rare** frequency band.",
+            "Blue sparks braid together into a **Rare** signature.",
+            "The seals jitter, then settle on a **Rare** alignment.",
+            "A **Rare** pulse echoes through the vault walls.",
+            "The scanner chirps: **Rare** energy is stabilizing.",
+            "Faint runes ignite in a **Rare** constellation.",
+            "The pressure climbs and lands on a **Rare** lock.",
+            "A clean **Rare** waveform cuts through the noise.",
+            "The mechanism clicks twice: **Rare** class confirmed.",
+        ),
+        "epic": (
+            "An **Epic** surge floods the chamber in electric light.",
+            "The vault core howls at an **Epic** resonance.",
+            "Violet arcs snap into an **Epic** containment ring.",
+            "Warning chimes spike: **Epic** energy threshold crossed.",
+            "The shell fractures along glowing **Epic** fault lines.",
+            "An **Epic** waveform bends the room around the crate.",
+            "The lockwheel spins wildly, then halts on **Epic**.",
+            "An **Epic** aura blooms like a storm front.",
+            "The chamber glass fogs with intense **Epic** heat.",
+            "Power rails overload, rerouting into **Epic** output.",
+        ),
+        "legendary": (
+            "A **Legendary** resonance tears through the chamber.",
+            "Ancient sigils awaken: **Legendary** protocol engaged.",
+            "The vault goes silent before a **Legendary** detonation.",
+            "Gold fire coils around the crate in **Legendary** spirals.",
+            "Reality stutters as a **Legendary** signature forms.",
+            "The chamber bends light into a **Legendary** halo.",
+            "Alarm systems surrender to a **Legendary** override.",
+            "A **Legendary** pulse shakes dust from the rafters.",
+            "The final seal vaporizes under **Legendary** pressure.",
+            "Time seems to stall: **Legendary** class locked.",
+        ),
+        "mythical": (
+            "A **Mythical** tide rises and drowns out every warning alarm.",
+            "Starfire threads weave into a **Mythical** crest above the crate.",
+            "The chamber floor glows with a **Mythical** sigil lattice.",
+            "A **Mythical** pulse rolls through the vault like thunder.",
+            "Runic locks fold inward under **Mythical** pressure.",
+            "The containment rings desync at a **Mythical** frequency.",
+            "An aurora of **Mythical** light spills from the seam.",
+            "The crate hums in a deep **Mythical** harmony.",
+            "Every sensor spikes: **Mythical** class anomaly detected.",
+            "The reveal matrix trembles beneath a **Mythical** signature.",
+        ),
+        "divine": (
+            "A **Divine** radiance descends and silences the chamber.",
+            "The vault bends knee to a **Divine** authority signature.",
+            "Golden arcs crown the crate with **Divine** fire.",
+            "A **Divine** chord rings out through metal and stone.",
+            "The lock glyphs ignite in a **Divine** sequence.",
+            "Containment protocols yield to **Divine** priority.",
+            "A **Divine** halo seals itself around the core.",
+            "The chamber air crackles with **Divine** verdict energy.",
+            "Warning runes rewrite themselves: **Divine** class affirmed.",
+            "Light fractures into a **Divine** prism over the vault.",
+        ),
+        "celestial": (
+            "A **Celestial** choir of signals floods the chamber ceiling.",
+            "Orbiting motes align into a **Celestial** crown.",
+            "The vault windows fill with **Celestial** starlight.",
+            "A **Celestial** wave sweeps every gauge off the scale.",
+            "The chamber rotates into a **Celestial** lock pattern.",
+            "Comet-bright arcs sketch a **Celestial** constellation.",
+            "The crate levitates under **Celestial** gravitic pull.",
+            "A **Celestial** pulse distorts the horizon line.",
+            "Skyfire cascades as **Celestial** clearance is granted.",
+            "The reveal core opens to a **Celestial** dawn.",
+        ),
+    }
+    normalized = rarity.strip().lower()
+    lines = rarity_flavor_lines.get(normalized)
+    if lines is None:
+        flavor_line = "An unusual signal is forming inside the chamber."
+    else:
+        flavor_line = random.choice(lines)
+
+    phase_two_lines: tuple[str, ...] = (
+        "Calibrating reveal coils...",
+        "Refracting chamber light...",
+        "Locking visual matrix...",
+        "Stabilizing vault pressure...",
+        "Syncing probability sensors...",
+        "Routing energy through seals...",
+        "Compiling drop signature...",
+        "Priming reveal lattice...",
+        "Cooling containment rails...",
+        "Aligning extraction beam...",
+        "Resolving rarity harmonics...",
+        "Balancing phase rotors...",
+        "Buffering reveal packet...",
+        "Decoding chamber glyphs...",
+        "Condensing aura output...",
+        "Verifying lock integrity...",
+        "Anchoring resonance points...",
+        "Preparing visual feed...",
+        "Tuning arc stabilizers...",
+        "Final checks in progress...",
+    )
+
+    return multiline_text(
+        [
+            flavor_line,
+            "",
+            random.choice(phase_two_lines),
+        ]
+    )
+
+
+def lootbox_claim_prompt_description() -> str:
+    phase_three_lines: tuple[str, ...] = (
+        "The chamber door unlocks with a metallic hiss.",
+        "A narrow beam points to the claim console.",
+        "The vault light shifts to reveal mode.",
+        "Containment rings click into standby.",
+        "The crate hum settles into a steady tone.",
+        "Arc sparks fade and the core becomes visible.",
+        "The reveal console awaits authorized input.",
+        "A green indicator blinks above the latch.",
+        "The lock wheel stops and holds position.",
+        "The chamber clears and the claim path opens.",
+        "Dust and light drift as systems settle.",
+        "Core pressure drops to safe reveal levels.",
+        "The vault confirms opener authorization.",
+        "The final seal retracts into the frame.",
+        "The scanner sweeps and marks the reward ready.",
+        "The reveal gate powers on.",
+        "The chamber UI flashes: READY.",
+        "All safeguards disengaged for claim.",
+        "The crate is ready for extraction.",
+        "A soft tone confirms reveal readiness.",
+    )
+
+    return multiline_text(
+        [
+            random.choice(phase_three_lines),
+            "",
+            "Press **Claim Reward** to reveal your card.",
         ]
     )
 

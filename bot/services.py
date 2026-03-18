@@ -31,6 +31,7 @@ from .storage import (
     get_instance_morph,
     get_instance_by_code,
     get_last_pulled_instance,
+    get_player_lootbox_keys,
     get_player_info,
     get_wishlist_cards,
     open_lootbox_with_key,
@@ -147,6 +148,17 @@ LOOTBOX_WISHLIST_WEIGHT_MULTIPLIER = 4.0
 
 
 @dataclass(frozen=True)
+class LootboxClaimPreparation:
+    error_message: Optional[str]
+    card_type_id: Optional[str]
+    generation: Optional[int]
+
+    @property
+    def is_error(self) -> bool:
+        return self.error_message is not None
+
+
+@dataclass(frozen=True)
 class LootboxOpenExecution:
     error_message: Optional[str]
     remaining_keys: int
@@ -185,20 +197,38 @@ def _choose_lootbox_card_type_id(wishlist_card_ids: set[str]) -> Optional[str]:
     return random.choices(card_type_ids, weights=weights, k=1)[0]
 
 
-def execute_lootbox_open(guild_id: int, user_id: int, now: float) -> LootboxOpenExecution:
+def prepare_lootbox_claim(guild_id: int, user_id: int) -> LootboxClaimPreparation:
+    if get_player_lootbox_keys(guild_id, user_id) <= 0:
+        return LootboxClaimPreparation(
+            error_message="You need at least 1 lootbox key to open a lootbox.",
+            card_type_id=None,
+            generation=None,
+        )
+
     wished_cards = set(get_wishlist_cards(guild_id, user_id))
     card_type_id = _choose_lootbox_card_type_id(wished_cards)
     if card_type_id is None:
-        return LootboxOpenExecution(
+        return LootboxClaimPreparation(
             error_message="Lootbox configuration error: no eligible cards.",
-            remaining_keys=0,
-            instance_id=None,
             card_type_id=None,
             generation=None,
-            card_id=None,
         )
 
-    generation = random_generation()
+    return LootboxClaimPreparation(
+        error_message=None,
+        card_type_id=card_type_id,
+        generation=random_generation(),
+    )
+
+
+def execute_lootbox_claim(
+    guild_id: int,
+    user_id: int,
+    now: float,
+    *,
+    card_type_id: str,
+    generation: int,
+) -> LootboxOpenExecution:
     opened, remaining_keys, instance_id, card_id = open_lootbox_with_key(
         guild_id,
         user_id,
@@ -223,6 +253,27 @@ def execute_lootbox_open(guild_id: int, user_id: int, now: float) -> LootboxOpen
         card_type_id=card_type_id,
         generation=generation,
         card_id=card_id,
+    )
+
+
+def execute_lootbox_open(guild_id: int, user_id: int, now: float) -> LootboxOpenExecution:
+    prepared = prepare_lootbox_claim(guild_id, user_id)
+    if prepared.is_error or prepared.card_type_id is None or prepared.generation is None:
+        return LootboxOpenExecution(
+            error_message=prepared.error_message or "Lootbox failed.",
+            remaining_keys=0,
+            instance_id=None,
+            card_type_id=None,
+            generation=None,
+            card_id=None,
+        )
+
+    return execute_lootbox_claim(
+        guild_id,
+        user_id,
+        now,
+        card_type_id=prepared.card_type_id,
+        generation=prepared.generation,
     )
 
 

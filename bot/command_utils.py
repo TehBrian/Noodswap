@@ -55,6 +55,8 @@ from .presentation import (
     flip_suspense_description,
     gift_card_result_description,
     gift_currency_description,
+    lootbox_claim_prompt_description,
+    lootbox_rarity_flavor_description,
     lootbox_result_description,
     lootbox_suspense_description,
     monopoly_board_description,
@@ -73,9 +75,11 @@ from .presentation import (
 )
 from .services import (
     execute_divorce,
+    execute_lootbox_claim,
     execute_lootbox_open,
     execute_marry,
     normalize_trade_mode,
+    prepare_lootbox_claim,
     prepare_battle_offer,
     prepare_burn,
     prepare_burn_batch,
@@ -198,6 +202,7 @@ from .views import (
     FrameConfirmView,
     HelpView,
     MorphConfirmView,
+    LootboxClaimView,
     PlayerLeaderboardView,
     SortableCardListView,
     SortableCollectionView,
@@ -758,6 +763,8 @@ MONOPOLY_ROLL_ACTIVITY_PHRASES: tuple[str, ...] = (
     "yeeting itself skyward",
 )
 LOOTBOX_REVEAL_DELAY_SECONDS = 3.0
+LOOTBOX_PHASE_DELAY_SECONDS = 1.75
+LOOTBOX_CLAIM_TIMEOUT_SECONDS = 20.0
 LOOTBOX_ACTIVITY_PHRASES: tuple[str, ...] = (
     "building suspense",
     "creaking open",

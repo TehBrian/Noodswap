@@ -31,6 +31,7 @@ from ..view_confirmations import (
 )
 from ..view_drop import DropView
 from ..view_help import HelpCategorySelect, HelpView
+from ..view_lootbox import LootboxClaimView
 from ..view_pagination import (
     FIRST_PAGE_EMOJI,
     LAST_PAGE_EMOJI,
@@ -71,6 +72,7 @@ __all__ = [
     "DropView",
     "HelpCategorySelect",
     "HelpView",
+    "LootboxClaimView",
     "FIRST_PAGE_EMOJI",
     "LAST_PAGE_EMOJI",
     "NEXT_PAGE_EMOJI",
