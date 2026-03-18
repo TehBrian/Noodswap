@@ -431,11 +431,11 @@ def cosmetic_roll_confirmation_description(
 def oven_balance_description(dough: int, starter: int, drop_tickets: int, pull_tickets: int, lootbox_keys: int) -> str:
     return multiline_text(
         [
-            f"Oven Dough: **{dough}**",
-            f"Oven Starter: **{starter}**",
-            f"Oven Drop Tickets: **{drop_tickets}**",
-            f"Oven Pull Tickets: **{pull_tickets}**",
-            f"Oven Lootbox Keys: **{lootbox_keys}**",
+            f"Dough: **{dough}**",
+            f"Starter: **{starter}**",
+            f"Drop Tickets: **{drop_tickets}**",
+            f"Pull Tickets: **{pull_tickets}**",
+            f"Lootbox Keys: **{lootbox_keys}**",
         ]
     )
 
