@@ -2352,6 +2352,50 @@ class StorageTests:
         assert int(pot_row[2]) == 5
         assert int(pot_row[3]) == 3
 
+    def test_init_db_v37_grants_one_lootbox_key_to_existing_players(self) -> None:
+        with closing(sqlite3.connect(storage.DB_PATH)) as conn:
+            with conn:
+                conn.executescript(
+                    """
+                    CREATE TABLE schema_migrations (
+                        version INTEGER NOT NULL
+                    );
+                    INSERT INTO schema_migrations(version) VALUES (36);
+
+                    CREATE TABLE players (
+                        guild_id INTEGER NOT NULL,
+                        user_id INTEGER NOT NULL,
+                        lootbox_keys INTEGER NOT NULL DEFAULT 0,
+                        oven_lootbox_keys INTEGER NOT NULL DEFAULT 0,
+                        PRIMARY KEY (guild_id, user_id)
+                    );
+
+                    INSERT INTO players (guild_id, user_id, lootbox_keys, oven_lootbox_keys)
+                    VALUES
+                        (0, 101, 0, 3),
+                        (0, 202, 4, 5);
+                    """
+                )
+
+        storage.init_db()
+
+        with closing(sqlite3.connect(storage.DB_PATH)) as conn:
+            version_row = conn.execute("SELECT version FROM schema_migrations LIMIT 1").fetchone()
+            assert version_row is not None
+            assert int(version_row[0]) == storage.TARGET_SCHEMA_VERSION
+
+            rows = conn.execute(
+                """
+                SELECT user_id, lootbox_keys, oven_lootbox_keys
+                FROM players
+                ORDER BY user_id ASC
+                """
+            ).fetchall()
+
+        assert len(rows) == 2
+        assert tuple(rows[0]) == (101, 1, 3)
+        assert tuple(rows[1]) == (202, 5, 5)
+
     def test_wishlist_add_remove_and_read(self) -> None:
         guild_id = 1
         user_id = 920

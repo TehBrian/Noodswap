@@ -3,7 +3,7 @@ import math
 import sqlite3
 import time
 
-TARGET_SCHEMA_VERSION = 36
+TARGET_SCHEMA_VERSION = 37
 _BASE36_ALPHABET = "0123456789abcdefghijklmnopqrstuvwxyz"
 
 
@@ -1240,6 +1240,29 @@ def _apply_migration_v36(conn: sqlite3.Connection) -> None:
         """)
 
 
+def _apply_migration_v37(conn: sqlite3.Connection) -> None:
+    players_table_exists = (
+        conn.execute(
+            """
+        SELECT 1
+        FROM sqlite_master
+        WHERE type = 'table' AND name = 'players'
+        LIMIT 1
+        """
+        ).fetchone()
+        is not None
+    )
+    if not players_table_exists or not _has_column(conn, "players", "lootbox_keys"):
+        return
+
+    conn.execute(
+        """
+        UPDATE players
+        SET lootbox_keys = COALESCE(lootbox_keys, 0) + 1
+        """
+    )
+
+
 def run_migrations(
     conn: sqlite3.Connection,
     *,
@@ -1428,6 +1451,11 @@ def run_migrations(
         _apply_migration_v36(conn)
         _set_schema_version(conn, 36)
         current_version = 36
+
+    if current_version < 37:
+        _apply_migration_v37(conn)
+        _set_schema_version(conn, 37)
+        current_version = 37
 
     if current_version > target_schema_version:
         raise RuntimeError(f"Database schema version {current_version} is newer than supported {target_schema_version}.")
