@@ -182,7 +182,7 @@ def test_lootbox_suspense_and_result_descriptions() -> None:
         "\n"
         "Rare or better cards only, and your wishes are 4x more likely to occur. Good luck."
     )
-    assert result == "You pulled: **Pasta Hero** • (ID: 1)\nLootbox Keys Left: **7**"
+    assert result == "You pulled: **Pasta Hero** • (ID: 1)\n\nLootbox Keys left: **7**"
 
 
 def test_monopoly_board_description() -> None:

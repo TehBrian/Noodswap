@@ -790,7 +790,8 @@ def lootbox_result_description(card_display_str: str, remaining_keys: int) -> st
     return multiline_text(
         [
             f"You pulled: {card_display_str}",
-            f"Lootbox Keys Left: **{remaining_keys}**",
+            "",
+            f"Lootbox Keys left: **{remaining_keys}**",
         ]
     )
 

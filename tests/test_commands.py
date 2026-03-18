@@ -2454,7 +2454,7 @@ class CommandsLootboxTests:
         first_embed = ctx.send.await_args.kwargs["embed"]
         assert first_embed.title == "Lootbox"
         assert "lootbox is" in first_embed.description
-        assert [call.args[0] for call in sleep_mock.await_args_list] == [3.0, 1.75]
+        assert [call.args[0] for call in sleep_mock.await_args_list] == [3.5, 3.5]
 
         assert message.edit.await_count == 2
         phase_two_embed = message.edit.await_args_list[0].kwargs["embed"]
