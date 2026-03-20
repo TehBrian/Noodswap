@@ -634,7 +634,7 @@ def lootbox_suspense_description(activity_phrase: str) -> str:
         [
             f"The lootbox is **{activity_phrase}**...",
             "",
-            "Rare or better cards only, and your wishes are 4x more likely to occur. Good luck.",
+            "Rare or better cards only, and your wishes are 6x more likely to occur. Good luck.",
         ]
     )
 

@@ -145,7 +145,7 @@ This includes:
 - if claim is not completed before timeout, the claim prompt expires and no key is consumed
 - if the same user triggers `lootbox` while one is already in flight, the second attempt is rejected immediately
 - lootbox pulls are `rare` rarity or better (`common` and `uncommon` are excluded)
-- if a pulled card is on the opener's wishlist, that card receives a 4x selection weight multiplier
+- if a pulled card is on the opener's wishlist, that card receives a 6x selection weight multiplier
 - successful result embeds include remaining lootbox key count
 
 ## Burn UX

@@ -29,7 +29,7 @@
 
 7. Lootbox weighting/race constraints are now explicit
 - `ns lootbox` consumes exactly one `lootbox key` per open, uses delayed reveal messaging, and blocks duplicate in-flight opens per user.
-- Lootbox card selection excludes `common` rarity and applies a 4x multiplier to cards that appear in the opener's wishlist.
+- Lootbox card selection excludes `common` rarity and applies a 6x multiplier to cards that appear in the opener's wishlist.
 
 ## Near-term roadmap
 

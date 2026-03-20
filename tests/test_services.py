@@ -124,7 +124,7 @@ class ServicesTests:
         args = chooser.call_args.args
         kwargs = chooser.call_args.kwargs
         assert args[0] == ["RARE", "EPIC"]
-        assert kwargs["weights"] == [4.0, 12.0]
+        assert kwargs["weights"] == [4.0, 18.0]
 
     def test_execute_lootbox_open_consumes_key_and_awards_card(self) -> None:
         guild_id = 1

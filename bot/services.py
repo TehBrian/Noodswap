@@ -144,7 +144,7 @@ def execute_drop_claim(
     )
 
 
-LOOTBOX_WISHLIST_WEIGHT_MULTIPLIER = 4.0
+LOOTBOX_WISHLIST_WEIGHT_MULTIPLIER = 6.0
 
 
 @dataclass(frozen=True)
