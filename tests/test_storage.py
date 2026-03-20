@@ -877,7 +877,7 @@ class StorageTests:
         assert pot_drop_tickets == 0
         assert pot_pull_tickets == 0
 
-    def test_monopoly_truffle_tax_costs_sixteen_percent_of_player_dough(self) -> None:
+    def test_monopoly_truffle_tax_costs_fifteen_percent_of_player_dough(self) -> None:
         guild_id = 1
         user_id = 2253
         storage.init_db()
@@ -898,13 +898,13 @@ class StorageTests:
             )
 
         assert result.status == "ok"
-        assert any("**1600 dough**" in line for line in result.lines)
+        assert any("**1500 dough**" in line for line in result.lines)
 
         player_dough, _, _ = storage.get_player_info(guild_id, user_id)
-        assert player_dough == 8400
+        assert player_dough == 8500
 
         pot_dough, pot_starter, pot_drop_tickets, pot_pull_tickets = storage.get_gambling_pot(guild_id)
-        assert pot_dough == 320
+        assert pot_dough == 300
         assert pot_starter == 0
         assert pot_drop_tickets == 0
         assert pot_pull_tickets == 0
