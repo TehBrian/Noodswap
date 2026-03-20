@@ -4,6 +4,7 @@ from dataclasses import dataclass
 import random
 
 from .cards import CARD_CATALOG, random_card_id
+from .settings import MONOPOLY_GO_REWARD_DOUGH
 
 RARITY_EPIC_OR_HIGHER = {"epic", "legendary", "mythical", "divine", "celestial"}
 
@@ -233,7 +234,7 @@ CHEESE_CHANCE_CARDS: tuple[MonopolyCard, ...] = (
         pull_tickets_delta=-2,
     ),
     MonopolyCard("Truffle futures crashed. Lose 900 dough.", dough_delta=-900),
-    MonopolyCard("Advance to GO and collect 4000 dough.", move_to=0, dough_delta=4000),
+    MonopolyCard(f"Advance to GO and collect {MONOPOLY_GO_REWARD_DOUGH} dough.", move_to=0),
     MonopolyCard("Advance to Free Parking.", move_to=20),
     MonopolyCard("Advance to the nearest Common Property.", move_to=1),
     MonopolyCard("Advance to the nearest Celestial Property.", move_to=39),

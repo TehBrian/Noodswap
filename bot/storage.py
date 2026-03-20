@@ -2140,8 +2140,18 @@ def execute_monopoly_roll(
         elif space.kind == "chance":
             card = draw_cheese_chance()
             lines.append(f'"{card.text}"')
+            chance_effects_started = False
+
+            def _ensure_chance_effect_spacing() -> None:
+                nonlocal chance_effects_started
+                if chance_effects_started:
+                    return
+                lines.append("")
+                chance_effects_started = True
+
             if card.reset_random_cooldown:
                 key = _apply_random_cooldown_reset(players, guild_id, user_id, now)
+                _ensure_chance_effect_spacing()
                 lines.append(f"{key.capitalize()} cooldown was reset.")
             if card.go_to_jail:
                 players.set_monopoly_position(guild_id, user_id, 10)
@@ -2161,16 +2171,22 @@ def execute_monopoly_roll(
                 )
             if card.move_to is not None:
                 target = card.move_to % MONOPOLY_BOARD_SIZE
-                if target < new_position:
+                moved_past_go_by_card = target < new_position
+                if moved_past_go_by_card:
                     players.add_dough(guild_id, user_id, MONOPOLY_GO_REWARD_DOUGH)
-                    lines.append(f"Moved past GO by card: **+{MONOPOLY_GO_REWARD_DOUGH} dough**")
                 new_position = target
                 players.set_monopoly_position(guild_id, user_id, target)
                 target_space = board_space(target)
                 if target_space.kind == "property":
+                    _ensure_chance_effect_spacing()
                     lines.append(f"Moved to a **{target_space.rarity}** property, rent free! 💵")
                 else:
+                    _ensure_chance_effect_spacing()
                     lines.append(f"Moved to **{target_space.name}** {target_space.emoji}.")
+                if moved_past_go_by_card:
+                    _ensure_chance_effect_spacing()
+                    go_move_label = "Moved to GO by card" if target == 0 else "Moved past GO by card"
+                    lines.append(f"{go_move_label}: **+{MONOPOLY_GO_REWARD_DOUGH} dough**")
                 if target_space.kind == "free_parking":
                     pot_dough, pot_starter, pot_drop_tickets, pot_pull_tickets = pot.get_balances(guild_id)
                     if pot_dough > 0:
@@ -2182,6 +2198,7 @@ def execute_monopoly_roll(
                     if pot_pull_tickets > 0:
                         players.add_pull_tickets(guild_id, user_id, pot_pull_tickets)
                     pot.clear(guild_id)
+                    _ensure_chance_effect_spacing()
                     lines.append("You won the jackpot! 🎉")
                     if pot_dough:
                         lines.append(f"**+{pot_dough} dough**")
